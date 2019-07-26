@@ -433,7 +433,8 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
                 "\"" + srvId + "\", " +
                 "\"" + finishedBranch + "\", " +
                 "\"" + suiteIdSelected + "\", " +
-                "\"" + row.jiraIssueId + "\"" +
+                "\"" + row.jiraIssueId + "\"," +
+                "\"\"" + // base TC branch
                 "); " +
                 replaintCall +
                 "'";

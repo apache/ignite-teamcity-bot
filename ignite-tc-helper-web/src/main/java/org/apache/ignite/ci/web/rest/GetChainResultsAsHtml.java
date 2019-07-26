@@ -81,7 +81,8 @@ public class GetChainResultsAsHtml {
             ProcessLogsMode.SUITE_NOT_COMPLETE,
             false,
             failRateBranch,
-            SyncMode.RELOAD_QUEUED);
+            SyncMode.RELOAD_QUEUED,
+            null);
 
         DsChainUi status = new DsChainUi(srvCode, tcIgn.serverCode(), ctx.branchName());
 
@@ -89,7 +90,8 @@ public class GetChainResultsAsHtml {
 
         status.chainName = ctx.suiteName();
 
-        status.initFromContext(tcIgn, ctx, failRateBranch, injector.getInstance(IStringCompactor.class), false);
+        IStringCompactor c = injector.getInstance(IStringCompactor.class);
+        status.initFromContext(tcIgn, ctx, failRateBranch, c, false, null, null, -1);
 
         res.append(showChainAtServerData(status));
 

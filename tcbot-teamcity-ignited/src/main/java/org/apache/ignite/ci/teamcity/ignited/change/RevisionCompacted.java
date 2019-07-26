@@ -21,12 +21,12 @@ import java.util.Arrays;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.xml.bind.DatatypeConverter;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.IVersionedEntity;
 import org.apache.ignite.tcbot.persistence.Persisted;
+import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcservice.model.vcs.Revision;
 import org.apache.ignite.tcservice.model.vcs.VcsRootInstance;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,7 +71,7 @@ public class RevisionCompacted implements IVersionedEntity {
 
         String ver = revision.version();
 
-        if (!Strings.isNullOrEmpty(ver)) {
+        if (!Strings.isNullOrEmpty(ver) && !"N/A".equals(ver)) {
             try {
                 this.version = DatatypeConverter.parseHexBinary(ver);
             }

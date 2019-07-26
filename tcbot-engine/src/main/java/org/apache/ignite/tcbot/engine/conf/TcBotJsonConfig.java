@@ -20,6 +20,7 @@ package org.apache.ignite.tcbot.engine.conf;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -83,15 +84,15 @@ public class TcBotJsonConfig implements ITrackedBranchesConfig {
     }
 
     public Optional<TcServerConfig> getTcConfig(String code) {
-        return tcServers.stream().filter(s -> code.equals(s.getCode())).findAny();
+        return tcServers.stream().filter(s -> Objects.equals(code, s.getCode())).findAny();
     }
 
     public Optional<JiraServerConfig> getJiraConfig(String code) {
-        return jiraServers.stream().filter(s -> code.equals(s.getCode())).findAny();
+        return jiraServers.stream().filter(s -> Objects.equals(code, s.getCode())).findAny();
     }
 
     public Optional<GitHubConfig> getGitHubConfig(String code) {
-        return gitHubConfigs.stream().filter(s -> code.equals(s.code())).findAny();
+        return gitHubConfigs.stream().filter(s -> Objects.equals(code, s.getCode())).findAny();
     }
 
     @Nullable

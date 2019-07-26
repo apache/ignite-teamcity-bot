@@ -30,6 +30,7 @@ import java.util.function.Predicate;
 
 import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
+import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcservice.model.conf.BuildType;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
@@ -42,7 +43,6 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
 import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
@@ -117,8 +117,7 @@ public class PrChainsProcessorTest {
         initBuildChainAndMasterHistory(c, btId, branch);
 
         PrChainsProcessor prcp = injector.getInstance(PrChainsProcessor.class);
-        final List<DsSuiteUi> blockers = prcp.getBlockersSuitesStatuses(btId,
-            branch, SRV_ID, mock(ITcBotUserCreds.class));
+        final List<DsSuiteUi> blockers = prcp.getBlockersSuitesStatuses(btId, branch, SRV_ID, mock(ITcBotUserCreds.class), SyncMode.RELOAD_QUEUED, null);
 
         System.out.println(blockers);
         assertNotNull(blockers);
@@ -164,8 +163,7 @@ public class PrChainsProcessorTest {
         initHistory(c);
 
         PrChainsProcessor prcp = injector.getInstance(PrChainsProcessor.class);
-        final List<DsSuiteUi> blockers = prcp.getBlockersSuitesStatuses(btId,
-            branch, SRV_ID, mock(ITcBotUserCreds.class));
+        final List<DsSuiteUi> blockers = prcp.getBlockersSuitesStatuses(btId, branch, SRV_ID, mock(ITcBotUserCreds.class), SyncMode.RELOAD_QUEUED, null);
 
         System.out.println(blockers);
 
@@ -442,7 +440,7 @@ public class PrChainsProcessorTest {
 
         PrChainsProcessor prcp = injector.getInstance(PrChainsProcessor.class);
 
-        final List<DsSuiteUi> blockers = prcp.getBlockersSuitesStatuses(btId, branch, SRV_ID, mock(ITcBotUserCreds.class));
+        final List<DsSuiteUi> blockers = prcp.getBlockersSuitesStatuses(btId, branch, SRV_ID, mock(ITcBotUserCreds.class), SyncMode.RELOAD_QUEUED, null);
 
         System.out.println(blockers);
 

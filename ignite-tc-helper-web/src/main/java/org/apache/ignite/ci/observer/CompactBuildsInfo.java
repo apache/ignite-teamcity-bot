@@ -43,6 +43,9 @@ public class CompactBuildsInfo {
     /** JIRA ticket full name. */
     private int ticket;
 
+    /** Base branch ID. By default represents null */
+    private int baseBranchForTc = -1;
+
     /** */
     private Date date;
 
@@ -62,6 +65,7 @@ public class CompactBuildsInfo {
         this.ticket = strCompactor.getStringId(buildsInfo.ticket);
         this.branchForTc = strCompactor.getStringId(buildsInfo.branchForTc);
         this.buildTypeId = strCompactor.getStringId(buildsInfo.buildTypeId);
+        this.baseBranchForTc = strCompactor.getStringId(buildsInfo.baseBranchForTc);
         this.builds.addAll(buildsInfo.getBuilds());
     }
 
@@ -182,6 +186,11 @@ public class CompactBuildsInfo {
     /** */
     public void srvId(int srvId) {
         this.srvId = srvId;
+    }
+
+    /** */
+    public int baseBranchForTc() {
+        return baseBranchForTc;
     }
 
     /** */

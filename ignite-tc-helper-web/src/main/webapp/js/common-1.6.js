@@ -164,11 +164,12 @@ function showMenu(menuData) {
         res += "</div>";
     } else {
         res += "<div class=\"navbar\">";
-        res += "<a href=\"/\">Home</a>";
+        res += "<a href=\"/\" title='Home Page'><img src='/img/leaf-icon-png-7066.png' width='16px' height='16px'></a>";
         res += "<a href=\"/prs.html\" title='PR or branch check'>PR Check</a>";
         res += "<a href=\"/guard.html\" title='Monitoring: Current test failures in tracked Branches'>Test Status</a>";
         res += "<a href=\"/trends.html\" title='Monitoring: Test failures trends and graphs'>Master Trends</a>";
         res += "<a href=\"/longRunningTestsReport.html\" title='Monitoring: Long running tests report''>Test Durations</a>";
+        res += "<a href=\"/buildtime.html\" title='Top suites time usage'>Suite Durations</a>";
         res += "<a href=\"/compare.html\" title='Compare builds tests test'>Compare builds</a>";
         res += "<a href=\"/issues.html\" title='Detected issues list'>Issues history</a>";
         res += "<a href=\"/visas.html\" title='Issued TC Bot Visa history'>Visas history</a>";

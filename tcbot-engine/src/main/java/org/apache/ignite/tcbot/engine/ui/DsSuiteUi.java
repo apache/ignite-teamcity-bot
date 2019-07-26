@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
@@ -145,6 +146,8 @@ public class DsSuiteUi extends DsHistoryStatUi {
      */
     @Nullable public String blockerComment;
 
+    public boolean success = false;
+
     /**
      * @param tcIgnited Tc ignited.
      * @param suite Suite.
@@ -152,13 +155,15 @@ public class DsSuiteUi extends DsHistoryStatUi {
      * @param compactor String Compactor.
      * @param includeTests Include tests - usually {@code true}, but it may be disabled for speeding up VISA collection.
      * @param calcTrustedTests
+     * @param maxDurationSec 0 or negative means don't indclude. has no effect if tests not included
      */
     public DsSuiteUi initFromContext(ITeamcityIgnited tcIgnited,
-                                     @Nonnull final MultBuildRunCtx suite,
-                                     @Nullable final String baseBranch,
-                                     @Nonnull IStringCompactor compactor,
-                                     boolean includeTests,
-                                     boolean calcTrustedTests) {
+        @Nonnull final MultBuildRunCtx suite,
+        @Nullable final String baseBranch,
+        @Nonnull IStringCompactor compactor,
+        boolean includeTests,
+        boolean calcTrustedTests,
+        int maxDurationSec) {
 
         name = suite.suiteName();
 
@@ -190,7 +195,10 @@ public class DsSuiteUi extends DsHistoryStatUi {
 
         Integer buildTypeIdId = suite.buildTypeIdId();
         if (includeTests) {
-            List<TestCompactedMult> tests = suite.getFailedTests();
+            List<TestCompactedMult> tests = suite.getFilteredTests(test ->
+                test.hasLongRunningTest(maxDurationSec)
+                    || test.includeIntoReport(tcIgnited, baseBranchId) );
+
             Function<TestCompactedMult, Float> function = testCompactedMult -> {
                 IRunHistory res = testCompactedMult.history(tcIgnited, baseBranchId);
 
@@ -201,6 +209,7 @@ public class DsSuiteUi extends DsHistoryStatUi {
 
             tests.forEach(occurrence -> {
                 final DsTestFailureUi failure = new DsTestFailureUi();
+
                 failure.initFromOccurrence(occurrence, tcIgnited, suite.projectId(),
                     suite.branchName(), baseBranch, baseBranchId);
                 failure.initStat(occurrence, buildTypeIdId, tcIgnited, baseBranchId, curBranchId);
@@ -209,9 +218,11 @@ public class DsSuiteUi extends DsHistoryStatUi {
             });
 
             suite.getTopLongRunning().forEach(occurrence -> {
-                final DsTestFailureUi failure = createOrrucForLongRun(tcIgnited, compactor, suite, occurrence, baseBranch);
+                if (occurrence.getAvgDurationMs() > TimeUnit.SECONDS.toMillis(15)) {
+                    final DsTestFailureUi failure = createOrrucForLongRun(tcIgnited, compactor, suite, occurrence, baseBranch);
 
-                topLongRunning.add(failure);
+                    topLongRunning.add(failure);
+                }
             });
 
             suite.getCriticalFailLastStartedTest().forEach(
@@ -240,7 +251,7 @@ public class DsSuiteUi extends DsHistoryStatUi {
             totalTests = suite.totalTests();
 
             if(calcTrustedTests)
-                trustedTests = suite.trustedTests(tcIgnited, failRateNormalizedBranch);
+                trustedTests = suite.trustedTests(tcIgnited, baseBranchId);
         }
 
         suite.getBuildsWithThreadDump().forEach(buildId -> {
@@ -259,6 +270,8 @@ public class DsSuiteUi extends DsHistoryStatUi {
         tags = suite.tags();
 
         blockerComment = suite.getPossibleBlockerComment(compactor, baseBranchHist, tcIgnited.config());
+
+        success = !suite.isFailed();
 
         return this;
     }

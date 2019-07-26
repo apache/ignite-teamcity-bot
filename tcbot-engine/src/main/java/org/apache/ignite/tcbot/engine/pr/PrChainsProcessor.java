@@ -19,7 +19,9 @@ package org.apache.ignite.tcbot.engine.pr;
 import com.google.common.base.Strings;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -29,12 +31,16 @@ import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.githubservice.IGitHubConnection;
 import org.apache.ignite.jiraignited.IJiraIgnited;
 import org.apache.ignite.jiraignited.IJiraIgnitedProvider;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
+import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
 import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
-import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
+import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
 import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
@@ -74,14 +80,16 @@ public class PrChainsProcessor {
 
     @Inject private IStringCompactor compactor;
 
+    @Inject private ITcBotConfig cfg;
+
     /**
      * @param creds Credentials.
-     * @param srvCode Server id.
+     * @param srvCodeOrAlias Server code or alias.
      * @param suiteId Suite id.
      * @param branchForTc Branch name in TC identification.
      * @param act Action.
      * @param cnt Count.
-     * @param baseBranchForTc Base branch name in TC identification.
+    * @param tcBaseBranchParm Base branch name in TC identification.
      * @param checkAllLogs Check all logs
      * @param mode TC Server Sync Mode
      * @return Test failures summary.
@@ -89,23 +97,22 @@ public class PrChainsProcessor {
     @AutoProfiling
     public DsSummaryUi getTestFailuresSummary(
         ICredentialsProv creds,
-        String srvCode,
+        String srvCodeOrAlias,
         String suiteId,
         String branchForTc,
         String act,
         Integer cnt,
-        @Nullable String baseBranchForTc,
+        @Nullable String tcBaseBranchParm,
         @Nullable Boolean checkAllLogs,
         SyncMode mode) {
         final DsSummaryUi res = new DsSummaryUi();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
-        //using here non persistent TC allows to skip update statistic
-        ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvCode, creds);
+        ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvCodeOrAlias, creds);
 
-        IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvCode);
+        IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
 
-        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCode);
+        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCodeOrAlias);
 
         res.setJavaFlags(gitHubConnIgnited.config(), jiraIntegration.config());
 
@@ -133,7 +140,7 @@ public class PrChainsProcessor {
 
         List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(suiteId, branchForTc, buildResMergeCnt);
 
-        String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? ITeamcity.DEFAULT : baseBranchForTc;
+        String baseBranchForTc = Strings.isNullOrEmpty(tcBaseBranchParm) ? dfltBaseTcBranch(srvCodeOrAlias) : tcBaseBranchParm;
 
         FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
             tcIgnited,
@@ -141,12 +148,13 @@ public class PrChainsProcessor {
             rebuild,
             logs,
             buildResMergeCnt == 1,
-            baseBranch,
-            mode);
+            baseBranchForTc,
+            mode,
+            null);
 
-        DsChainUi chainStatus = new DsChainUi(srvCode, tcIgnited.serverCode(), branchForTc);
+        DsChainUi chainStatus = new DsChainUi(srvCodeOrAlias, tcIgnited.serverCode(), branchForTc);
 
-        chainStatus.baseBranchForTc = baseBranch;
+        chainStatus.baseBranchForTc = baseBranchForTc;
 
         if (ctx.isFakeStub())
             chainStatus.setBuildNotFound(true);
@@ -157,7 +165,7 @@ public class PrChainsProcessor {
                 runningUpdates.addAndGet(cnt0);
 
             //fail rate reference is always default (master)
-            chainStatus.initFromContext(tcIgnited, ctx, baseBranch, compactor, false); // don't need for PR
+            chainStatus.initFromContext(tcIgnited, ctx, baseBranchForTc, compactor, false, null, null, -1); // don't need for PR
 
             initJiraAndGitInfo(chainStatus, jiraIntegration, gitHubConnIgnited);
         }
@@ -167,6 +175,33 @@ public class PrChainsProcessor {
         res.postProcess(runningUpdates.get());
 
         return res;
+    }
+
+    /**
+     * Gets deafault TC identified base (reference) branch
+     * @param srvCodeOrAlias TC service code or aliad
+     */
+    public String dfltBaseTcBranch(String srvCodeOrAlias) {
+        ITcServerConfig tcCfg = cfg.getTeamcityConfig(srvCodeOrAlias);
+        String dfltTrackedBranch = tcCfg.defaultTrackedBranch();
+
+        String tcRealSvc = tcCfg.reference();
+
+        Optional<ITrackedBranch> branch = cfg.getTrackedBranches().get(dfltTrackedBranch);
+
+        if (!branch.isPresent())
+            return ITeamcity.DEFAULT;
+
+        Predicate<ITrackedChain> relatedToTcFilter = chain ->
+            Objects.equals(chain.serverCode(), srvCodeOrAlias)
+                || (!Strings.isNullOrEmpty(tcRealSvc) && Objects.equals(chain.serverCode(), tcRealSvc));
+
+        Optional<ITrackedChain> chainAtSrv = branch.get().chainsStream().filter(relatedToTcFilter).findAny();
+
+        if (!chainAtSrv.isPresent())
+            return ITeamcity.DEFAULT;
+
+        return chainAtSrv.get().tcBranch();
     }
 
     /**
@@ -212,26 +247,25 @@ public class PrChainsProcessor {
     /**
      * @param buildTypeId  Build type ID, for which visa was ordered.
      * @param branchForTc Branch for TeamCity.
-     * @param srvId Server id.
+     * @param srvCodeOrAlias Server id.
      * @param prov Credentials.
+     * @param syncMode
+     * @param baseBranchForTc
      * @return List of suites with possible blockers.
      */
-    @Nullable public List<DsSuiteUi> getBlockersSuitesStatuses(String buildTypeId,
-                                                               String branchForTc,
-                                                               String srvId,
-                                                               ICredentialsProv prov) {
-        return getBlockersSuitesStatuses(buildTypeId, branchForTc, srvId, prov, SyncMode.RELOAD_QUEUED);
-    }
-
     @Nullable
-    public List<DsSuiteUi> getBlockersSuitesStatuses(String buildTypeId, String branchForTc, String srvId,
-                                                     ICredentialsProv prov, SyncMode syncMode) {
-        //using here non persistent TC allows to skip update statistic
-        ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvId, prov);
+    public List<DsSuiteUi> getBlockersSuitesStatuses(
+        String buildTypeId,
+        String branchForTc,
+        String srvCodeOrAlias,
+        ICredentialsProv prov,
+        SyncMode syncMode,
+        @Nullable String baseBranchForTc) {
+        ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvCodeOrAlias, prov);
 
         List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(buildTypeId, branchForTc, 1);
 
-        String baseBranch = ITeamcity.DEFAULT;
+        String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? dfltBaseTcBranch(srvCodeOrAlias) : baseBranchForTc;
 
         FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
             tcIgnited,
@@ -240,7 +274,8 @@ public class PrChainsProcessor {
             ProcessLogsMode.SUITE_NOT_COMPLETE,
             false,
             baseBranch,
-            syncMode);
+            syncMode,
+            null);
 
         if (ctx.isFakeStub())
             return null;
@@ -249,36 +284,43 @@ public class PrChainsProcessor {
     }
 
     /**
-     * @return Failures for given server.
+     * @return Blocker failures for given server.
      * @param fullChainRunCtx
      * @param tcIgnited
      * @param baseBranch
      */
     //todo may avoid creation of UI model for simple comment.
-    private List<DsSuiteUi> findBlockerFailures(FullChainRunCtx fullChainRunCtx, ITeamcityIgnited tcIgnited,
-                                                String baseBranch) {
+    private List<DsSuiteUi> findBlockerFailures(FullChainRunCtx fullChainRunCtx,
+        ITeamcityIgnited tcIgnited,
+        String baseBranch) {
+        String normalizedBaseBranch = RunHistSync.normalizeBranch(baseBranch);
+        Integer baseBranchId = compactor.getStringIdIfPresent(normalizedBaseBranch);
+
+        Predicate<MultBuildRunCtx> filter = suite ->
+            suite.isFailed() || suite.hasTestToReport(tcIgnited, baseBranchId);
+
         return fullChainRunCtx
-            .failedChildSuites()
+            .filteredChildSuites(filter)
             .map((ctx) -> {
-                String normalizedBaseBranch = RunHistSync.normalizeBranch(baseBranch);
-                Integer baseBranchId = compactor.getStringIdIfPresent(normalizedBaseBranch);
                 IRunHistory statInBaseBranch = ctx.history(tcIgnited, baseBranchId);
 
                 String suiteComment = ctx.getPossibleBlockerComment(compactor, statInBaseBranch, tcIgnited.config());
 
-                List<DsTestFailureUi> failures = ctx.getFailedTests().stream().map(occurrence -> {
-                    IRunHistory stat = occurrence.history(tcIgnited, baseBranchId);
-                    String testBlockerComment = TestCompactedMult.getPossibleBlockerComment(stat);
+                List<DsTestFailureUi> failures = ctx.getFilteredTests(test -> test.includeIntoReport(tcIgnited, baseBranchId))
+                    .stream()
+                    .map(occurrence -> {
+                        IRunHistory stat = occurrence.history(tcIgnited, baseBranchId);
+                        String testBlockerComment = occurrence.getPossibleBlockerComment(stat);
 
-                    if (!Strings.isNullOrEmpty(testBlockerComment)) {
-                        final DsTestFailureUi failure = new DsTestFailureUi();
+                        if (!Strings.isNullOrEmpty(testBlockerComment)) {
+                            final DsTestFailureUi failure = new DsTestFailureUi();
 
-                        failure.initFromOccurrence(occurrence, tcIgnited, ctx.projectId(), ctx.branchName(), baseBranch, baseBranchId);
+                            failure.initFromOccurrence(occurrence, tcIgnited, ctx.projectId(), ctx.branchName(), baseBranch, baseBranchId);
 
-                        return failure;
-                    }
-                    return null;
-                }).filter(Objects::nonNull).collect(Collectors.toList());
+                            return failure;
+                        }
+                        return null;
+                    }).filter(Objects::nonNull).collect(Collectors.toList());
 
 
                 // test failure based blockers and/or blocker found by suite results
@@ -287,7 +329,7 @@ public class PrChainsProcessor {
                     DsSuiteUi suiteUi = new DsSuiteUi();
                     suiteUi.testFailures = failures;
 
-                    suiteUi.initFromContext(tcIgnited, ctx, baseBranch, compactor, false, false);
+                    suiteUi.initFromContext(tcIgnited, ctx, baseBranch, compactor, false, false, -1);
 
                     return suiteUi;
                 }
@@ -297,4 +339,5 @@ public class PrChainsProcessor {
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
     }
+
 }

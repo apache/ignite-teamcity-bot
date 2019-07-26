@@ -78,13 +78,14 @@ public class BuildTimeService {
 
         long minDuration = Duration.ofMinutes(90).toMillis();
         long minDurationTimeout = Duration.ofMinutes(60).toMillis();
+        long totalDurationMs = Duration.ofHours(4).toMillis();
         int cntToInclude = 50;
         BuildTimeResult res = lastRes1d;
 
-        res.topByBuildTypes(availableServers, minDuration, cntToInclude)
+        res.topByBuildTypes(availableServers, minDuration, cntToInclude, totalDurationMs)
                 .stream().map(this::convertToUi).forEach(e -> resultUi.byBuildType.add(e));
 
-        res.topTimeoutsByBuildTypes(availableServers, minDurationTimeout, cntToInclude)
+        res.topTimeoutsByBuildTypes(availableServers, minDurationTimeout, cntToInclude, totalDurationMs)
                 .stream().map(this::convertToUi).forEach(e -> resultUi.timedOutByBuildType.add(e));
 
         return resultUi;

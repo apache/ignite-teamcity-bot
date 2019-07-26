@@ -32,6 +32,7 @@
                 <th>.</th>
                 <th>.</th>
                 <th>.</th>
+                <th>.</th>
             </tr>
         </thead>
     </table>
@@ -139,6 +140,10 @@ function showVisasTable(result) {
                 title: "Branch"
             },
             {
+                "data": "baseBranchForTc",
+                title: "Base Branch"
+            },
+            {
                 "data": "ticket",
                 title: "Ticket"
             },
@@ -170,7 +175,7 @@ function showVisasTable(result) {
 
 function loadData() {
     $.ajax({
-            url: "rest/visa/history?serverId=apache",
+            url: "rest/visa/history",
             success: function (result) {
                 showVisasTable(result);
             },

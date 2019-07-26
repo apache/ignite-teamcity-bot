@@ -8,24 +8,83 @@
           integrity="sha384-/rXc/GQVaYpyDdyxK+ecHPVYJSN9bmVFBvjA/9eOB+pb3F2w2N6fc5qB9Ew5yIns" crossorigin="anonymous">
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <!-- production version, optimized for size and speed -->
+    <!--<script src="https://cdn.jsdelivr.net/npm/vue"></script>-->
     <script src="js/common-1.6.js"></script>
     <script src="js/testfails-2.2.js"></script>
 </head>
 <body>
 <script>
     var g_shownDataHashCodeHex = "";
+    var gVue;
 
-$(document).ready(function() {
-    $.getScript("js/testfails-2.2.js", function(data, textStatus, jqxhr){ });
+    function showQueryForm() {
+        let baseBranchForTc = findGetParameter("baseBranchForTc");
 
-    $( document ).tooltip();
-    loadData();
-     //todo fix setInterval(checkForUpdate, 30000);
+        gVue = new Vue({
+            el: '#vueQueryForm',
+            data: {
+                baseBranchSelected: baseBranchForTc == null ? '' : baseBranchForTc,
+                tcBranchesForSrv: []
+            },
+            methods: {
+                formChanged: function () {
+                    updateHistory();
 
-    var branch = findGetParameter("branch");
+                    loadData();
+                }
+            }
+        });
 
-    $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
-});
+        let srvCode = findGetParameter("serverId");
+        $.ajax({
+            url: "/rest/branches/tcBranches?srvCode=" + (srvCode == null ? "" : srvCode),
+            success: function (result) {
+                for (var i = 0; i < result.length; i++) {
+                    var id = result[i];
+                    gVue.$data.tcBranchesForSrv.push(id);
+                }
+
+                if (baseBranchForTc != null && !Vue.$data.tcBranchesForSrv.contains(baseBranchForTc)) {
+                    gVue.$data.tcBranchesForSrv.push(baseBranchForTc);
+                    gVue.$data.baseBranchSelected = baseBranchForTc;
+                }
+            },
+            error: showErrInLoadStatus
+        });
+    }
+
+    $(document).ready(function () {
+        $.getScript("js/testfails-2.2.js", function (data, textStatus, jqxhr) {});
+
+        $(document).tooltip();
+        showQueryForm();
+        loadData();
+        //todo fix setInterval(checkForUpdate, 30000);
+
+        var branch = findGetParameter("branch");
+
+        $.ajax({url: "rest/branches/version", success: showVersionInfo, error: showErrInLoadStatus});
+    });
+
+function updateHistory() {
+    if (URL) {
+        let url = new URL(location);
+        let searchParams = new URLSearchParams(url.search);
+        let baseBranchForTc = gVue.$data.baseBranchSelected;
+
+        if (baseBranchForTc != null && baseBranchForTc != '' && baseBranchForTc != '<default>')
+            searchParams.set("baseBranchForTc", baseBranchForTc);
+        else
+            searchParams.delete("baseBranchForTc");
+
+        url.search = searchParams.toString();
+
+        history.replaceState(null, null, url.toString());
+    }
+}
 
 function parmsForRest() {
     var curReqParms = "";
@@ -54,7 +113,7 @@ function parmsForRest() {
         curReqParms += "&count=" + count;
     }
 
-    var baseBranchForTc = findGetParameter("baseBranchForTc");
+    var baseBranchForTc =  gVue.$data.baseBranchSelected;
     if(baseBranchForTc != null) {
         curReqParms += "&baseBranchForTc=" + baseBranchForTc;
     }
@@ -150,11 +209,25 @@ function showData(result) {
 }
 </script>
 
-<div id="loadStatus"></div>
-<div><a href=".">Home</a><br></div>
-<div id="divFailures"></div>
+<div id="vueQueryForm">
+    <v-app id="prQueryForm" name="prQueryForm">
+        <div class="formgroup">
+            <span>Base branch: </span>
+            <select v-model="baseBranchSelected" @change="formChanged">
+                <option disabled value="">Please select one</option>
+
+                <option v-for="option in tcBranchesForSrv" v-bind:value="option">
+                    {{ option }}
+                </option>
+            </select>
+            &nbsp;&nbsp;
+            <span id="loadStatus"></span>
+        </div>
+        <div id="divFailures"></div>
+    </v-app>
+</div>
 
 <div id="version"></div>
-<div style="visibility:none"><div id="triggerConfirm" title="Trigger Confirmation"></div><div id="triggerDialog" title="Trigger Result"></div></div>
+<div style="visibility:hidden"><div id="triggerConfirm" title="Trigger Confirmation"></div><div id="triggerDialog" title="Trigger Result"></div></div>
 </body>
 </html>

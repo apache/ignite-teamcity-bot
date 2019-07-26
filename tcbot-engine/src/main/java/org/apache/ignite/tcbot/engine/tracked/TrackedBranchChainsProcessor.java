@@ -28,6 +28,7 @@ import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
 import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
+import org.apache.ignite.tcbot.engine.chain.SortOption;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
@@ -57,6 +58,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
     /** Compactor. */
     @Inject private IStringCompactor compactor;
 
+    /** {@inheritDoc} */
     @AutoProfiling
     @Nonnull
     @Override public DsSummaryUi getTrackedBranchTestFailures(
@@ -65,7 +67,11 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         int buildResMergeCnt,
         ICredentialsProv creds,
         SyncMode syncMode,
-        boolean calcTrustedTests) {
+        boolean calcTrustedTests,
+        @Nullable String tagSelected,
+        @Nullable DisplayMode displayMode,
+        @Nullable SortOption sortOption,
+        int maxDurationSec) {
         final DsSummaryUi res = new DsSummaryUi();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
@@ -113,14 +119,15 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
                     logs,
                     includeScheduled,
                     baseBranchTc,
-                    syncMode
+                    syncMode,
+                    sortOption
                 );
 
                 int cnt = (int)ctx.getRunningUpdates().count();
                 if (cnt > 0)
                     runningUpdates.addAndGet(cnt);
 
-                chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor, calcTrustedTests);
+                chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor, calcTrustedTests, tagSelected, displayMode, maxDurationSec);
 
                 return chainStatus;
             })

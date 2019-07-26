@@ -184,8 +184,10 @@ public class ObserverTask extends TimerTask {
                 Visa visa = visasHistStorage.getLastVisaRequest(info.getContributionKey()).getResult();
 
                 if (!visa.isSuccess()) {
+                    String baseBranchForTc = info.baseBranchForTc;
+
                     Visa updatedVisa = visaIssuer.notifyJira(info.srvId, creds, info.buildTypeId,
-                        info.branchForTc, info.ticket);
+                        info.branchForTc, info.ticket, baseBranchForTc);
 
                     visasHistStorage.updateLastVisaRequest(info.getContributionKey(), (req -> req.setResult(updatedVisa)));
 

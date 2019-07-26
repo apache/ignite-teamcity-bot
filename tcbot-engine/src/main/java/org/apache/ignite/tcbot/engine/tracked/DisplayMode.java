@@ -14,23 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.tcbot.engine.tracked;
 
-package org.apache.ignite.tcbot.engine.chain;
+import com.google.common.base.Strings;
 
-import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
-import org.apache.ignite.tcignited.history.IRunHistory;
+public enum DisplayMode {
+    /** Technical mode for skipping UI conversions. */ None("None"),
+    /** Show only  Failures. */ OnlyFailures("Failures"),
+    /** Show all suites. */ ShowAllSuites("AllSuites");
 
-/**
- * Multiple test occurrence. For single build context - max 1 failure
- */
-public interface IMultTestOccurrence {
-    public String getName();
+    private String name;
 
-    public boolean isInvestigated();
+    DisplayMode(String name) {
+        this.name = name;
+    }
 
-    public int failuresCount();
+    public static DisplayMode parseStringValue(String v) {
+        if (Strings.isNullOrEmpty(v))
+            return OnlyFailures;
+        DisplayMode[] values = DisplayMode.values();
 
-    public long getAvgDurationMs();
+        for (int i = 0; i < values.length; i++) {
+            DisplayMode val = values[i];
+            if (val.name.equals(v))
+                return val;
+        }
 
-    Iterable<TestOccurrenceFull> getOccurrences();
+        return OnlyFailures;
+    }
 }

@@ -22,6 +22,7 @@ import com.google.inject.Injector;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
@@ -38,10 +39,13 @@ import org.apache.ignite.ci.tcbot.TcBotGeneralService;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranchesConfig;
+import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.Version;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Service for returning tracked branches, servers, and the bot version.
@@ -67,18 +71,22 @@ public class GetTrackedBranches {
     @GET
     @Path("getIds")
     public List<String> getIdsIfAccessible() {
+        Stream<ITrackedBranch> stream = accessibleTrackedBranches();
+        return stream
+                .map(ITrackedBranch::name)
+                .collect(Collectors.toList());
+    }
+
+    @NotNull public Stream<ITrackedBranch> accessibleTrackedBranches() {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
         Injector injector = CtxListener.getInjector(ctx);
         ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
         ITeamcityIgnitedProvider tcProv = injector.getInstance(ITeamcityIgnitedProvider.class);
 
         return cfg.getTrackedBranches().branchesStream()
-                .filter(bt ->
-                        bt.chainsStream().anyMatch(chain-> tcProv.hasAccess(chain.serverCode(), prov)))
-                .map(ITrackedBranch::name)
-                .collect(Collectors.toList());
+            .filter(bt ->
+                bt.chainsStream().anyMatch(chain -> tcProv.hasAccess(chain.serverCode(), prov)));
     }
-
 
     /**
      * Get Unique suites involved into tracked branches
@@ -108,7 +116,7 @@ public class GetTrackedBranches {
             .stream()
             .filter(chainAtSrv ->
                 Strings.isNullOrEmpty(srvId)
-                    || srvId.equals(chainAtSrv.serverId))
+                    || srvId.equals(chainAtSrv.getServerId()))
             .filter(chainAtServer -> tcProv.hasAccess(chainAtServer.serverId, prov))
             .collect(Collectors.toSet());
     }
@@ -130,4 +138,26 @@ public class GetTrackedBranches {
             .collect(Collectors.toSet());
     }
 
+
+    /**
+     * Finds all registere unique teamcity branches.
+     * @param srvCodeOrAlias Server code or its alisas.
+     */
+    @GET
+    @Path("tcBranches")
+    public Set<String> tcBranches(@Nullable @QueryParam("srvCode") String srvCodeOrAlias) {
+        ITeamcityIgnited srv = CtxListener.getInjector(ctx)
+            .getInstance(ITeamcityIgnitedProvider.class)
+            .server(srvCodeOrAlias, ITcBotUserCreds.get(req));
+
+        String srvCode = srv.serverCode();
+
+        return accessibleTrackedBranches()
+            .flatMap(tb -> {
+                return tb.chainsStream().filter(tc ->
+                    Strings.isNullOrEmpty(srvCode)
+                        || srvCode.equals(tc.serverCode()));
+            })
+            .map(ITrackedChain::tcBranch).collect(Collectors.toSet());
+    }
 }

@@ -82,7 +82,7 @@ public class HistoryCollector {
     @Inject private BranchEquivalence branchEquivalence;
 
     /** Run history DAO. */
-    @Inject private RunHistCompactedDao runHistCompactedDao;
+    @Inject private BuildStartTimeStorage buildStartTimeStorage;
 
     /**
      * Non persistence cache for all suite RunHistory for particular branch. RunHistKey(ServerId||BranchId||suiteId)->
@@ -96,7 +96,7 @@ public class HistoryCollector {
         .build();
 
     /** Biggest build ID, which out of history scope (MAX days + 2). */
-    private final ConcurrentMap<Integer, AtomicInteger> biggestBuildIdOutOfHistoryScope = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Integer, AtomicInteger> biggestBuildIdOutOfHistScope = new ConcurrentHashMap<>();
 
     /**
      * @param srvIdMaskHigh Server id mask to be placed at high bits in the key.
@@ -152,7 +152,7 @@ public class HistoryCollector {
                 return b.id() > outOfScopeBuildId;
                 */
 
-                Integer maxBuildIdForDay = runHistCompactedDao.getBorderForAgeForBuildId(srvId, TcBotConst.HISTORY_BUILD_ID_BORDER_DAYS);
+                Integer maxBuildIdForDay = buildStartTimeStorage.getBorderForAgeForBuildId(srvId, TcBotConst.HISTORY_BUILD_ID_BORDER_DAYS);
 
                 if (maxBuildIdForDay == null)
                     return true;
@@ -178,7 +178,7 @@ public class HistoryCollector {
 
             buildStartTimes.putAll(buildStartTimeFromFatBuild);
 
-            runHistCompactedDao.setBuildsStartTime(srvId, buildStartTimeFromFatBuild);
+            buildStartTimeStorage.setBuildsStartTime(srvId, buildStartTimeFromFatBuild);
         }
 
         Set<Integer> buildInScope = buildIds.stream().filter(
@@ -190,7 +190,7 @@ public class HistoryCollector {
                 long ageInDays = Duration.ofMillis(curTs - startTime).toDays();
 
                 if (ageInDays > TcBotConst.HISTORY_BUILD_ID_BORDER_DAYS) {
-                    AtomicInteger integer = biggestBuildIdOutOfHistoryScope.computeIfAbsent(srvId,
+                    AtomicInteger integer = biggestBuildIdOutOfHistScope.computeIfAbsent(srvId,
                         s -> {
                             AtomicInteger atomicInteger = new AtomicInteger();
                             atomicInteger.set(-1);
@@ -216,7 +216,7 @@ public class HistoryCollector {
     @SuppressWarnings("WeakerAccess")
     @AutoProfiling
     protected Map<Integer, Long> getStartTimeFromSpecialCache(int srvId, Set<Integer> buildIds) {
-        return runHistCompactedDao.getBuildsStartTime(srvId, buildIds);
+        return buildStartTimeStorage.getBuildsStartTime(srvId, buildIds);
     }
 
     @SuppressWarnings("WeakerAccess")
@@ -344,7 +344,7 @@ public class HistoryCollector {
      * @param buildId Build id.
      */
     public Long getBuildStartTime(int srvId, int buildId) {
-        Long time = runHistCompactedDao.getBuildStartTime(srvId, buildId);
+        Long time = buildStartTimeStorage.getBuildStartTime(srvId, buildId);
 
         if (time != null)
             return time;
@@ -352,7 +352,7 @@ public class HistoryCollector {
         time = fatBuildDao.getBuildStartTime(srvId, buildId);
 
         if (time != null)
-            runHistCompactedDao.setBuildStartTime(srvId, buildId, time);
+            buildStartTimeStorage.setBuildStartTime(srvId, buildId, time);
 
         return time;
     }
@@ -369,7 +369,7 @@ public class HistoryCollector {
         allServers.stream()
                 .map(ITeamcityIgnited::serverIdToInt)
                 .forEach(srvId -> {
-                    Integer borderForAgeForBuildId = runHistCompactedDao.getBorderForAgeForBuildId(srvId, days);
+                    Integer borderForAgeForBuildId = buildStartTimeStorage.getBorderForAgeForBuildId(srvId, days);
                     if (borderForAgeForBuildId != null)
                         preBorder.put(srvId, borderForAgeForBuildId);
                 });
@@ -402,7 +402,7 @@ public class HistoryCollector {
 
                 int buildId = BuildRefDao.cacheKeyToBuildId(key);
 
-                Integer borderBuildId = runHistCompactedDao.getBorderForAgeForBuildId(srvId, days);
+                Integer borderBuildId = buildStartTimeStorage.getBorderForAgeForBuildId(srvId, days);
 
                 boolean passesDate = borderBuildId == null || buildId >= borderBuildId;
 

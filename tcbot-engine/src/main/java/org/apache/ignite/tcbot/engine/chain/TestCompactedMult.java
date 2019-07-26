@@ -20,6 +20,7 @@ package org.apache.ignite.tcbot.engine.chain;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
@@ -30,32 +31,39 @@ import org.apache.ignite.tcignited.history.IRunHistSummary;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.IRunStat;
 import org.apache.ignite.tcignited.history.ISuiteRunHistory;
+import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
 
 /**
  * Test occurrence merged from several runs.
  */
-public class TestCompactedMult implements IMultTestOccurrence {
+public class TestCompactedMult {
     private final List<TestCompacted> occurrences = new ArrayList<>();
     private IStringCompactor compactor;
     private MultBuildRunCtx ctx;
     private long avgDuration = -1;
 
+    /** Status success. */
+    private static volatile int STATUS_SUCCESS = -1;
+
     public TestCompactedMult(IStringCompactor compactor, MultBuildRunCtx ctx) {
         this.compactor = compactor;
         this.ctx = ctx;
+
+        //Each time compactor should give same result
+        if (STATUS_SUCCESS == -1)
+            STATUS_SUCCESS = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
     }
 
     @Nullable public Integer testName() {
         return occurrences.isEmpty() ? null : occurrences.iterator().next().testName();
     }
-    /** {@inheritDoc} */
-    @Override public String getName() {
+    
+    public String getName() {
         return occurrences.isEmpty() ? "" : occurrences.iterator().next().testName(compactor);
     }
-
-    /** {@inheritDoc} */
-    @Override public boolean isInvestigated() {
+ 
+    public boolean isInvestigated() {
         return occurrences.stream().anyMatch(TestCompacted::isInvestigated);
     }
 
@@ -63,16 +71,14 @@ public class TestCompactedMult implements IMultTestOccurrence {
     private int getFailedButNotMutedCount() {
         return (int)occurrences.stream()
             .filter(Objects::nonNull)
-            .filter(t -> t.isFailedButNotMuted(compactor)).count();
+            .filter(t -> t.isFailedButNotMuted(STATUS_SUCCESS)).count();
     }
 
-    /** {@inheritDoc} */
-    @Override public int failuresCount() {
+    public int failuresCount() {
         return getFailedButNotMutedCount();
     }
 
-    /** {@inheritDoc} */
-    @Override public long getAvgDurationMs() {
+    public long getAvgDurationMs() {
         if (avgDuration < 0) {
             avgDuration = (long)occurrences.stream()
                 .map(TestCompacted::getDuration)
@@ -85,8 +91,8 @@ public class TestCompactedMult implements IMultTestOccurrence {
         return avgDuration;
     }
 
-    /** {@inheritDoc} */
-    @Override public Iterable<TestOccurrenceFull> getOccurrences() {
+
+    public Iterable<TestOccurrenceFull> getOccurrences() {
         return occurrences.stream()
             .map(testCompacted -> testCompacted.toTestOccurrence(compactor, 0))
             .collect(Collectors.toList());
@@ -96,7 +102,19 @@ public class TestCompactedMult implements IMultTestOccurrence {
       * @param baseBranchStat Base branch statistics.
       * @return non null comment in case test failure is a blocker for merge into base branch.
       */
-     public static String getPossibleBlockerComment(IRunHistSummary baseBranchStat) {
+     public String getPossibleBlockerComment(IRunHistSummary baseBranchStat) {
+         if (failuresCount() == 0) {
+             if (baseBranchStat == null) {
+                 long durationMs = getAvgDurationMs();
+                 if (durationMs > TcBotConst.MAX_NEW_TEST_DURATION_FOR_RUNALL_MS)
+                     return "New test duration " +
+                         TimeUnit.MILLISECONDS.toSeconds(durationMs) + "s" +
+                         " is more that 1 minute";
+             }
+
+             return null;
+         }
+
          if (baseBranchStat == null)
              return "History for base branch is absent.";
 
@@ -131,5 +149,43 @@ public class TestCompactedMult implements IMultTestOccurrence {
             return null;
 
         return suiteRunHist.getTestRunHist(name);
+    }
+
+    /**
+     */
+    public boolean isFailedButNotMuted() {
+        return occurrences.stream().anyMatch(o -> o.isFailedButNotMuted(STATUS_SUCCESS));
+    }
+
+    /**
+     *
+     */
+    public boolean isMutedOrIgored() {
+        return occurrences.stream().anyMatch(TestCompacted::isMutedOrIgnored);
+    }
+
+    /**
+     * Filter to determine if this test execution should be shown in the report of failures.
+     *
+     * @param tcIgnited Tc ignited.
+     * @param baseBranchId Base branch id.
+     */
+    public boolean includeIntoReport(ITeamcityIgnited tcIgnited, Integer baseBranchId) {
+        if (isFailedButNotMuted())
+            return true;
+
+        boolean longRun = getAvgDurationMs() > TcBotConst.MAX_NEW_TEST_DURATION_FOR_RUNALL_MS;
+
+        if (longRun)
+            return history(tcIgnited, baseBranchId) == null;
+
+        return false;
+    }
+
+    public boolean hasLongRunningTest(int sec) {
+        if (sec < 1)
+            return false;
+
+        return getAvgDurationMs() > TimeUnit.SECONDS.toMillis(sec);
     }
 }

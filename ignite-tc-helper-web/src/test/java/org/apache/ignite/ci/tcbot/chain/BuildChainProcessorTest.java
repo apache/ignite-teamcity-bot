@@ -87,7 +87,7 @@ public class BuildChainProcessorTest {
 
         FullChainRunCtx ctx = bcp.loadFullChainContext(tcIgnited,
             entry,
-            LatestRebuildMode.ALL, ProcessLogsMode.SUITE_NOT_COMPLETE, false, ITeamcity.DEFAULT, SyncMode.NONE);
+            LatestRebuildMode.ALL, ProcessLogsMode.SUITE_NOT_COMPLETE, false, ITeamcity.DEFAULT, SyncMode.NONE, null);
         List<MultBuildRunCtx> suites = ctx.failedChildSuites().collect(Collectors.toList());
 
         assertTrue(!suites.isEmpty());
@@ -100,7 +100,7 @@ public class BuildChainProcessorTest {
             else
                 assertTrue(suite.failedTests() >= 1);
 
-            for (IMultTestOccurrence test : suite.getFailedTests()) {
+            for (TestCompactedMult test : suite.getFailedTests()) {
                 if (test.getName().startsWith(UNIQUE_FAILED_TEST))
                     assertEquals(1, test.failuresCount());
                 else if (test.getName().equals(TEST_FAILING_EVERY_TIME))
@@ -123,7 +123,7 @@ public class BuildChainProcessorTest {
 
         FullChainRunCtx ctx2 = bcp.loadFullChainContext(tcIgnited,
             entry,
-            LatestRebuildMode.ALL, ProcessLogsMode.SUITE_NOT_COMPLETE, false, ITeamcity.DEFAULT, SyncMode.NONE);
+            LatestRebuildMode.ALL, ProcessLogsMode.SUITE_NOT_COMPLETE, false, ITeamcity.DEFAULT, SyncMode.NONE, null);
         List<MultBuildRunCtx> suites2 = ctx2.failedChildSuites().collect(Collectors.toList());
 
         assertTrue(!suites2.isEmpty());
@@ -132,7 +132,7 @@ public class BuildChainProcessorTest {
             System.out.println(suite.getFailedTestsNames().collect(Collectors.toList()));
 
             if (suite.suiteName() != null && suite.suiteName().startsWith(UNIQUE_FAILED_TEST)) {
-                for (IMultTestOccurrence test : suite.getFailedTests())
+                for (TestCompactedMult test : suite.getFailedTests())
                     fail("Failure found but should be hidden by re-run " + test.getName());
             }
         }
@@ -153,7 +153,7 @@ public class BuildChainProcessorTest {
 
         FullChainRunCtx ctx = bcp.loadFullChainContext(tcIgnitedMock(builds),
             entry,
-            LatestRebuildMode.LATEST, ProcessLogsMode.SUITE_NOT_COMPLETE, false, ITeamcity.DEFAULT, SyncMode.NONE);
+            LatestRebuildMode.LATEST, ProcessLogsMode.SUITE_NOT_COMPLETE, false, ITeamcity.DEFAULT, SyncMode.NONE, null);
         List<MultBuildRunCtx> suites = ctx.failedChildSuites().collect(Collectors.toList());
 
         assertTrue(!suites.isEmpty());

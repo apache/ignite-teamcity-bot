@@ -62,10 +62,8 @@ import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.tcignited.buildref.BuildRefSync;
 import org.apache.ignite.tcignited.history.HistoryCollector;
 import org.apache.ignite.tcignited.history.IRunHistory;
-import org.apache.ignite.tcignited.history.IRunStat;
 import org.apache.ignite.tcignited.history.ISuiteRunHistory;
-import org.apache.ignite.tcignited.history.RunHistCompactedDao;
-import org.apache.ignite.tcignited.history.RunHistSync;
+import org.apache.ignite.tcignited.history.BuildStartTimeStorage;
 import org.apache.ignite.tcignited.history.SuiteInvocationHistoryDao;
 import org.apache.ignite.tcignited.mute.MuteDao;
 import org.apache.ignite.tcignited.mute.MuteSync;
@@ -139,10 +137,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     @Inject private BuildTypeSync buildTypeSync;
 
     /** Run history DAO. */
-    @Inject private RunHistCompactedDao runHistCompactedDao;
-
-    /** Run history sync. */
-    @Inject private RunHistSync runHistSync;
+    @Inject private BuildStartTimeStorage buildStartTimeStorage;
 
     /** Logger check result DAO. */
     @Inject private BuildLogCheckResultDao logCheckResDao;
@@ -172,7 +167,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         buildConditionDao.init();
         fatBuildDao.init();
         changesDao.init();
-        runHistCompactedDao.init();
+        buildStartTimeStorage.init();
         muteDao.init();
         logCheckResDao.init();
         histDao.init();
@@ -425,19 +420,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
-    @Nullable
-    @Override public IRunHistory getTestRunHist(String testName, @Nullable String branch) {
-        return runHistCompactedDao.getTestRunHist(srvIdMaskHigh, testName, branch);
-    }
-
-    /** {@inheritDoc} */
-    @Nullable
-    @AutoProfiling
-    @Override public IRunHistory getSuiteRunHist(String suiteId, @Nullable String branch){
-        return runHistCompactedDao.getSuiteRunHist(srvIdMaskHigh, suiteId, branch);
-    }
-
-    /** {@inheritDoc} */
     @Nullable @Override public ISuiteRunHistory getSuiteRunHist(@Nullable Integer buildTypeId, @Nullable Integer normalizedBaseBranch) {
         if (buildTypeId == null || normalizedBaseBranch == null)
             return null;
@@ -458,11 +440,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             return null;
 
         return histCollector.getTestRunHist(srvIdMaskHigh, testName, buildTypeId, normalizedBaseBranch);
-    }
-
-    /** {@inheritDoc} */
-    @Nullable @Override public IRunStat getSuiteRunStatAllBranches(String suiteBuildTypeId) {
-        return runHistCompactedDao.getSuiteRunStatAllBranches(srvIdMaskHigh, suiteBuildTypeId);
     }
 
     /** {@inheritDoc} */
@@ -512,9 +489,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         // schedule find missing later
         fatBuildSync.ensureActualizationRequested(srvCode, conn);
-
-        //todo remove unused code
-        // runHistSync.invokeLaterFindMissingHistory(srvCode);
     }
 
     /** {@inheritDoc} */
@@ -570,7 +544,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         long ts = highBuild.getStartDateTs();
 
         if (ts > 0) {
-            runHistCompactedDao.setBuildStartTime(srvIdMaskHigh, buildId, ts);
+            buildStartTimeStorage.setBuildStartTime(srvIdMaskHigh, buildId, ts);
 
             return ts;
         } else

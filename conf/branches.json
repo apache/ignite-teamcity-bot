@@ -5,13 +5,6 @@
   "tcServers": [
     {
       /* Service Code for internal identification */
-      "code": "public",
-
-      // reference to another TC server service code to be used instead.
-      "reference": "apache"
-    },
-    {
-      /* Service Code for internal identification */
       "code": "apache",
       /** Teamcity Host, HTTPs is highly recommended because of Basic Auth used.*/
       "host": "https://ci.ignite.apache.org/",

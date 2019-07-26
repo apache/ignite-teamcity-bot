@@ -2,13 +2,23 @@
 <head>
     <title>Apache Ignite Teamcity Bot - Current Failures</title>
     <link rel="icon" href="img/leaf-icon-png-7066.png">
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-    <link rel="stylesheet" href="css/style-1.5.css">
+
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.2/css/all.css"
           integrity="sha384-/rXc/GQVaYpyDdyxK+ecHPVYJSN9bmVFBvjA/9eOB+pb3F2w2N6fc5qB9Ew5yIns" crossorigin="anonymous">
 
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+    <!--<link href="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.min.css" rel="stylesheet">-->
+
+    <link rel="stylesheet" href="css/vue-slider-1.0.css">
+
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="css/style-1.5.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.js"></script>
 
     <script src="js/common-1.6.js"></script>
     <script src="js/testfails-2.2.js"></script>
@@ -16,11 +26,112 @@
 <body>
 <script>
 var g_shownDataHashCodeHex = "";
+var gVue;
+
+function genLink() {
+    let newUrl = "./current.html" + parmsForRest();
+
+    let permalink = $("#permalink");
+    permalink.attr("href", newUrl);
+
+    permalink.html("Permalink");
+}
+
+function showQueryForm() {
+    let min, max;
+
+    let minFailRate = findGetParameter("minFailRate");
+    if (minFailRate != null) {
+        min = parseInt(minFailRate);
+    } else {
+        min = 0;
+    }
+
+    let maxFailRate = findGetParameter("maxFailRate");
+    if (maxFailRate != null) {
+        max = parseInt(maxFailRate);
+    } else {
+        max = 100;
+    }
+
+
+    gVue = new Vue({
+        el: '#vueQueryForm',
+        vuetify: new Vuetify(),
+        data: {
+            tagSelected: '',
+            tagsPresent: [""],
+            displayMode: 'Failures',
+            sortOption: 'FailureRate',
+            //count of builds to merge
+            count: 1,
+            trustedTests: true,
+            checkAllLogs: false,
+            hideFlakyFailures: false,
+
+            absMinFailRate: 0,
+            absMaxFailRate: 100,
+            failRateRange: [min, max],
+
+            showTestLongerThan: '',
+
+            tagForHistorySelected: '',
+            tagsForHistoryPresent: []
+        },
+        methods: {
+            formChanged: function () {
+                if (count < 1)
+                    count = 1;
+
+                loadData();
+                genLink();
+            }
+        }
+    });
+
+    let tagSelected = findGetParameter("tagSelected");
+    if (tagSelected != null) {
+        gVue.$data.tagsPresent.push(tagSelected);
+        gVue.$data.tagSelected = tagSelected;
+    }
+
+    let displayMode = findGetParameter("displayMode");
+    if (displayMode != null) {
+        gVue.$data.displayMode = displayMode;
+    }
+
+    let sortOption = findGetParameter("sortOption");
+    if (sortOption != null) {
+        gVue.$data.sortOption = sortOption;
+    }
+
+    let count = findGetParameter("count");
+    if (count != null) {
+        gVue.$data.count = count;
+    }
+
+    gVue.$data.trustedTests = findGetParameter("trustedTests") === "true";
+    gVue.$data.checkAllLogs = findGetParameter("checkAllLogs") === "true";
+    gVue.$data.hideFlakyFailures = findGetParameter("hideFlakyFailures") === "true";
+
+    let showTestLongerThan = findGetParameter("showTestLongerThan");
+    if (showTestLongerThan != null)
+        gVue.$data.showTestLongerThan = showTestLongerThan;
+
+    let tagForHistorySelected = findGetParameter("tagForHistorySelected");
+    if (tagForHistorySelected != null) {
+        gVue.$data.tagsForHistoryPresent.push(tagForHistorySelected);
+        gVue.$data.tagForHistorySelected = tagForHistorySelected;
+    }
+
+    genLink();
+}
 
 $(document).ready(function() {
     $.getScript("js/testfails-2.2.js", function(data, textStatus, jqxhr){ });
     
     $( document ).tooltip();
+    showQueryForm();
     loadData();
 
     $.ajax({ url: "/rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
@@ -28,20 +139,49 @@ $(document).ready(function() {
 
 function parmsForRest() {
     var curReqParms = "";
+
     var branch = findGetParameter("branch");
-    if (branch != null) {
-        curReqParms += "?branch=" + branch;
+    curReqParms += "?branch=" + (branch != null ? branch : "master");
+
+    if (gVue.$data.checkAllLogs != null) {
+        curReqParms += "&checkAllLogs=" + gVue.$data.checkAllLogs;
     }
 
-    var checkAllLogs = findGetParameter("checkAllLogs");
-    if (checkAllLogs != null) {
-        curReqParms += "&checkAllLogs=" + checkAllLogs;
+    if (gVue.$data.trustedTests != null) {
+        curReqParms += "&trustedTests=" + gVue.$data.trustedTests;
     }
 
-    var trustedTests = findGetParameter("trustedTests");
-    if (trustedTests != null) {
-        curReqParms += "&trustedTests=" + trustedTests;
+    var tagSelected = gVue.$data.tagSelected;
+    if (tagSelected != null) {
+        curReqParms += "&tagSelected=" + tagSelected;
     }
+
+    var displayMode = gVue.$data.displayMode;
+    if (displayMode != null) {
+        curReqParms += "&displayMode=" + displayMode;
+    }
+
+    var sortOption = gVue.$data.sortOption;
+    if (sortOption != null) {
+        curReqParms += "&sortOption=" + sortOption;
+    }
+
+    if (gVue.$data.count != null)
+        curReqParms += "&count=" + gVue.$data.count;
+
+    if (gVue.$data.failRateRange[0] != null)
+        curReqParms += "&minFailRate=" + gVue.$data.failRateRange[0];
+
+    if (gVue.$data.failRateRange[1] != null)
+        curReqParms += "&maxFailRate=" + gVue.$data.failRateRange[1];
+
+    curReqParms += "&hideFlakyFailures=" + gVue.$data.hideFlakyFailures;
+
+    if (gVue.$data.tagForHistorySelected != null)
+        curReqParms += "&tagForHistorySelected=" + gVue.$data.tagForHistorySelected;
+
+    if (gVue.$data.showTestLongerThan != null)
+        curReqParms += "&showTestLongerThan=" + gVue.$data.showTestLongerThan;
 
     return curReqParms;
 }
@@ -126,16 +266,143 @@ function loadPartialData() {
 }
 
 function showData(result) {
+    let setOfTags = new Set(gVue.$data.tagsPresent);
+    let setOfHistTags = new Set(gVue.$data.tagForHistorySelected);
+    for (let i = 0; i < result.servers.length; i++) {
+        let chain = result.servers[i];
+
+        for (let j = 0; j < chain.suites.length; j++) {
+            let suite = chain.suites[j];
+
+            if(isDefinedAndFilled(suite.tags)) {
+                for (let k = 0; k < suite.tags.length; k++) {
+                    const tag = suite.tags[k];
+
+                    setOfTags.add(tag);
+                    setOfHistTags.add(tag);
+                }
+            }
+        }
+    }
+
+    gVue.$data.tagsPresent = Array.from(setOfTags);
+    gVue.$data.tagsForHistoryPresent = Array.from(setOfHistTags);
+
     //var txtUrl = "rest/tracked/results/txt" + parmsForRest();
 
-    $("#divFailures").html(showChainOnServersResults(result));
+    var minFailRate = gVue.$data.failRateRange[0];
+
+    var maxFailRate = gVue.$data.failRateRange[1];
+
+    var hideFlakyFailures = gVue.$data.hideFlakyFailures === true;
+
+    let resHtml = showChainResultsWithSettings(result, new Settings(minFailRate, maxFailRate, result.javaFlags, hideFlakyFailures));
+
+    $("#divFailures").html(resHtml);
     //        + " <a href='"+ txtUrl + "'>txt</a>");
 }
 
 </script>
 
-<div id="loadStatus"></div>
-<div id="divFailures"></div>
+
+<div id="vueQueryForm">
+    <v-app id="prQueryForm" name="prQueryForm">
+        <div class="formgroup">
+            <table>
+                <tr>
+                    <td>
+                        <span>Tag filter: </span>
+                        <select v-model="tagSelected" @change="formChanged">
+                            <option disabled value="">Please select one</option>
+
+                            <option v-for="option in tagsPresent" v-bind:value="option">
+                                {{ option }}
+                            </option>
+                        </select>
+                        <span>Display Mode: </span>
+                        <select v-model="displayMode" @change="formChanged">
+                            <option value="Failures">Show failures only</option>
+                            <option value="AllSuites">Show all suites</option>
+                        </select>
+                        <span>Sort: </span>
+                        <select v-model="sortOption" @change="formChanged">
+                            <option value="FailureRate">Failure Rate</option>
+                            <option value="SuiteDuration">Suite Duration</option>
+                        </select>
+                        <br>
+                        <span>Merge Builds: </span>
+                        <input v-model.number="count" type="number" @change="formChanged">
+                        &nbsp;&nbsp;<span title="Show trusted tests count">Trusted tests: </span>
+                        <input type="checkbox" v-model="trustedTests" @change="formChanged">
+                        &nbsp;&nbsp;<span title="Download and parse all logs">Check logs: </span>
+                        <input type="checkbox" v-model="checkAllLogs" @change="formChanged">
+                        <br>
+                        <span>Show test longer than, seconds: </span>
+                        <input v-model.number="showTestLongerThan" type="number" @change="formChanged">
+                    </td>
+
+                    <td style="width: 50%">
+                        <v-expansion-panels>
+                            <v-expansion-panel>
+                                <v-expansion-panel-header>More options</v-expansion-panel-header>
+                                <v-expansion-panel-content>
+
+                                    &nbsp;&nbsp;<span title="Hide flaky failures">Hide flaky: </span>
+                                    <input type="checkbox" v-model="hideFlakyFailures" @change="formChanged">
+
+                                    <v-range-slider
+                                            v-model="failRateRange"
+                                            :max="absMaxFailRate"
+                                            :min="absMinFailRate"
+                                            hide-details
+                                            class="align-center"
+                                            @change="formChanged"
+                                    >
+                                        <template v-slot:prepend>
+                                            <span>Min failure rate: </span>
+                                            <v-text-field
+                                                    v-model="failRateRange[0]"
+                                                    class="mt-0 pt-0"
+                                                    hide-details
+                                                    single-line
+                                                    type="number"
+                                                    style="width: 60px"
+                                                    @change="formChanged"></v-text-field>
+
+                                            <span>Max failure rate: </span>
+                                            <v-text-field
+                                                    v-model="failRateRange[1]"
+                                                    class="mt-0 pt-0"
+                                                    hide-details
+                                                    single-line
+                                                    type="number"
+                                                    style="width: 60px"
+                                                    @change="formChanged"></v-text-field>
+                                        </template>
+                                        <template v-slot:append>
+
+                                        </template>
+                                    </v-range-slider>
+
+                                </v-expansion-panel-content>
+                            </v-expansion-panel>
+                        </v-expansion-panels>
+                    </td>
+                </tr>
+            </table>
+
+            &nbsp;&nbsp; <span> <a id="permalink"></a> </span>
+
+
+
+            &nbsp;&nbsp;
+            <span id="loadStatus"></span>
+        </div>
+        <br>
+        <div id="divFailures"></div>
+    </v-app>
+</div>
+
 
 <div id="version"></div>
 <div style="visibility:hidden;"><div id="triggerConfirm" title="Trigger Confirmation"></div><div id="triggerDialog" title="Trigger Result"></div></div>

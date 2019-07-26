@@ -14,45 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.tcbot.engine.chain;
 
-package org.apache.ignite.ci.tcbot.visa;
+import com.google.common.base.Strings;
 
-import org.jetbrains.annotations.Nullable;
+public enum SortOption {
+    /** No Sort. */ None("None"),
+    /** Most Often failed. */ FailureRate("FailureRate"),
+    /** Suite Duration. */ SuiteDuration("SuiteDuration") ;
 
-/**
- *
- */
-public class VisaStatus {
-    /** */
-    @Nullable public String userName;
+    private String name;
 
-    /** Branch name. */
-    @Nullable public String branchName;
+    SortOption(String name) {
+        this.name = name;
+    }
 
-    /** JIRA ticket full name. */
-    @Nullable public String ticket;
+    public static SortOption parseStringValue(String v) {
+        if (Strings.isNullOrEmpty(v))
+            return FailureRate;
+        SortOption[] values = SortOption.values();
 
-    /** */
-    @Nullable public String status;
+        for (int i = 0; i < values.length; i++) {
+            SortOption val = values[i];
+            if (val.name.equals(v))
+                return val;
+        }
 
-    /** */
-    @Nullable public String commentUrl;
-
-    /** */
-    @Nullable public String date;
-
-    /** */
-    @Nullable public String cancelUrl;
-
-    /** Build type ID, for which visa was ordered. */
-    @Nullable public String buildTypeId;
-
-    /** */
-    @Nullable public String buildTypeName;
-
-    /** */
-    @Nullable public String baseBranchForTc;
-
-    /** */
-    public int blockers;
+        return FailureRate;
+    }
 }
