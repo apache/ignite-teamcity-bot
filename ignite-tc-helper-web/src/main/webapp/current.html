@@ -61,6 +61,9 @@ function showQueryForm() {
         data: {
             tagSelected: '',
             tagsPresent: [""],
+            tagForHistorySelected: '',
+            tagsForHistoryPresent: [],
+
             displayMode: 'Failures',
             sortOption: 'FailureRate',
             //count of builds to merge
@@ -69,14 +72,11 @@ function showQueryForm() {
             checkAllLogs: false,
             hideFlakyFailures: false,
 
-            absMinFailRate: 0,
-            absMaxFailRate: 100,
-            failRateRange: [min, max],
-
             showTestLongerThan: '',
 
-            tagForHistorySelected: '',
-            tagsForHistoryPresent: []
+            absMinFailRate: 0,
+            absMaxFailRate: 100,
+            failRateRange: [min, max]
         },
         methods: {
             formChanged: function () {
@@ -311,7 +311,7 @@ function showData(result) {
             <table>
                 <tr>
                     <td>
-                        <span>Tag filter: </span>
+                        <span title="Tag filter for displaying suites">Tag filter: </span>
                         <select v-model="tagSelected" @change="formChanged">
                             <option disabled value="">Please select one</option>
 
@@ -319,6 +319,16 @@ function showData(result) {
                                 {{ option }}
                             </option>
                         </select>
+
+                        <span title="Tag filter for filtering history of suites">History tag filter: </span>
+                        <select v-model="tagForHistorySelected" @change="formChanged">
+                            <option disabled value="">Please select one</option>
+
+                            <option v-for="option in tagsForHistoryPresent" v-bind:value="option">
+                                {{ option }}
+                            </option>
+                        </select>
+                        <br>
                         <span>Display Mode: </span>
                         <select v-model="displayMode" @change="formChanged">
                             <option value="Failures">Show failures only</option>
@@ -329,14 +339,14 @@ function showData(result) {
                             <option value="FailureRate">Failure Rate</option>
                             <option value="SuiteDuration">Suite Duration</option>
                         </select>
-                        <br>
                         <span>Merge Builds: </span>
                         <input v-model.number="count" type="number" @change="formChanged">
-                        &nbsp;&nbsp;<span title="Show trusted tests count">Trusted tests: </span>
+
+                        <br>&nbsp;&nbsp;<span title="Show trusted tests count">Trusted tests: </span>
                         <input type="checkbox" v-model="trustedTests" @change="formChanged">
                         &nbsp;&nbsp;<span title="Download and parse all logs">Check logs: </span>
                         <input type="checkbox" v-model="checkAllLogs" @change="formChanged">
-                        <br>
+
                         <span>Show test longer than, seconds: </span>
                         <input v-model.number="showTestLongerThan" type="number" @change="formChanged">
                     </td>
