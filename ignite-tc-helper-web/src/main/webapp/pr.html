@@ -21,14 +21,18 @@
     var gVue;
 
     function showQueryForm() {
+        let baseBranchForTc = findGetParameter("baseBranchForTc");
+
         gVue = new Vue({
             el: '#vueQueryForm',
             data: {
-                baseBranchSelected: '',
+                baseBranchSelected: baseBranchForTc == null ? '' : baseBranchForTc,
                 tcBranchesForSrv: []
             },
             methods: {
                 formChanged: function () {
+                    updateHistory();
+
                     loadData();
                 }
             }
@@ -43,8 +47,7 @@
                     gVue.$data.tcBranchesForSrv.push(id);
                 }
 
-                var baseBranchForTc = findGetParameter("baseBranchForTc");
-                if (baseBranchForTc != null) {
+                if (baseBranchForTc != null && !Vue.$data.tcBranchesForSrv.contains(baseBranchForTc)) {
                     gVue.$data.tcBranchesForSrv.push(baseBranchForTc);
                     gVue.$data.baseBranchSelected = baseBranchForTc;
                 }
@@ -65,6 +68,23 @@
 
         $.ajax({url: "rest/branches/version", success: showVersionInfo, error: showErrInLoadStatus});
     });
+
+function updateHistory() {
+    if (URL) {
+        let url = new URL(location);
+        let searchParams = new URLSearchParams(url.search);
+        let baseBranchForTc = gVue.$data.baseBranchSelected;
+
+        if (baseBranchForTc != null && baseBranchForTc != '' && baseBranchForTc != '<default>')
+            searchParams.set("baseBranchForTc", baseBranchForTc);
+        else
+            searchParams.delete("baseBranchForTc");
+
+        url.search = searchParams.toString();
+
+        history.replaceState(null, null, url.toString());
+    }
+}
 
 function parmsForRest() {
     var curReqParms = "";
