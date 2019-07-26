@@ -332,6 +332,7 @@ public class BuildChainProcessor {
         final String buildTypeId = freshBuild.buildTypeId(compactor);
         Stream<BuildRefCompacted> hist = tcIgn.getAllBuildsCompacted(buildTypeId, branch)
             .stream()
+            // todo filter here for the tag enabled builds
             .filter(bref -> !bref.isCancelled(compactor))
             .filter(bref -> bref.isFinished(compactor));
 
