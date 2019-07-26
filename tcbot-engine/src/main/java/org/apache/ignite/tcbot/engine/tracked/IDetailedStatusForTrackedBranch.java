@@ -34,6 +34,7 @@ public interface IDetailedStatusForTrackedBranch {
      * @param syncMode Sync mode.
      * @param calcTrustedTests Calculate trusted tests count.
      * @param tagSelected Selected tag based filter. If null or empty all data is returned.
+     * @param tagForHistSelected Selected tag for filtering history (applicable to reruns and history stripe).
      * @param displayMode Suites and tests display mode. Default - failures only.
      * @param sortOption Sort mode
      * @param maxDurationSec Show test as failed if duration is greater than provided seconds count.
@@ -46,8 +47,10 @@ public interface IDetailedStatusForTrackedBranch {
         SyncMode syncMode,
         boolean calcTrustedTests,
         @Nullable String tagSelected,
+        @Nullable String tagForHistSelected,
         @Nullable DisplayMode displayMode,
-        @Nullable SortOption sortOption, int maxDurationSec);
+        @Nullable SortOption sortOption,
+        int maxDurationSec);
 
     //  * @param baseTrackedBranch Branch tracked branch in Bot, has a priority if both TC & Bot branches (baseBranchForTcParm) present.
 }

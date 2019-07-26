@@ -67,12 +67,14 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
         @Nullable @QueryParam("trustedTests") Boolean trustedTests,
         @Nullable @QueryParam("tagSelected") String tagSelected,
+        @Nullable @QueryParam("tagForHistSelected") String tagForHistSelected,
         @Nullable @QueryParam("displayMode") String displayMode,
         @Nullable @QueryParam("sortOption") String sortOption,
         @Nullable @QueryParam("count") Integer mergeCnt,
         @Nullable @QueryParam("showTestLongerThan") Integer showTestLongerThan) {
-        return new UpdateInfo().copyFrom(getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected,
-            displayMode, sortOption, mergeCnt, showTestLongerThan));
+        return new UpdateInfo().copyFrom(
+            getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected, tagForHistSelected,
+                displayMode, sortOption, mergeCnt, showTestLongerThan));
     }
 
     @GET
@@ -82,11 +84,13 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
         @Nullable @QueryParam("trustedTests") Boolean trustedTests,
         @Nullable @QueryParam("tagSelected") String tagSelected,
+        @Nullable @QueryParam("tagForHistSelected") String tagForHistSelected,
         @Nullable @QueryParam("displayMode") String displayMode,
         @Nullable @QueryParam("sortOption") String sortOption,
         @Nullable @QueryParam("count") Integer mergeCnt,
         @Nullable @QueryParam("showTestLongerThan") Integer showTestLongerThan) {
-        return getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected, displayMode, sortOption, mergeCnt, showTestLongerThan).toString();
+        return getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected, tagForHistSelected,
+            displayMode, sortOption, mergeCnt, showTestLongerThan).toString();
     }
 
     @GET
@@ -96,11 +100,13 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
         @Nullable @QueryParam("trustedTests") Boolean trustedTests,
         @Nullable @QueryParam("tagSelected") String tagSelected,
+        @Nullable @QueryParam("tagForHistSelected") String tagForHistSelected,
         @Nullable @QueryParam("displayMode") String displayMode,
         @Nullable @QueryParam("sortOption") String sortOption,
         @Nullable @QueryParam("count") Integer mergeCnt,
         @Nullable @QueryParam("showTestLongerThan") Integer showTestLongerThan) {
-        return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, SyncMode.NONE, displayMode, sortOption, mergeCnt, showTestLongerThan);
+        return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, tagForHistSelected,
+            SyncMode.NONE, displayMode, sortOption, mergeCnt, showTestLongerThan);
     }
 
     @GET
@@ -111,11 +117,13 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
         @Nullable @QueryParam("trustedTests") Boolean trustedTests,
         @Nullable @QueryParam("tagSelected") String tagSelected,
+        @Nullable @QueryParam("tagForHistSelected") String tagForHistSelected,
         @Nullable @QueryParam("displayMode") String displayMode,
         @Nullable @QueryParam("sortOption") String sortOption,
         @Nullable @QueryParam("count") Integer mergeCnt,
         @Nullable @QueryParam("showTestLongerThan") Integer showTestLongerThan) {
-        return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, SyncMode.RELOAD_QUEUED, displayMode, sortOption, mergeCnt, showTestLongerThan);
+        return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, tagForHistSelected,
+            SyncMode.RELOAD_QUEUED, displayMode, sortOption, mergeCnt, showTestLongerThan);
     }
 
     @NotNull private DsSummaryUi latestBuildResults(
@@ -123,6 +131,7 @@ public class GetTrackedBranchTestResults {
         @Nullable Boolean checkAllLogs,
         @Nullable Boolean trustedTests,
         @Nullable String tagSelected,
+        @Nullable String tagForHistSelected,
         @Nonnull SyncMode mode,
         @Nullable String displayMode,
         @Nullable String sortOption,
@@ -138,7 +147,7 @@ public class GetTrackedBranchTestResults {
 
         return injector.getInstance(IDetailedStatusForTrackedBranch.class)
             .getTrackedBranchTestFailures(branch, checkAllLogs, actualMergeBuilds, creds, mode,
-                Boolean.TRUE.equals(trustedTests), tagSelected,
+                Boolean.TRUE.equals(trustedTests), tagSelected, tagForHistSelected,
                 DisplayMode.parseStringValue(displayMode),
                 SortOption.parseStringValue(sortOption),
                 maxDurationSec);
@@ -180,7 +189,7 @@ public class GetTrackedBranchTestResults {
 
         return injector.getInstance(TrackedBranchChainsProcessor.class)
             .getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, creds, mode,
-                false, null, DisplayMode.OnlyFailures, null, -1);
+                false, null, null, DisplayMode.OnlyFailures, null, -1);
     }
 
     /**

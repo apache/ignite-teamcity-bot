@@ -69,6 +69,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         SyncMode syncMode,
         boolean calcTrustedTests,
         @Nullable String tagSelected,
+        @Nullable String tagForHistSelected,
         @Nullable DisplayMode displayMode,
         @Nullable SortOption sortOption,
         int maxDurationSec) {
