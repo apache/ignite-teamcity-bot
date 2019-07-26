@@ -181,4 +181,11 @@ public class TestCompactedMult {
 
         return false;
     }
+
+    public boolean hasLongRunningTest(int sec) {
+        if (sec < 1)
+            return false;
+
+        return getAvgDurationMs() > TimeUnit.SECONDS.toMillis(sec);
+    }
 }

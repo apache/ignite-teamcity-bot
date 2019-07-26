@@ -69,9 +69,10 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("tagSelected") String tagSelected,
         @Nullable @QueryParam("displayMode") String displayMode,
         @Nullable @QueryParam("sortOption") String sortOption,
-        @Nullable @QueryParam("count") Integer mergeCnt) {
+        @Nullable @QueryParam("count") Integer mergeCnt,
+        @Nullable @QueryParam("showTestLongerThan") Integer showTestLongerThan) {
         return new UpdateInfo().copyFrom(getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected,
-            displayMode, sortOption, mergeCnt));
+            displayMode, sortOption, mergeCnt, showTestLongerThan));
     }
 
     @GET
@@ -83,8 +84,9 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("tagSelected") String tagSelected,
         @Nullable @QueryParam("displayMode") String displayMode,
         @Nullable @QueryParam("sortOption") String sortOption,
-        @Nullable @QueryParam("count") Integer mergeCnt) {
-        return getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected, displayMode, sortOption, mergeCnt).toString();
+        @Nullable @QueryParam("count") Integer mergeCnt,
+        @Nullable @QueryParam("showTestLongerThan") Integer showTestLongerThan) {
+        return getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected, displayMode, sortOption, mergeCnt, showTestLongerThan).toString();
     }
 
     @GET
@@ -96,8 +98,9 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("tagSelected") String tagSelected,
         @Nullable @QueryParam("displayMode") String displayMode,
         @Nullable @QueryParam("sortOption") String sortOption,
-        @Nullable @QueryParam("count") Integer mergeCnt) {
-        return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, SyncMode.NONE, displayMode, sortOption, mergeCnt);
+        @Nullable @QueryParam("count") Integer mergeCnt,
+        @Nullable @QueryParam("showTestLongerThan") Integer showTestLongerThan) {
+        return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, SyncMode.NONE, displayMode, sortOption, mergeCnt, showTestLongerThan);
     }
 
     @GET
@@ -110,8 +113,9 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("tagSelected") String tagSelected,
         @Nullable @QueryParam("displayMode") String displayMode,
         @Nullable @QueryParam("sortOption") String sortOption,
-        @Nullable @QueryParam("count") Integer mergeCnt) {
-        return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, SyncMode.RELOAD_QUEUED, displayMode, sortOption, mergeCnt);
+        @Nullable @QueryParam("count") Integer mergeCnt,
+        @Nullable @QueryParam("showTestLongerThan") Integer showTestLongerThan) {
+        return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, SyncMode.RELOAD_QUEUED, displayMode, sortOption, mergeCnt, showTestLongerThan);
     }
 
     @NotNull private DsSummaryUi latestBuildResults(
@@ -122,18 +126,22 @@ public class GetTrackedBranchTestResults {
         @Nonnull SyncMode mode,
         @Nullable String displayMode,
         @Nullable String sortOption,
-        @Nullable Integer mergeCnt) {
+        @Nullable Integer mergeCnt,
+        @Nullable Integer showTestLongerThan) {
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
 
         Injector injector = CtxListener.getInjector(ctx);
 
         int actualMergeBuilds = (mergeCnt == null || mergeCnt < 1) ? 1 : mergeCnt;
 
+        int maxDurationSec = (showTestLongerThan == null || showTestLongerThan < 1) ? 0 : showTestLongerThan;
+
         return injector.getInstance(IDetailedStatusForTrackedBranch.class)
             .getTrackedBranchTestFailures(branch, checkAllLogs, actualMergeBuilds, creds, mode,
                 Boolean.TRUE.equals(trustedTests), tagSelected,
                 DisplayMode.parseStringValue(displayMode),
-                SortOption.parseStringValue(sortOption));
+                SortOption.parseStringValue(sortOption),
+                maxDurationSec);
     }
 
     @GET
@@ -171,7 +179,8 @@ public class GetTrackedBranchTestResults {
         Injector injector = CtxListener.getInjector(ctx);
 
         return injector.getInstance(TrackedBranchChainsProcessor.class)
-            .getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, creds, mode, false, null, DisplayMode.OnlyFailures, null);
+            .getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, creds, mode,
+                false, null, DisplayMode.OnlyFailures, null, -1);
     }
 
     /**

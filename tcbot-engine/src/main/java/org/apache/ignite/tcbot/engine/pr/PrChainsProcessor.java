@@ -165,7 +165,7 @@ public class PrChainsProcessor {
                 runningUpdates.addAndGet(cnt0);
 
             //fail rate reference is always default (master)
-            chainStatus.initFromContext(tcIgnited, ctx, baseBranchForTc, compactor, false, null, null); // don't need for PR
+            chainStatus.initFromContext(tcIgnited, ctx, baseBranchForTc, compactor, false, null, null, -1); // don't need for PR
 
             initJiraAndGitInfo(chainStatus, jiraIntegration, gitHubConnIgnited);
         }
@@ -329,7 +329,7 @@ public class PrChainsProcessor {
                     DsSuiteUi suiteUi = new DsSuiteUi();
                     suiteUi.testFailures = failures;
 
-                    suiteUi.initFromContext(tcIgnited, ctx, baseBranch, compactor, false, false);
+                    suiteUi.initFromContext(tcIgnited, ctx, baseBranch, compactor, false, false, -1);
 
                     return suiteUi;
                 }

@@ -949,7 +949,9 @@ function showTestFailData(testFail, isFailureShown, settings) {
     }
 
 
-    if (!isFailureShown && isDefinedAndFilled(testFail.durationPrintable))
+    let showDuration = (isDefinedAndFilled(testFail.success) && testFail.success === true) || !isFailureShown;
+
+    if (showDuration && isDefinedAndFilled(testFail.durationPrintable))
         res += " duration " + testFail.durationPrintable;
 
     if (bold)

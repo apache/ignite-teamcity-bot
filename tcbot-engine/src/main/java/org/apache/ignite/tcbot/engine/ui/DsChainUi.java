@@ -165,7 +165,8 @@ public class DsChainUi {
         IStringCompactor compactor,
         boolean calcTrustedTests,
         @Nullable String tagSelected,
-        @Nullable DisplayMode displayMode) {
+        @Nullable DisplayMode displayMode,
+        int maxDurationSec) {
         failedTests = 0;
         failedToFinish = 0;
         totalTests = 0;
@@ -198,11 +199,14 @@ public class DsChainUi {
                 if (dModeToUse == DisplayMode.None)
                     return; //don't convert any suite for UI
 
-                if (suite.isFailed() || dModeToUse == DisplayMode.ShowAllSuites
-                    || suite.hasTestToReport(tcIgnited, baseBranchId)) {
+                if (suite.isFailed()
+                    || dModeToUse == DisplayMode.ShowAllSuites
+                    || suite.hasTestToReport(tcIgnited, baseBranchId)
+                    || suite.hasLongRunningTest(maxDurationSec)) {
                     final DsSuiteUi suiteCurStatus = new DsSuiteUi();
 
-                    suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true, calcTrustedTests);
+                    suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true, calcTrustedTests,
+                        maxDurationSec);
 
                     failedTests += suiteCurStatus.failedTests != null ? suiteCurStatus.failedTests : 0;
 

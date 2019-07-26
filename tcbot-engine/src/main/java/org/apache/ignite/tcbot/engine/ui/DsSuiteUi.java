@@ -30,7 +30,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.common.util.UrlUtil;
 import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
 import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
@@ -156,13 +155,15 @@ public class DsSuiteUi extends DsHistoryStatUi {
      * @param compactor String Compactor.
      * @param includeTests Include tests - usually {@code true}, but it may be disabled for speeding up VISA collection.
      * @param calcTrustedTests
+     * @param maxDurationSec 0 or negative means don't indclude. has no effect if tests not included
      */
     public DsSuiteUi initFromContext(ITeamcityIgnited tcIgnited,
-                                     @Nonnull final MultBuildRunCtx suite,
-                                     @Nullable final String baseBranch,
-                                     @Nonnull IStringCompactor compactor,
-                                     boolean includeTests,
-                                     boolean calcTrustedTests) {
+        @Nonnull final MultBuildRunCtx suite,
+        @Nullable final String baseBranch,
+        @Nonnull IStringCompactor compactor,
+        boolean includeTests,
+        boolean calcTrustedTests,
+        int maxDurationSec) {
 
         name = suite.suiteName();
 
@@ -194,7 +195,9 @@ public class DsSuiteUi extends DsHistoryStatUi {
 
         Integer buildTypeIdId = suite.buildTypeIdId();
         if (includeTests) {
-            List<TestCompactedMult> tests = suite.getFilteredTests(test -> test.includeIntoReport(tcIgnited, baseBranchId));
+            List<TestCompactedMult> tests = suite.getFilteredTests(test ->
+                test.hasLongRunningTest(maxDurationSec)
+                    || test.includeIntoReport(tcIgnited, baseBranchId) );
 
             Function<TestCompactedMult, Float> function = testCompactedMult -> {
                 IRunHistory res = testCompactedMult.history(tcIgnited, baseBranchId);
@@ -206,6 +209,7 @@ public class DsSuiteUi extends DsHistoryStatUi {
 
             tests.forEach(occurrence -> {
                 final DsTestFailureUi failure = new DsTestFailureUi();
+
                 failure.initFromOccurrence(occurrence, tcIgnited, suite.projectId(),
                     suite.branchName(), baseBranch, baseBranchId);
                 failure.initStat(occurrence, buildTypeIdId, tcIgnited, baseBranchId, curBranchId);

@@ -70,7 +70,8 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         boolean calcTrustedTests,
         @Nullable String tagSelected,
         @Nullable DisplayMode displayMode,
-        @Nullable SortOption sortOption) {
+        @Nullable SortOption sortOption,
+        int maxDurationSec) {
         final DsSummaryUi res = new DsSummaryUi();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
@@ -126,7 +127,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
                 if (cnt > 0)
                     runningUpdates.addAndGet(cnt);
 
-                chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor, calcTrustedTests, tagSelected, displayMode);
+                chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor, calcTrustedTests, tagSelected, displayMode, maxDurationSec);
 
                 return chainStatus;
             })

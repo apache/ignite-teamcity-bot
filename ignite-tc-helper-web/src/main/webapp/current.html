@@ -38,11 +38,11 @@ function genLink() {
 }
 
 function showQueryForm() {
-    let min,max;
+    let min, max;
 
     let minFailRate = findGetParameter("minFailRate");
     if (minFailRate != null) {
-        min = parseInt(minFailRate) ;
+        min = parseInt(minFailRate);
     } else {
         min = 0;
     }
@@ -51,7 +51,7 @@ function showQueryForm() {
     if (maxFailRate != null) {
         max = parseInt(maxFailRate);
     } else {
-        max=100;
+        max = 100;
     }
 
 
@@ -72,6 +72,11 @@ function showQueryForm() {
             absMinFailRate: 0,
             absMaxFailRate: 100,
             failRateRange: [min, max],
+
+            showTestLongerThan: '',
+
+            tagForHistorySelected: '',
+            tagsForHistoryPresent: []
         },
         methods: {
             formChanged: function () {
@@ -105,19 +110,18 @@ function showQueryForm() {
         gVue.$data.count = count;
     }
 
-    let trustedTests = findGetParameter("trustedTests");
-    if (trustedTests != null) {
-        gVue.$data.trustedTests = trustedTests==="true";
-    }
+    gVue.$data.trustedTests = findGetParameter("trustedTests") === "true";
+    gVue.$data.checkAllLogs = findGetParameter("checkAllLogs") === "true";
+    gVue.$data.hideFlakyFailures = findGetParameter("hideFlakyFailures") === "true";
 
-    let checkAllLogs = findGetParameter("checkAllLogs");
-    if (checkAllLogs != null) {
-        gVue.$data.checkAllLogs = checkAllLogs==="true";
-    }
+    let showTestLongerThan = findGetParameter("showTestLongerThan");
+    if (showTestLongerThan != null)
+        gVue.$data.showTestLongerThan = showTestLongerThan;
 
-    var hideFlakyFailuresP = findGetParameter("hideFlakyFailures");
-    if (hideFlakyFailuresP != null) {
-        gVue.$data.hideFlakyFailures = hideFlakyFailuresP==="true";
+    let tagForHistorySelected = findGetParameter("tagForHistorySelected");
+    if (tagForHistorySelected != null) {
+        gVue.$data.tagsForHistoryPresent.push(tagForHistorySelected);
+        gVue.$data.tagForHistorySelected = tagForHistorySelected;
     }
 
     genLink();
@@ -172,6 +176,12 @@ function parmsForRest() {
         curReqParms += "&maxFailRate=" + gVue.$data.failRateRange[1];
 
     curReqParms += "&hideFlakyFailures=" + gVue.$data.hideFlakyFailures;
+
+    if (gVue.$data.tagForHistorySelected != null)
+        curReqParms += "&tagForHistorySelected=" + gVue.$data.tagForHistorySelected;
+
+    if (gVue.$data.showTestLongerThan != null)
+        curReqParms += "&showTestLongerThan=" + gVue.$data.showTestLongerThan;
 
     return curReqParms;
 }
@@ -257,6 +267,7 @@ function loadPartialData() {
 
 function showData(result) {
     let setOfTags = new Set(gVue.$data.tagsPresent);
+    let setOfHistTags = new Set(gVue.$data.tagForHistorySelected);
     for (let i = 0; i < result.servers.length; i++) {
         let chain = result.servers[i];
 
@@ -268,12 +279,14 @@ function showData(result) {
                     const tag = suite.tags[k];
 
                     setOfTags.add(tag);
+                    setOfHistTags.add(tag);
                 }
             }
         }
     }
 
     gVue.$data.tagsPresent = Array.from(setOfTags);
+    gVue.$data.tagsForHistoryPresent = Array.from(setOfHistTags);
 
     //var txtUrl = "rest/tracked/results/txt" + parmsForRest();
 
@@ -317,12 +330,15 @@ function showData(result) {
                             <option value="SuiteDuration">Suite Duration</option>
                         </select>
                         <br>
-                        <span>Merge Builds: </span> <input v-model.number="count" type="number" @change="formChanged">
+                        <span>Merge Builds: </span>
+                        <input v-model.number="count" type="number" @change="formChanged">
                         &nbsp;&nbsp;<span title="Show trusted tests count">Trusted tests: </span>
                         <input type="checkbox" v-model="trustedTests" @change="formChanged">
                         &nbsp;&nbsp;<span title="Download and parse all logs">Check logs: </span>
                         <input type="checkbox" v-model="checkAllLogs" @change="formChanged">
-
+                        <br>
+                        <span>Show test longer than, seconds: </span>
+                        <input v-model.number="showTestLongerThan" type="number" @change="formChanged">
                     </td>
 
                     <td style="width: 50%">
@@ -350,7 +366,8 @@ function showData(result) {
                                                     hide-details
                                                     single-line
                                                     type="number"
-                                                    style="width: 60px"></v-text-field>
+                                                    style="width: 60px"
+                                                    @change="formChanged"></v-text-field>
 
                                             <span>Max failure rate: </span>
                                             <v-text-field
@@ -359,7 +376,8 @@ function showData(result) {
                                                     hide-details
                                                     single-line
                                                     type="number"
-                                                    style="width: 60px"></v-text-field>
+                                                    style="width: 60px"
+                                                    @change="formChanged"></v-text-field>
                                         </template>
                                         <template v-slot:append>
 

@@ -140,7 +140,7 @@ public class GetBuildTestFailures {
         if (cnt > 0)
             runningUpdates.addAndGet(cnt);
 
-        chainStatus.initFromContext(tcIgnited, ctx, failRateBranch, injector.getInstance(IStringCompactor.class), false, null, null);
+        chainStatus.initFromContext(tcIgnited, ctx, failRateBranch, injector.getInstance(IStringCompactor.class), false, null, null, -1);
 
         res.addChainOnServer(chainStatus);
 
