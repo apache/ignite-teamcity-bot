@@ -788,7 +788,7 @@ function failureRateToColor(failureRate) {
 }
 
 
-//@param testFail - see TestFailure
+//@param testFail - see DsTestFailureUi
 function showTestFailData(testFail, isFailureShown, settings) {
     var failRateDefined =
         isDefinedAndFilled(testFail.histBaseBranch)
@@ -802,7 +802,9 @@ function showTestFailData(testFail, isFailureShown, settings) {
             ? testFail.histBaseBranch.flakyComments
             : null;
 
-    if (isFailureShown) {
+    let shownBecauseOfDuration = (isDefinedAndFilled(testFail.success) && testFail.success === true) || !isFailureShown;
+
+    if (!shownBecauseOfDuration) {
         if (failRate != null) {
             if (parseFloat(failRate) < settings.minFailRate)
                 return ""; //test is hidden
@@ -812,7 +814,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
         }
 
         if (flakyCommentsInBase != null && settings.hideFlakyFailures)
-            return ""; // test is hidder
+            return ""; // test is hidden
     }
 
     var res = "<tr><td align='right' valign='top' colspan='2' width='10%'>";
@@ -949,9 +951,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
     }
 
 
-    let showDuration = (isDefinedAndFilled(testFail.success) && testFail.success === true) || !isFailureShown;
-
-    if (showDuration && isDefinedAndFilled(testFail.durationPrintable))
+    if (shownBecauseOfDuration && isDefinedAndFilled(testFail.durationPrintable))
         res += " duration " + testFail.durationPrintable;
 
     if (bold)
