@@ -21,7 +21,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Futures;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -334,48 +333,71 @@ public class BuildChainProcessor {
         final String branch = freshBuild.branchName(compactor);
 
         final String buildTypeId = freshBuild.buildTypeId(compactor);
-        Stream<BuildRefCompacted> hist = tcIgn.getAllBuildsCompacted(buildTypeId, branch)
+        List<BuildRefCompacted> recentHist = tcIgn.getAllBuildsCompacted(buildTypeId, branch)
             .stream()
-            // todo filter here for the tag enabled builds
             .filter(bref -> !bref.isCancelled(compactor))
-            .filter(bref -> bref.isFinished(compactor));
+            .filter(bref -> bref.isFinished(compactor))
+            .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
+            .collect(Collectors.toList());
 
-        if (includeLatestRebuild == LatestRebuildMode.LATEST) {
+        List<Future<FatBuildCompacted>> res = new ArrayList<>();
+
+        int reqCnt;
+        if (includeLatestRebuild == LatestRebuildMode.LATEST)
+            reqCnt = 1;
+        else if (includeLatestRebuild == LatestRebuildMode.ALL)
+            reqCnt = cntLimit;
+        else
+            throw new UnsupportedOperationException("invalid mode " + includeLatestRebuild);
+
+        for (BuildRefCompacted ref : recentHist) {
+            Future<FatBuildCompacted> fut = null;
             if (requireParamVal != null && !requireParamVal.isEmpty()) {
-                hist = hist.filter(
-                    ref -> {
-                        Future<FatBuildCompacted> buildFut = getOrLoadBuild(ref.id(), syncMode, allBuildsMap, tcIgn);
+                Integer buildId = ref.id();
+                FatBuildCompacted fatBuild =
+                    allBuildsMap.containsKey(buildId)
+                        ? FutureUtil.getResult(allBuildsMap.get(buildId))
+                        : tcIgn.getFatBuild(buildId, syncMode);
 
-                        Set<Map.Entry<Integer, Integer>> entries = requireParamVal.entrySet();
-                        for (Map.Entry<Integer, Integer> next : entries) {
-                            Integer key = next.getKey();
+                boolean include = hasAnyParameterValue(requireParamVal, fatBuild);
 
-                            FatBuildCompacted fatBuild = FutureUtil.getResult(buildFut);
-
-                            int valId = fatBuild.parameters().findPropertyStringId(key);
-                            if (Objects.equals(next.getValue(), valId))
-                                return true;
-                        }
-                        return false;
-                    });
+                if (include) {
+                    CompletableFuture<FatBuildCompacted> completableFut = CompletableFuture.completedFuture(fatBuild);
+                    allBuildsMap.put(buildId, completableFut);
+                    fut = completableFut;
+                }
             }
+            else
+                fut = getOrLoadBuild(ref.id(), syncMode, allBuildsMap, tcIgn);
 
-            BuildRefCompacted recentRef = hist.max(Comparator.comparing(BuildRefCompacted::id))
-                .orElse(freshBuild);
+            if (fut != null) {
+                res.add(fut);
 
-            return Collections.singletonList(
-                getOrLoadBuild(recentRef.id(), syncMode, allBuildsMap, tcIgn));
+                if (res.size() >= reqCnt)
+                    return res;
+            }
         }
+        return res;
+    }
 
-        if (includeLatestRebuild == LatestRebuildMode.ALL) {
-            return hist
-                .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
-                .limit(cntLimit)
-                .map(bref -> getOrLoadBuild(bref.id(), syncMode, allBuildsMap, tcIgn))
-                .collect(Collectors.toList());
+    /**
+     * @param requireParamVal Required parameter value(s).
+     * @param fatBuild Fat build to check.
+     */
+    private boolean hasAnyParameterValue(@Nonnull Map<Integer, Integer> requireParamVal, FatBuildCompacted fatBuild) {
+        boolean include = false;
+        Set<Map.Entry<Integer, Integer>> entries = requireParamVal.entrySet();
+        for (Map.Entry<Integer, Integer> next : entries) {
+            Integer key = next.getKey();
+
+            int valId = fatBuild.parameters().findPropertyStringId(key);
+            if (Objects.equals(next.getValue(), valId)) {
+                include = true;
+
+                break;
+            }
         }
-
-        throw new UnsupportedOperationException("invalid mode " + includeLatestRebuild);
+        return include;
     }
 
     @SuppressWarnings("WeakerAccess")
