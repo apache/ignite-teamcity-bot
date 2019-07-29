@@ -55,7 +55,7 @@ public class CheckQueueJob implements Runnable {
 
     /** Percentage of free agents required to trigger build. */
     private static final int CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT =
-        Integer.getInteger("CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT", 30);
+        Integer.getInteger("CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT", 20);
 
     /** */
     private ITcBotUserCreds creds;
