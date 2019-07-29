@@ -132,6 +132,7 @@ public class GetBuildTestFailures {
             false,
             failRateBranch,
             syncMode,
+            null,
             null);
 
         DsChainUi chainStatus = new DsChainUi(srvCode, tcIgnited.serverCode(), ctx.branchName());

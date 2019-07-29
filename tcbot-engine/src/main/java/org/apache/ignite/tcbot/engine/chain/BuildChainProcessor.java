@@ -139,6 +139,7 @@ public class BuildChainProcessor {
      * @param failRateBranch Fail rate branch.
      * @param mode background data update mode.
      * @param sortOption how to sort suites in context, default is by failure rate (most often - first).
+     * @param requireParamVal
      */
     @AutoProfiling
     public FullChainRunCtx loadFullChainContext(
@@ -149,7 +150,8 @@ public class BuildChainProcessor {
         boolean includeScheduledInfo,
         @Nullable String failRateBranch,
         SyncMode mode,
-        @Nullable SortOption sortOption) {
+        @Nullable SortOption sortOption,
+        @Nullable Map<Integer, Integer> requireParamVal) {
 
         if (entryPoints.isEmpty())
             return new FullChainRunCtx(Build.createFakeStub());
@@ -167,7 +169,8 @@ public class BuildChainProcessor {
                     includeLatestRebuild,
                     builds,
                     mode,
-                    tcIgn);
+                    tcIgn,
+                    requireParamVal);
 
                 freshRebuilds.put(k, futures);
             }
@@ -315,7 +318,8 @@ public class BuildChainProcessor {
         LatestRebuildMode includeLatestRebuild,
         Map<Integer, Future<FatBuildCompacted>> allBuildsMap,
         SyncMode syncMode,
-        ITeamcityIgnited tcIgn) {
+        ITeamcityIgnited tcIgn,
+        @Nullable Map<Integer, Integer> requireParamVal) {
         if (includeLatestRebuild == LatestRebuildMode.NONE || builds.isEmpty())
             return completed(builds);
 
@@ -337,6 +341,25 @@ public class BuildChainProcessor {
             .filter(bref -> bref.isFinished(compactor));
 
         if (includeLatestRebuild == LatestRebuildMode.LATEST) {
+            if (requireParamVal != null && !requireParamVal.isEmpty()) {
+                hist = hist.filter(
+                    ref -> {
+                        Future<FatBuildCompacted> buildFut = getOrLoadBuild(ref.id(), syncMode, allBuildsMap, tcIgn);
+
+                        Set<Map.Entry<Integer, Integer>> entries = requireParamVal.entrySet();
+                        for (Map.Entry<Integer, Integer> next : entries) {
+                            Integer key = next.getKey();
+
+                            FatBuildCompacted fatBuild = FutureUtil.getResult(buildFut);
+
+                            int valId = fatBuild.parameters().findPropertyStringId(key);
+                            if (Objects.equals(next.getValue(), valId))
+                                return true;
+                        }
+                        return false;
+                    });
+            }
+
             BuildRefCompacted recentRef = hist.max(Comparator.comparing(BuildRefCompacted::id))
                 .orElse(freshBuild);
 

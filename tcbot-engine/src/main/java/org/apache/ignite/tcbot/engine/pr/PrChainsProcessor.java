@@ -150,7 +150,7 @@ public class PrChainsProcessor {
             buildResMergeCnt == 1,
             baseBranchForTc,
             mode,
-            null);
+            null, null);
 
         DsChainUi chainStatus = new DsChainUi(srvCodeOrAlias, tcIgnited.serverCode(), branchForTc);
 
@@ -275,7 +275,7 @@ public class PrChainsProcessor {
             false,
             baseBranch,
             syncMode,
-            null);
+            null, null);
 
         if (ctx.isFakeStub())
             return null;
