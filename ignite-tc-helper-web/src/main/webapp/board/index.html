@@ -73,6 +73,7 @@
         $.ajax({
             url: curFailuresUrl,
             success: function (result) {
+                $("#loadStatus").html("");
 
                 showData(result);
                 g_shownDataHashCodeHex = isDefinedAndFilled(result.hashCodeHex) ? result.hashCodeHex : "";
@@ -97,9 +98,11 @@
             <option>C</option>
         </select>
         <span>Base branch: {{ baseBranchSelected }}</span>
+
+
+        <div id="divFailures"></div>
     </v-app>
 </div>
-<div id="divFailures"></div>
 
 <div id="version"></div>
 <div style="visibility:hidden;"><div id="triggerConfirm" title="Trigger Confirmation"></div><div id="triggerDialog" title="Trigger Result"></div></div>
