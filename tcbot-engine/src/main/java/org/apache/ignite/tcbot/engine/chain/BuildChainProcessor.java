@@ -21,7 +21,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Futures;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -139,6 +138,7 @@ public class BuildChainProcessor {
      * @param failRateBranch Fail rate branch.
      * @param mode background data update mode.
      * @param sortOption how to sort suites in context, default is by failure rate (most often - first).
+     * @param requireParamVal Require exact parameters value presence in the build.
      */
     @AutoProfiling
     public FullChainRunCtx loadFullChainContext(
@@ -149,7 +149,8 @@ public class BuildChainProcessor {
         boolean includeScheduledInfo,
         @Nullable String failRateBranch,
         SyncMode mode,
-        @Nullable SortOption sortOption) {
+        @Nullable SortOption sortOption,
+        @Nullable Map<Integer, Integer> requireParamVal) {
 
         if (entryPoints.isEmpty())
             return new FullChainRunCtx(Build.createFakeStub());
@@ -167,7 +168,8 @@ public class BuildChainProcessor {
                     includeLatestRebuild,
                     builds,
                     mode,
-                    tcIgn);
+                    tcIgn,
+                    requireParamVal);
 
                 freshRebuilds.put(k, futures);
             }
@@ -315,7 +317,8 @@ public class BuildChainProcessor {
         LatestRebuildMode includeLatestRebuild,
         Map<Integer, Future<FatBuildCompacted>> allBuildsMap,
         SyncMode syncMode,
-        ITeamcityIgnited tcIgn) {
+        ITeamcityIgnited tcIgn,
+        @Nullable Map<Integer, Integer> requireParamVal) {
         if (includeLatestRebuild == LatestRebuildMode.NONE || builds.isEmpty())
             return completed(builds);
 
@@ -330,28 +333,84 @@ public class BuildChainProcessor {
         final String branch = freshBuild.branchName(compactor);
 
         final String buildTypeId = freshBuild.buildTypeId(compactor);
-        Stream<BuildRefCompacted> hist = tcIgn.getAllBuildsCompacted(buildTypeId, branch)
+        List<BuildRefCompacted> recentHist = tcIgn.getAllBuildsCompacted(buildTypeId, branch)
             .stream()
             .filter(bref -> !bref.isCancelled(compactor))
-            .filter(bref -> bref.isFinished(compactor));
+            .filter(bref -> bref.isFinished(compactor))
+            .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
+            .collect(Collectors.toList());
 
-        if (includeLatestRebuild == LatestRebuildMode.LATEST) {
-            BuildRefCompacted recentRef = hist.max(Comparator.comparing(BuildRefCompacted::id))
-                .orElse(freshBuild);
+        List<Future<FatBuildCompacted>> res = new ArrayList<>();
 
-            return Collections.singletonList(
-                getOrLoadBuild(recentRef.id(), syncMode, allBuildsMap, tcIgn));
+        int reqCnt;
+        if (includeLatestRebuild == LatestRebuildMode.LATEST)
+            reqCnt = 1;
+        else if (includeLatestRebuild == LatestRebuildMode.ALL)
+            reqCnt = cntLimit;
+        else
+            throw new UnsupportedOperationException("invalid mode " + includeLatestRebuild);
+
+        int checked = 0;
+        for (BuildRefCompacted ref : recentHist) {
+            Future<FatBuildCompacted> fut = null;
+            if (requireParamVal != null && !requireParamVal.isEmpty()) {
+                Integer buildId = ref.id();
+                FatBuildCompacted fatBuild =
+                    allBuildsMap.containsKey(buildId)
+                        ? FutureUtil.getResult(allBuildsMap.get(buildId))
+                        : tcIgn.getFatBuild(buildId, syncMode);
+
+                boolean include = fatBuild != null && hasAnyParameterValue(requireParamVal, fatBuild);
+
+                if (include) {
+                    CompletableFuture<FatBuildCompacted> completableFut = CompletableFuture.completedFuture(fatBuild);
+                    allBuildsMap.put(buildId, completableFut);
+                    fut = completableFut;
+                }
+
+                checked++;
+
+                //dirty hack to avoid checking all (long) history of builds
+                if (checked > reqCnt * 3)
+                    break; // required number of builds not found
+            }
+            else
+                fut = getOrLoadBuild(ref.id(), syncMode, allBuildsMap, tcIgn);
+
+            if (fut != null) {
+                res.add(fut);
+
+                if (res.size() >= reqCnt)
+                    return res;
+            }
         }
 
-        if (includeLatestRebuild == LatestRebuildMode.ALL) {
-            return hist
-                .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
-                .limit(cntLimit)
-                .map(bref -> getOrLoadBuild(bref.id(), syncMode, allBuildsMap, tcIgn))
-                .collect(Collectors.toList());
+        if (res.isEmpty())
+            return completed(builds);
+
+        return res;
+    }
+
+    /**
+     * @param requireParamVal Required parameter value(s).
+     * @param fatBuild Fat build to check.
+     */
+    private boolean hasAnyParameterValue(@Nonnull Map<Integer, Integer> requireParamVal, FatBuildCompacted fatBuild) {
+        ParametersCompacted parameters = fatBuild.parameters();
+
+        if (parameters == null)
+            return false;
+
+        Set<Map.Entry<Integer, Integer>> entries = requireParamVal.entrySet();
+        for (Map.Entry<Integer, Integer> next : entries) {
+            Integer key = next.getKey();
+
+            int valId = parameters.findPropertyStringId(key);
+            if (Objects.equals(next.getValue(), valId))
+                return true;
         }
 
-        throw new UnsupportedOperationException("invalid mode " + includeLatestRebuild);
+        return false;
     }
 
     @SuppressWarnings("WeakerAccess")

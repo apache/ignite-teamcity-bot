@@ -16,12 +16,17 @@
  */
 package org.apache.ignite.tcbot.engine.tracked;
 
+import com.google.common.base.Strings;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import org.apache.ignite.tcbot.common.conf.IBuildParameterSpec;
+import org.apache.ignite.tcbot.common.conf.IParameterValueSpec;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
@@ -69,6 +74,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         SyncMode syncMode,
         boolean calcTrustedTests,
         @Nullable String tagSelected,
+        @Nullable String tagForHistSelected,
         @Nullable DisplayMode displayMode,
         @Nullable SortOption sortOption,
         int maxDurationSec) {
@@ -83,16 +89,35 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         tracked.chainsStream()
             .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverCode(), creds))
             .map(chainTracked -> {
-                final String srvCode = chainTracked.serverCode();
+                final String srvCodeOrAlias = chainTracked.serverCode();
 
                 final String branchForTc = chainTracked.tcBranch();
 
                 //branch is tracked, so fail rate should be taken from this branch data (otherwise it is specified).
                 final String baseBranchTc = chainTracked.tcBaseBranch().orElse(branchForTc);
 
-                ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCode, creds);
+                ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, creds);
 
-                DsChainUi chainStatus = new DsChainUi(srvCode,
+                java.util.Map<Integer, Integer> requireParamVal = new HashMap<>();
+
+                if(!Strings.isNullOrEmpty(tagForHistSelected)) {
+                    ITcServerConfig cfg = tcBotCfg.getTeamcityConfig(srvCodeOrAlias);
+                    Collection<? extends IBuildParameterSpec> specs = cfg.filteringParameters();
+                    for (IBuildParameterSpec buildParameterSpec : specs) {
+                        Collection<? extends IParameterValueSpec> selection = buildParameterSpec.selection();
+                        for (IParameterValueSpec valueSpec : selection) {
+                            if(tagForHistSelected.equals(valueSpec.label())
+                                && !Strings.isNullOrEmpty(valueSpec.value())) {
+
+                                requireParamVal.put(
+                                    compactor.getStringId(buildParameterSpec.name()),
+                                    compactor.getStringId(valueSpec.value()));
+                            }
+                        }
+                    }
+                }
+
+                DsChainUi chainStatus = new DsChainUi(srvCodeOrAlias,
                     tcIgnited.serverCode(),
                     branchForTc);
 
@@ -120,7 +145,8 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
                     includeScheduled,
                     baseBranchTc,
                     syncMode,
-                    sortOption
+                    sortOption,
+                    requireParamVal
                 );
 
                 int cnt = (int)ctx.getRunningUpdates().count();

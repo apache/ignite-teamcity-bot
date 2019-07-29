@@ -21,5 +21,8 @@ public interface IParameterValueSpec {
 
     String value();
 
-    String label();
+    /**
+     * @return label or tag, which should be applied to this
+     */
+    public String label();
 }

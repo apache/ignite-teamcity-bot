@@ -61,6 +61,9 @@ function showQueryForm() {
         data: {
             tagSelected: '',
             tagsPresent: [""],
+            tagForHistSelected: '',
+            tagsForHistPresent: [""],
+
             displayMode: 'Failures',
             sortOption: 'FailureRate',
             //count of builds to merge
@@ -69,14 +72,11 @@ function showQueryForm() {
             checkAllLogs: false,
             hideFlakyFailures: false,
 
-            absMinFailRate: 0,
-            absMaxFailRate: 100,
-            failRateRange: [min, max],
-
             showTestLongerThan: '',
 
-            tagForHistorySelected: '',
-            tagsForHistoryPresent: []
+            absMinFailRate: 0,
+            absMaxFailRate: 100,
+            failRateRange: [min, max]
         },
         methods: {
             formChanged: function () {
@@ -118,10 +118,10 @@ function showQueryForm() {
     if (showTestLongerThan != null)
         gVue.$data.showTestLongerThan = showTestLongerThan;
 
-    let tagForHistorySelected = findGetParameter("tagForHistorySelected");
-    if (tagForHistorySelected != null) {
-        gVue.$data.tagsForHistoryPresent.push(tagForHistorySelected);
-        gVue.$data.tagForHistorySelected = tagForHistorySelected;
+    let tagForHistSelected = findGetParameter("tagForHistSelected");
+    if (tagForHistSelected != null) {
+        gVue.$data.tagsForHistPresent.push(tagForHistSelected);
+        gVue.$data.tagForHistSelected = tagForHistSelected;
     }
 
     genLink();
@@ -177,8 +177,8 @@ function parmsForRest() {
 
     curReqParms += "&hideFlakyFailures=" + gVue.$data.hideFlakyFailures;
 
-    if (gVue.$data.tagForHistorySelected != null)
-        curReqParms += "&tagForHistorySelected=" + gVue.$data.tagForHistorySelected;
+    if (gVue.$data.tagForHistSelected != null)
+        curReqParms += "&tagForHistSelected=" + gVue.$data.tagForHistSelected;
 
     if (gVue.$data.showTestLongerThan != null)
         curReqParms += "&showTestLongerThan=" + gVue.$data.showTestLongerThan;
@@ -267,7 +267,7 @@ function loadPartialData() {
 
 function showData(result) {
     let setOfTags = new Set(gVue.$data.tagsPresent);
-    let setOfHistTags = new Set(gVue.$data.tagForHistorySelected);
+    let setOfHistTags = new Set(gVue.$data.tagForHistSelected);
     for (let i = 0; i < result.servers.length; i++) {
         let chain = result.servers[i];
 
@@ -286,7 +286,7 @@ function showData(result) {
     }
 
     gVue.$data.tagsPresent = Array.from(setOfTags);
-    gVue.$data.tagsForHistoryPresent = Array.from(setOfHistTags);
+    gVue.$data.tagsForHistPresent = Array.from(setOfHistTags);
 
     //var txtUrl = "rest/tracked/results/txt" + parmsForRest();
 
@@ -311,7 +311,7 @@ function showData(result) {
             <table>
                 <tr>
                     <td>
-                        <span>Tag filter: </span>
+                        <span title="Tag filter for displaying suites">Tag filter: </span>
                         <select v-model="tagSelected" @change="formChanged">
                             <option disabled value="">Please select one</option>
 
@@ -319,6 +319,16 @@ function showData(result) {
                                 {{ option }}
                             </option>
                         </select>
+
+                        <span title="Tag filter for filtering history of suites">History tag filter: </span>
+                        <select v-model="tagForHistSelected" @change="formChanged">
+                            <option disabled value="">Please select one</option>
+
+                            <option v-for="option in tagsForHistPresent" v-bind:value="option">
+                                {{ option }}
+                            </option>
+                        </select>
+                        <br>
                         <span>Display Mode: </span>
                         <select v-model="displayMode" @change="formChanged">
                             <option value="Failures">Show failures only</option>
@@ -329,14 +339,14 @@ function showData(result) {
                             <option value="FailureRate">Failure Rate</option>
                             <option value="SuiteDuration">Suite Duration</option>
                         </select>
-                        <br>
                         <span>Merge Builds: </span>
                         <input v-model.number="count" type="number" @change="formChanged">
-                        &nbsp;&nbsp;<span title="Show trusted tests count">Trusted tests: </span>
+
+                        <br>&nbsp;&nbsp;<span title="Show trusted tests count">Trusted tests: </span>
                         <input type="checkbox" v-model="trustedTests" @change="formChanged">
                         &nbsp;&nbsp;<span title="Download and parse all logs">Check logs: </span>
                         <input type="checkbox" v-model="checkAllLogs" @change="formChanged">
-                        <br>
+
                         <span>Show test longer than, seconds: </span>
                         <input v-model.number="showTestLongerThan" type="number" @change="formChanged">
                     </td>
