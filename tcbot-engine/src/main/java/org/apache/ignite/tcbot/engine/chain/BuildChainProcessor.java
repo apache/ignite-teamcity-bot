@@ -350,6 +350,7 @@ public class BuildChainProcessor {
         else
             throw new UnsupportedOperationException("invalid mode " + includeLatestRebuild);
 
+        int checked = 0;
         for (BuildRefCompacted ref : recentHist) {
             Future<FatBuildCompacted> fut = null;
             if (requireParamVal != null && !requireParamVal.isEmpty()) {
@@ -359,13 +360,19 @@ public class BuildChainProcessor {
                         ? FutureUtil.getResult(allBuildsMap.get(buildId))
                         : tcIgn.getFatBuild(buildId, syncMode);
 
-                boolean include = hasAnyParameterValue(requireParamVal, fatBuild);
+                boolean include = fatBuild != null && hasAnyParameterValue(requireParamVal, fatBuild);
 
                 if (include) {
                     CompletableFuture<FatBuildCompacted> completableFut = CompletableFuture.completedFuture(fatBuild);
                     allBuildsMap.put(buildId, completableFut);
                     fut = completableFut;
                 }
+
+                checked++;
+
+                //dirty hack to avoid checking all (long) history of builds
+                if (checked > reqCnt * 3)
+                    break; // required number of builds not found
             }
             else
                 fut = getOrLoadBuild(ref.id(), syncMode, allBuildsMap, tcIgn);
@@ -377,6 +384,10 @@ public class BuildChainProcessor {
                     return res;
             }
         }
+
+        if (res.isEmpty())
+            return completed(builds);
+
         return res;
     }
 
@@ -385,19 +396,21 @@ public class BuildChainProcessor {
      * @param fatBuild Fat build to check.
      */
     private boolean hasAnyParameterValue(@Nonnull Map<Integer, Integer> requireParamVal, FatBuildCompacted fatBuild) {
-        boolean include = false;
+        ParametersCompacted parameters = fatBuild.parameters();
+
+        if (parameters == null)
+            return false;
+
         Set<Map.Entry<Integer, Integer>> entries = requireParamVal.entrySet();
         for (Map.Entry<Integer, Integer> next : entries) {
             Integer key = next.getKey();
 
-            int valId = fatBuild.parameters().findPropertyStringId(key);
-            if (Objects.equals(next.getValue(), valId)) {
-                include = true;
-
-                break;
-            }
+            int valId = parameters.findPropertyStringId(key);
+            if (Objects.equals(next.getValue(), valId))
+                return true;
         }
-        return include;
+
+        return false;
     }
 
     @SuppressWarnings("WeakerAccess")
