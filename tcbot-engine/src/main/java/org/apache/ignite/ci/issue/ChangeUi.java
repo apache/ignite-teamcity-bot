@@ -18,7 +18,9 @@
 package org.apache.ignite.ci.issue;
 
 import com.google.common.base.MoreObjects;
+import org.apache.ignite.tcbot.persistence.Persisted;
 
+@Persisted
 public class ChangeUi {
     public final String username;
     public final String webUrl;
@@ -50,5 +52,9 @@ public class ChangeUi {
             .add("username", username)
             .add("webUrl", webUrl)
             .toString();
+    }
+
+    public String username() {
+        return username;
     }
 }

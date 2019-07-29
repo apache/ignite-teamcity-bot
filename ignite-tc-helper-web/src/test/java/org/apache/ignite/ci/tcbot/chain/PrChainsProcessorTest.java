@@ -256,7 +256,7 @@ public class PrChainsProcessorTest {
                         createTest(1L, TEST_RARE_FAILED_WITHOUT_CHANGES, !failNoChanges),
                         createTest(2L, TEST_RARE_FAILED_WITH_CHANGES, !failWithChanges)));
 
-            if (failWithChanges || i == 56) // add change to test status change after failure.
+            if (failWithChanges || i == 56) // addBuild change to test status change after failure.
                 fatBuild.changes(new int[] {1000000 + i, 1000020 + i});
 
             addBuildsToEmulatedStor(fatBuild);

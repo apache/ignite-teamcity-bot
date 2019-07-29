@@ -18,11 +18,11 @@ package org.apache.ignite.ci.tcbot;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
-import org.apache.ignite.ci.issue.IssuesStorage;
+import org.apache.ignite.tcbot.engine.issue.IssuesStorage;
 import org.apache.ignite.tcbot.engine.buildtime.BuildTimeService;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.conf.LocalFilesBasedConfig;
-import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
+import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.tcbot.user.UserAndSessionsStorage;

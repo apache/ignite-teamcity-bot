@@ -1,0 +1,107 @@
+<html>
+<head>
+    <title>Apache Ignite Teamcity Bot - Tracked branch - Detailed status of failures</title>
+    <link rel="icon" href="/img/leaf-icon-png-7066.png">
+
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <!-- production version, optimized for size and speed -->
+    <!--<script src="https://cdn.jsdelivr.net/npm/vue"></script>-->
+
+    <script src="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.js"></script>
+   <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900|Material+Icons" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="/css/style-1.5.css">
+
+    <script src="/js/common-1.6.js"></script>
+</head>
+<body>
+<script>
+    var g_shownDataHashCodeHex = "";
+    let gVue;
+
+    $(document).ready(function() {
+        $.getScript("/js/testfails-2.2.js", function(data, textStatus, jqxhr){ });
+
+        $( document ).tooltip();
+        showQueryForm();
+
+        loadData();
+
+        $.ajax({ url: "/rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
+    });
+
+    function showQueryForm() {
+        gVue = new Vue({
+            el: '#vueQueryForm',
+            vuetify: new Vuetify(),
+            data: {
+                baseBranchSelected: ''
+            },
+            methods: {
+                formChanged: function () {
+                    $("#divFailures").html(parmsForRest());
+                }
+            }
+        });
+    }
+
+
+    function parmsForRest() {
+        var curReqParms = "";
+        var branch = findGetParameter("branch");
+        if (branch != null) {
+            curReqParms += "?branch=" + branch;
+        }
+
+        if (gVue.$data.baseBranchSelected != null) {
+            curReqParms += "?baseBranch=" +  gVue.$data.baseBranchSelected;
+        }
+
+        return curReqParms;
+    }
+    function loadData() {
+        var curFailuresUrl = "/rest/board/summary" + parmsForRest();
+
+        $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
+
+        $.ajax({
+            url: curFailuresUrl,
+            success: function (result) {
+
+                showData(result);
+                g_shownDataHashCodeHex = isDefinedAndFilled(result.hashCodeHex) ? result.hashCodeHex : "";
+            },
+            error: showErrInLoadStatus
+        });
+    }
+
+    function showData(result) {
+        $("#divFailures").html(JSON.stringify(result));
+    }
+
+</script>
+
+<div id="loadStatus"></div>
+<div id="vueQueryForm" class="h-25">
+    <v-app id="queryForm" class="h-25">
+        <select v-model="baseBranchSelected" @change="formChanged">
+            <option disabled value="">Please select one</option>
+            <option>A</option>
+            <option>B</option>
+            <option>C</option>
+        </select>
+        <span>Base branch: {{ baseBranchSelected }}</span>
+    </v-app>
+</div>
+<div id="divFailures"></div>
+
+<div id="version"></div>
+<div style="visibility:hidden;"><div id="triggerConfirm" title="Trigger Confirmation"></div><div id="triggerDialog" title="Trigger Result"></div></div>
+</body>
+</html>

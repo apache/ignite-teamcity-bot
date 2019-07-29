@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.TreeSet;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.apache.ignite.tcbot.engine.issue.IssueType;
 import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcbot.common.util.TimeUtil;
 

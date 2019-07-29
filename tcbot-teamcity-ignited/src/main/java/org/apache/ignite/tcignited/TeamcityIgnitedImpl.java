@@ -496,7 +496,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         Map<String, Object> buildParms) {
         Build build = conn.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop, buildParms);
 
-        //todo may add additional parameter: load builds into DB in sync/async fashion
+        //todo may addBuild additional parameter: load builds into DB in sync/async fashion
         buildRefSync.runActualizeBuildRefs(srvCode, false, Sets.newHashSet(build.getId()), conn);
 
         return build;

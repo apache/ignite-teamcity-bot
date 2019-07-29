@@ -25,7 +25,7 @@ import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
  */
 //todo make non static
 //todo include test name
-//todo add NPE
+//todo addBuild NPE
 public class LogMsgToWarn {
 
     private static final String JAVA_LEVEL_DEADLOCK_TXT = " Java-level deadlock:";

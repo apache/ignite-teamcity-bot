@@ -26,10 +26,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class BuildTimeResult {
+    /** Build time summary by build type, map from (srvId||buildTypeId)->Invocations summary. */
     private Map<Long, BuildTimeRecord> btByBuildType = new HashMap<>();
+    /** Timed out builds: Build time summary by build type, map from (srvId||buildTypeId)->Invocations summary. */
     private Map<Long, BuildTimeRecord> timedOutByBuildType = new HashMap<>();
 
-    public void add(int srvId, int buildTypeId, long runningTime, boolean hasTimeout) {
+    public void addBuild(int srvId, int buildTypeId, long runningTime, boolean hasTimeout) {
         long cacheKey = buildTypeToCacheKey(srvId, buildTypeId);
         btByBuildType.computeIfAbsent(cacheKey, k -> new BuildTimeRecord()).addInvocation(runningTime);
 
@@ -77,14 +79,14 @@ public class BuildTimeResult {
 
     private Stream<Map.Entry<Long, BuildTimeRecord>> filtered(
         Map<Long, BuildTimeRecord> map,
-        Set<Integer> availableServers,
+        Set<Integer> availableSrvs,
         long minAvgDurationMs,
         long totalDurationMs) {
         return map.entrySet().stream()
                 .filter(e -> {
                     Long key = e.getKey();
                     int srvId = cacheKeyToSrvId(key);
-                    return availableServers.contains(srvId);
+                    return availableSrvs.contains(srvId);
                 })
             .filter(e -> e.getValue().avgDuration() > minAvgDurationMs)
             .filter(e -> e.getValue().totalDuration() > totalDurationMs);

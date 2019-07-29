@@ -16,20 +16,6 @@
  */
 package org.apache.ignite.tcbot.engine.ui;
 
-@SuppressWarnings({"WeakerAccess", "PublicField"})
-public class BuildTimeRecordUi {
-    public String buildType;
-    public String averageDuration;
-    public String totalDuration;
-
-    private Integer cnt;
-
-    /** */
-    public Integer getCnt() {
-        return cnt;
-    }
-
-    public void setCnt(Integer cnt) {
-        this.cnt = cnt;
-    }
+public class BoardDefectSummaryUi {
+    public String usernames;
 }

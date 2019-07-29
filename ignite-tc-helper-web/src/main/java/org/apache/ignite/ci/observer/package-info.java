@@ -35,7 +35,7 @@
  * list for specific {@link org.apache.ignite.ci.web.model.ContributionKey}.
  * It's needed for proper changing of status and result of
  * {@link org.apache.ignite.ci.web.model.VisaRequest} by {@link org.apache.ignite.ci.observer.ObserverTask}.
- * If happens an attempt to add observation
+ * If happens an attempt to addBuild observation
  * for {@link org.apache.ignite.ci.web.model.ContributionKey} while current
  * observation is not finished, then current observation will be marked as
  * cancelled and overwritten by the new one.
