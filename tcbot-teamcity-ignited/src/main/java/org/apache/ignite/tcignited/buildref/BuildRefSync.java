@@ -69,7 +69,7 @@ public class BuildRefSync {
      * @param conn Teamcity to check builds
      */
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
-    @MonitoredTask(name = "Actualize BuildRefs(srv, full resync)", nameExtArgsIndexes = {0, 1})
+    @MonitoredTask(name = "Actualize BuildRefs(srv, syncmode)", nameExtArgsIndexes = {0, 1})
     @AutoProfiling
     public String runActualizeBuildRefs(String srvId,
         SyncMode syncMode,
