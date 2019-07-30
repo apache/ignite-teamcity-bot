@@ -115,9 +115,4 @@ public class BuildRefSync {
     private List<Integer> cacheKeysToBuildIds(Collection<Long> cacheKeysUpdated) {
         return cacheKeysUpdated.stream().map(BuildRefDao::cacheKeyToBuildId).collect(Collectors.toList());
     }
-
-
-    public void ensureActualizeRequested() {
-
-    }
 }
