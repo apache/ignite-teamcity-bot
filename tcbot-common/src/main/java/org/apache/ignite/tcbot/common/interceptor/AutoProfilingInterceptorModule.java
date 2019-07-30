@@ -16,30 +16,21 @@
  */
 package org.apache.ignite.tcbot.common.interceptor;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import com.google.inject.AbstractModule;
+import com.google.inject.matcher.Matchers;
 
-@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.METHOD)
-public @interface MonitoredTask {
-    /**
-     * @return Display name for monitoring page.
-     */
-    String name() default "";
+public class AutoProfilingInterceptorModule extends AbstractModule {
+    @Override protected void configure() {
+        configProfiling();
+    }
 
-    /**
-     * Argument index (0-based) to be used to extend name.
-     */
-    int nameExtArgIndex() default -1;
+    private void configProfiling() {
+        AutoProfilingInterceptor profilingInterceptor = new AutoProfilingInterceptor();
 
-    /**
-     * Array of Argument indexes (0-based) to be used to extend name.
-     */
-    int[] nameExtArgsIndexes() default {};
+        bindInterceptor(Matchers.any(),
+            Matchers.annotatedWith(AutoProfiling.class),
+            profilingInterceptor);
 
-    /**
-     * Add log record to monitoring.txt log
-     */
-    boolean log() default true;
+        bind(AutoProfilingInterceptor.class).toInstance(profilingInterceptor);
+    }
 }

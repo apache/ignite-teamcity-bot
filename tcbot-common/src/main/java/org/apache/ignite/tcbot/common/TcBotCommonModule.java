@@ -14,29 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.ignite.tcbot.engine;
+package org.apache.ignite.tcbot.common;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.internal.SingletonScope;
-import org.apache.ignite.tcbot.common.TcBotCommonModule;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfilingInterceptorModule;
+import org.apache.ignite.tcbot.common.interceptor.GuavaCachedModule;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTaskInterceptorModule;
-import org.apache.ignite.tcbot.engine.buildtime.BuildTimeService;
-import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
-import org.apache.ignite.tcbot.engine.tracked.IDetailedStatusForTrackedBranch;
-import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
 
 /**
  *
  */
-public class TcBotEngineModule extends AbstractModule {
+public class TcBotCommonModule extends AbstractModule {
     /** {@inheritDoc} */
     @Override protected void configure() {
-        bind(BuildChainProcessor.class).in(new SingletonScope());
-        bind(IDetailedStatusForTrackedBranch.class).to(TrackedBranchChainsProcessor.class).in(new SingletonScope());
+        install(new MonitoredTaskInterceptorModule());
 
-        bind(BuildTimeService.class).in(new SingletonScope());
+        install(new AutoProfilingInterceptorModule());
 
-        install(new TcBotCommonModule());
+        install(new GuavaCachedModule());
     }
 }

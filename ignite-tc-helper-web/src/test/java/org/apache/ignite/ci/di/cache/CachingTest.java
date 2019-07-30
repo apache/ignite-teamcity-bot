@@ -21,6 +21,7 @@ import com.google.inject.Injector;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
+import org.apache.ignite.tcbot.common.interceptor.GuavaCachedModule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

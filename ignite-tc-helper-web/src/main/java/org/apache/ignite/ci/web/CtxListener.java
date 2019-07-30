@@ -27,7 +27,8 @@ import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.di.IgniteTcBotModule;
+import org.apache.ignite.ci.tcbot.TcBotWebAppModule;
+import org.apache.ignite.tcbot.common.interceptor.MonitoredTaskInterceptor;
 import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.ci.observer.BuildObserver;
@@ -51,7 +52,7 @@ public class CtxListener implements ServletContextListener {
     /** {@inheritDoc} */
     @Override public void contextInitialized(ServletContextEvent sctxEvt) {
         initLoggerBridge();
-        IgniteTcBotModule igniteTcBotModule = new IgniteTcBotModule();
+        TcBotWebAppModule igniteTcBotModule = new TcBotWebAppModule();
         Injector injectorPreCreated = Guice.createInjector(igniteTcBotModule);
 
         Injector injector = igniteTcBotModule.startIgniteInit(injectorPreCreated);
@@ -104,6 +105,13 @@ public class CtxListener implements ServletContextListener {
 
             if (logger != null)
                 logger.error("Exception during shutdown: " + e.getMessage(), e);
+        }
+
+        try {
+            injector.getInstance(MonitoredTaskInterceptor.class).close();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
         }
 
         try {

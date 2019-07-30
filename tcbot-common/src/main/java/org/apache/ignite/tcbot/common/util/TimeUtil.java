@@ -94,4 +94,8 @@ public class TimeUtil {
     public static String timestampToTcSimpleDate(long ts) {
         return new SimpleDateFormat("yyyyMMdd'T'HHmmssZ").format(new Date(ts));
     }
+
+    public static String timestampForLogsSimpleDate(long ts) {
+        return new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date(ts));
+    }
 }

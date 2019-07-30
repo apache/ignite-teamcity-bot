@@ -485,8 +485,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     public void ensureActualizeRequested() {
         scheduler.sheduleNamed(taskName("actualizeRecentBuildRefs"), () -> actualizeRecentBuildRefs(srvCode), 2, TimeUnit.MINUTES);
 
-        buildRefSync.ensureActualizeRequested();
-
         // schedule find missing later
         fatBuildSync.ensureActualizationRequested(srvCode, conn);
     }
