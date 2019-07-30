@@ -93,7 +93,6 @@ public class TcBotWebAppModule extends AbstractModule {
         //todo remove duplication of instances for base and for overriden class
         bind(IDataSourcesConfigSupplier.class).to(LocalFilesBasedConfig.class).in(new SingletonScope());
         bind(IUserStorage.class).to(UserAndSessionsStorage.class).in(new SingletonScope());
-        bind(IIssuesStorage.class).to(IssuesStorage.class).in(new SingletonScope());
         bind(MasterTrendsService.class).in(new SingletonScope());
         bind(ITcBotBgAuth.class).to(TcBotBgAuthImpl.class).in(new SingletonScope());
     }

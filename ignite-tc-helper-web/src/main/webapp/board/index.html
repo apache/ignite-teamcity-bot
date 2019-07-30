@@ -14,6 +14,7 @@
    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900|Material+Icons" rel="stylesheet">
 
     <link href="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@3.x/css/materialdesignicons.min.css" rel="stylesheet">
 
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <link rel="stylesheet" href="/css/style-1.5.css">
@@ -41,7 +42,14 @@
             el: '#vueQueryForm',
             vuetify: new Vuetify(),
             data: {
-                baseBranchSelected: ''
+                baseBranchSelected: '',
+                defects: [],
+                expanded: [],
+                headers: [
+                    {text: "Branch", value: "branch"},
+                    {text: 'Usernames', value: 'usernames'},
+                    {text: "Issues", value: "cntIssues"}
+                ]
             },
             methods: {
                 formChanged: function () {
@@ -84,6 +92,8 @@
 
     function showData(result) {
         $("#divFailures").html(JSON.stringify(result));
+
+        gVue.$data.defects = result.defects;
     }
 
 </script>
@@ -99,6 +109,23 @@
         </select>
         <span>Base branch: {{ baseBranchSelected }}</span>
 
+        <v-data-table
+                :headers="headers"
+                :items="defects"
+                :expanded.sync="expanded"
+                group-by="branch"
+                item-key="usenames"
+                show-expand
+                class="elevation-1"
+        >
+            <template v-slot:top>
+            </template>
+
+
+            <template v-slot:expanded-item="{ headers }">
+                <td :colspan="headers.length"> expanded </td>
+            </template>
+        </v-data-table>
 
         <div id="divFailures"></div>
     </v-app>

@@ -23,6 +23,8 @@ import org.apache.ignite.tcbot.common.TcBotCommonModule;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTaskInterceptorModule;
 import org.apache.ignite.tcbot.engine.buildtime.BuildTimeService;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
+import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
+import org.apache.ignite.tcbot.engine.issue.IssuesStorage;
 import org.apache.ignite.tcbot.engine.tracked.IDetailedStatusForTrackedBranch;
 import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
 
@@ -36,6 +38,8 @@ public class TcBotEngineModule extends AbstractModule {
         bind(IDetailedStatusForTrackedBranch.class).to(TrackedBranchChainsProcessor.class).in(new SingletonScope());
 
         bind(BuildTimeService.class).in(new SingletonScope());
+
+        bind(IIssuesStorage.class).to(IssuesStorage.class).in(new SingletonScope());
 
         install(new TcBotCommonModule());
     }

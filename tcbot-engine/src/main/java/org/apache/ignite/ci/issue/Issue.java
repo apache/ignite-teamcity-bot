@@ -35,6 +35,7 @@ import org.apache.ignite.tcbot.common.util.TimeUtil;
 
 /**
  * Issue used both for saving into DB and in UI (in issue history).
+ * Issue is any detected failure of test or suite.
  */
 @SuppressWarnings({"WeakerAccess", "PublicField"})
 @Persisted

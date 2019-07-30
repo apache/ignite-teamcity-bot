@@ -14,19 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.tcbot.engine.ui;
+package org.apache.ignite.tcbot.engine.defect;
 
-public class BoardDefectSummaryUi {
-    public String branch;
+import java.util.Arrays;
 
-    public Integer cntIssues;
+public class CommitCompacted {
+    /** Sha of the commit. */
+    private byte[] sha;
 
-    public String usernames;
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        CommitCompacted commit = (CommitCompacted)o;
+        return Arrays.equals(sha, commit.sha);
+    }
 
-    public void addIssue() {
-        if (cntIssues == null)
-            cntIssues = 0;
-
-        cntIssues++;
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Arrays.hashCode(sha);
     }
 }

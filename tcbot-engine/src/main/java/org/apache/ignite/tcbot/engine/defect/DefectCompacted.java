@@ -14,19 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.tcbot.engine.ui;
+package org.apache.ignite.tcbot.engine.defect;
 
-public class BoardDefectSummaryUi {
-    public String branch;
-
-    public Integer cntIssues;
-
-    public String usernames;
-
-    public void addIssue() {
-        if (cntIssues == null)
-            cntIssues = 0;
-
-        cntIssues++;
-    }
+public class DefectCompacted {
 }

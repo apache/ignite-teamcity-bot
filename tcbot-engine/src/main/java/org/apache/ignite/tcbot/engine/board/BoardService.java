@@ -30,9 +30,12 @@ import org.apache.ignite.ci.issue.IssueKey;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.tcbot.engine.defect.DefectStorage;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
 import org.apache.ignite.tcbot.engine.ui.BoardDefectSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.BoardSummaryUi;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.build.FatBuildDao;
@@ -43,18 +46,22 @@ public class BoardService {
     @Inject FatBuildDao fatBuildDao;
     @Inject ChangeDao changeDao;
     @Inject ITeamcityIgnitedProvider tcProv;
+    @Inject DefectStorage defectStorage;
+    @Inject IScheduler scheduler;
+    @Inject IStringCompactor compactor;
 
     public BoardSummaryUi summary(ICredentialsProv creds) {
         Stream<Issue> stream = storage.allIssues();
 
-        long minIssueTs = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(1);
+        long minIssueTs = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(2);
 
         Map<String, BoardDefectSummaryUi> defectsGrouped = new HashMap<>();
-        stream.filter(issue -> {
-            long detected = issue.detectedTs == null ? 0 : issue.detectedTs;
+        stream
+            .filter(issue -> {
+                long detected = issue.detectedTs == null ? 0 : issue.detectedTs;
 
-            return detected >= minIssueTs;
-        })
+                return detected >= minIssueTs;
+            })
             .filter(issue -> {
                 IssueKey key = issue.issueKey;
                 String srvCode = key.getServer();
@@ -66,9 +73,11 @@ public class BoardService {
                 //just for init call
                 ITeamcityIgnited server = tcProv.server(srvCode, creds);
 
-
                 int srvId = ITeamcityIgnited.serverIdToInt(srvCode);
                 FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(srvId, key.buildId);
+                if (fatBuild == null)
+                    return;
+
                 int[] changes = fatBuild.changes();
                 Map<Long, ChangeCompacted> all = changeDao.getAll(srvId, changes);
 
@@ -76,6 +85,10 @@ public class BoardService {
                 BoardDefectSummaryUi defect = defectsGrouped.computeIfAbsent(collect1.toString(), _k -> new BoardDefectSummaryUi());
 
                 Set<String> collect = issue.changes.stream().map(ChangeUi::username).collect(Collectors.toSet());
+
+                defect.branch = fatBuild.branchName(compactor);
+
+                defect.addIssue();
 
                 defect.usernames = collect.toString();
             });
