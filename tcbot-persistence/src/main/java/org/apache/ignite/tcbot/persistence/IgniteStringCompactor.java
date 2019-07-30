@@ -124,7 +124,7 @@ public class IgniteStringCompactor implements IStringCompactor {
         Iterator<Cache.Entry<String, org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor.CompactorEntity>> iter = qryCursor.iterator();
 
         if (!iter.hasNext()) {
-            System.err.println("Not found string by id " + id);
+            System.err.println("Error: String Not found string by id " + id);
 
             return null;
         }

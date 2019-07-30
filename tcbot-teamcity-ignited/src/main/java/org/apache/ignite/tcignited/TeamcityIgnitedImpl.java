@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -60,10 +61,10 @@ import org.apache.ignite.tcignited.buildlog.BuildLogCheckResultDao;
 import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.tcignited.buildref.BuildRefSync;
+import org.apache.ignite.tcignited.history.BuildStartTimeStorage;
 import org.apache.ignite.tcignited.history.HistoryCollector;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.ISuiteRunHistory;
-import org.apache.ignite.tcignited.history.BuildStartTimeStorage;
 import org.apache.ignite.tcignited.history.SuiteInvocationHistoryDao;
 import org.apache.ignite.tcignited.mute.MuteDao;
 import org.apache.ignite.tcignited.mute.MuteSync;
@@ -494,8 +495,12 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         Map<String, Object> buildParms) {
         Build build = conn.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop, buildParms);
 
+        List<BuildRef> deps = build.getSnapshotDependenciesNonNull();
+
+        Stream<Integer> allIds = Stream.concat(Stream.of(build.getId()), deps.stream().map(BuildRef::getId));
+
         //todo may addBuild additional parameter: load builds into DB in sync/async fashion
-        buildRefSync.runActualizeBuildRefs(srvCode, false, Sets.newHashSet(build.getId()), conn);
+        buildRefSync.runActualizeBuildRefs(srvCode, BuildRefSync.SyncMode.ULTRAFAST, allIds.collect(Collectors.toSet()), conn);
 
         return build;
     }
@@ -604,8 +609,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return changes.values();
     }
 
-    String actualizeRecentBuildRefs() {
-        return actualizeRecentBuildRefs(srvCode);
+    public void actualizeRecentBuildRefs() {
+        actualizeRecentBuildRefs(srvCode);
     }
 
     /**
@@ -613,7 +618,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      * @param srvNme TC service name
      */
     @SuppressWarnings("WeakerAccess")
-    @MonitoredTask(name = "Prepare Actualize BuildRefs(srv, full resync)", nameExtArgsIndexes = {0})
+    @MonitoredTask(name = "Prepare Actualize BuildRefs(srv, incremental sync)", nameExtArgsIndexes = {0})
     protected String actualizeRecentBuildRefs(String srvNme) {
         List<BuildRefCompacted> running = buildRefDao.getQueuedAndRunning(srvIdMaskHigh);
 
@@ -636,10 +641,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         //schedule direct reload for Fat Builds for all queued too-old builds
         fatBuildSync.scheduleBuildsLoad(conn, directUpload);
 
-        buildRefSync.runActualizeBuildRefs(srvCode, false, paginateUntil, conn);
+        buildRefSync.runActualizeBuildRefs(srvCode, BuildRefSync.SyncMode.INCREMENTAL, paginateUntil, conn);
 
         int freshButNotFoundByBuildsRefsScan = paginateUntil.size();
-        if (!paginateUntil.isEmpty()) {
+        if (freshButNotFoundByBuildsRefsScan > 0) {
             //some builds may stuck in the queued or running, enforce loading now
             fatBuildSync.doLoadBuilds(-1, srvCode, conn, paginateUntil);
         }
@@ -663,6 +668,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      *
      */
     void fullReindex() {
-        buildRefSync.runActualizeBuildRefs(srvCode, true, null, conn);
+        buildRefSync.runActualizeBuildRefs(srvCode, BuildRefSync.SyncMode.FULL_REINDEX, null, conn);
     }
 }

@@ -17,32 +17,28 @@
 package org.apache.ignite.tcignited;
 
 import com.google.common.base.Strings;
-
 import java.io.File;
 import java.util.Collection;
 import java.util.Date;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
-import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
-import org.apache.ignite.tcignited.history.IRunHistory;
-import org.apache.ignite.tcignited.history.IRunStat;
-import org.apache.ignite.tcignited.history.ISuiteRunHistory;
-import org.apache.ignite.tcservice.model.agent.Agent;
-import org.apache.ignite.tcservice.model.mute.MuteInfo;
-import org.apache.ignite.tcservice.model.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.RevisionCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcignited.history.IRunHistory;
+import org.apache.ignite.tcignited.history.ISuiteRunHistory;
+import org.apache.ignite.tcservice.model.agent.Agent;
+import org.apache.ignite.tcservice.model.mute.MuteInfo;
+import org.apache.ignite.tcservice.model.result.Build;
 
 /**
  *
@@ -257,4 +253,10 @@ public interface ITeamcityIgnited {
     }
 
     @Nullable File downloadAndCacheBuildLog(int buildId);
+
+    /**
+     * Enforce reloading of recent build references for this server. At least queued/running builds from TC Bot DB
+     * should be re-synced.
+     */
+    public void actualizeRecentBuildRefs();
 }

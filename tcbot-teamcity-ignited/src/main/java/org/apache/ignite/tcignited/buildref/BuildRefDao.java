@@ -240,9 +240,8 @@ public class BuildRefDao {
         if (stateRunningId != null)
             list.add(stateRunningId);
 
-
         return compactedBuildsForServer(srvId)
-            .filter(e ->  list.contains(e.state()) )
+            .filter(e -> list.contains(e.state()))
             .collect(Collectors.toList());
     }
 
@@ -272,6 +271,7 @@ public class BuildRefDao {
         }
 
         if (!list.isEmpty()) {
+
             System.err.println(" Branch " + compactor.getStringFromId(branchNameId)
                 + " builds " + list.size() + " (Overall) ");
         }
