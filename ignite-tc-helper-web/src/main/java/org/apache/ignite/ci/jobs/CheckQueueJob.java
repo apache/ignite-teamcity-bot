@@ -172,6 +172,8 @@ public class CheckQueueJob implements Runnable {
 
         String selfLogin = creds.getUser(srvId);
 
+        tcIgn.actualizeRecentBuildRefs();
+
         StringBuilder res = new StringBuilder();
 
         for (ITrackedChain chain : chains) {

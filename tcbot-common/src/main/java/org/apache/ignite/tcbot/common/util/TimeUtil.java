@@ -80,7 +80,7 @@ public class TimeUtil {
             return new SimpleDateFormat("yyyyMMdd'T'HHmmssZ").parse(date).getTime();
         }
         catch (ParseException e) {
-            System.err.println("Exception happened when TimeUtilo tried to convert date into timestamp [" +
+            System.err.println("Exception happened when TimeUtil tried to convert date into timestamp [" +
                 "date=" + date + ", err=" + e.getMessage() + ']');
         }
 
