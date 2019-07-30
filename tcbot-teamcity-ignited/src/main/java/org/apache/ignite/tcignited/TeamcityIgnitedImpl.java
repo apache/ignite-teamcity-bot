@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -494,8 +495,12 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         Map<String, Object> buildParms) {
         Build build = conn.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop, buildParms);
 
+        List<BuildRef> deps = build.getSnapshotDependenciesNonNull();
+
+        Stream<Integer> allIds = Stream.concat(Stream.of(build.getId()), deps.stream().map(BuildRef::getId));
+
         //todo may add additional parameter: load builds into DB in sync/async fashion
-        buildRefSync.runActualizeBuildRefs(srvCode, BuildRefSync.SyncMode.ULTRAFAST, Sets.newHashSet(build.getId()), conn);
+        buildRefSync.runActualizeBuildRefs(srvCode, BuildRefSync.SyncMode.ULTRAFAST, allIds.collect(Collectors.toSet()), conn);
 
         return build;
     }
