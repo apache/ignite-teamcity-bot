@@ -48,7 +48,9 @@
                 headers: [
                     {text: "Branch", value: "branch"},
                     {text: 'Usernames', value: 'usernames'},
-                    {text: "Issues", value: "cntIssues"}
+                    {text: "Issues", value: "cntIssues"},
+                    {text: "Fixed", value: "fixedIssues"},
+                    {text: "Not Fixed", value: "notFixedIssues"}
                 ]
             },
             methods: {
@@ -114,13 +116,18 @@
                 :items="defects"
                 :expanded.sync="expanded"
                 group-by="branch"
-                item-key="usenames"
+                item-key="usernames"
                 show-expand
                 class="elevation-1"
         >
             <template v-slot:top>
             </template>
 
+            <template v-slot:items="props">
+                <td class="text-xs-right"><span class='visaStage'>{{ props.item.cntIssues }}</span></td>
+                <td class="text-xs-right"><span class='visaStage'>{{ props.item.fixedIssues }}</span></td>
+                <td class="text-xs-right"><span class='visaStage'>{{ props.item.notFixedIssues }}</span></td>
+            </template>
 
             <template v-slot:expanded-item="{ headers }">
                 <td :colspan="headers.length"> expanded </td>

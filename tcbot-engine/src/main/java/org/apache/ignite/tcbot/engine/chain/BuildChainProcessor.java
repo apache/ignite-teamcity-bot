@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Futures;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -307,6 +308,18 @@ public class BuildChainProcessor {
             ctx.addTagsFromParameters(parameters, tcIgnited.config(), this.compactor);
 
         return ctx;
+    }
+
+
+    public List<Future<FatBuildCompacted>> replaceWithRecent(FatBuildCompacted build,
+        Map<Integer, Future<FatBuildCompacted>> allBuildsMap,
+        ITeamcityIgnited tcIgn) {
+
+        return replaceWithRecent(Collections.singletonList(build), 1,
+            LatestRebuildMode.LATEST,
+            allBuildsMap,
+            SyncMode.RELOAD_QUEUED,
+            tcIgn, null);
     }
 
     @SuppressWarnings("WeakerAccess")

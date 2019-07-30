@@ -20,6 +20,8 @@ public class BoardDefectSummaryUi {
     public String branch;
 
     public Integer cntIssues;
+    public Integer fixedIssues;
+    public Integer notFixedIssues;
 
     public String usernames;
 
@@ -28,5 +30,19 @@ public class BoardDefectSummaryUi {
             cntIssues = 0;
 
         cntIssues++;
+    }
+
+    public void addFixedIssue() {
+        if (fixedIssues == null)
+            fixedIssues = 0;
+
+        fixedIssues++;
+    }
+
+    public void addNotFixedIssue() {
+        if (notFixedIssues == null)
+            notFixedIssues = 0;
+
+        notFixedIssues++;
     }
 }

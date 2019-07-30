@@ -17,9 +17,12 @@
 package org.apache.ignite.tcbot.engine.board;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -30,6 +33,9 @@ import org.apache.ignite.ci.issue.IssueKey;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
+import org.apache.ignite.tcbot.common.util.FutureUtil;
+import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.defect.DefectStorage;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
 import org.apache.ignite.tcbot.engine.ui.BoardDefectSummaryUi;
@@ -50,10 +56,15 @@ public class BoardService {
     @Inject IScheduler scheduler;
     @Inject IStringCompactor compactor;
 
+    @Inject BuildChainProcessor buildChainProcessor;
+
     public BoardSummaryUi summary(ICredentialsProv creds) {
         Stream<Issue> stream = storage.allIssues();
 
         long minIssueTs = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(2);
+
+
+        Map<Integer, Future<FatBuildCompacted>> allBuildsMap = new HashMap<>();
 
         Map<String, BoardDefectSummaryUi> defectsGrouped = new HashMap<>();
         stream
@@ -71,12 +82,19 @@ public class BoardService {
                 IssueKey key = issue.issueKey;
                 String srvCode = key.getServer();
                 //just for init call
-                ITeamcityIgnited server = tcProv.server(srvCode, creds);
+                ITeamcityIgnited tcIgn = tcProv.server(srvCode, creds);
 
                 int srvId = ITeamcityIgnited.serverIdToInt(srvCode);
                 FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(srvId, key.buildId);
                 if (fatBuild == null)
                     return;
+
+                //todo non test failures
+                String testName = issue.issueKey().getTestOrBuildName();
+
+                Integer testNameCid = compactor.getStringIdIfPresent(testName);
+
+                List<Future<FatBuildCompacted>> futures = buildChainProcessor.replaceWithRecent(fatBuild, allBuildsMap, tcIgn);
 
                 int[] changes = fatBuild.changes();
                 Map<Long, ChangeCompacted> all = changeDao.getAll(srvId, changes);
@@ -89,6 +107,25 @@ public class BoardService {
                 defect.branch = fatBuild.branchName(compactor);
 
                 defect.addIssue();
+
+                Stream<FatBuildCompacted> results = FutureUtil.getResults(futures);
+                List<FatBuildCompacted> freshRebuild = results.collect(Collectors.toList());
+                if(!freshRebuild.isEmpty()) {
+                    FatBuildCompacted buildCompacted = freshRebuild.get(0);
+
+                    Optional<TestCompacted> any = buildCompacted.getAllTests()
+                        .filter(t -> t.testName() == testNameCid)
+                        .findAny();
+
+                    if(any.isPresent()) {
+                        boolean failed = any.get().isFailedTest(compactor);
+                        if(!failed)
+                            defect.addFixedIssue();
+                        else
+                            defect.addNotFixedIssue();
+                    }
+                }
+
 
                 defect.usernames = collect.toString();
             });
