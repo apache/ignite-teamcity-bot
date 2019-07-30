@@ -315,9 +315,6 @@ public class ProactiveFatBuildSync {
 
         buildRefDao.save(srvIdMask, refCompacted);
 
-        //todo remove unused code
-        // runHistSync.saveToHistoryLater(srvCode, savedVer);
-
         return savedVer;
     }
 
