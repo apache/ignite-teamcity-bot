@@ -21,8 +21,8 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.CacheMetrics;
 import org.apache.ignite.cache.affinity.Affinity;
-import org.apache.ignite.ci.di.AutoProfilingInterceptor;
-import org.apache.ignite.ci.di.MonitoredTaskInterceptor;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfilingInterceptor;
+import org.apache.ignite.tcbot.common.interceptor.MonitoredTaskInterceptor;
 import org.apache.ignite.ci.web.CtxListener;
 
 import javax.annotation.security.PermitAll;

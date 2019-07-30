@@ -14,28 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.di;
+package org.apache.ignite.ci.tcbot;
 
 import com.google.common.base.Preconditions;
 import com.google.inject.AbstractModule;
 import com.google.inject.Injector;
 import com.google.inject.internal.SingletonScope;
-import com.google.inject.matcher.Matchers;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.db.Ignite1Init;
-import org.apache.ignite.ci.di.cache.GuavaCachedModule;
+import org.apache.ignite.ci.issue.IssuesStorage;
+import org.apache.ignite.ci.tcbot.conf.LocalFilesBasedConfig;
+import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
+import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
+import org.apache.ignite.ci.tcbot.user.IUserStorage;
+import org.apache.ignite.ci.tcbot.user.UserAndSessionsStorage;
+import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 import org.apache.ignite.tcbot.engine.TcBotEngineModule;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.notify.TcBotNotificationsModule;
 import org.apache.ignite.tcbot.persistence.scheduler.SchedulerModule;
 import org.apache.ignite.githubignited.GitHubIgnitedModule;
 import org.apache.ignite.jiraignited.JiraIgnitedModule;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
-import org.apache.ignite.ci.tcbot.TcBotBusinessServicesModule;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.tcbot.common.exeption.ServicesStartingException;
 import org.apache.ignite.tcbot.persistence.TcBotPersistenceModule;
@@ -43,22 +48,16 @@ import org.apache.ignite.tcignited.TeamcityIgnitedModule;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
-import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
-import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 
 /**
  *
  */
-public class IgniteTcBotModule extends AbstractModule {
+public class TcBotWebAppModule extends AbstractModule {
     /** Ignite future. */
     private Future<Ignite> igniteFut;
 
     /** {@inheritDoc} */
     @Override protected void configure() {
-        install(new GuavaCachedModule());
-        configProfiling();
-        configTaskMonitor();
-
         bind(Ignite.class).toProvider((Provider<Ignite>)() -> {
             Preconditions.checkNotNull(igniteFut, "Ignite future is not yet initialized");
 
@@ -90,27 +89,13 @@ public class IgniteTcBotModule extends AbstractModule {
 
         // common services
         install(new TcBotEngineModule());
-        install(new TcBotBusinessServicesModule());
-    }
-
-    private void configProfiling() {
-        AutoProfilingInterceptor profilingInterceptor = new AutoProfilingInterceptor();
-
-        bindInterceptor(Matchers.any(),
-            Matchers.annotatedWith(AutoProfiling.class),
-            profilingInterceptor);
-
-        bind(AutoProfilingInterceptor.class).toInstance(profilingInterceptor);
-    }
-
-    private void configTaskMonitor() {
-        MonitoredTaskInterceptor profilingInterceptor = new MonitoredTaskInterceptor();
-
-        bindInterceptor(Matchers.any(),
-            Matchers.annotatedWith(MonitoredTask.class),
-            profilingInterceptor);
-
-        bind(MonitoredTaskInterceptor.class).toInstance(profilingInterceptor);
+        bind(ITcBotConfig.class).to(LocalFilesBasedConfig.class).in(new SingletonScope());
+        //todo remove duplication of instances for base and for overriden class
+        bind(IDataSourcesConfigSupplier.class).to(LocalFilesBasedConfig.class).in(new SingletonScope());
+        bind(IUserStorage.class).to(UserAndSessionsStorage.class).in(new SingletonScope());
+        bind(IIssuesStorage.class).to(IssuesStorage.class).in(new SingletonScope());
+        bind(MasterTrendsService.class).in(new SingletonScope());
+        bind(ITcBotBgAuth.class).to(TcBotBgAuthImpl.class).in(new SingletonScope());
     }
 
     public void setIgniteFut(Future<Ignite> igniteFut) {

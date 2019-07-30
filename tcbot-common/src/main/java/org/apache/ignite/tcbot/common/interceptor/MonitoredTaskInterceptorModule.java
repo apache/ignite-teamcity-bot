@@ -14,25 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.ignite.ci.di.cache;
+package org.apache.ignite.tcbot.common.interceptor;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.matcher.Matchers;
-import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 
-/**
- *
- */
-public class GuavaCachedModule extends AbstractModule {
-    /** {@inheritDoc} */
+public class MonitoredTaskInterceptorModule extends AbstractModule {
     @Override protected void configure() {
-        GuavaCachedInterceptor cachedInterceptor = new GuavaCachedInterceptor();
+        configTaskMonitor();
+    }
+
+    private void configTaskMonitor() {
+        MonitoredTaskInterceptor profilingInterceptor = new MonitoredTaskInterceptor();
 
         bindInterceptor(Matchers.any(),
-            Matchers.annotatedWith(GuavaCached.class),
-            cachedInterceptor);
+            Matchers.annotatedWith(MonitoredTask.class),
+            profilingInterceptor);
 
-        bind(GuavaCachedInterceptor.class).toInstance(cachedInterceptor);
+        bind(MonitoredTaskInterceptor.class).toInstance(profilingInterceptor);
     }
+
 }

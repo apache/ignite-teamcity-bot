@@ -26,6 +26,8 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
+import org.apache.ignite.ci.tcbot.TcBotWebAppModule;
+import org.apache.ignite.tcbot.common.interceptor.MonitoredTaskInterceptor;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
@@ -55,7 +57,7 @@ public class DiContextTest {
     }
 
     public Injector getInjector() {
-        IgniteTcBotModule igniteTcBotModule = new IgniteTcBotModule();
+        TcBotWebAppModule igniteTcBotModule = new TcBotWebAppModule();
         Ignite ignite = mock(Ignite.class);
         when(ignite.getOrCreateCache(anyString())).thenReturn(Mockito.mock(IgniteCache.class));
         when(ignite.getOrCreateCache(any(CacheConfiguration.class))).thenReturn(Mockito.mock(IgniteCache.class));
@@ -89,7 +91,7 @@ public class DiContextTest {
 
     @Test
     public void testMonitoring() {
-        IgniteTcBotModule igniteTcBotModule = new IgniteTcBotModule();
+        TcBotWebAppModule igniteTcBotModule = new TcBotWebAppModule();
         final Injector injector = Guice.createInjector(igniteTcBotModule);
         final MonitorTest instance = injector.getInstance(MonitorTest.class);
 

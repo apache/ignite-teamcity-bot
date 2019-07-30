@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.di.cache;
+package org.apache.ignite.tcbot.common.interceptor;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
@@ -28,10 +28,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import javax.annotation.Nonnull;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
-import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
-import org.jetbrains.annotations.NotNull;
 
 public class GuavaCachedInterceptor implements MethodInterceptor {
     private final ConcurrentMap<String, Cache<List, Optional>> caches = new ConcurrentHashMap<>();
@@ -95,7 +94,7 @@ public class GuavaCachedInterceptor implements MethodInterceptor {
         return optional.orElse(null);
     }
 
-    @NotNull
+    @Nonnull
     private String cacheId(MethodInvocation invocation) {
         final Method invocationMtd = invocation.getMethod();
         final String cls = invocationMtd.getDeclaringClass().getName();
@@ -103,5 +102,4 @@ public class GuavaCachedInterceptor implements MethodInterceptor {
 
         return cls + "." + mtd;
     }
-
 }

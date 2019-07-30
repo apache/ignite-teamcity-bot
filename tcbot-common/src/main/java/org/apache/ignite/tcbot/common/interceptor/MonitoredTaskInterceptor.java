@@ -14,26 +14,61 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.di;
+package org.apache.ignite.tcbot.common.interceptor;
 
 import com.google.common.base.Strings;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
+import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.annotation.Nonnull;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
-import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
+import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.apache.ignite.tcbot.common.util.TimeUtil;
-import org.jetbrains.annotations.NotNull;
 
-public class MonitoredTaskInterceptor implements MethodInterceptor {
+import static org.apache.ignite.tcbot.common.util.TimeUtil.timestampForLogsSimpleDate;
+
+public class MonitoredTaskInterceptor implements MethodInterceptor, AutoCloseable {
     private final ConcurrentMap<String, Invocation> totalTime = new ConcurrentSkipListMap<>();
+
+    private FileWriter fileWriter;
+
+    private final AtomicBoolean init = new AtomicBoolean();
+
+    public void initLogging() {
+        try {
+            final File workDir = TcBotWorkDir.resolveWorkDir();
+            File tcbotLogs = new File(workDir, "tcbot_logs");
+            File file = new File(tcbotLogs, "monitoring"+
+                timestampForLogsSimpleDate(System.currentTimeMillis())+".log");
+
+            if (!tcbotLogs.exists())
+                file.mkdirs();
+
+            fileWriter = new FileWriter(file);
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override public void close() throws Exception {
+        if (fileWriter != null)
+            fileWriter.close();
+        fileWriter = null;
+    }
 
     public static class Invocation {
         private final AtomicLong lastStartTs = new AtomicLong();
@@ -41,6 +76,7 @@ public class MonitoredTaskInterceptor implements MethodInterceptor {
         private final AtomicReference<Object> lastResult = new AtomicReference<>();
 
         private final AtomicInteger callsCnt = new AtomicInteger();
+        /** Name and full key for monitored task. */
         private String name;
 
         Invocation(String name) {
@@ -95,17 +131,33 @@ public class MonitoredTaskInterceptor implements MethodInterceptor {
 
             return Objects.toString(lastResult.get());
         }
+
+        /** {@inheritDoc} */
+        @Override public String toString() {
+            return new StringJoiner(", ", Invocation.class.getSimpleName() + "[", "]")
+                .add("name='" + name + "'")
+                .add("startTs=" + lastStartTs)
+                .add("endTs=" + lastEndTs)
+                .add("result=" + lastResult)
+                .add("callsCnt=" + callsCnt)
+                .toString();
+        }
     }
 
     /** {@inheritDoc} */
     @Override public Object invoke(MethodInvocation invocation) throws Throwable {
+        if(init.compareAndSet(false,true))
+            initLogging();
+
         final long startTs = System.currentTimeMillis();
 
-        String fullKey = taskName(invocation);
-
-        final Invocation monitoredInvoke = totalTime.computeIfAbsent(fullKey, Invocation::new);
+        TaskSettings settings = taskName(invocation);
+        final Invocation monitoredInvoke = totalTime.computeIfAbsent(settings.name, Invocation::new);
 
         monitoredInvoke.saveStart(startTs);
+
+        if (settings.log)
+            log(monitoredInvoke.toString(), -1);
 
         Object res = null;
         try {
@@ -119,18 +171,56 @@ public class MonitoredTaskInterceptor implements MethodInterceptor {
             throw t;
         }
         finally {
-            monitoredInvoke.saveEnd(System.currentTimeMillis(), res);
+            long end = System.currentTimeMillis();
+            monitoredInvoke.saveEnd(end, res);
+
+            if (settings.log)
+                log(monitoredInvoke.toString(), end - startTs);
         }
     }
 
-    @NotNull
-    private String taskName(MethodInvocation invocation) {
+    public void log(String str, long duration) {
+        if (fileWriter == null)
+            return;
+
+        try {
+            StringBuilder sb = new StringBuilder();
+            sb.append(str);
+
+            if (duration > 1) {
+                sb.append(", duration: ");
+                sb.append(TimeUtil.millisToDurationPrintable(duration));
+            }
+
+            sb.append(String.format("%n"));
+
+            fileWriter.write(sb.toString());
+            fileWriter.flush();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static class TaskSettings {
+        private final String name;
+        private final boolean log;
+
+        public TaskSettings(String name, boolean log) {
+            this.name = name;
+            this.log = log;
+        }
+    }
+
+    @Nonnull
+    private TaskSettings taskName(MethodInvocation invocation) {
         final Method invocationMtd = invocation.getMethod();
         final String cls = invocationMtd.getDeclaringClass().getSimpleName();
         final String mtd = invocationMtd.getName();
 
         StringBuilder fullKey = new StringBuilder();
 
+        boolean log;
         final MonitoredTask annotation = invocationMtd.getAnnotation(MonitoredTask.class);
         if (annotation != null) {
             String activityName = annotation.name();
@@ -160,11 +250,19 @@ public class MonitoredTaskInterceptor implements MethodInterceptor {
                 }
             }
 
+            if (annotation.log())
+                log = true;
+            else
+                log = false;
+
         }
-        else
+        else {
             fullKey.append(cls).append(".").append(mtd);
 
-        return fullKey.toString();
+            log = false;
+        }
+
+        return new TaskSettings(fullKey.toString(), log);
     }
 
     public Collection<Invocation> getList() {

@@ -81,7 +81,7 @@ class TcBotScheduler implements IScheduler {
      * @param threadNme Runner name to be used in display.
      */
     @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
-    @MonitoredTask(name = "Scheduled", nameExtArgIndex = 0)
+    @MonitoredTask(name = "Scheduled", nameExtArgIndex = 0, log = false)
     protected String checkNamedTasks(String threadNme) {
         AtomicInteger run = new AtomicInteger();
         List<Throwable> problems = new ArrayList<>();
