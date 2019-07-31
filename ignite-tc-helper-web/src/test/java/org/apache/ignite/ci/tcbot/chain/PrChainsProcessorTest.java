@@ -30,6 +30,8 @@ import java.util.function.Predicate;
 
 import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
+import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi;
+import org.apache.ignite.tcbot.engine.ui.ShortTestFailureUi;
 import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcservice.model.conf.BuildType;
@@ -117,7 +119,7 @@ public class PrChainsProcessorTest {
         initBuildChainAndMasterHistory(c, btId, branch);
 
         PrChainsProcessor prcp = injector.getInstance(PrChainsProcessor.class);
-        final List<DsSuiteUi> blockers = prcp.getBlockersSuitesStatuses(btId, branch, SRV_ID, mock(ITcBotUserCreds.class), SyncMode.RELOAD_QUEUED, null);
+        final List<ShortSuiteUi> blockers = prcp.getBlockersSuitesStatuses(btId, branch, SRV_ID, mock(ITcBotUserCreds.class), SyncMode.RELOAD_QUEUED, null);
 
         System.out.println(blockers);
         assertNotNull(blockers);
@@ -125,15 +127,15 @@ public class PrChainsProcessorTest {
 
         assertTrue(containsTestFailure(blockers, TEST_WITHOUT_HISTORY));
 
-        assertTrue(blockers.stream().anyMatch(s -> BUILD_APACHE_IGNITE.equals(s.suiteId)));
-        assertTrue(blockers.stream().anyMatch(s -> "CancelledBuild".equals(s.suiteId)));
+        assertTrue(blockers.stream().anyMatch(s -> BUILD_APACHE_IGNITE.equals(s.name)));
+        assertTrue(blockers.stream().anyMatch(s -> "CancelledBuild".equals(s.name)));
 
         assertTrue(containsTestFailure(blockers, TEST_WITH_HISTORY_PASSING_IN_MASTER));
 
         assertFalse(containsTestFailure(blockers, TEST_WITH_HISTORY_FAILING_IN_MASTER));
         assertFalse(containsTestFailure(blockers, TEST_FLAKY_IN_MASTER));
 
-        Optional<DsTestFailureUi> testOpt = findBlockerTestFailure(blockers, TEST_WITH_HISTORY_PASSING_IN_MASTER);
+        Optional<? extends ShortTestFailureUi> testOpt = findBlockerTestFailure(blockers, TEST_WITH_HISTORY_PASSING_IN_MASTER);
         assertTrue(testOpt.isPresent());
 
         assertTrue(containsTestFailure(blockers, TEST_WAS_FIXED_IN_MASTER));
@@ -143,7 +145,7 @@ public class PrChainsProcessorTest {
         assertTrue(containsTestFailure(blockers, TEST_WITH_HISTORY_PASSING_IN_MASTER));
     }
 
-    public boolean containsTestFailure(List<DsSuiteUi> blockers, String name) {
+    public boolean containsTestFailure(List<ShortSuiteUi> blockers, String name) {
         return blockers.stream().anyMatch(containsTestFail(name));
     }
 
@@ -163,30 +165,28 @@ public class PrChainsProcessorTest {
         initHistory(c);
 
         PrChainsProcessor prcp = injector.getInstance(PrChainsProcessor.class);
-        final List<DsSuiteUi> blockers = prcp.getBlockersSuitesStatuses(btId, branch, SRV_ID, mock(ITcBotUserCreds.class), SyncMode.RELOAD_QUEUED, null);
+        final List<ShortSuiteUi> blockers = prcp.getBlockersSuitesStatuses(btId, branch, SRV_ID, mock(ITcBotUserCreds.class), SyncMode.RELOAD_QUEUED, null);
 
         System.out.println(blockers);
 
-        Optional<DsTestFailureUi> rareNotFlaky = findBlockerTestFailure(blockers, TEST_RARE_FAILED_WITH_CHANGES);
+        Optional<? extends ShortTestFailureUi> rareNotFlaky = findBlockerTestFailure(blockers, TEST_RARE_FAILED_WITH_CHANGES);
         assertTrue(rareNotFlaky.isPresent());
-
-        assertNull(rareNotFlaky.get().histBaseBranch.flakyComments);
 
         assertFalse(findBlockerTestFailure(blockers, TEST_RARE_FAILED_WITHOUT_CHANGES).isPresent());
     }
 
-    public Optional<DsTestFailureUi> findBlockerTestFailure(List<DsSuiteUi> blockers, String name) {
-        Optional<DsSuiteUi> suiteOpt = blockers.stream().filter(containsTestFail(name)).findAny();
+    public Optional<? extends ShortTestFailureUi> findBlockerTestFailure(List<ShortSuiteUi> blockers, String name) {
+        Optional<ShortSuiteUi> suiteOpt = blockers.stream().filter(containsTestFail(name)).findAny();
 
-        return suiteOpt.flatMap(suite -> suite.testFailures.stream().filter(tf -> name.equals(tf.name)).findAny());
+        return suiteOpt.flatMap(suite -> suite.testFailures().stream().filter(tf -> name.equals(tf.name)).findAny());
     }
 
     /**
      * @param name Test failure Name to find.
      */
     @NotNull
-    private Predicate<DsSuiteUi> containsTestFail(String name) {
-        return s -> s.testFailures.stream().anyMatch(testFailure -> {
+    private Predicate<ShortSuiteUi> containsTestFail(String name) {
+        return s -> s.testFailures().stream().anyMatch(testFailure -> {
             return name.equals(testFailure.name);
         });
     }
@@ -440,11 +440,11 @@ public class PrChainsProcessorTest {
 
         PrChainsProcessor prcp = injector.getInstance(PrChainsProcessor.class);
 
-        final List<DsSuiteUi> blockers = prcp.getBlockersSuitesStatuses(btId, branch, SRV_ID, mock(ITcBotUserCreds.class), SyncMode.RELOAD_QUEUED, null);
+        final List<ShortSuiteUi> blockers = prcp.getBlockersSuitesStatuses(btId, branch, SRV_ID, mock(ITcBotUserCreds.class), SyncMode.RELOAD_QUEUED, null);
 
         System.out.println(blockers);
 
-        Optional<DsTestFailureUi> testBecameFailed = findBlockerTestFailure(blockers, TEST_BECAME_FAILED_IN_BRANCH);
+        Optional<? extends ShortTestFailureUi> testBecameFailed = findBlockerTestFailure(blockers, TEST_BECAME_FAILED_IN_BRANCH);
         assertTrue(testBecameFailed.isPresent());
     }
 }

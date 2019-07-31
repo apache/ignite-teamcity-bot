@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.tcbot.common.TcBotConst;
@@ -91,14 +92,14 @@ public class TestCompactedMult {
         return avgDuration;
     }
 
-
-    public Iterable<TestOccurrenceFull> getOccurrences() {
-        return occurrences.stream()
-            .map(testCompacted -> testCompacted.toTestOccurrence(compactor, 0))
-            .collect(Collectors.toList());
+    /**
+     *
+     */
+    public Stream<TestCompacted> getInvocationsStream() {
+        return occurrences.stream();
     }
 
-     /**
+    /**
       * @param baseBranchStat Base branch statistics.
       * @return non null comment in case test failure is a blocker for merge into base branch.
       */
