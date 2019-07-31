@@ -310,10 +310,8 @@ public class PrChainsProcessor {
                     .stream()
                     .map(occurrence -> {
                         ShortTestFailureUi tst = new ShortTestFailureUi().initFrom(occurrence, tcIgnited, baseBranchId);
-                        if (tst.isPossibleBlocker())
-                            return null;
 
-                        return tst;
+                        return tst.isPossibleBlocker() ? tst : null;
                     }).filter(Objects::nonNull).collect(Collectors.toList());
 
 
