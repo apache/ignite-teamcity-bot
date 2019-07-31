@@ -249,7 +249,7 @@ public class DsSuiteUi extends ShortSuiteUi {
         queuedBuildCount = suite.queuedBuildCount();
         serverId = tcIgnited.serverCode();
         suiteId = suite.suiteId();
-        branchName = branchForLink(suite.branchName());
+        branchName = normalizeBranch(suite.branchName());
 
         tags = suite.tags();
 
@@ -353,22 +353,17 @@ public class DsSuiteUi extends ShortSuiteUi {
         return buildWebLinkToHist(teamcity, suite, branchName);
     }
 
-
     @Nonnull private static String buildWebLinkToHist(ITeamcityIgnited teamcity, MultBuildRunCtx suite, String branchName) {
-        final String branch = branchForLink(branchName);
+        final String branch = normalizeBranch(branchName);
         return teamcity.host() + "buildConfiguration/" + suite.suiteId()
-            + "?branch" + UrlUtil.escape(branch) ;
+            + "?branch=" + UrlUtil.escape(branch);
     }
 
     @Nonnull private static String buildWebLinkToHistOldUi(ITeamcityIgnited teamcity, MultBuildRunCtx suite, String branchName) {
-        final String branch = branchForLink(branchName);
+        final String branch = normalizeBranch(branchName);
         return teamcity.host() + "viewType.html?buildTypeId=" + suite.suiteId()
             + "&branch=" + UrlUtil.escape(branch)
             + "&tab=buildTypeStatusDiv";
-    }
-
-    public static String branchForLink(@Nullable String branchName) {
-        return normalizeBranch(branchName);
     }
 
     /** {@inheritDoc} */
