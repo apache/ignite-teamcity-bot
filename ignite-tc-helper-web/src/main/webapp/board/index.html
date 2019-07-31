@@ -124,7 +124,10 @@
                 <td :colspan="headers.length">
                     Branch: <a :href="'/current.html?branch=' + item.trackedBranch">{{item.trackedBranch}}</a>
                     Commits from: {{item.usernames}}
-                    Affected: {{item.testOrSuitesAffected}} <br>
+
+                    <div v-for="(test) in item.testOrSuitesAffected">
+                        {{ test }}
+                    </div>
                 </td>
             </template>
 

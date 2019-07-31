@@ -38,6 +38,7 @@ import org.apache.ignite.tcbot.common.util.FutureUtil;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.defect.DefectStorage;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
+import org.apache.ignite.tcbot.engine.issue.IssueType;
 import org.apache.ignite.tcbot.engine.ui.BoardDefectSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.BoardSummaryUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -77,6 +78,10 @@ public class BoardService {
                 IssueKey key = issue.issueKey;
                 String srvCode = key.getServer();
                 return tcProv.hasAccess(srvCode, creds);
+            })
+            .filter(issue -> {
+                String type = issue.type;
+                return !IssueType.newContributedTestFailure.code().equals(type);
             })
             .forEach(issue -> {
                 IssueKey key = issue.issueKey;
