@@ -67,6 +67,8 @@ import org.apache.ignite.tcbot.engine.pr.BranchTicketMatcher;
 import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
 import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
 import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
+import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi;
+import org.apache.ignite.tcbot.engine.ui.ShortTestFailureUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
@@ -753,13 +755,13 @@ public class TcBotTriggerAndSignOffService {
                                                String tcBranch) {
         CurrentVisaStatus status = new CurrentVisaStatus();
 
-        List<DsSuiteUi> suitesStatuses
+        List<ShortSuiteUi> suitesStatuses
             = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, tcBranch, srvCode, prov, SyncMode.NONE, null);
 
         if (suitesStatuses == null)
             return status;
 
-        status.blockers = suitesStatuses.stream().mapToInt(DsSuiteUi::totalBlockers).sum();
+        status.blockers = suitesStatuses.stream().mapToInt(ShortSuiteUi::totalBlockers).sum();
 
         return status;
     }
@@ -806,7 +808,7 @@ public class TcBotTriggerAndSignOffService {
         try {
             String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? prChainsProcessor.dfltBaseTcBranch(srvCodeOrAlias) : baseBranchForTc;
 
-            List<DsSuiteUi> suitesStatuses = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, build.branchName, srvCodeOrAlias, prov,
+            List<ShortSuiteUi> suitesStatuses = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, build.branchName, srvCodeOrAlias, prov,
                 SyncMode.RELOAD_QUEUED,
                 baseBranch);
 
@@ -814,7 +816,7 @@ public class TcBotTriggerAndSignOffService {
                 return new Visa("JIRA wasn't commented - no finished builds to analyze." +
                     " Check builds availabiliy for branch: " + build.branchName + "/" + baseBranch);
 
-            blockers = suitesStatuses.stream().mapToInt(DsSuiteUi::totalBlockers).sum();
+            blockers = suitesStatuses.stream().mapToInt(ShortSuiteUi::totalBlockers).sum();
 
             String comment = generateJiraComment(suitesStatuses, build.webUrl, buildTypeId, tcIgnited, blockers, build.branchName, baseBranch);
 
@@ -843,7 +845,7 @@ public class TcBotTriggerAndSignOffService {
      * @param baseBranch TC Base branch used for comment
      * @return Comment, which should be sent to the JIRA ticket.
      */
-    private String generateJiraComment(List<DsSuiteUi> suites, String webUrl, String buildTypeId,
+    private String generateJiraComment(List<ShortSuiteUi> suites, String webUrl, String buildTypeId,
         ITeamcityIgnited tcIgnited, int blockers, String branchName, String baseBranch) {
         BuildTypeRefCompacted bt = tcIgnited.getBuildTypeRef(buildTypeId);
 
@@ -853,12 +855,12 @@ public class TcBotTriggerAndSignOffService {
 
         String baseBranchDisp = (Strings.isNullOrEmpty(baseBranch) || ITeamcity.DEFAULT.equals(baseBranch))
             ? "master" :  baseBranch ;
-        for (DsSuiteUi suite : suites) {
+        for (ShortSuiteUi suite : suites) {
             res.append("{color:#d04437}");
 
             res.append(jiraEscText(suite.name)).append("{color}");
 
-            int totalBlockerTests = suite.testFailures.size();
+            int totalBlockerTests = suite.testFailures().size();
             res.append(" [[tests ").append(totalBlockerTests);
 
             if (suite.result != null && !suite.result.isEmpty())
@@ -868,7 +870,7 @@ public class TcBotTriggerAndSignOffService {
 
             int cnt = 0;
 
-            for (DsTestFailureUi failure : suite.testFailures) {
+            for (ShortTestFailureUi failure : suite.testFailures()) {
                 res.append("* ");
 
                 if (failure.suiteName != null && failure.testName != null)
