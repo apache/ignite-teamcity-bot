@@ -177,13 +177,6 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return Collections.unmodifiableList(changes);
     }
 
-    public List<TestOccurrenceFull> getTests() {
-        if (isComposite())
-            return Collections.emptyList();
-
-        return buildCompacted.getTestOcurrences(compactor).getTests();
-    }
-
     @Nonnull Stream<? extends Future<?>> getFutures() {
         return logCheckResFut == null ? Stream.empty() : Stream.of((Future<?>)logCheckResFut);
     }

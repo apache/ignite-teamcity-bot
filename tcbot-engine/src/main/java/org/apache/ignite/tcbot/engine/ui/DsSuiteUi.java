@@ -17,8 +17,8 @@
 
 package org.apache.ignite.tcbot.engine.ui;
 
-import com.google.common.base.Strings;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -50,12 +50,7 @@ import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
  * Represent Suite result, UI class for REST responses, so it contains public fields
  */
 @SuppressWarnings({"WeakerAccess", "PublicField"})
-public class DsSuiteUi extends DsHistoryStatUi {
-    /** Suite Name */
-    public String name;
-
-    /** Suite Run Result (filled if failed): Summary of build problems, count of tests, etc. */
-    public String result;
+public class DsSuiteUi extends ShortSuiteUi {
 
     /** Has critical problem: Timeout, JMV Crash, Compilation Error or Failure on Metric */
     @Nullable public Boolean hasCriticalProblem;
@@ -65,9 +60,6 @@ public class DsSuiteUi extends DsHistoryStatUi {
 
     /** Web Href. to suite runs history in base branch */
     public String webToHistBaseBranch = "";
-
-    /** Web Href. to suite particular run */
-    public String webToBuild = "";
 
     public List<DsTestFailureUi> testFailures = new ArrayList<>();
     public List<DsTestFailureUi> topLongRunning = new ArrayList<>();
@@ -140,11 +132,6 @@ public class DsSuiteUi extends DsHistoryStatUi {
     /** Tags for build. */
     @Nonnull public Set<String> tags = new HashSet<>();
 
-    /**
-     * Possible blocker comment: filled for PR and builds checks, non null value contains problem explanation
-     * displayable.
-     */
-    @Nullable public String blockerComment;
 
     public boolean success = false;
 
@@ -164,23 +151,21 @@ public class DsSuiteUi extends DsHistoryStatUi {
         boolean includeTests,
         boolean calcTrustedTests,
         int maxDurationSec) {
-
-        name = suite.suiteName();
-
         String failRateNormalizedBranch = normalizeBranch(baseBranch);
         Integer baseBranchId = compactor.getStringIdIfPresent(failRateNormalizedBranch);
+        IRunHistory baseBranchHist = suite.history(tcIgnited, baseBranchId);
+        initFrom(suite, tcIgnited, compactor, baseBranchHist);
 
         String curBranchNormalized = normalizeBranch(suite.branchName());
         Integer curBranchId = compactor.getStringIdIfPresent(curBranchNormalized);
 
-        IRunHistory baseBranchHist = initSuiteStat(tcIgnited, baseBranchId, curBranchId, suite);
+        initSuiteStat(tcIgnited, baseBranchId, curBranchId, suite, baseBranchHist);
 
         Set<String> collect = suite.lastChangeUsers().collect(Collectors.toSet());
 
         if (!collect.isEmpty())
             userCommits = collect.toString();
 
-        result = suite.getResult();
         hasCriticalProblem = suite.hasCriticalProblem();
         failedTests = suite.failedTests();
         durationPrintable = millisToDurationPrintable(suite.buildDuration());
@@ -189,9 +174,8 @@ public class DsSuiteUi extends DsHistoryStatUi {
         artifcactPublishingDurationPrintable = millisToDurationPrintable(suite.artifcactPublishingDuration());
         dependeciesResolvingDurationPrintable = millisToDurationPrintable(suite.dependeciesResolvingDuration());
         testsDurationPrintable = millisToDurationPrintable(suite.getAvgTestsDuration());
-        webToHist = buildWebLink(tcIgnited, suite);
-        webToHistBaseBranch = buildWebLink(tcIgnited, suite, baseBranch);
-        webToBuild = buildWebLinkToBuild(tcIgnited, suite);
+        webToHist = buildWebLinkToHist(tcIgnited, suite);
+        webToHistBaseBranch = buildWebLinkToHist(tcIgnited, suite, baseBranch);
 
         Integer buildTypeIdId = suite.buildTypeIdId();
         if (includeTests) {
@@ -269,18 +253,17 @@ public class DsSuiteUi extends DsHistoryStatUi {
 
         tags = suite.tags();
 
-        blockerComment = suite.getPossibleBlockerComment(compactor, baseBranchHist, tcIgnited.config());
-
         success = !suite.isFailed();
 
         return this;
     }
 
+
     private IRunHistory initSuiteStat(ITeamcityIgnited tcIgnited,
         Integer failRateNormalizedBranch,
         Integer curBranchNormalized,
-        MultBuildRunCtx suite) {
-        IRunHistory statInBaseBranch = suite.history(tcIgnited, failRateNormalizedBranch);
+        MultBuildRunCtx suite, IRunHistory referenceStat) {
+        IRunHistory statInBaseBranch = referenceStat;
 
         if (statInBaseBranch != null) {
             failures = statInBaseBranch.getFailuresCount();
@@ -360,17 +343,24 @@ public class DsSuiteUi extends DsHistoryStatUi {
         failure.warnings.addAll(logCheckRes.getWarns());
     }
 
-    private static String buildWebLinkToBuild(ITeamcityIgnited teamcity, MultBuildRunCtx suite) {
-        return teamcity.host() + "viewLog.html?buildId=" + Integer.toString(suite.getBuildId());
+    public static String buildWebLinkToBuild(ITeamcityIgnited teamcity, MultBuildRunCtx suite) {
+        return teamcity.host() + "viewLog.html?buildId=" + suite.getBuildId();
     }
 
-    private static String buildWebLink(ITeamcityIgnited teamcity, MultBuildRunCtx suite) {
+    private static String buildWebLinkToHist(ITeamcityIgnited teamcity, MultBuildRunCtx suite) {
         String branchName = suite.branchName();
 
-        return buildWebLink(teamcity, suite, branchName);
+        return buildWebLinkToHist(teamcity, suite, branchName);
     }
 
-    @Nonnull private static String buildWebLink(ITeamcityIgnited teamcity, MultBuildRunCtx suite, String branchName) {
+
+    @Nonnull private static String buildWebLinkToHist(ITeamcityIgnited teamcity, MultBuildRunCtx suite, String branchName) {
+        final String branch = branchForLink(branchName);
+        return teamcity.host() + "buildConfiguration/" + suite.suiteId()
+            + "?branch" + UrlUtil.escape(branch) ;
+    }
+
+    @Nonnull private static String buildWebLinkToHistOldUi(ITeamcityIgnited teamcity, MultBuildRunCtx suite, String branchName) {
         final String branch = branchForLink(branchName);
         return teamcity.host() + "viewType.html?buildTypeId=" + suite.suiteId()
             + "&branch=" + UrlUtil.escape(branch)
@@ -450,13 +440,7 @@ public class DsSuiteUi extends DsHistoryStatUi {
         return branchName;
     }
 
-    public int totalBlockers() {
-        int res = 0;
-        if (!Strings.isNullOrEmpty(blockerComment))
-            res++;
-
-        res += (int)testFailures.stream().filter(DsTestFailureUi::isPossibleBlocker).count();
-
-        return res;
+    public Collection<? extends ShortTestFailureUi> testFailures() {
+        return testFailures;
     }
 }

@@ -256,7 +256,6 @@ public class TestCompacted {
             return;
         }
 
-
         byte[] uncompressed;
         byte[] snappy = null;
         byte[] gzip = null;

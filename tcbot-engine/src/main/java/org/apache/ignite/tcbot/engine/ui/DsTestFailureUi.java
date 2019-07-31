@@ -17,7 +17,6 @@
 
 package org.apache.ignite.tcbot.engine.ui;
 
-import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -25,6 +24,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.tcbot.common.util.UrlUtil;
 import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
 import org.apache.ignite.tcbot.engine.issue.EventTemplates;
@@ -40,16 +40,7 @@ import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
  * Detailed status of failures: UI model for test failure, probably merged with its history
  */
 @SuppressWarnings({"WeakerAccess", "PublicField"})
-public class DsTestFailureUi {
-    /** Test full Name */
-    public String name;
-
-    /** suite (in code) short name */
-    @Nullable public String suiteName;
-
-    /** test short name with class and method */
-    @Nullable public String testName;
-
+public class DsTestFailureUi extends ShortTestFailureUi {
     /**
      * Current filtered failures count, Usually 1 for get current (latest), may indicate several failures for history
      * (merged recent runs).
@@ -85,9 +76,6 @@ public class DsTestFailureUi {
     /** Link to test history for current branch. */
     @Nullable public String webUrlBaseBranch;
 
-    /** Blocker comment: indicates test seems to be introduced failure. */
-    @Nullable public String blockerComment;
-
     public boolean success = false;
 
     /**
@@ -105,28 +93,17 @@ public class DsTestFailureUi {
         @Nullable final String baseBranchName,
         Integer baseBranchId) {
         success = !failure.isFailedButNotMuted();
-        name = failure.getName();
+
         investigated = failure.isInvestigated();
         curFailures = failure.failuresCount();
         durationPrintable = millisToDurationPrintable(failure.getAvgDurationMs());
 
-        String[] split = Strings.nullToEmpty(name).split("\\:");
-        if (split.length >= 2) {
-            String suiteShort = split[0].trim();
-            String[] suiteComps = suiteShort.split("\\.");
-            if (suiteComps.length > 1)
-                suiteName = suiteComps[suiteComps.length - 1];
+        initFrom(failure, tcIgn, baseBranchId);
 
-            String testShort = split[1].trim();
-            String[] testComps = testShort.split("\\.");
-            if (testComps.length > 2)
-                testName = testComps[testComps.length - 2] + "." + testComps[testComps.length - 1];
-        }
-
-        failure.getOccurrences().forEach(full -> {
-            String details = full.details;
-
-            if (details != null) {
+        failure.getInvocationsStream()
+            .map(TestCompacted::getDetailsText)
+            .filter(Objects::nonNull)
+            .forEach(details -> {
                 if (webIssueUrl == null)
                     checkAndFillByPrefix(details, "https://issues.apache.org/jira/browse/");
 
@@ -137,19 +114,21 @@ public class DsTestFailureUi {
                     if (LogMsgToWarn.needWarn(s))
                         warnings.add(s);
                 }
-            }
-            if (webUrl == null)
-                if (full.test != null && full.test.id != null)
-                    webUrl = buildWebLink(tcIgn, full.test.id, projectId, branchName);
+            });
 
-            if (webUrlBaseBranch == null)
-                if (full.test != null && full.test.id != null)
-                    webUrlBaseBranch = buildWebLink(tcIgn, full.test.id, projectId, baseBranchName);
-        });
+        failure.getInvocationsStream()
+            .map(TestCompacted::getTestId)
+            .filter(Objects::nonNull)
+            .forEach(testNameId -> {
+                if (webUrl == null && testNameId != null)
+                    webUrl = buildWebLink(tcIgn, testNameId, projectId, branchName);
 
-        final IRunHistory stat = failure.history(tcIgn, baseBranchId);
-        blockerComment = failure.getPossibleBlockerComment(stat);
+                if (webUrlBaseBranch == null && testNameId != null)
+                    webUrlBaseBranch = buildWebLink(tcIgn, testNameId, projectId, baseBranchName);
+            });
     }
+
+
 
     /**
      * @param details Details full text with error.
@@ -178,7 +157,7 @@ public class DsTestFailureUi {
         }
     }
 
-    private static String buildWebLink(ITeamcityIgnited tcIgn, String id,
+    private static String buildWebLink(ITeamcityIgnited tcIgn, Long testNameId,
         @Nullable String projectId, @Nullable String branchName) {
         if (projectId == null)
             return null;
@@ -187,7 +166,7 @@ public class DsTestFailureUi {
 
         return tcIgn.host() + "project.html"
             + "?projectId=" + projectId
-            + "&testNameId=" + id
+            + "&testNameId=" + testNameId
             + "&branch=" + UrlUtil.escape(branch)
             + "&tab=testDetails";
     }
@@ -264,10 +243,5 @@ public class DsTestFailureUi {
         return "\t" + name + "\n";
     }
 
-    /**
-     *
-     */
-    public boolean isPossibleBlocker() {
-        return !Strings.isNullOrEmpty(blockerComment);
-    }
+
 }

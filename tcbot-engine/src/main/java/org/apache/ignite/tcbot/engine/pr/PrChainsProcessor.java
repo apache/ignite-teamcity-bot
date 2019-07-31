@@ -42,9 +42,9 @@ import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
-import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
-import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
+import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi;
+import org.apache.ignite.tcbot.engine.ui.ShortTestFailureUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
@@ -254,7 +254,7 @@ public class PrChainsProcessor {
      * @return List of suites with possible blockers.
      */
     @Nullable
-    public List<DsSuiteUi> getBlockersSuitesStatuses(
+    public List<ShortSuiteUi> getBlockersSuitesStatuses(
         String buildTypeId,
         String branchForTc,
         String srvCodeOrAlias,
@@ -290,7 +290,7 @@ public class PrChainsProcessor {
      * @param baseBranch
      */
     //todo may avoid creation of UI model for simple comment.
-    private List<DsSuiteUi> findBlockerFailures(FullChainRunCtx fullChainRunCtx,
+    private List<ShortSuiteUi> findBlockerFailures(FullChainRunCtx fullChainRunCtx,
         ITeamcityIgnited tcIgnited,
         String baseBranch) {
         String normalizedBaseBranch = RunHistSync.normalizeBranch(baseBranch);
@@ -306,32 +306,22 @@ public class PrChainsProcessor {
 
                 String suiteComment = ctx.getPossibleBlockerComment(compactor, statInBaseBranch, tcIgnited.config());
 
-                List<DsTestFailureUi> failures = ctx.getFilteredTests(test -> test.includeIntoReport(tcIgnited, baseBranchId))
+                List<ShortTestFailureUi> failures = ctx.getFilteredTests(test -> test.includeIntoReport(tcIgnited, baseBranchId))
                     .stream()
                     .map(occurrence -> {
-                        IRunHistory stat = occurrence.history(tcIgnited, baseBranchId);
-                        String testBlockerComment = occurrence.getPossibleBlockerComment(stat);
+                        ShortTestFailureUi tst = new ShortTestFailureUi().initFrom(occurrence, tcIgnited, baseBranchId);
+                        if (tst.isPossibleBlocker())
+                            return null;
 
-                        if (!Strings.isNullOrEmpty(testBlockerComment)) {
-                            final DsTestFailureUi failure = new DsTestFailureUi();
-
-                            failure.initFromOccurrence(occurrence, tcIgnited, ctx.projectId(), ctx.branchName(), baseBranch, baseBranchId);
-
-                            return failure;
-                        }
-                        return null;
+                        return tst;
                     }).filter(Objects::nonNull).collect(Collectors.toList());
 
 
                 // test failure based blockers and/or blocker found by suite results
                 if (!failures.isEmpty() || !Strings.isNullOrEmpty(suiteComment)) {
-
-                    DsSuiteUi suiteUi = new DsSuiteUi();
-                    suiteUi.testFailures = failures;
-
-                    suiteUi.initFromContext(tcIgnited, ctx, baseBranch, compactor, false, false, -1);
-
-                    return suiteUi;
+                    return new ShortSuiteUi()
+                        .testShortFailures(failures)
+                        .initFrom(ctx, tcIgnited, compactor, statInBaseBranch);
                 }
 
                 return null;
