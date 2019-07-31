@@ -17,26 +17,31 @@
 package org.apache.ignite.tcbot.engine.board;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.inject.Inject;
-import org.apache.ignite.ci.issue.ChangeUi;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
+import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
+import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.common.util.FutureUtil;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
-import org.apache.ignite.tcbot.engine.defect.DefectStorage;
+import org.apache.ignite.tcbot.engine.defect.CommitCompacted;
+import org.apache.ignite.tcbot.engine.defect.DefectCompacted;
+import org.apache.ignite.tcbot.engine.defect.DefectFirstBuild;
+import org.apache.ignite.tcbot.engine.defect.DefectIssue;
+import org.apache.ignite.tcbot.engine.defect.DefectsStorage;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
 import org.apache.ignite.tcbot.engine.issue.IssueType;
 import org.apache.ignite.tcbot.engine.ui.BoardDefectSummaryUi;
@@ -46,38 +51,102 @@ import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.build.FatBuildDao;
+import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 
 public class BoardService {
-    @Inject IIssuesStorage storage;
+    @Inject IIssuesStorage issuesStorage;
+    @Inject BuildRefDao buildRefDao;
     @Inject FatBuildDao fatBuildDao;
     @Inject ChangeDao changeDao;
     @Inject ITeamcityIgnitedProvider tcProv;
-    @Inject DefectStorage defectStorage;
+    @Inject DefectsStorage defectStorage;
     @Inject IScheduler scheduler;
     @Inject IStringCompactor compactor;
 
     @Inject BuildChainProcessor buildChainProcessor;
 
+
     public BoardSummaryUi summary(ICredentialsProv creds) {
-        Stream<Issue> stream = storage.allIssues();
-
-        long minIssueTs = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(2);
-
+        issuesToDefectsLater();
 
         Map<Integer, Future<FatBuildCompacted>> allBuildsMap = new HashMap<>();
 
-        Map<String, BoardDefectSummaryUi> defectsGrouped = new HashMap<>();
+        List<DefectCompacted> defects = defectStorage.loadAllDefects();
+
+        BoardSummaryUi res = new BoardSummaryUi();
+        for (DefectCompacted next : defects) {
+
+            BoardDefectSummaryUi defectUi = new BoardDefectSummaryUi(next, compactor);
+
+            int srvId = next.tcSrvId;
+
+            String srvCode = compactor.getStringFromId(next.tcSrvCodeCid);
+
+            if(!creds.hasAccess(srvCode))
+                continue;
+
+            ITeamcityIgnited tcIgn = tcProv.server(srvCode, creds);
+
+            Map<Integer, DefectFirstBuild> build = next.buildsInvolved();
+            for (DefectFirstBuild cause : build.values()) {
+                BuildRefCompacted bref = cause.build();
+                FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(srvId, bref.id());
+
+                List<Future<FatBuildCompacted>> futures = buildChainProcessor.replaceWithRecent(fatBuild, allBuildsMap, tcIgn);
+
+                Stream<FatBuildCompacted> results = FutureUtil.getResults(futures);
+                List<FatBuildCompacted> freshRebuild = results.collect(Collectors.toList());
+                if(!freshRebuild.isEmpty()) {
+                    FatBuildCompacted buildCompacted = freshRebuild.get(0);
+
+                    Set<DefectIssue> issues = cause.issues();
+                    for (DefectIssue issue : issues) {
+                        Optional<TestCompacted> any = buildCompacted.getAllTests()
+                            .filter(t -> t.testName() == issue.testNameCid())
+                            .findAny();
+
+                        if(any.isPresent()) {
+                            boolean failed = any.get().isFailedTest(compactor);
+                            if(!failed)
+                                defectUi.addFixedIssue();
+                            else
+                                defectUi.addNotFixedIssue();
+                        }
+                    }
+
+
+                }
+            }
+
+
+            defectUi.branch =  compactor.getStringFromId(next.tcBranch);
+
+            res.addDefect(defectUi);
+        }
+
+        return res;
+    }
+
+    public void issuesToDefectsLater() {
+        scheduler.sheduleNamed("issuesToDefects", this::issuesToDefects, 15, TimeUnit.MINUTES);
+    }
+
+    @MonitoredTask(name = "Convert issues to defect")
+    protected void issuesToDefects() {
+        Stream<Issue> stream = issuesStorage.allIssues();
+
+        long minIssueTs = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(3);
+
+        //todo wrong to call it twice
+        fatBuildDao.init();
+        changeDao.init();
+
         stream
             .filter(issue -> {
                 long detected = issue.detectedTs == null ? 0 : issue.detectedTs;
 
                 return detected >= minIssueTs;
-            })
-            .filter(issue -> {
-                IssueKey key = issue.issueKey;
-                String srvCode = key.getServer();
-                return tcProv.hasAccess(srvCode, creds);
             })
             .filter(issue -> {
                 String type = issue.type;
@@ -87,7 +156,6 @@ public class BoardService {
                 IssueKey key = issue.issueKey;
                 String srvCode = key.getServer();
                 //just for init call
-                ITeamcityIgnited tcIgn = tcProv.server(srvCode, creds);
 
                 int srvId = ITeamcityIgnited.serverIdToInt(srvCode);
                 FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(srvId, key.buildId);
@@ -97,48 +165,30 @@ public class BoardService {
                 //todo non test failures
                 String testName = issue.issueKey().getTestOrBuildName();
 
+                int issueTypeCid = compactor.getStringId(issue.type);
                 Integer testNameCid = compactor.getStringIdIfPresent(testName);
-
-                List<Future<FatBuildCompacted>> futures = buildChainProcessor.replaceWithRecent(fatBuild, allBuildsMap, tcIgn);
 
                 int[] changes = fatBuild.changes();
                 Map<Long, ChangeCompacted> all = changeDao.getAll(srvId, changes);
+                Stream<CommitCompacted> stream1 = all.values().stream().map(ChangeCompacted::commitVersion)
+                    .map(CommitCompacted::new);
 
-                TreeSet<String> collect1 = all.values().stream().map(ChangeCompacted::commitFullVersion).collect(Collectors.toCollection(TreeSet::new));
-                BoardDefectSummaryUi defect = defectsGrouped.computeIfAbsent(collect1.toString(), _k -> new BoardDefectSummaryUi());
-
-                Set<String> collect = issue.changes.stream().map(ChangeUi::username).collect(Collectors.toSet());
-
-                defect.branch = fatBuild.branchName(compactor);
+               /* Set<String> collect = issue.changes.stream().map(ChangeUi::username).collect(Collectors.toSet());
 
                 defect.addIssue(issue);
+                defect.usernames = collect.toString();*/
 
-                Stream<FatBuildCompacted> results = FutureUtil.getResults(futures);
-                List<FatBuildCompacted> freshRebuild = results.collect(Collectors.toList());
-                if(!freshRebuild.isEmpty()) {
-                    FatBuildCompacted buildCompacted = freshRebuild.get(0);
+                int tcSrvCodeCid = compactor.getStringId(srvCode);
+                defectStorage.merge(tcSrvCodeCid, srvId, fatBuild, stream1.collect(Collectors.toList()),
+                    (k, defect) -> {
+                        DefectFirstBuild cause = defect.computeIfAbsent(fatBuild);
 
-                    Optional<TestCompacted> any = buildCompacted.getAllTests()
-                        .filter(t -> t.testName() == testNameCid)
-                        .findAny();
+                        cause.addIssue(issueTypeCid, testNameCid);
 
-                    if(any.isPresent()) {
-                        boolean failed = any.get().isFailedTest(compactor);
-                        if(!failed)
-                            defect.addFixedIssue();
-                        else
-                            defect.addNotFixedIssue();
-                    }
-                }
+                        return defect;
+                    });
 
-
-                defect.usernames = collect.toString();
             });
 
-        BoardSummaryUi res = new BoardSummaryUi();
-        for (BoardDefectSummaryUi next : defectsGrouped.values())
-            res.addDefect(next);
-
-        return res;
     }
 }

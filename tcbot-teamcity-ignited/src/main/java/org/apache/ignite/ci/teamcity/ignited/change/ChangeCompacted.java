@@ -154,4 +154,11 @@ public class ChangeCompacted implements IVersionedEntity {
     public String commitFullVersion() {
         return DatatypeConverter.printHexBinary(version).toLowerCase();
     }
+
+    /**
+     *
+     */
+    public byte[] commitVersion() {
+        return version;
+    }
 }

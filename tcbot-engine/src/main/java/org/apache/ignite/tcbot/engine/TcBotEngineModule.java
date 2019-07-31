@@ -21,6 +21,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.tcbot.common.TcBotCommonModule;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTaskInterceptorModule;
+import org.apache.ignite.tcbot.engine.board.BoardService;
 import org.apache.ignite.tcbot.engine.buildtime.BuildTimeService;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
@@ -40,6 +41,8 @@ public class TcBotEngineModule extends AbstractModule {
         bind(BuildTimeService.class).in(new SingletonScope());
 
         bind(IIssuesStorage.class).to(IssuesStorage.class).in(new SingletonScope());
+
+        bind(BoardService.class).in(new SingletonScope());
 
         install(new TcBotCommonModule());
     }

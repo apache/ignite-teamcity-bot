@@ -16,14 +16,15 @@
  */
 package org.apache.ignite.tcbot.engine.defect;
 
-import java.util.Arrays;
+import java.util.Objects;
 
-public class CommitCompacted implements Comparable<CommitCompacted> {
-    /** Sha of the commit. */
-    private byte[] data;
+public class DefectIssue {
+    private int issueTypeCode;
+    private int testOrSuiteName;
 
-    public CommitCompacted(byte[] data) {
-        this.data = data;
+    public DefectIssue(int issueTypeCode, Integer testNameCid) {
+        this.issueTypeCode = issueTypeCode;
+        testOrSuiteName = testNameCid;
     }
 
     /** {@inheritDoc} */
@@ -32,43 +33,17 @@ public class CommitCompacted implements Comparable<CommitCompacted> {
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
-        CommitCompacted commit = (CommitCompacted)o;
-        return Arrays.equals(data, commit.data);
+        DefectIssue issue = (DefectIssue)o;
+        return issueTypeCode == issue.issueTypeCode &&
+            testOrSuiteName == issue.testOrSuiteName;
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Arrays.hashCode(data);
+        return Objects.hash(issueTypeCode, testOrSuiteName);
     }
 
-    @Override public int compareTo(CommitCompacted o) {
-        return compare(data, o.data);
+    public int testNameCid() {
+        return testOrSuiteName;
     }
-
-    public static int compare(byte[] a, byte[] b) {
-        if (a == b)
-            return 0;
-        if (a == null || b == null)
-            return a == null ? -1 : 1;
-
-        int i = mismatch(a, b,
-            Math.min(a.length, b.length));
-        if (i >= 0)
-            return Byte.compare(a[i], b[i]);
-
-        return a.length - b.length;
-    }
-
-    public static int mismatch(byte[] a,
-        byte[] b,
-        int len) {
-
-        int i = 0;
-        for (; i < len; i++) {
-            if (a[i] != b[i])
-                return i;
-        }
-        return -1;
-    }
-
 }

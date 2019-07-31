@@ -318,4 +318,8 @@ public class BuildRefDao {
     public IgniteCache<Long, BuildRefCompacted> buildRefsCache() {
         return buildRefsCache;
     }
+
+    public BuildRefCompacted get(int srvId, Integer buildId) {
+        return buildRefsCache.get(buildIdToCacheKey(srvId, buildId));
+    }
 }

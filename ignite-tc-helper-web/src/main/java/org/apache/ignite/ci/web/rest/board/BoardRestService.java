@@ -32,8 +32,8 @@ public class BoardRestService {
 
         final ITcBotUserCreds creds = ITcBotUserCreds.get(req);
         final Injector injector = CtxListener.getInjector(ctx);
-        final BoardService boardService = injector.getInstance(BoardService.class);
+        final BoardService boardSvc = injector.getInstance(BoardService.class);
 
-        return boardService.summary(creds);
+        return boardSvc.summary(creds);
     }
 }
