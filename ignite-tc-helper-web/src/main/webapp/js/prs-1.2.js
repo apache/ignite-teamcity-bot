@@ -313,18 +313,25 @@ function formatContributionDetails(row, srvId) {
             function (result) {
                 let selectHtml = "<select id='selectChain_" + prId + "' style='width: 350px'>";
 
-                let isCompleted = [],
+                let isDefault = [],
+                    isCompleted = [],
                     isIncompleted = [],
                     suites = new Map();
 
+                //See also org.apache.ignite.ci.tcbot.visa.ContributionCheckStatus
                 for (let status of result) {
                     suites.set(status.suiteId, status);
 
-                    if (isDefinedAndFilled(status.branchWithFinishedSuite))
+                    if (isDefinedAndFilled(status.defaultBuildType) && status.defaultBuildType === true)
+                        isDefault.push(status);
+                    else if (isDefinedAndFilled(status.branchWithFinishedSuite))
                         isCompleted.push(status);
                     else
                         isIncompleted.push(status);
                 }
+
+                for (let status of isDefault)
+                    selectHtml += "<option value='true' style='font-weight: bold; color: darkblue'>" + status.suiteId + "</option>";
 
                 for (let status of isCompleted)
                     selectHtml += "<option value='true'>" + status.suiteId + "</option>";

@@ -577,29 +577,36 @@ public class TcBotTriggerAndSignOffService {
     }
 
     /**
-     * @param srvCode Server (service) internal code.
+     * @param srvCodeOrAlias Server (service) internal code.
      * @param prov Prov.
      * @param prId Pr id from {@link ContributionToCheck#prNumber}. Negative value imples branch number (with
      * appropriate prefix from GH config).
      */
-    public Set<ContributionCheckStatus> contributionStatuses(String srvCode, ITcBotUserCreds prov,
+    public Set<ContributionCheckStatus> contributionStatuses(String srvCodeOrAlias, ITcBotUserCreds prov,
         String prId) {
         Set<ContributionCheckStatus> statuses = new LinkedHashSet<>();
 
-        ITeamcityIgnited teamcity = tcIgnitedProv.server(srvCode, prov);
+        ITeamcityIgnited teamcity = tcIgnitedProv.server(srvCodeOrAlias, prov);
 
-        IGitHubConnIgnited ghConn = gitHubConnIgnitedProvider.server(srvCode);
+        String defaultBuildType = findDefaultBuildType(srvCodeOrAlias);
 
-        Preconditions.checkState(ghConn.config().code().equals(srvCode));
+        IGitHubConnIgnited ghConn = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
 
-        List<String> compositeBuildTypeIds = findApplicableBuildTypes(srvCode, teamcity);
+        Preconditions.checkState(ghConn.config().code().equals(srvCodeOrAlias));
+
+        List<String> compositeBuildTypeIds = findApplicableBuildTypes(srvCodeOrAlias, teamcity);
 
         for (String btId : compositeBuildTypeIds) {
             List<BuildRefCompacted> buildsForBt = findBuildsForPr(btId, prId, ghConn, teamcity);
 
-            statuses.add(buildsForBt.isEmpty()
+            ContributionCheckStatus contributionAgainstSuite = buildsForBt.isEmpty()
                 ? new ContributionCheckStatus(btId, branchForTcDefault(prId, ghConn))
-                : contributionStatus(srvCode, btId, buildsForBt, teamcity, ghConn, prId));
+                : contributionStatus(srvCodeOrAlias, btId, buildsForBt, teamcity, ghConn, prId);
+
+            if(Objects.equals(btId, defaultBuildType))
+                contributionAgainstSuite.defaultBuildType = true;
+
+            statuses.add(contributionAgainstSuite);
         }
 
         return statuses;
@@ -678,9 +685,7 @@ public class TcBotTriggerAndSignOffService {
      */
     public ContributionCheckStatus contributionStatus(String srvId, String suiteId, List<BuildRefCompacted> builds,
         ITeamcityIgnited teamcity, IGitHubConnIgnited ghConn, String prId) {
-        ContributionCheckStatus status = new ContributionCheckStatus();
-
-        status.suiteId = suiteId;
+        ContributionCheckStatus status = new ContributionCheckStatus(suiteId);
 
         List<BuildRefCompacted> finishedOrCancelled = builds.stream()
             .filter(t -> t.isFinished(compactor)).collect(Collectors.toList());

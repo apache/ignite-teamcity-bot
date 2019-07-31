@@ -51,9 +51,20 @@ import java.util.List;
     /** Web links to queued suites. */
     public List<String> webLinksQueuedSuites = new LinkedList<>();
 
-    public ContributionCheckStatus() {
+    /** Default build type. */
+    public boolean defaultBuildType = false;
+
+    /**
+     * @param suiteId Suite id.
+     */
+    public ContributionCheckStatus(String suiteId) {
+        this.suiteId = suiteId;
     }
 
+    /**
+     * @param suiteId Suite id.
+     * @param resolvedBranch Resolved branch.
+     */
     public ContributionCheckStatus(String suiteId, String resolvedBranch) {
         this.suiteId = suiteId;
         this.resolvedBranch = resolvedBranch;
