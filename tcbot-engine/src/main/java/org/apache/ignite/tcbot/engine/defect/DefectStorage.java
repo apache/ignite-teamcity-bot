@@ -16,14 +16,21 @@
  */
 package org.apache.ignite.tcbot.engine.defect;
 
+import java.util.Collections;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
+import org.apache.ignite.IgniteAtomicSequence;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.cache.QueryEntity;
+import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 
 public class DefectStorage {
-    public static final String BOT_DETECTED_ISSUES = "botDetectedDefects";
+    /** Bot detected defects. */
+    public static final String BOT_DETECTED_DEFECTS = "botDetectedDefects";
+    /** Bot detected defects sequence. */
+    public static final String BOT_DETECTED_DEFECTS_SEQ = "botDetectedDefectsSeq";
 
     @Inject
     private Provider<Ignite> igniteProvider;
@@ -31,7 +38,13 @@ public class DefectStorage {
     public DefectStorage() {
     }
 
-    private IgniteCache<DefectKey, DefectCompacted> cache() {
+    private IgniteAtomicSequence sequence() {
+
+        Ignite ignite = getIgnite();
+        return ignite.atomicSequence(BOT_DETECTED_DEFECTS_SEQ, 0, true);
+    }
+
+    private IgniteCache<Integer, DefectCompacted> cache() {
         return botDetectedIssuesCache(getIgnite());
     }
 
@@ -39,7 +52,11 @@ public class DefectStorage {
         return igniteProvider.get();
     }
 
-    public static IgniteCache<DefectKey, DefectCompacted> botDetectedIssuesCache(Ignite ignite) {
-        return ignite.getOrCreateCache(CacheConfigs.getCacheV2TxConfig(BOT_DETECTED_ISSUES));
+    public static IgniteCache<Integer, DefectCompacted> botDetectedIssuesCache(Ignite ignite) {
+        CacheConfiguration<Integer, DefectCompacted> ccfg = CacheConfigs.getCacheV2TxConfig(BOT_DETECTED_DEFECTS);
+
+        ccfg.setQueryEntities(Collections.singletonList(new QueryEntity(Integer.class, DefectCompacted.class)));
+
+        return ignite.getOrCreateCache(ccfg);
     }
 }
