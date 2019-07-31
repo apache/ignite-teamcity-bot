@@ -123,14 +123,18 @@
             <template v-slot:top>
             </template>
 
-            <template v-slot:items="props">
-                <td class="text-xs-right"><span class='visaStage'>{{ props.item.cntIssues }}</span></td>
-                <td class="text-xs-right"><span class='visaStage'>{{ props.item.fixedIssues }}</span></td>
-                <td class="text-xs-right"><span class='visaStage'>{{ props.item.notFixedIssues }}</span></td>
+            <template v-slot:items="items">
+                <td class="text-xs-right"><span class='visaStage'>{{ items.item.cntIssues }}</span></td>
+                <td class="text-xs-right"><span class='visaStage'>{{ items.item.fixedIssues }}</span></td>
+                <td class="text-xs-right"><span class='visaStage'>{{ items.item.notFixedIssues }}</span></td>
             </template>
 
-            <template v-slot:expanded-item="{ headers }">
-                <td :colspan="headers.length"> expanded </td>
+            <!-- expand item/row -->
+            <template v-slot:expanded-item="{ headers, item }">
+                <td :colspan="headers.length">
+                    {{item.usernames}}
+                    <pre>{{item}}</pre>
+                </td>
             </template>
         </v-data-table>
 
