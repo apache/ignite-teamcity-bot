@@ -46,16 +46,15 @@
                 defects: [],
                 expanded: [],
                 headers: [
-                    {text: "Branch", value: "branch"},
+                    {text: "Branch", value: 'branch'},
                     {text: 'Usernames', value: 'usernames'},
-                    {text: "Issues", value: "cntIssues"},
-                    {text: "Fixed", value: "fixedIssues"},
-                    {text: "Not Fixed", value: "notFixedIssues"}
+                    {text: "Issues", value: 'cntissues'},
+                    {text: "Fixed", value: 'fixedissues'},
+                    {text: "Not Fixed", value: 'notfixedissues'}
                 ]
             },
             methods: {
                 formChanged: function () {
-                    $("#divFailures").html(parmsForRest());
                 }
             }
         });
@@ -93,8 +92,6 @@
     }
 
     function showData(result) {
-        $("#divFailures").html(JSON.stringify(result));
-
         gVue.$data.defects = result.defects;
     }
 
@@ -111,34 +108,42 @@
         </select>
         <span>Base branch: {{ baseBranchSelected }}</span>
 
+
         <v-data-table
                 :headers="headers"
                 :items="defects"
-                :expanded.sync="expanded"
-                group-by="branch"
                 item-key="usernames"
-                show-expand
                 class="elevation-1"
+                group-by="branch"
+                :expanded.sync="expanded"
+                show-expand
+                dense
         >
-            <template v-slot:top>
-            </template>
-
-            <template v-slot:items="items">
-                <td class="text-xs-right"><span class='visaStage'>{{ items.item.cntIssues }}</span></td>
-                <td class="text-xs-right"><span class='visaStage'>{{ items.item.fixedIssues }}</span></td>
-                <td class="text-xs-right"><span class='visaStage'>{{ items.item.notFixedIssues }}</span></td>
-            </template>
-
             <!-- expand item/row -->
             <template v-slot:expanded-item="{ headers, item }">
                 <td :colspan="headers.length">
-                    {{item.usernames}}
-                    <pre>{{item}}</pre>
+                    Branch: <a :href="'/current.html?branch=' + item.trackedBranch">{{item.trackedBranch}}</a>
+                    Commits from: {{item.usernames}}
+                    Affected: {{item.testOrSuitesAffected}} <br>
                 </td>
             </template>
+
+            <template v-slot:item.cntIssues="{ item }">
+                <b> {{ item.cntIssues }} </b>
+            </template>
+
+            <template v-slot:item.cntIssues="{ item }">
+                <span class='visaStage'>  {{ item.cntIssues }} </span>
+            </template>
+            <template v-slot:item.fixedIssues="{ item }">
+                <span class='visaStage' style="background: #12AD5E">  {{ item.fixedIssues }} </span>
+            </template>
+            <template v-slot:item.notFixedIssues="{ item }">
+                <span class='visaStage' style="background: red">  {{ item.notFixedIssues }} </span>
+            </template>
+
         </v-data-table>
 
-        <div id="divFailures"></div>
     </v-app>
 </div>
 

@@ -16,6 +16,10 @@
  */
 package org.apache.ignite.tcbot.engine.ui;
 
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.ignite.ci.issue.Issue;
+
 public class BoardDefectSummaryUi {
     public String branch;
 
@@ -25,11 +29,18 @@ public class BoardDefectSummaryUi {
 
     public String usernames;
 
-    public void addIssue() {
+    public String trackedBranch;
+    public List<String> testOrSuitesAffected = new ArrayList<>();
+
+    public void addIssue(Issue issue) {
         if (cntIssues == null)
             cntIssues = 0;
 
         cntIssues++;
+
+        testOrSuitesAffected.add(issue.issueKey.testOrBuildName);
+
+        trackedBranch = issue.trackedBranchName;
     }
 
     public void addFixedIssue() {

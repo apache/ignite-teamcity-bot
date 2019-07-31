@@ -106,7 +106,7 @@ public class BoardService {
 
                 defect.branch = fatBuild.branchName(compactor);
 
-                defect.addIssue();
+                defect.addIssue(issue);
 
                 Stream<FatBuildCompacted> results = FutureUtil.getResults(futures);
                 List<FatBuildCompacted> freshRebuild = results.collect(Collectors.toList());
