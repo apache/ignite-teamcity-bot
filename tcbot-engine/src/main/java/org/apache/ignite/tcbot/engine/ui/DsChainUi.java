@@ -37,7 +37,6 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcservice.model.conf.BuildType;
 
-import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.branchForLink;
 import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.createOccurForLogConsumer;
 import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.createOrrucForLongRun;
 import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
@@ -277,7 +276,7 @@ public class DsChainUi {
     }
 
     private static String buildWebLink(ITeamcityIgnited teamcity, FullChainRunCtx suite) {
-        final String branch = branchForLink(suite.branchName());
+        final String branch = normalizeBranch(suite.branchName());
         return teamcity.host() + "viewType.html?buildTypeId=" + suite.suiteId()
             + "&branch=" + UrlUtil.escape(branch)
             + "&tab=buildTypeStatusDiv";
