@@ -74,6 +74,7 @@ public class DefectsStorage {
         FatBuildCompacted build,
         List<CommitCompacted> collect,
         BiFunction<Integer, DefectCompacted, DefectCompacted> function) {
+
         List<CommitCompacted> commitsToUse = new ArrayList<>(collect);
         commitsToUse.sort(CommitCompacted::compareTo);
 
@@ -85,31 +86,32 @@ public class DefectsStorage {
                 Integer id = next.getKey();
                 DefectCompacted openDefect = next.getValue();
 
-                if (openDefect.tcSrvId == srvId) {
+                if (openDefect.tcSrvId() == srvId) {
                     if (openDefect.sameCommits(commitsToUse)) {
 
                         DefectCompacted defect = function.apply(id, openDefect);
 
+                        defect.id(id);
+
                         cache.put(id, defect);
+
                         return defect;
                     }
                 }
             }
         }
 
-        DefectCompacted defect = new DefectCompacted();
-
-        defect.commits(commitsToUse);
-        defect.tcBranch = build.branchName();
-        defect.tcSrvId = srvId;
-
-        defect.tcSrvCodeCid = tcSrvCodeCid;
-
         int id = (int)sequence().incrementAndGet();
+
+        DefectCompacted defect = new DefectCompacted(id)
+            .commits(commitsToUse)
+            .tcBranch(build.branchName())
+            .tcSrvId(srvId)
+            .tcSrvCodeCid(tcSrvCodeCid);
 
         DefectCompacted defectT = function.apply(id, defect);
 
-        cache.put(id, defectT);
+        boolean putSuccess = cache.putIfAbsent(id, defectT);
 
         return defectT;
     }
@@ -120,8 +122,8 @@ public class DefectsStorage {
             .setFilter((k, v) -> v.resolvedByUsernameId() < 1))) {
             for (Cache.Entry<Integer, DefectCompacted> next : qry) {
                 DefectCompacted openDefect = next.getValue();
+                openDefect.id(next.getKey());
                 res.add(openDefect);
-
             }
         }
         return res;

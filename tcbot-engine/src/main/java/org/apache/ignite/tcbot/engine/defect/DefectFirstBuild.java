@@ -30,8 +30,10 @@ public class DefectFirstBuild {
         this.build = build;
     }
 
-    public void addIssue(int typeCid, Integer testNameCid) {
+    public DefectFirstBuild addIssue(int typeCid, Integer testNameCid) {
         issues.add(new DefectIssue(typeCid, testNameCid));
+
+        return this;
     }
 
     public BuildRefCompacted build() {

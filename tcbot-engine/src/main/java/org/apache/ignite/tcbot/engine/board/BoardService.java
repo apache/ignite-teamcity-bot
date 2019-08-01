@@ -17,7 +17,6 @@
 package org.apache.ignite.tcbot.engine.board;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -51,12 +50,10 @@ import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.build.FatBuildDao;
-import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 
 public class BoardService {
     @Inject IIssuesStorage issuesStorage;
-    @Inject BuildRefDao buildRefDao;
     @Inject FatBuildDao fatBuildDao;
     @Inject ChangeDao changeDao;
     @Inject ITeamcityIgnitedProvider tcProv;
@@ -67,6 +64,9 @@ public class BoardService {
     @Inject BuildChainProcessor buildChainProcessor;
 
 
+    /**
+     * @param creds Credentials.
+     */
     public BoardSummaryUi summary(ICredentialsProv creds) {
         issuesToDefectsLater();
 
@@ -76,12 +76,9 @@ public class BoardService {
 
         BoardSummaryUi res = new BoardSummaryUi();
         for (DefectCompacted next : defects) {
-
             BoardDefectSummaryUi defectUi = new BoardDefectSummaryUi(next, compactor);
 
-            int srvId = next.tcSrvId;
-
-            String srvCode = compactor.getStringFromId(next.tcSrvCodeCid);
+            String srvCode = next.tcSrvCode(compactor);
 
             if(!creds.hasAccess(srvCode))
                 continue;
@@ -91,7 +88,7 @@ public class BoardService {
             Map<Integer, DefectFirstBuild> build = next.buildsInvolved();
             for (DefectFirstBuild cause : build.values()) {
                 BuildRefCompacted bref = cause.build();
-                FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(srvId, bref.id());
+                FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(next.tcSrvId(), bref.id());
 
                 List<Future<FatBuildCompacted>> futures = buildChainProcessor.replaceWithRecent(fatBuild, allBuildsMap, tcIgn);
 
@@ -113,14 +110,14 @@ public class BoardService {
                             else
                                 defectUi.addNotFixedIssue();
                         }
+
+                        String testOrBuildName = compactor.getStringFromId(issue.testNameCid());
+                        defectUi.addIssue(testOrBuildName, "");
                     }
-
-
                 }
             }
 
-
-            defectUi.branch =  compactor.getStringFromId(next.tcBranch);
+            defectUi.branch =  next.tcBranch(compactor);
 
             res.addDefect(defectUi);
         }
@@ -167,23 +164,19 @@ public class BoardService {
 
                 int issueTypeCid = compactor.getStringId(issue.type);
                 Integer testNameCid = compactor.getStringIdIfPresent(testName);
+                int trackedBranchCid = compactor.getStringId(issue.trackedBranchName);
 
                 int[] changes = fatBuild.changes();
                 Map<Long, ChangeCompacted> all = changeDao.getAll(srvId, changes);
                 Stream<CommitCompacted> stream1 = all.values().stream().map(ChangeCompacted::commitVersion)
                     .map(CommitCompacted::new);
 
-               /* Set<String> collect = issue.changes.stream().map(ChangeUi::username).collect(Collectors.toSet());
-
-                defect.addIssue(issue);
-                defect.usernames = collect.toString();*/
-
                 int tcSrvCodeCid = compactor.getStringId(srvCode);
                 defectStorage.merge(tcSrvCodeCid, srvId, fatBuild, stream1.collect(Collectors.toList()),
                     (k, defect) -> {
-                        DefectFirstBuild cause = defect.computeIfAbsent(fatBuild);
+                        defect.trackedBranchCidSetIfEmpty(trackedBranchCid);
 
-                        cause.addIssue(issueTypeCid, testNameCid);
+                        defect.computeIfAbsent(fatBuild).addIssue(issueTypeCid, testNameCid);
 
                         return defect;
                     });

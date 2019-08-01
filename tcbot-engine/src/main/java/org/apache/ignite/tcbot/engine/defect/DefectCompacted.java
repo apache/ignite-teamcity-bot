@@ -22,16 +22,31 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
 
 public class DefectCompacted {
-    public int tcBranch;
-    public int tcSrvId;
-    public int tcSrvCodeCid;
+    /** Syntetic Defect Id. */
+    private int id;
+
+    private int tcBranch;
+
+    /** Tc server code hashcode. */
+    private int tcSrvId;
+
+    /** Tc server code compactor string ID. */
+    private int tcSrvCodeCid;
+
+    /** Tracked branch Compactor string ID. */
+    private int trackedBranchCid;
 
     private int resolvedByUsernameId = -1;
     /** Commits hashes involved. */
     private List<CommitCompacted> commits = new ArrayList<>();
     private Map<Integer, DefectFirstBuild> buildsInvolved = new HashMap<>();
+
+    public DefectCompacted(int id) {
+        this.id = id;
+    }
 
     public int resolvedByUsernameId() {
         return resolvedByUsernameId;
@@ -47,9 +62,11 @@ public class DefectCompacted {
     /**
      * @param collect Collected commits, should be sorted.
      */
-    public void commits(List<CommitCompacted> collect) {
+    public DefectCompacted commits(List<CommitCompacted> collect) {
         commits.clear();
         commits.addAll(collect);
+
+        return this;
     }
 
     public Map<Integer, DefectFirstBuild> buildsInvolved() {
@@ -61,5 +78,54 @@ public class DefectCompacted {
             DefectFirstBuild defectFirstBuild = new DefectFirstBuild(build);
             return defectFirstBuild;
         });
+    }
+
+    public int tcSrvId() {
+        return tcSrvId;
+    }
+
+    public void trackedBranchCidSetIfEmpty(int trackedBranchCid) {
+        if (this.trackedBranchCid <= 0)
+            this.trackedBranchCid = trackedBranchCid;
+
+    }
+
+    /** */
+    public String tcBranch(IStringCompactor compactor) {
+        return compactor.getStringFromId(tcBranch);
+    }
+
+    /** */
+    public String tcSrvCode(IStringCompactor compactor) {
+        return compactor.getStringFromId(tcSrvCodeCid);
+    }
+
+    /** */
+    public int id() {
+        return id;
+    }
+
+    /** */
+    public DefectCompacted tcBranch(int tcBranch) {
+        this.tcBranch = tcBranch;
+
+        return this;
+    }
+
+    /** */
+    public DefectCompacted tcSrvId(int srvId) {
+        this.tcSrvId = srvId;
+        return this;
+    }
+
+    /** */
+    public DefectCompacted tcSrvCodeCid(int cid) {
+        tcSrvCodeCid = cid;
+
+        return this;
+    }
+
+    public void id(int id) {
+        this.id = id;
     }
 }

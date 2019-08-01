@@ -18,12 +18,11 @@ package org.apache.ignite.tcbot.engine.ui;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.tcbot.engine.defect.DefectCompacted;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 
 public class BoardDefectSummaryUi {
-    private final transient DefectCompacted compacted;
+    private final transient DefectCompacted defect;
     private final transient IStringCompactor compactor;
 
     public String branch;
@@ -37,20 +36,24 @@ public class BoardDefectSummaryUi {
     public String trackedBranch;
     public List<String> testOrSuitesAffected = new ArrayList<>();
 
-    public BoardDefectSummaryUi(DefectCompacted compacted, IStringCompactor compactor) {
-        this.compacted = compacted;
+    public BoardDefectSummaryUi(DefectCompacted defect, IStringCompactor compactor) {
+        this.defect = defect;
         this.compactor = compactor;
     }
 
-    public void addIssue(Issue issue) {
+    public int getId(){
+        return defect.id();
+    }
+
+    public void addIssue(String testOrBuildName, String trackedBranchName) {
         if (cntIssues == null)
             cntIssues = 0;
 
         cntIssues++;
 
-        testOrSuitesAffected.add(issue.issueKey.testOrBuildName);
+        testOrSuitesAffected.add(testOrBuildName);
 
-        trackedBranch = issue.trackedBranchName;
+        trackedBranch = trackedBranchName;
     }
 
     public void addFixedIssue() {
