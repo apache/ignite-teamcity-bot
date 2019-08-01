@@ -28,6 +28,7 @@ import java.util.TreeMap;
 import java.util.function.BiPredicate;
 
 import org.apache.ignite.ci.tcbot.common.StringFieldCompacted;
+import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
@@ -45,6 +46,7 @@ import javax.annotation.Nullable;
 /**
  *
  */
+@Persisted
 public class TestCompacted {
     public static final int MUTED_F = 0;
     public static final int CUR_MUTED_F = 2;

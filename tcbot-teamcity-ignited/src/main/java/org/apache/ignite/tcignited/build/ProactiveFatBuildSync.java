@@ -31,7 +31,6 @@ import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
@@ -148,52 +147,51 @@ public class ProactiveFatBuildSync {
         int partitions = affinity.partitions();
         int checkBatchSize = 5000;
 
-        Map<Integer, GridIntList> keysToCheck = new HashMap<>(partitions);
 
-        Stream<BuildRefCompacted> buildRefs = buildRefDao.compactedBuildsForServer(srvIdMaskHigh,
-            bref -> true);
+        GridIntList keysToCheck = new GridIntList();
+        for (int p = 0; p < partitions; p++) {
+            int curPart = p;
 
-        buildRefs.forEach(buildRef -> {
-            int buildId = buildRef.id();
-            if (buildRef.isRunning(compactor) || buildRef.isQueued(compactor) )
-                buildsIdsToLoad.add(buildId);
-            else {
-                long fatBuildKey = FatBuildDao.buildIdToCacheKey(srvIdMaskHigh, buildId);
-                int part = affinity.partition(fatBuildKey);
+            buildRefDao.compactedBuildsForServer(srvIdMaskHigh, bref -> true)
+                .filter(
+                    bref -> {
+                        long fatBuildKey = FatBuildDao.buildIdToCacheKey(srvIdMaskHigh, bref.id());
+                        int part = affinity.partition(fatBuildKey);
+                        return part == curPart;
+                    }
+                )
+                .forEach(buildRef -> {
+                    int buildId = buildRef.id();
 
-                keysToCheck.computeIfAbsent(part, p -> new GridIntList(checkBatchSize)).add(buildId);
-            }
+                    if (buildRef.isRunning(compactor) || buildRef.isQueued(compactor))
+                        buildsIdsToLoad.add(buildId); //re-check queued
+                    else
+                        keysToCheck.add(buildId); // check if missing
 
-            for (Map.Entry<Integer, GridIntList> entry : keysToCheck.entrySet()) {
-                GridIntList list = entry.getValue();
-                int initSize = list.size();
-                if (initSize < checkBatchSize)
-                    continue;
+                    int initSize = keysToCheck.size();
+                    if (initSize >= checkBatchSize) {
+                        System.err.println("findMissingBuilds: Srv: " + srvCode + " Checking " + initSize + " builds for partition " + curPart);
 
-                System.err.println("findMissingBuilds: Srv: " + srvCode + " Checking " + initSize + " builds for partition " + entry.getKey());
+                        int[] buildIds = keysToCheck.array();
+                        keysToCheck.clear();
 
-                int[] buildIds = list.array();
-                list.clear();
+                        Collection<Integer> builds = fatBuildDao.getMissingBuilds(srvIdMaskHigh, buildIds);
+                        System.err.println("foundMissing: " + builds.size() + ": Srv: " + srvCode + " Checking " + initSize + " builds for partition " + curPart);
 
-                Collection<Integer> builds = fatBuildDao.getMissingBuilds(srvIdMaskHigh, buildIds);
-                System.err.println("foundMissing + " + builds.size() + ": Srv: " + srvCode + " Checking " + initSize + " builds for partition " + entry.getKey());
+                        buildsIdsToLoad.addAll(builds);
+                    }
 
-                buildsIdsToLoad.addAll(builds);
-            }
-
-            if (buildsIdsToLoad.size() >= 100) {
-                totalAskedToLoad.addAndGet(buildsIdsToLoad.size());
-                scheduleBuildsLoad(conn, buildsIdsToLoad);
-                buildsIdsToLoad.clear();
-            }
-        });
-
-        for (GridIntList next : keysToCheck.values()) {
-            if (next.isEmpty())
-                continue;
-
-            buildsIdsToLoad.addAll(fatBuildDao.getMissingBuilds(srvIdMaskHigh, next.array()));
+                    if (buildsIdsToLoad.size() >= 100) {
+                        totalAskedToLoad.addAndGet(buildsIdsToLoad.size());
+                        scheduleBuildsLoad(conn, buildsIdsToLoad);
+                        buildsIdsToLoad.clear();
+                    }
+                });
         }
+
+        if (!keysToCheck.isEmpty())
+            buildsIdsToLoad.addAll(fatBuildDao.getMissingBuilds(srvIdMaskHigh, keysToCheck.array()));
+
 
         if (!buildsIdsToLoad.isEmpty()) {
             totalAskedToLoad.addAndGet(buildsIdsToLoad.size());
