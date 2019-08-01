@@ -19,10 +19,29 @@ package org.apache.ignite.tcignited.build;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.cache.Cache;
+import javax.cache.processor.EntryProcessorException;
+import javax.cache.processor.EntryProcessorResult;
+import javax.cache.processor.MutableEntry;
+import javax.inject.Inject;
+import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.CacheEntryProcessor;
+import org.apache.ignite.cache.affinity.Affinity;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
@@ -38,19 +57,6 @@ import org.apache.ignite.tcservice.model.result.stat.Statistics;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrencesFull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.cache.Cache;
-import javax.cache.processor.EntryProcessorException;
-import javax.cache.processor.EntryProcessorResult;
-import javax.cache.processor.MutableEntry;
-import javax.inject.Inject;
-import javax.inject.Provider;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 /**
  *
@@ -188,10 +194,6 @@ public class FatBuildDao {
         return key != null && key >> 32 == srvId;
     }
 
-    public boolean containsKey(int srvIdMaskHigh, int buildId) {
-        return buildsCache.containsKey(buildIdToCacheKey(srvIdMaskHigh, buildId));
-    }
-
     public Stream<Cache.Entry<Long, FatBuildCompacted>> outdatedVersionEntries(int srvId) {
         return StreamSupport.stream(buildsCache.spliterator(), false)
             .filter(entry -> entry.getValue().isOutdatedEntityVersion())
@@ -202,6 +204,18 @@ public class FatBuildDao {
         return stream.stream()
             .filter(Objects::nonNull).map(id -> buildIdToCacheKey(srvId, id)).collect(Collectors.toSet());
     }
+
+    private static Set<Long> buildsIdsToCacheKeys(int srvId, int[] buildIds) {
+        HashSet<Long> set = new HashSet<>(buildIds.length);
+
+        for (int i = 0; i < buildIds.length; i++) {
+            int id = buildIds[i];
+            set.add(buildIdToCacheKey(srvId, id));
+        }
+
+        return set;
+    }
+
 
     /**
      * @param srvId Server id.
@@ -331,23 +345,32 @@ public class FatBuildDao {
                 runningTime = val >= 0 ? val : -1;
             }
 
-
         }
 
-        if(runningTime<0) {
-            Long finishTs= buildBinary.field("finishDate");
+        if (runningTime < 0) {
+            Long finishTs = buildBinary.field("finishDate");
 
-            if(finishTs!=null)
+            if (finishTs != null)
                 runningTime = finishTs - startTs;
         }
 
         return runningTime;
     }
 
-    private static class GetStartTimeProc implements CacheEntryProcessor<Long, BinaryObject, Long> {
-        public GetStartTimeProc() {
-        }
+    public Affinity<Long> affinity() {
+        return igniteProvider.get().affinity(buildsCache.getName());
+    }
 
+    @AutoProfiling
+    public Collection<Integer> getMissingBuilds(int srvId, int[] buildIds) {
+        Set<Long> cacheKeys = buildsIdsToCacheKeys(srvId, buildIds);
+
+        Map<Long, EntryProcessorResult<Integer>> map = buildsCache.<Long, BinaryObject>withKeepBinary().invokeAll(cacheKeys, new IsMissingBuildProcessor());
+
+        return map.values().stream().map(EntryProcessorResult::get).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    private static class GetStartTimeProc implements CacheEntryProcessor<Long, BinaryObject, Long> {
         /** {@inheritDoc} */
         @Override public Long process(MutableEntry<Long, BinaryObject> entry,
             Object... arguments) throws EntryProcessorException {
@@ -364,4 +387,20 @@ public class FatBuildDao {
             return startDate;
         }
     }
+
+    /**
+     * Returns Build Id if current build is missing in the cache.
+     */
+    private static class IsMissingBuildProcessor implements CacheEntryProcessor<Long, BinaryObject, Integer> {
+        /** {@inheritDoc} */
+        @Override public Integer process(MutableEntry<Long, BinaryObject> entry,
+            Object... arguments) throws EntryProcessorException {
+            Long key = entry.getKey();
+            if (key == null)
+                return null;
+
+            return entry.getValue() == null ? BuildRefDao.cacheKeyToBuildId(key) : null;
+        }
+    }
+
 }

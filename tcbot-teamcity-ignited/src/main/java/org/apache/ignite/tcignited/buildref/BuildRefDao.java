@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -38,11 +39,13 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.QueryEntity;
 import org.apache.ignite.cache.query.QueryCursor;
+import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.cache.query.SqlQuery;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.internal.util.GridIntList;
+import org.apache.ignite.lang.IgnitePredicate;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
@@ -93,9 +96,20 @@ public class BuildRefDao {
      * @return all builds for a server, full scan.
      */
     @Nonnull
-    public Stream<BuildRefCompacted> compactedBuildsForServer(int srvId) {
-        return StreamSupport.stream(buildRefsCache.spliterator(), false)
-            .filter(entry -> isKeyForServer(entry.getKey(), srvId))
+    public Stream<BuildRefCompacted> compactedBuildsForServer(
+        final int srvId,
+        @Nullable final IgnitePredicate<BuildRefCompacted> filter) {
+        QueryCursor<Cache.Entry<Long, BuildRefCompacted>> qry
+            = buildRefsCache.query(
+                new ScanQuery<Long, BuildRefCompacted>().setFilter(
+                    (k, v) -> {
+                        if (!isKeyForServer(k, srvId))
+                            return false;
+
+                        return filter == null || filter.apply(v);
+                    }));
+
+        return StreamSupport.stream(qry.spliterator(), false)
             .map(javax.cache.Cache.Entry::getValue);
     }
 
@@ -240,8 +254,7 @@ public class BuildRefDao {
         if (stateRunningId != null)
             list.add(stateRunningId);
 
-        return compactedBuildsForServer(srvId)
-            .filter(e -> list.contains(e.state()))
+        return compactedBuildsForServer(srvId, bref -> list.contains(bref.state()))
             .collect(Collectors.toList());
     }
 
