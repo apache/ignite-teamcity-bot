@@ -18,6 +18,25 @@ package org.apache.ignite.tcignited.history;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Iterables;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiPredicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.cache.Cache;
+import javax.inject.Inject;
+import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.binary.BinaryObject;
@@ -41,20 +60,6 @@ import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.cache.Cache;
-import javax.inject.Inject;
-import javax.inject.Provider;
-import java.time.Duration;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiPredicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  *
@@ -147,24 +152,19 @@ public class HistoryCollector {
         long curTs = System.currentTimeMillis();
         Set<Integer> buildIds = bRefsList.stream()
             .filter(b -> {
-               /* AtomicInteger biggestIdOutOfScope = biggestBuildIdOutOfHistoryScope.get(srvId);
-                int outOfScopeBuildId = biggestIdOutOfScope == null ? -1 : biggestIdOutOfScope.get();
-                return b.id() > outOfScopeBuildId;
-                */
-
                 Integer maxBuildIdForDay = buildStartTimeStorage.getBorderForAgeForBuildId(srvId, TcBotConst.HISTORY_BUILD_ID_BORDER_DAYS);
 
                 if (maxBuildIdForDay == null)
                     return true;
 
-                return b.id()>maxBuildIdForDay;
+                return b.id() > maxBuildIdForDay;
 
             })
             .filter(this::applicableForHistory)
             .map(BuildRefCompacted::id)
             .filter(bId -> !knownBuilds.contains(bId)).collect(Collectors.toSet());
 
-        System.out.println("***** Loading build start time history for suite "
+        logger.info("***** Loading build start time history for suite "
             + compactor.getStringFromId(buildTypeId)
             + " branch " + compactor.getStringFromId(normalizedBaseBranch) + ": " + buildIds.size() + " builds" );
 
@@ -207,7 +207,7 @@ public class HistoryCollector {
             }
         ).collect(Collectors.toSet());
 
-        System.err.println("*** Build " + btId + " branch " + branchId + " builds in scope " +
+        logger.info("*** Build " + btId + " branch " + branchId + " builds in scope " +
             buildInScope.size() + " from " + bRefsList.size());
 
         return buildInScope;

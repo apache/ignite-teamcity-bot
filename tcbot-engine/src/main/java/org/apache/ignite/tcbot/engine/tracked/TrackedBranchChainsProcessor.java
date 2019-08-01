@@ -17,14 +17,17 @@
 package org.apache.ignite.tcbot.engine.tracked;
 
 import com.google.common.base.Strings;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.tcbot.common.conf.IBuildParameterSpec;
 import org.apache.ignite.tcbot.common.conf.IParameterValueSpec;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
@@ -36,8 +39,10 @@ import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
 import org.apache.ignite.tcbot.engine.chain.SortOption;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
+import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
+import org.apache.ignite.tcbot.engine.ui.GuardBranchStatusUi;
 import org.apache.ignite.tcbot.engine.ui.LrTestsFullSummaryUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
@@ -164,6 +169,61 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         res.postProcess(runningUpdates.get());
 
         return res;
+    }
+
+    @Override public GuardBranchStatusUi getBranchSummary(String name, ICredentialsProv prov) {
+        ITrackedBranch tb = tcBotCfg.getTrackedBranches().getBranchMandatory(name);
+        List<ITrackedChain> accessibleChains =
+            tb.chainsStream()
+                .filter(chain -> tcIgnitedProv.hasAccess(chain.serverCode(), prov))
+                .collect(Collectors.toList());
+
+        if (accessibleChains == null)
+            return null;
+
+        int ageDays = 1;
+        long minStartTime = System.currentTimeMillis() - Duration.ofDays(ageDays).toMillis();
+
+        GuardBranchStatusUi statusUi = new GuardBranchStatusUi();
+        statusUi.setName(tb.name());
+
+        for (ITrackedChain chain : accessibleChains) {
+            String srvCodeOrAlias = chain.serverCode();
+            ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvCodeOrAlias, prov);
+
+            List<BuildRefCompacted> hist = tcIgn.getAllBuildsCompacted(chain.tcSuiteId(), chain.tcBranch());
+
+            AtomicInteger finished = new AtomicInteger();
+            AtomicInteger running = new AtomicInteger();
+            AtomicInteger queued = new AtomicInteger();
+
+            hist.stream()
+                .filter(ref -> !ref.isFakeStub())
+                .filter(t -> !t.isCancelled(compactor))
+                .peek(ref -> {
+                    if (ref.isRunning(compactor))
+                        running.incrementAndGet();
+                    else if (ref.isQueued(compactor))
+                        queued.incrementAndGet();
+                })
+                .filter(ref -> ref.isFinished(compactor))
+                .filter(ref -> {
+                    Integer borderId = tcIgn.getBorderForAgeForBuildId(ageDays);
+                    return borderId == null || ref.id() >= borderId;
+                })
+                .filter(ref -> {
+                    Long startTime = tcIgn.getBuildStartTime(ref.id());
+
+                    return startTime != null && startTime > minStartTime;
+                })
+                .forEach(ref -> {
+                    finished.incrementAndGet();
+                });
+
+            statusUi.addSuiteRunStat(finished.get(), running.get(), queued.get());
+        }
+
+        return statusUi;
     }
 
     /**

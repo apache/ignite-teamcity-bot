@@ -19,6 +19,7 @@ package org.apache.ignite.tcbot.engine.tracked;
 import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.engine.chain.SortOption;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
+import org.apache.ignite.tcbot.engine.ui.GuardBranchStatusUi;
 import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 
@@ -51,6 +52,12 @@ public interface IDetailedStatusForTrackedBranch {
         @Nullable DisplayMode displayMode,
         @Nullable SortOption sortOption,
         int maxDurationSec);
+
+    /**
+     * @param name Name.
+     * @param prov Prov.
+     */
+    public GuardBranchStatusUi getBranchSummary(String name, ICredentialsProv prov);
 
     //  * @param baseTrackedBranch Branch tracked branch in Bot, has a priority if both TC & Bot branches (baseBranchForTcParm) present.
 }
