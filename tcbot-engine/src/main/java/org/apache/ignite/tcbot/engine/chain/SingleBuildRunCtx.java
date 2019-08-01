@@ -38,11 +38,11 @@ import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.tcbot.common.conf.IBuildParameterSpec;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.util.FutureUtil;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.build.ITest;
 import org.apache.ignite.tcignited.buildlog.ILogCheckResult;
 import org.apache.ignite.tcignited.buildlog.ITestLogCheckResult;
 import org.apache.ignite.tcservice.ITeamcity;
@@ -196,15 +196,11 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return isComposite() ? Stream.empty() : buildCompacted.getFailedNotMutedTestNames(compactor);
     }
 
-    public Stream<TestCompacted> getFailedNotMutedTests() {
-        return isComposite() ? Stream.empty() : buildCompacted.getFailedNotMutedTests(compactor);
-    }
-
     public Stream<String> getAllTestNames() {
         return buildCompacted.getAllTestNames(compactor);
     }
 
-    public Stream<TestCompacted> getAllTests() {
+    public Stream<ITest> getAllTests() {
         return isComposite() ? Stream.empty() : buildCompacted.getAllTests();
     }
 

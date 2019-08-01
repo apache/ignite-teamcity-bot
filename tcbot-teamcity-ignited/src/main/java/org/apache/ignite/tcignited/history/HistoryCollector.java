@@ -43,7 +43,6 @@ import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
 import org.apache.ignite.tcbot.common.TcBotConst;
@@ -53,7 +52,9 @@ import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.build.FatBuildDao;
+import org.apache.ignite.tcignited.build.ITest;
 import org.apache.ignite.tcignited.build.SuiteHistory;
+import org.apache.ignite.tcignited.build.TestCompactedV2;
 import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
@@ -305,10 +306,11 @@ public class HistoryCollector {
 
                     SuiteInvocation sinv = new SuiteInvocation(srvId, normalizedBaseBranch, fatBuildCompacted, compactor, paramsFilter);
 
-                    Stream<TestCompacted> tests = fatBuildCompacted.getAllTests();
+                    Stream<ITest> tests = fatBuildCompacted.getAllTests();
                     tests.forEach(
                         testCompacted -> {
-                            Invocation invocation = testCompacted.toInvocation(fatBuildCompacted, paramsFilter, successStatusStrId);
+                            Invocation invocation = TestCompactedV2.toInvocation(testCompacted,
+                                fatBuildCompacted, paramsFilter, successStatusStrId);
 
                             sinv.addTest(testCompacted.testName(), invocation);
                         }

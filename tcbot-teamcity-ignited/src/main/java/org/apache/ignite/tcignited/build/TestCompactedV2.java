@@ -15,51 +15,45 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.teamcity.ignited.fatbuild;
+package org.apache.ignite.tcignited.build;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Objects;
 import java.util.TreeMap;
 import java.util.function.BiPredicate;
-
+import javax.annotation.Nullable;
 import org.apache.ignite.ci.tcbot.common.StringFieldCompacted;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
+import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.Persisted;
-import org.apache.ignite.tcignited.build.ITest;
-import org.apache.ignite.tcignited.build.TestCompactedV2;
+import org.apache.ignite.tcignited.buildlog.ILogProductSpecific;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
 import org.apache.ignite.tcservice.model.result.tests.TestRef;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
-import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
-import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xerial.snappy.Snappy;
-
-import javax.annotation.Nullable;
 
 /**
  *
  */
 @Persisted
-class TestCompacted implements ITest {
+public class TestCompactedV2 implements ITest {
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(TestCompactedV2.class);
+
     public static final int MUTED_F = 0;
     public static final int CUR_MUTED_F = 2;
     public static final int CUR_INV_F = 4;
     public static final int IGNORED_F = 6;
-    /** true when kept uncompressed */
-    public static final int COMPRESS_TYPE_FLAG1 = 8;
-    /** true when kept gzip */
-    public static final int COMPRESS_TYPE_FLAG2 = 9;
-    public static final int COMPRESS_TYPE_RFU3 = 10;
-    public static final int COMPRESS_TYPE_RFU4 = 11;
+
+    /** Status success. */
+    private static volatile int STATUS_SUCCESS = -1;
 
     /** Id in this build only. Does not identify test for its history */
     private int idInBuild = -1;
@@ -68,7 +62,7 @@ class TestCompacted implements ITest {
     private int status = -1;
     private int duration = -1;
 
-    private BitSet flags = new BitSet();
+    private int flags = 0;
 
     /** Test global, can be used for references. */
     private long testId = 0;
@@ -76,24 +70,21 @@ class TestCompacted implements ITest {
     /** Actual build id. */
     private int actualBuildId = -1;
 
-    /** Uncompressesd/ZIP/Snappy compressed test log Details. */
-    @Nullable
-    private byte[] details;
+    /** endl-separated log */
+    @Nullable StringFieldCompacted details = null;
 
-    /** Logger. */
-    private static final Logger logger = LoggerFactory.getLogger(TestCompacted.class);
 
     /**
      * Default constructor.
      */
-    public TestCompacted() {
+    public TestCompactedV2() {
     }
 
     /**
      * @param compactor Compactor.
      * @param testOccurrence TestOccurrence.
      */
-    public TestCompacted(IStringCompactor compactor, TestOccurrenceFull testOccurrence) {
+    public TestCompactedV2(IStringCompactor compactor, TestOccurrenceFull testOccurrence) {
         String testOccurrenceId = testOccurrence.getId();
         if (!Strings.isNullOrEmpty(testOccurrenceId)) {
             try {
@@ -124,39 +115,70 @@ class TestCompacted implements ITest {
     }
 
     public static TestId extractFullId(String id) {
-        Integer buildId = TestCompactedV2.extractIdPrefixed(id, "build:(id:", ")");
+        Integer buildId = extractIdPrefixed(id, "build:(id:", ")");
 
         if (buildId == null)
             return null;
 
-        Integer testId = TestCompactedV2.extractIdPrefixed(id, "id:", ",");
+        Integer testId = extractIdPrefixed(id, "id:", ",");
 
         if (testId == null)
             return null;
 
         return new TestId(buildId, testId);
+    }
 
+    public static Integer extractIdPrefixed(String id, String prefix, String postfix) {
+        try {
+            int buildIdIdx = id.indexOf(prefix);
+            if (buildIdIdx < 0)
+                return null;
+
+            int buildIdPrefixLen = prefix.length();
+            int absBuildIdx = buildIdIdx + buildIdPrefixLen;
+            int buildIdEndIdx = id.substring(absBuildIdx).indexOf(postfix);
+            if (buildIdEndIdx < 0)
+                return null;
+
+            String substring = id.substring(absBuildIdx, absBuildIdx + buildIdEndIdx);
+
+            return Integer.valueOf(substring);
+        }
+        catch (Exception ignored) {
+            return null;
+        }
     }
 
     private void setFlag(int off, Boolean val) {
-        flags.clear(off, off + 2);
-
         boolean valPresent = val != null;
-        flags.set(off, valPresent);
+
+        setBitAt(off, valPresent);
 
         if (valPresent)
-            flags.set(off + 1, val);
+            setBitAt(off + 1, valPresent);
+        else
+            setBitAt(off, false);
     }
 
+    private void setBitAt(int off, boolean val) {
+        if (val)
+            flags |= (1 << off);// flags.set(off, true);
+        else
+            flags &= ~(1 << off); //flags.clear(off)
+    }
 
     /**
      * @param off Offset.
      */
     private Boolean getFlag(int off) {
-        if (!flags.get(off))
+        if (!getBitAt(off))
             return null;
 
-        return flags.get(off + 1);
+        return getBitAt(off + 1);
+    }
+
+    private boolean getBitAt(int off) {
+        return (flags & (1 << off)) != 0;
     }
 
     public TestOccurrenceFull toTestOccurrence(IStringCompactor compactor, int buildId) {
@@ -207,30 +229,9 @@ class TestCompacted implements ITest {
      */
     @Nullable public String getDetailsText() {
         if (details == null)
-            return "";
-
-        final boolean flag1 = flags.get(COMPRESS_TYPE_FLAG1);
-        final boolean flag2 = flags.get(COMPRESS_TYPE_FLAG2);
-        if(!flag1 && !flag2) {
-            try {
-                byte[] uncompressed = Snappy.uncompress(details);
-                return new String(uncompressed, StandardCharsets.UTF_8);
-            } catch (IOException e) {
-                logger.error("Snappy.uncompress failed: " + e.getMessage(), e);
-                return null;
-            }
-        } else if(flag1 && !flag2)
-            return new String(details, StandardCharsets.UTF_8);
-        else if (!flag1 && flag2) {
-            try {
-                return StringFieldCompacted.unzipToString(details);
-            }
-            catch (Exception e) {
-                logger.error("GZip.uncompress failed: " + e.getMessage(), e);
-                return null;
-            }
-        } else
             return null;
+
+        return details.getValue();
     }
 
     public void setDetails(String dtlsStr) {
@@ -239,53 +240,13 @@ class TestCompacted implements ITest {
             return;
         }
 
-        byte[] uncompressed;
-        byte[] snappy = null;
-        byte[] gzip = null;
-        try {
-            uncompressed = dtlsStr.getBytes(StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            logger.error("Set details failed: " + e.getMessage(), e);
-            return;
-        }
-        try {
-            snappy = Snappy.compress(uncompressed);
-        }
-        catch (Exception e) {
-            logger.error("Snappy.compress failed: " + e.getMessage(), e);
-        }
+        ILogProductSpecific logSpecific;
 
-        try {
-            gzip = StringFieldCompacted.zipBytes(uncompressed);
-        }
-        catch (Exception e) {
-            logger.error("Snappy.compress failed: " + e.getMessage(), e);
-        }
-
-        final int snappyLen = snappy != null ? snappy.length : -1;
-        final int gzipLen = gzip != null ? gzip.length : -1;
-
-        flags.set(COMPRESS_TYPE_FLAG1, true);
-        flags.set(COMPRESS_TYPE_FLAG2, false);
-        //uncompressed
-        details = uncompressed;
-
-        if (snappyLen > 0 && snappyLen < details.length) {
-            flags.set(COMPRESS_TYPE_FLAG1, false);
-            flags.set(COMPRESS_TYPE_FLAG2, false);
-            details = snappy;
-        }
-
-        if (gzipLen > 0 && gzipLen < details.length) {
-            flags.set(COMPRESS_TYPE_FLAG1, false);
-            flags.set(COMPRESS_TYPE_FLAG2, true);
-            details = gzip;
-        }
-
-
-        logger.debug("U " + uncompressed.length + " S " + snappyLen + " Z " + gzipLen + ": F (" +
-                flags.get(COMPRESS_TYPE_FLAG1) + ", " +
-                flags.get(COMPRESS_TYPE_FLAG2) +")");
+       // new StringReader(dtlsStr)
+        //logSpecific.needWarn()
+        //todo filter
+        this.details = new StringFieldCompacted();
+        this.details.setValue(dtlsStr);
     }
 
     public Boolean getIgnoredFlag() {
@@ -306,7 +267,7 @@ class TestCompacted implements ITest {
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
-        TestCompacted compacted = (TestCompacted)o;
+        TestCompactedV2 compacted = (TestCompactedV2)o;
         return idInBuild == compacted.idInBuild &&
             name == compacted.name &&
             status == compacted.status &&
@@ -314,21 +275,38 @@ class TestCompacted implements ITest {
             testId == compacted.testId &&
             actualBuildId == compacted.actualBuildId &&
             Objects.equals(flags, compacted.flags) &&
-            Arrays.equals(details, compacted.details);
+            Objects.equals(details, compacted.details);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
         int res = Objects.hash(idInBuild, name, status, duration, flags, testId, actualBuildId);
-        res = 31 * res + Arrays.hashCode(details);
+        res = 31 * res + Objects.hashCode(details);
         return res;
     }
 
-    public boolean isFailedButNotMuted(IStringCompactor compactor) {
-        return isFailedTest(compactor) && !(isMutedOrIgnored());
+    /**
+     * @param successStatus Success status code.
+     */
+    public boolean isFailedButNotMuted(int successStatus) {
+        return successStatus != status() && !isMutedOrIgnored();
     }
 
+    public boolean isFailedButNotMuted(IStringCompactor compactor) {
+        return isFailedButNotMuted(statusSuccess(compactor));
+    }
 
+    public int statusSuccess(IStringCompactor compactor) {
+        //Each time compactor should give same result
+        if (STATUS_SUCCESS == -1)
+            STATUS_SUCCESS = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
+
+        return STATUS_SUCCESS;
+    }
+
+    public boolean isMutedOrIgnored() {
+        return isMutedTest() || isIgnoredTest();
+    }
 
     public boolean isIgnoredTest() {
         Boolean flag = getIgnoredFlag();
@@ -343,7 +321,7 @@ class TestCompacted implements ITest {
     }
 
     public boolean isFailedTest(IStringCompactor compactor) {
-        return compactor.getStringId(TestOccurrence.STATUS_SUCCESS) != status();
+        return statusSuccess(compactor) != status();
     }
 
     public String testName(IStringCompactor compactor) {
@@ -395,12 +373,14 @@ class TestCompacted implements ITest {
      * @param successStatusStrId
      * @return
      */
-    public Invocation toInvocation(FatBuildCompacted build,
+    public static Invocation toInvocation(
+        ITest test,
+        FatBuildCompacted build,
         BiPredicate<Integer, Integer> paramsFilter, int successStatusStrId) {
-        final boolean failedTest = successStatusStrId != status;
+        final boolean failedTest = successStatusStrId != test.status();
 
         final int failCode = failedTest
-            ? (isIgnoredTest() || isMutedTest())
+            ? (test.isIgnoredTest() || test.isMutedTest())
             ? InvocationData.MUTED
             : InvocationData.FAILURE
             : InvocationData.OK;

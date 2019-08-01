@@ -24,11 +24,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.tcbot.common.util.UrlUtil;
 import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
 import org.apache.ignite.tcbot.engine.issue.EventTemplates;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.build.ITest;
 import org.apache.ignite.tcignited.buildlog.LogMsgToWarn;
 import org.apache.ignite.tcignited.history.IRunHistory;
 
@@ -101,7 +101,7 @@ public class DsTestFailureUi extends ShortTestFailureUi {
         initFrom(failure, tcIgn, baseBranchId);
 
         failure.getInvocationsStream()
-            .map(TestCompacted::getDetailsText)
+            .map(ITest::getDetailsText)
             .filter(Objects::nonNull)
             .forEach(details -> {
                 if (webIssueUrl == null)
@@ -117,7 +117,7 @@ public class DsTestFailureUi extends ShortTestFailureUi {
             });
 
         failure.getInvocationsStream()
-            .map(TestCompacted::getTestId)
+            .map(ITest::getTestId)
             .filter(Objects::nonNull)
             .forEach(testNameId -> {
                 if (webUrl == null && testNameId != null)
