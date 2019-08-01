@@ -165,18 +165,18 @@ public class ProactiveFatBuildSync {
             }
 
             for (Map.Entry<Integer, GridIntList> entry : keysToCheck.entrySet()) {
-
                 GridIntList list = entry.getValue();
-                if (list.size() < checkBatchSize)
+                int initSize = list.size();
+                if (initSize < checkBatchSize)
                     continue;
 
-                System.err.println("findMissingBuilds: Srv: " + srvCode + " Checking " + list.size() + " builds for partition " + entry.getKey());
+                System.err.println("findMissingBuilds: Srv: " + srvCode + " Checking " + initSize + " builds for partition " + entry.getKey());
 
                 int[] buildIds = list.array();
                 list.clear();
 
                 Collection<Integer> builds = fatBuildDao.getMissingBuilds(srvIdMaskHigh, buildIds);
-                System.err.println("foundMissing + " + builds.size() + ": Srv: " + srvCode + " Checking " + list.size() + " builds for partition " + entry.getKey());
+                System.err.println("foundMissing + " + builds.size() + ": Srv: " + srvCode + " Checking " + initSize + " builds for partition " + entry.getKey());
 
                 buildsIdsToLoad.addAll(builds);
             }
