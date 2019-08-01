@@ -27,9 +27,16 @@ public interface ITest {
 
     public boolean isIgnoredTest();
 
-    public boolean isMutedTest();
+    public default boolean isMutedTest() {
+        Boolean flag = getMutedFlag();
+
+        return flag != null && flag;
+    }
 
     public boolean isInvestigated();
+
+    public Boolean getCurrentlyMuted();
+    public Boolean getCurrInvestigatedFlag();
 
     @Nullable public Integer getDuration();
 
@@ -55,4 +62,11 @@ public interface ITest {
     public Long getTestId();
 
     boolean isFailedButNotMuted(IStringCompactor compactor);
+
+    public Boolean getIgnoredFlag();
+
+    public Boolean getMutedFlag();
+
+    public int getActualBuildId();
+    public int idInBuild();
 }

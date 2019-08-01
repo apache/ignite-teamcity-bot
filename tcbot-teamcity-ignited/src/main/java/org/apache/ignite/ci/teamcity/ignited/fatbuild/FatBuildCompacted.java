@@ -113,7 +113,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     @SuppressWarnings("unused")
     @Nullable private List<TestCompacted> tests;
 
-    @Nullable private List<TestCompactedV2> testsV2;
+    @Nullable private List<ITest> testsV2;
 
     @Nullable private int snapshotDeps[];
 
@@ -405,13 +405,13 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
      * @param compactor Compactor.
      */
     public TestOccurrencesFull getTestOcurrences(IStringCompactor compactor) {
-        if (tests == null)
+        if (testsV2 == null)
             return new TestOccurrencesFull();
 
         List<TestOccurrenceFull> res = new ArrayList<>();
 
-        for (TestCompacted compacted : tests)
-            res.add(compacted.toTestOccurrence(compactor, id()));
+        for (ITest compacted : testsV2)
+            res.add(TestCompactedV2.toTestOccurrence(compacted, compactor, id()));
 
         TestOccurrencesFull testOccurrences = new TestOccurrencesFull();
 
@@ -446,6 +446,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             projectId == that.projectId &&
             name == that.name &&
             Objects.equals(tests, that.tests) &&
+            Objects.equals(testsV2, that.testsV2) &&
             Arrays.equals(snapshotDeps, that.snapshotDeps) &&
             Objects.equals(flags, that.flags) &&
             Objects.equals(problems, that.problems) &&
@@ -458,7 +459,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        int res = Objects.hash(super.hashCode(), _ver, startDate, finishDate, queuedDate, projectId, name, tests, flags, problems, statistics, triggered, buildParameters);
+        int res = Objects.hash(super.hashCode(), _ver, startDate, finishDate, queuedDate, projectId, name, tests,
+            testsV2, flags, problems, statistics, triggered, buildParameters);
         res = 31 * res + Arrays.hashCode(snapshotDeps);
         res = 31 * res + Arrays.hashCode(changesIds);
         res = 31 * res + Arrays.hashCode(revisions);
@@ -506,7 +508,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
     public Stream<ITest> getAllTests() {
         if (testsV2 != null)
-            return testsV2.stream().map(t -> t);
+            return testsV2.stream();
 
         if (tests == null)
             return Stream.of();
@@ -624,6 +626,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             .add("projectId", projectId)
             .add("name", name)
             .add("tests", tests)
+            .add("testsV2", testsV2)
             .add("snapshotDeps", snapshotDeps)
             .add("flags", flags)
             .add("problems", problems)
@@ -712,16 +715,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     }
 
     public int totalNotMutedTests() {
-        if(tests == null)
-            return 0;
-
-        int cnt = 0;
-        for (TestCompacted next : tests) {
-            if (!next.isMutedTest() && !next.isIgnoredTest())
-                cnt++;
-        }
-
-        return cnt;
+        return (int)getAllTests().filter(next -> !next.isMutedTest() && !next.isIgnoredTest()).count();
     }
 
     public long getFinishDateTs() {

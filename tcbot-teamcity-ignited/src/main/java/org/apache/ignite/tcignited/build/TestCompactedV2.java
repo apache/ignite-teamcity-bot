@@ -181,43 +181,52 @@ public class TestCompactedV2 implements ITest {
         return (flags & (1 << off)) != 0;
     }
 
-    public TestOccurrenceFull toTestOccurrence(IStringCompactor compactor, int buildId) {
+    public static TestOccurrenceFull toTestOccurrence(ITest test, IStringCompactor compactor, int buildId) {
         TestOccurrenceFull occurrence = new TestOccurrenceFull();
 
         String fullStrId = "id:" +
-            idInBuild() + ",build:(id:" +
+            test.idInBuild() + ",build:(id:" +
             buildId +
             ")";
         occurrence.id(fullStrId);
-        occurrence.duration = getDuration();
-        occurrence.name = compactor.getStringFromId(name);
-        occurrence.status = compactor.getStringFromId(status);
+        occurrence.duration = test.getDuration();
+        occurrence.name = test.testName(compactor);
+        occurrence.status = compactor.getStringFromId(test.status());
         occurrence.href = "/app/rest/latest/testOccurrences/" + fullStrId;
 
-        occurrence.muted = getMutedFlag();
-        occurrence.currentlyMuted = getFlag(CUR_MUTED_F);
-        occurrence.currentlyInvestigated = getCurrInvestigatedFlag();
-        occurrence.ignored = getIgnoredFlag();
+        occurrence.muted = test.getMutedFlag();
+        occurrence.currentlyMuted = test.getCurrentlyMuted();
+        occurrence.currentlyInvestigated =  test.getCurrInvestigatedFlag();
+        occurrence.ignored =  test.getIgnoredFlag();
 
-        if (actualBuildId > 0) {
+        if (test.getActualBuildId() > 0) {
             BuildRef buildRef = new BuildRef();
 
-            buildRef.setId(actualBuildId);
+            buildRef.setId(test.getActualBuildId());
 
             occurrence.build = buildRef;
         }
 
-        if (testId != 0) {
-            TestRef test = new TestRef();
+        Long testId = test.getTestId();
+        if (testId != null) {
+            TestRef testRe = new TestRef();
 
-            test.id = String.valueOf(testId);
+            testRe.id = String.valueOf(testId);
 
-            occurrence.test = test;
+            occurrence.test = testRe;
         }
 
-        occurrence.details = getDetailsText();
+        occurrence.details = test.getDetailsText();
 
         return occurrence;
+    }
+
+    public int getActualBuildId() {
+        return actualBuildId;
+    }
+
+    public Boolean getCurrentlyMuted() {
+        return getFlag(CUR_MUTED_F);
     }
 
     public Boolean getCurrInvestigatedFlag() {
@@ -257,7 +266,7 @@ public class TestCompactedV2 implements ITest {
         return getFlag(MUTED_F);
     }
 
-    private int idInBuild() {
+    public int idInBuild() {
         return idInBuild;
     }
 

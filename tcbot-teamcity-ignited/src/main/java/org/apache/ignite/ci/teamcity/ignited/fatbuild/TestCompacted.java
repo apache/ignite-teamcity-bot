@@ -159,53 +159,20 @@ class TestCompacted implements ITest {
         return flags.get(off + 1);
     }
 
-    public TestOccurrenceFull toTestOccurrence(IStringCompactor compactor, int buildId) {
-        TestOccurrenceFull occurrence = new TestOccurrenceFull();
-
-        String fullStrId = "id:" +
-            idInBuild() + ",build:(id:" +
-            buildId +
-            ")";
-        occurrence.id(fullStrId);
-        occurrence.duration = getDuration();
-        occurrence.name = compactor.getStringFromId(name);
-        occurrence.status = compactor.getStringFromId(status);
-        occurrence.href = "/app/rest/latest/testOccurrences/" + fullStrId;
-
-        occurrence.muted = getMutedFlag();
-        occurrence.currentlyMuted = getFlag(CUR_MUTED_F);
-        occurrence.currentlyInvestigated = getCurrInvestigatedFlag();
-        occurrence.ignored = getIgnoredFlag();
-
-        if (actualBuildId > 0) {
-            BuildRef buildRef = new BuildRef();
-
-            buildRef.setId(actualBuildId);
-
-            occurrence.build = buildRef;
-        }
-
-        if (testId != 0) {
-            TestRef test = new TestRef();
-
-            test.id = String.valueOf(testId);
-
-            occurrence.test = test;
-        }
-
-        occurrence.details = getDetailsText();
-
-        return occurrence;
+    /** {@inheritDoc} */
+    @Override public Boolean getCurrentlyMuted() {
+        return getFlag(CUR_MUTED_F);
     }
 
-    public Boolean getCurrInvestigatedFlag() {
+    /** {@inheritDoc} */
+    @Override public Boolean getCurrInvestigatedFlag() {
         return getFlag(CUR_INV_F);
     }
 
     /**
      *
      */
-    @Nullable public String getDetailsText() {
+    @Override @Nullable public String getDetailsText() {
         if (details == null)
             return "";
 
@@ -296,7 +263,11 @@ class TestCompacted implements ITest {
         return getFlag(MUTED_F);
     }
 
-    private int idInBuild() {
+    @Override public int getActualBuildId() {
+        return actualBuildId;
+    }
+
+    public int idInBuild() {
         return idInBuild;
     }
 
@@ -332,12 +303,6 @@ class TestCompacted implements ITest {
 
     public boolean isIgnoredTest() {
         Boolean flag = getIgnoredFlag();
-
-        return flag != null && flag;
-    }
-
-    public boolean isMutedTest() {
-        Boolean flag = getMutedFlag();
 
         return flag != null && flag;
     }
