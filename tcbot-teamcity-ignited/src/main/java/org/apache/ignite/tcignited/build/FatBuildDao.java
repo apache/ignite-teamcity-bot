@@ -46,6 +46,7 @@ import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.buildlog.ILogProductSpecific;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.tcignited.buildtime.BuildTimeResult;
 import org.apache.ignite.tcignited.history.HistoryCollector;
@@ -77,6 +78,8 @@ public class FatBuildDao {
 
     /** Compactor. */
     @Inject private IStringCompactor compactor;
+
+    @Inject private ILogProductSpecific logProductSpecific;
 
     /** History collector. */
     @Inject private HistoryCollector histCollector;
@@ -115,7 +118,7 @@ public class FatBuildDao {
         FatBuildCompacted newBuild = new FatBuildCompacted(compactor, build);
 
         for (TestOccurrencesFull next : tests)
-            newBuild.addTests(compactor, next.getTests());
+            newBuild.addTests(compactor, next.getTests(), logProductSpecific);
 
         if (problems != null)
             newBuild.addProblems(compactor, problems);

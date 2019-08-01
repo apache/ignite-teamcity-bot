@@ -19,7 +19,6 @@ package org.apache.ignite.tcignited.build;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.TreeMap;
 import java.util.function.BiPredicate;
@@ -83,8 +82,10 @@ public class TestCompactedV2 implements ITest {
     /**
      * @param compactor Compactor.
      * @param testOccurrence TestOccurrence.
+     * @param logSpecific
      */
-    public TestCompactedV2(IStringCompactor compactor, TestOccurrenceFull testOccurrence) {
+    public TestCompactedV2(IStringCompactor compactor, TestOccurrenceFull testOccurrence,
+        ILogProductSpecific logSpecific) {
         String testOccurrenceId = testOccurrence.getId();
         if (!Strings.isNullOrEmpty(testOccurrenceId)) {
             try {
@@ -111,7 +112,7 @@ public class TestCompactedV2 implements ITest {
         if (testOccurrence.test != null && testOccurrence.test.id != null)
             testId = Long.valueOf(testOccurrence.test.id);
 
-        setDetails(testOccurrence.details);
+        setDetails(testOccurrence.details, logSpecific);
     }
 
     public static TestId extractFullId(String id) {
@@ -236,26 +237,38 @@ public class TestCompactedV2 implements ITest {
     /**
      *
      */
-    @Nullable public String getDetailsText() {
+    @Override @Nullable public String getDetailsText() {
         if (details == null)
             return null;
 
         return details.getValue();
     }
 
-    public void setDetails(String dtlsStr) {
-        if (Strings.isNullOrEmpty(dtlsStr)) {
-            this.details = null;
+    public void setDetails(String details, @Nullable ILogProductSpecific logSpecific) {
+        this.details = null;
+
+        if (Strings.isNullOrEmpty(details) || logSpecific == null)
             return;
+
+        StringBuilder sb = new StringBuilder();
+
+        //todo check integration with JIRA
+        for (String s : details.split("\n")) {
+            if(s.isEmpty())
+                continue;
+
+            if (logSpecific.needWarn(s)
+                || s.contains("http://issues.apache.org/jira/browse/")
+                || s.contains("https://issues.apache.org/jira/browse/")) {
+                sb.append(s);
+                sb.append("\n");
+            }
         }
 
-        ILogProductSpecific logSpecific;
-
-       // new StringReader(dtlsStr)
-        //logSpecific.needWarn()
-        //todo filter
-        this.details = new StringFieldCompacted();
-        this.details.setValue(dtlsStr);
+        if (sb.length() > 0) {
+            this.details = new StringFieldCompacted();
+            this.details.setValue(sb.toString());
+        }
     }
 
     public Boolean getIgnoredFlag() {

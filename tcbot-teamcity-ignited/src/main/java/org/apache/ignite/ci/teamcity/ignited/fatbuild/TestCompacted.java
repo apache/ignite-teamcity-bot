@@ -31,10 +31,7 @@ import org.apache.ignite.ci.tcbot.common.StringFieldCompacted;
 import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcignited.build.ITest;
 import org.apache.ignite.tcignited.build.TestCompactedV2;
-import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
-import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
-import org.apache.ignite.tcservice.model.result.tests.TestRef;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
@@ -89,40 +86,6 @@ class TestCompacted implements ITest {
     public TestCompacted() {
     }
 
-    /**
-     * @param compactor Compactor.
-     * @param testOccurrence TestOccurrence.
-     */
-    public TestCompacted(IStringCompactor compactor, TestOccurrenceFull testOccurrence) {
-        String testOccurrenceId = testOccurrence.getId();
-        if (!Strings.isNullOrEmpty(testOccurrenceId)) {
-            try {
-                final TestId testId = extractFullId(testOccurrenceId);
-                if (testId != null)
-                    idInBuild = testId.getTestId();
-            } catch (Exception e) {
-                logger.error("Failed to handle TC response: " + testOccurrenceId, e);
-            }
-        }
-
-        name = compactor.getStringId(testOccurrence.name);
-        status = compactor.getStringId(testOccurrence.status);
-        duration = testOccurrence.duration == null ? -1 : testOccurrence.duration;
-
-        setFlag(MUTED_F, testOccurrence.muted);
-        setFlag(CUR_MUTED_F, testOccurrence.currentlyMuted);
-        setFlag(CUR_INV_F, testOccurrence.currentlyInvestigated);
-        setFlag(IGNORED_F, testOccurrence.ignored);
-
-        if (testOccurrence.build != null && testOccurrence.build.getId() != null)
-            actualBuildId = testOccurrence.build.getId();
-
-        if (testOccurrence.test != null && testOccurrence.test.id != null)
-            testId = Long.valueOf(testOccurrence.test.id);
-
-        setDetails(testOccurrence.details);
-    }
-
     public static TestId extractFullId(String id) {
         Integer buildId = TestCompactedV2.extractIdPrefixed(id, "build:(id:", ")");
 
@@ -172,7 +135,7 @@ class TestCompacted implements ITest {
     /**
      *
      */
-    @Override @Nullable public String getDetailsText() {
+    @Nullable public String getDetailsText() {
         if (details == null)
             return "";
 
@@ -198,61 +161,6 @@ class TestCompacted implements ITest {
             }
         } else
             return null;
-    }
-
-    public void setDetails(String dtlsStr) {
-        if (Strings.isNullOrEmpty(dtlsStr)) {
-            this.details = null;
-            return;
-        }
-
-        byte[] uncompressed;
-        byte[] snappy = null;
-        byte[] gzip = null;
-        try {
-            uncompressed = dtlsStr.getBytes(StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            logger.error("Set details failed: " + e.getMessage(), e);
-            return;
-        }
-        try {
-            snappy = Snappy.compress(uncompressed);
-        }
-        catch (Exception e) {
-            logger.error("Snappy.compress failed: " + e.getMessage(), e);
-        }
-
-        try {
-            gzip = StringFieldCompacted.zipBytes(uncompressed);
-        }
-        catch (Exception e) {
-            logger.error("Snappy.compress failed: " + e.getMessage(), e);
-        }
-
-        final int snappyLen = snappy != null ? snappy.length : -1;
-        final int gzipLen = gzip != null ? gzip.length : -1;
-
-        flags.set(COMPRESS_TYPE_FLAG1, true);
-        flags.set(COMPRESS_TYPE_FLAG2, false);
-        //uncompressed
-        details = uncompressed;
-
-        if (snappyLen > 0 && snappyLen < details.length) {
-            flags.set(COMPRESS_TYPE_FLAG1, false);
-            flags.set(COMPRESS_TYPE_FLAG2, false);
-            details = snappy;
-        }
-
-        if (gzipLen > 0 && gzipLen < details.length) {
-            flags.set(COMPRESS_TYPE_FLAG1, false);
-            flags.set(COMPRESS_TYPE_FLAG2, true);
-            details = gzip;
-        }
-
-
-        logger.debug("U " + uncompressed.length + " S " + snappyLen + " Z " + gzipLen + ": F (" +
-                flags.get(COMPRESS_TYPE_FLAG1) + ", " +
-                flags.get(COMPRESS_TYPE_FLAG2) +")");
     }
 
     public Boolean getIgnoredFlag() {

@@ -104,6 +104,7 @@ public class DsTestFailureUi extends ShortTestFailureUi {
             .map(ITest::getDetailsText)
             .filter(Objects::nonNull)
             .forEach(details -> {
+                //todo check integration with JIRA
                 if (webIssueUrl == null)
                     checkAndFillByPrefix(details, "https://issues.apache.org/jira/browse/");
 

@@ -30,4 +30,9 @@ public interface ILogProductSpecific {
      * @param line Line.
      */
     public boolean isTestStopping(String line);
+
+    /**
+     * @param line Line.
+     */
+    public boolean needWarn(String line);
 }

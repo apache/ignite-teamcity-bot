@@ -42,6 +42,7 @@ import org.apache.ignite.tcbot.persistence.IVersionedEntity;
 import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcignited.build.ITest;
 import org.apache.ignite.tcignited.build.TestCompactedV2;
+import org.apache.ignite.tcignited.buildlog.ILogProductSpecific;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcservice.model.conf.BuildType;
 import org.apache.ignite.tcservice.model.conf.bt.Parameters;
@@ -362,10 +363,12 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     /**
      * @param compactor Compactor.
      * @param page Page.
+     * @param specific
      */
-    public FatBuildCompacted addTests(IStringCompactor compactor, List<TestOccurrenceFull> page) {
+    public FatBuildCompacted addTests(IStringCompactor compactor, List<TestOccurrenceFull> page,
+        ILogProductSpecific specific) {
         for (TestOccurrenceFull next : page) {
-            TestCompactedV2 compacted = new TestCompactedV2(compactor, next);
+            TestCompactedV2 compacted = new TestCompactedV2(compactor, next, specific);
 
             if (testsV2 == null)
                 testsV2 = new ArrayList<>();

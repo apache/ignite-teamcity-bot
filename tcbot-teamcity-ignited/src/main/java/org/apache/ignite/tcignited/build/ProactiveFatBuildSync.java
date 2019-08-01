@@ -283,8 +283,10 @@ public class ProactiveFatBuildSync {
      * @param conn Connection.
      */
     public void ensureActualizationRequested(String srvName, ITeamcityConn conn) {
-        scheduler.sheduleNamed(taskName("findMissingBuildsFromBuildRef", srvName),
-            () -> findMissingBuildsFromBuildRef(srvName, conn), 360, TimeUnit.MINUTES);
+        scheduler.invokeLater(() -> {
+            scheduler.sheduleNamed(taskName("findMissingBuildsFromBuildRef", srvName),
+                () -> findMissingBuildsFromBuildRef(srvName, conn), 360, TimeUnit.MINUTES);
+        }, 15, TimeUnit.MINUTES);
 
         /*
         scheduler.sheduleNamed(taskName("migrateBuildsToV6", srvName),

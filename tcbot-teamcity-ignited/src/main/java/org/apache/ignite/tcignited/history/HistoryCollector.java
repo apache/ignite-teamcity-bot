@@ -294,7 +294,7 @@ public class HistoryCollector {
         Map<Integer, SuiteInvocation> suiteRunHist = new HashMap<>();
         int successStatusStrId = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
 
-        System.err.println(Thread.currentThread().getName() + ": GET ALL: " + missedBuildsIds.size());
+        logger.info(Thread.currentThread().getName() + "addSuiteInvocationsToHistory: getAll: " + missedBuildsIds.size());
 
         Iterables.partition(missedBuildsIds, 32 * 10).forEach(
             chunk -> {
@@ -322,7 +322,7 @@ public class HistoryCollector {
         );
 
 
-        System.err.println("***** + Adding to persisted history   "
+        logger.info("***** + Adding to persisted history   "
             + " branch " + compactor.getStringFromId(normalizedBaseBranch) + ": added " +
             suiteRunHist.size() + " invocations from " + missedBuildsIds.size() + " builds checked");
 

@@ -46,8 +46,6 @@ import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
-import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
-import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
@@ -210,7 +208,7 @@ public class PrChainsProcessorTest {
                     createFailedTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER),
                     createPassingTest(3L, TEST_WITH_HISTORY_PASSING_IN_MASTER),
                     createTest(50L, TEST_FLAKY_IN_MASTER, i % 2 == 0),
-                    createPassingTest(400L, TEST_WAS_FIXED_IN_MASTER)));
+                    createPassingTest(400L, TEST_WAS_FIXED_IN_MASTER)), null);
 
             if (i % 7 == 1) {
                 ProblemOccurrence timeout = new ProblemOccurrence();
@@ -227,7 +225,7 @@ public class PrChainsProcessorTest {
             addBuildsToEmulatedStor(createFailedBuild(c, CACHE_1,
                 ITeamcity.DEFAULT, i, ageMs + (i * 10000))
                 .addTests(c, Lists.newArrayList(
-                    createFailedTest(400L, TEST_WAS_FIXED_IN_MASTER))));
+                    createFailedTest(400L, TEST_WAS_FIXED_IN_MASTER)), null));
         }
 
         for (int i = 0; i < 10; i++) {
@@ -239,7 +237,7 @@ public class PrChainsProcessorTest {
                             createPassingTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER),
                             createPassingTest(3L, TEST_WITH_HISTORY_PASSING_IN_MASTER),
                             createPassingTest(50L, TEST_FLAKY_IN_MASTER),
-                            createPassingTest(400L, TEST_WAS_FIXED_IN_MASTER)));
+                            createPassingTest(400L, TEST_WAS_FIXED_IN_MASTER)), null);
 
             addBuildsToEmulatedStor(successfull);
         }
@@ -254,7 +252,7 @@ public class PrChainsProcessorTest {
                 .addTests(c,
                     Lists.newArrayList(
                         createTest(1L, TEST_RARE_FAILED_WITHOUT_CHANGES, !failNoChanges),
-                        createTest(2L, TEST_RARE_FAILED_WITH_CHANGES, !failWithChanges)));
+                        createTest(2L, TEST_RARE_FAILED_WITH_CHANGES, !failWithChanges)), null);
 
             if (failWithChanges || i == 56) // add change to test status change after failure.
                 fatBuild.changes(new int[] {1000000 + i, 1000020 + i});
@@ -286,7 +284,7 @@ public class PrChainsProcessorTest {
                         createFailedTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER),
                         createFailedTest(3L, TEST_WITH_HISTORY_PASSING_IN_MASTER),
                         createFailedTest(50L, TEST_FLAKY_IN_MASTER),
-                        createFailedTest(400L, TEST_WAS_FIXED_IN_MASTER)));
+                        createFailedTest(400L, TEST_WAS_FIXED_IN_MASTER)), null);
 
         cache1.snapshotDependencies(new int[] {buildBuild.id()});
 
@@ -319,7 +317,7 @@ public class PrChainsProcessorTest {
             .addTests(c,
                 Lists.newArrayList(
                     createFailedTest(1L, TEST_RARE_FAILED_WITH_CHANGES),
-                    createFailedTest(2L, TEST_RARE_FAILED_WITHOUT_CHANGES)));
+                    createFailedTest(2L, TEST_RARE_FAILED_WITHOUT_CHANGES)), null);
 
         cache9.snapshotDependencies(new int[] {buildBuild.id()});
 
@@ -413,7 +411,7 @@ public class PrChainsProcessorTest {
                 createFailedBuild(c, CACHE_8, branch, 9331 + i, 100090)
                     .addTests(c,
                         Lists.newArrayList(
-                            createTest(1L, TEST_BECAME_FAILED_IN_BRANCH, i < firstFailedBuild)))
+                            createTest(1L, TEST_BECAME_FAILED_IN_BRANCH, i < firstFailedBuild)), null)
                     .snapshotDependencies(new int[] {buildBuild.id()});
 
             if (i == firstFailedBuild)

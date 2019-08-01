@@ -116,7 +116,7 @@ public class BuildChainProcessorTest {
             TestOccurrenceFull t1 = new TestOccurrenceFull();
             t1.name = UNIQUE_FAILED_TEST + j;
             t1.status = TestOccurrence.STATUS_SUCCESS;
-            pds1.addTests(c, Lists.newArrayList(t1));
+            pds1.addTests(c, Lists.newArrayList(t1), null);
 
             builds.put(pds1.id(), pds1);
         }
@@ -176,7 +176,7 @@ public class BuildChainProcessorTest {
         TestOccurrenceFull t1 = new TestOccurrenceFull();
         t1.name = UNIQUE_FAILED_TEST + i;
         t1.status = TestOccurrence.STATUS_FAILURE;
-        pds1.addTests(c, Lists.newArrayList(t1));
+        pds1.addTests(c, Lists.newArrayList(t1), null);
 
         builds.put(pds1.id(), pds1);
 
@@ -189,7 +189,7 @@ public class BuildChainProcessorTest {
         TestOccurrenceFull t3 = new TestOccurrenceFull();
         t3.name = TEST_FAILING_EVERY_TIME;
         t3.status = TestOccurrence.STATUS_FAILURE;
-        pds2.addTests(c, Lists.newArrayList(t2, t3));
+        pds2.addTests(c, Lists.newArrayList(t2, t3), null);
 
         builds.put(pds2.id(), pds2);
     }
