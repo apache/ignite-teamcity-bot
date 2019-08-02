@@ -46,6 +46,7 @@ import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
 import org.apache.ignite.tcbot.common.TcBotConst;
+import org.apache.ignite.tcbot.common.conf.TcBotSystemProperties;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.exeption.ServicesStartingException;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
@@ -96,10 +97,11 @@ public class HistoryCollector {
      */
     private final com.google.common.cache.Cache<RunHistKey, SuiteHistory> runHistInMemCache
         = CacheBuilder.newBuilder()
-        .maximumSize(8000)
+        .maximumSize(Boolean.valueOf(System.getProperty(TcBotSystemProperties.DEV_MODE)) ? 1000 : 8000)
         .expireAfterAccess(16, TimeUnit.MINUTES)
         .softValues()
         .build();
+    //todo a lot of histories hold here
 
     /** Biggest build ID, which out of history scope (MAX days + 2). */
     private final ConcurrentMap<Integer, AtomicInteger> biggestBuildIdOutOfHistScope = new ConcurrentHashMap<>();

@@ -145,8 +145,7 @@ public class ProactiveFatBuildSync {
 
         Affinity<Long> affinity = fatBuildDao.affinity();
         int partitions = affinity.partitions();
-        int checkBatchSize = 5000;
-
+        int checkBatchSize = 1000;
 
         GridIntList keysToCheck = new GridIntList();
         for (int p = 0; p < partitions; p++) {
