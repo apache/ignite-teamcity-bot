@@ -14,24 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.tcignited.build;
 
-apply plugin: 'java'
+import org.junit.Test;
 
-dependencies {
-    compile group: 'com.google.guava', name: 'guava', version: guavaVer
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
-    compile group: 'org.slf4j', name: 'slf4j-api', version: slf4jVer
-    //Apache License Version 2.0
-    compile group: 'com.google.code.gson', name: 'gson', version: gsonVer
+public class TestCompactedV2Test {
 
-    compile group: 'javax.inject', name: 'javax.inject', version: '1'
-    compile group: 'com.google.inject', name: 'guice', version: '4.2.0'
+    @Test
+    public void testTestFlags() {
+        TestCompactedV2 t = new TestCompactedV2();
+        assertNull(t.getCurrInvestigatedFlag());
 
-    compile group: 'org.xerial.snappy', name: 'snappy-java', version: '1.1.7.2'
+        t.setCurrentlyInvestigated(true);
+        assertTrue(t.isInvestigated());
 
-    //impl is used by TC module, only converters needed here
-    compile group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.1'
-    
-    testCompile group: 'junit', name: 'junit', version: junitVer;
-    testCompile group: 'org.mockito', name: 'mockito-core', version: mockitoVer;
+        System.out.println(t);
+        t.setIgnored(true);
+        assertTrue(t.isIgnoredTest());
+
+        t.setIgnored(false);
+        assertFalse(t.isIgnoredTest());
+
+        System.out.println(t);
+    }
+
 }

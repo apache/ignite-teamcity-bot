@@ -100,10 +100,11 @@ public class TestCompactedV2 implements ITest {
         status = compactor.getStringId(testOccurrence.status);
         duration = testOccurrence.duration == null ? -1 : testOccurrence.duration;
 
-        setFlag(MUTED_F, testOccurrence.muted);
-        setFlag(CUR_MUTED_F, testOccurrence.currentlyMuted);
-        setFlag(CUR_INV_F, testOccurrence.currentlyInvestigated);
-        setFlag(IGNORED_F, testOccurrence.ignored);
+        setMuted(testOccurrence.muted);
+        setCurrentlyMuted(testOccurrence.currentlyMuted);
+        setCurrentlyInvestigated(testOccurrence.currentlyInvestigated);
+        Boolean ignored = testOccurrence.ignored;
+        setIgnored(ignored);
 
         if (testOccurrence.build != null && testOccurrence.build.getId() != null)
             actualBuildId = testOccurrence.build.getId();
@@ -112,6 +113,22 @@ public class TestCompactedV2 implements ITest {
             testId = Long.valueOf(testOccurrence.test.id);
 
         setDetails(testOccurrence.details, logSpecific);
+    }
+
+    public void setIgnored(Boolean ignored) {
+        setFlag(IGNORED_F, ignored);
+    }
+
+    public void setCurrentlyMuted(Boolean currentlyMuted) {
+        setFlag(CUR_MUTED_F, currentlyMuted);
+    }
+
+    public void setMuted(Boolean muted) {
+        setFlag(MUTED_F, muted);
+    }
+
+    public void setCurrentlyInvestigated(Boolean currentlyInvestigated) {
+        setFlag(CUR_INV_F, currentlyInvestigated);
     }
 
     public static TestId extractFullId(String id) {
@@ -155,7 +172,7 @@ public class TestCompactedV2 implements ITest {
         setBitAt(off, valPresent);
 
         if (valPresent)
-            setBitAt(off + 1, valPresent);
+            setBitAt(off + 1, val);
         else
             setBitAt(off, false);
     }
@@ -318,10 +335,6 @@ public class TestCompactedV2 implements ITest {
         return STATUS_SUCCESS;
     }
 
-    public boolean isFailedTest(IStringCompactor compactor) {
-        return statusSuccess(compactor) != status();
-    }
-
     public String testName(IStringCompactor compactor) {
         return compactor.getStringFromId(name);
     }
@@ -413,10 +426,10 @@ public class TestCompactedV2 implements ITest {
 
         duration = t.getDuration() == null ? -1 : t.getDuration();
 
-        setFlag(MUTED_F, t.getMutedFlag());
-        setFlag(CUR_MUTED_F, t.getCurrentlyMuted());
-        setFlag(CUR_INV_F, t.getCurrInvestigatedFlag());
-        setFlag(IGNORED_F, t.getIgnoredFlag());
+        setMuted(t.getMutedFlag());
+        setCurrentlyMuted(t.getCurrentlyMuted());
+        setCurrentlyInvestigated(t.getCurrInvestigatedFlag());
+        setIgnored(t.getIgnoredFlag());
 
         testId = t.getTestId() == null ? -1 : t.getTestId();
 
