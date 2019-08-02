@@ -70,8 +70,7 @@ public class TestCompactedV2 implements ITest {
     private int actualBuildId = -1;
 
     /** endl-separated log */
-    @Nullable StringFieldCompacted details = null;
-
+    @Nullable private StringFieldCompacted details = null;
 
     /**
      * Default constructor.
@@ -307,39 +306,16 @@ public class TestCompactedV2 implements ITest {
         return res;
     }
 
-    /**
-     * @param successStatus Success status code.
-     */
-    public boolean isFailedButNotMuted(int successStatus) {
-        return successStatus != status() && !isMutedOrIgnored();
-    }
-
     public boolean isFailedButNotMuted(IStringCompactor compactor) {
         return isFailedButNotMuted(statusSuccess(compactor));
     }
 
     public int statusSuccess(IStringCompactor compactor) {
-        //Each time compactor should give same result
+        //Each time compactor should give same result, so no locking applied
         if (STATUS_SUCCESS == -1)
             STATUS_SUCCESS = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
 
         return STATUS_SUCCESS;
-    }
-
-    public boolean isMutedOrIgnored() {
-        return isMutedTest() || isIgnoredTest();
-    }
-
-    public boolean isIgnoredTest() {
-        Boolean flag = getIgnoredFlag();
-
-        return flag != null && flag;
-    }
-
-    public boolean isMutedTest() {
-        Boolean flag = getMutedFlag();
-
-        return flag != null && flag;
     }
 
     public boolean isFailedTest(IStringCompactor compactor) {
@@ -424,6 +400,31 @@ public class TestCompactedV2 implements ITest {
         });
 
         return invocation.withParameters(importantParms);
+    }
+
+    /**
+     * @param t Test to copy from.
+     * @param logSpecific Logger specific.
+     */
+    public TestCompactedV2 copyFrom(ITest t, ILogProductSpecific logSpecific) {
+        idInBuild = t.idInBuild();
+        name = t.testName();
+        status = t.status();
+
+        duration = t.getDuration() == null ? -1 : t.getDuration();
+
+        setFlag(MUTED_F, t.getMutedFlag());
+        setFlag(CUR_MUTED_F, t.getCurrentlyMuted());
+        setFlag(CUR_INV_F, t.getCurrInvestigatedFlag());
+        setFlag(IGNORED_F, t.getIgnoredFlag());
+
+        testId = t.getTestId() == null ? -1 : t.getTestId();
+
+        actualBuildId = t.getActualBuildId();
+
+        setDetails(t.getDetailsText(), logSpecific);
+
+        return this;
     }
 
     /**

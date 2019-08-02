@@ -25,7 +25,11 @@ public interface ITest {
 
     public int status();
 
-    public boolean isIgnoredTest();
+    public default boolean isIgnoredTest() {
+        Boolean flag = getIgnoredFlag();
+
+        return flag != null && flag;
+    }
 
     public default boolean isMutedTest() {
         Boolean flag = getMutedFlag();

@@ -724,4 +724,19 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     public long getFinishDateTs() {
         return finishDate;
     }
+
+    public void migrateTests(ILogProductSpecific specific) {
+        if (tests == null || tests.isEmpty())
+            return;
+
+        if (testsV2 != null)
+            return;
+
+        testsV2 = tests.stream()
+            .map(t -> new TestCompactedV2().copyFrom(t, specific))
+            .collect(Collectors.toList());
+
+        tests.clear();
+        tests = null;
+    }
 }

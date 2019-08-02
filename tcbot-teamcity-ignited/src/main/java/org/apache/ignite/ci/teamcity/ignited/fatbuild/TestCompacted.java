@@ -209,12 +209,6 @@ class TestCompacted implements ITest {
 
 
 
-    public boolean isIgnoredTest() {
-        Boolean flag = getIgnoredFlag();
-
-        return flag != null && flag;
-    }
-
     public boolean isFailedTest(IStringCompactor compactor) {
         return compactor.getStringId(TestOccurrence.STATUS_SUCCESS) != status();
     }

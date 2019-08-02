@@ -79,6 +79,7 @@ public class FatBuildDao {
     /** Compactor. */
     @Inject private IStringCompactor compactor;
 
+    /** Logger product specific. */
     @Inject private ILogProductSpecific logProductSpecific;
 
     /** History collector. */
@@ -371,6 +372,10 @@ public class FatBuildDao {
         Map<Long, EntryProcessorResult<Integer>> map = buildsCache.<Long, BinaryObject>withKeepBinary().invokeAll(cacheKeys, new IsMissingBuildProcessor());
 
         return map.values().stream().map(EntryProcessorResult::get).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    public void runTestMigrationIfNeeded(FatBuildCompacted build) {
+        build.migrateTests(logProductSpecific);
     }
 
     private static class GetStartTimeProc implements CacheEntryProcessor<Long, BinaryObject, Long> {
