@@ -374,8 +374,9 @@ public class FatBuildDao {
         return map.values().stream().map(EntryProcessorResult::get).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
-    public void runTestMigrationIfNeeded(FatBuildCompacted build) {
-        build.migrateTests(logProductSpecific);
+    public void runTestMigrationIfNeeded(int srvIdMaskHigh, FatBuildCompacted build) {
+        if (build.migrateTests(logProductSpecific))
+            putFatBuild(srvIdMaskHigh, build.id(), build);
     }
 
     private static class GetStartTimeProc implements CacheEntryProcessor<Long, BinaryObject, Long> {

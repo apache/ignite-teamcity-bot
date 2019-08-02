@@ -61,7 +61,7 @@ public class TestCompactedV2 implements ITest {
     private int status = -1;
     private int duration = -1;
 
-    private int flags = 0;
+    private int testFlags = 0;
 
     /** Test global, can be used for references. */
     private long testId = 0;
@@ -179,9 +179,9 @@ public class TestCompactedV2 implements ITest {
 
     private void setBitAt(int off, boolean val) {
         if (val)
-            flags |= (1 << off);// flags.set(off, true);
+            testFlags |= (1 << off);// flags.set(off, true);
         else
-            flags &= ~(1 << off); //flags.clear(off)
+            testFlags &= ~(1 << off); //flags.clear(off)
     }
 
     /**
@@ -195,7 +195,7 @@ public class TestCompactedV2 implements ITest {
     }
 
     private boolean getBitAt(int off) {
-        return (flags & (1 << off)) != 0;
+        return (testFlags & (1 << off)) != 0;
     }
 
     public static TestOccurrenceFull toTestOccurrence(ITest test, IStringCompactor compactor, int buildId) {
@@ -312,13 +312,13 @@ public class TestCompactedV2 implements ITest {
             duration == compacted.duration &&
             testId == compacted.testId &&
             actualBuildId == compacted.actualBuildId &&
-            Objects.equals(flags, compacted.flags) &&
+            Objects.equals(testFlags, compacted.testFlags) &&
             Objects.equals(details, compacted.details);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        int res = Objects.hash(idInBuild, name, status, duration, flags, testId, actualBuildId);
+        int res = Objects.hash(idInBuild, name, status, duration, testFlags, testId, actualBuildId);
         res = 31 * res + Objects.hashCode(details);
         return res;
     }
@@ -364,7 +364,7 @@ public class TestCompactedV2 implements ITest {
             .add("name", name)
             .add("status", status)
             .add("duration", duration)
-            .add("flags", flags)
+            .add("flags", testFlags)
             .add("testId", testId)
             .add("actualBuildId", actualBuildId)
             .add("details", details)

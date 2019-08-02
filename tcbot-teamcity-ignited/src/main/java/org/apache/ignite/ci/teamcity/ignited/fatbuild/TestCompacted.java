@@ -36,6 +36,7 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
+import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xerial.snappy.Snappy;
@@ -46,7 +47,7 @@ import javax.annotation.Nullable;
  *
  */
 @Persisted
-class TestCompacted implements ITest {
+public class TestCompacted implements ITest {
     public static final int MUTED_F = 0;
     public static final int CUR_MUTED_F = 2;
     public static final int CUR_INV_F = 4;
@@ -84,6 +85,39 @@ class TestCompacted implements ITest {
      * Default constructor.
      */
     public TestCompacted() {
+    }
+
+    /**
+     * @param compactor Compactor.
+     * @param testOccurrence TestOccurrence.
+     */
+    public TestCompacted(IStringCompactor compactor, TestOccurrenceFull testOccurrence) {
+        String testOccurrenceId = testOccurrence.getId();
+        if (!Strings.isNullOrEmpty(testOccurrenceId)) {
+            try {
+                final TestId testId = extractFullId(testOccurrenceId);
+                if (testId != null)
+                    idInBuild = testId.getTestId();
+            } catch (Exception e) {
+                logger.error("Failed to handle TC response: " + testOccurrenceId, e);
+            }
+        }
+
+        name = compactor.getStringId(testOccurrence.name);
+        status = compactor.getStringId(testOccurrence.status);
+        duration = testOccurrence.duration == null ? -1 : testOccurrence.duration;
+
+        setFlag(MUTED_F, testOccurrence.muted);
+        setFlag(CUR_MUTED_F, testOccurrence.currentlyMuted);
+        setFlag(CUR_INV_F, testOccurrence.currentlyInvestigated);
+        setFlag(IGNORED_F, testOccurrence.ignored);
+
+        if (testOccurrence.build != null && testOccurrence.build.getId() != null)
+            actualBuildId = testOccurrence.build.getId();
+
+        if (testOccurrence.test != null && testOccurrence.test.id != null)
+            testId = Long.valueOf(testOccurrence.test.id);
+
     }
 
     public static TestId extractFullId(String id) {

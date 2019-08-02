@@ -34,7 +34,7 @@ import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.InMemoryStringCompactor;
+import org.apache.ignite.tcbot.persistence.InMemoryStringCompactor;
 import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedMock;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;

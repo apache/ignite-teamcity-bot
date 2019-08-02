@@ -725,12 +725,12 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         return finishDate;
     }
 
-    public void migrateTests(ILogProductSpecific specific) {
+    public boolean migrateTests(ILogProductSpecific specific) {
         if (tests == null || tests.isEmpty())
-            return;
+            return false;
 
         if (testsV2 != null)
-            return;
+            return false;
 
         testsV2 = tests.stream()
             .map(t -> new TestCompactedV2().copyFrom(t, specific))
@@ -738,5 +738,13 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         tests.clear();
         tests = null;
+        return true;
+    }
+
+    void oldTestsFmtAdd(TestCompacted  compacted) {
+        if ( tests == null)
+             tests = new ArrayList<>();
+
+        tests.add(compacted);
     }
 }

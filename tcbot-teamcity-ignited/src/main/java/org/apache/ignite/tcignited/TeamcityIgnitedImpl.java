@@ -574,7 +574,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         }
 
         if (existingBuild != null)
-            fatBuildDao.runTestMigrationIfNeeded(existingBuild);
+            fatBuildDao.runTestMigrationIfNeeded(srvIdMaskHigh, existingBuild);
 
         FatBuildCompacted savedVer = fatBuildSync.loadBuild(conn, buildId, existingBuild, mode);
 
