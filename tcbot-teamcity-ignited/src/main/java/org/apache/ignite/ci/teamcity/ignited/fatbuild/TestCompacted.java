@@ -291,41 +291,6 @@ public class TestCompacted implements ITest {
     }
 
     /**
-     * @param build
-     * @param paramsFilter parameters filter to find out parameters to be saved in RunHistory (for future filtering).
-     * @param successStatusStrId
-     * @return
-     */
-    public Invocation toInvocation(FatBuildCompacted build,
-        BiPredicate<Integer, Integer> paramsFilter, int successStatusStrId) {
-        final boolean failedTest = successStatusStrId != status;
-
-        final int failCode = failedTest
-            ? (isIgnoredTest() || isMutedTest())
-            ? InvocationData.MUTED
-            : InvocationData.FAILURE
-            : InvocationData.OK;
-
-        Invocation invocation = new Invocation(build.getId())
-            .withStatus(failCode)
-            .withStartDate(build.getStartDateTs())
-            .withChanges(build.changes());
-
-        java.util.Map<Integer, Integer> importantParms = new TreeMap<>();
-
-        ParametersCompacted parameters = build.parameters();
-        if (parameters == null)
-            return invocation;
-
-        parameters.forEach((k, v) -> {
-            if (paramsFilter.test(k, v))
-                importantParms.put(k, v);
-        });
-
-        return invocation.withParameters(importantParms);
-    }
-
-    /**
      * Pair of build and test Ids.
      */
     private static class TestId {

@@ -662,7 +662,6 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         Invocation invocation = new Invocation(getId())
             .withStatus(failCode)
-            .withStartDate(getStartDateTs())
             .withChanges(changes());
 
         java.util.Map<Integer, Integer> importantParms = new TreeMap<>();

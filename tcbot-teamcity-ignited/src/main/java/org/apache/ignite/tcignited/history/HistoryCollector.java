@@ -103,9 +103,6 @@ public class HistoryCollector {
         .build();
     //todo a lot of histories hold here
 
-    /** Biggest build ID, which out of history scope (MAX days + 2). */
-    private final ConcurrentMap<Integer, AtomicInteger> biggestBuildIdOutOfHistScope = new ConcurrentHashMap<>();
-
     /**
      * @param srvIdMaskHigh Server id mask to be placed at high bits in the key.
      * @param testName Test name.
@@ -184,29 +181,13 @@ public class HistoryCollector {
             buildStartTimeStorage.setBuildsStartTime(srvId, buildStartTimeFromFatBuild);
         }
 
+        long minBuildStartTs = curTs - Duration.ofMillis(TcBotConst.HISTORY_MAX_DAYS).toMillis();
+
         Set<Integer> buildInScope = buildIds.stream().filter(
             bId -> {
                 Long startTime = buildStartTimes.get(bId);
-                if (startTime == null)
-                    return false;
 
-                long ageInDays = Duration.ofMillis(curTs - startTime).toDays();
-
-                if (ageInDays > TcBotConst.HISTORY_BUILD_ID_BORDER_DAYS) {
-                    AtomicInteger integer = biggestBuildIdOutOfHistScope.computeIfAbsent(srvId,
-                        s -> {
-                            AtomicInteger atomicInteger = new AtomicInteger();
-                            atomicInteger.set(-1);
-                            return atomicInteger;
-                        });
-
-                    int newBorder = integer.accumulateAndGet(bId, Math::max);
-
-                    if (newBorder == bId)
-                        logger.info("History Collector: New border for server was set " + bId);
-                }
-
-                return ageInDays < TcBotConst.HISTORY_MAX_DAYS;
+                return startTime != null && startTime > minBuildStartTs;
             }
         ).collect(Collectors.toSet());
 

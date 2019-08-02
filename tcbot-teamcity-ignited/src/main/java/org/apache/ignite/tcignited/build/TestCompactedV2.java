@@ -398,7 +398,6 @@ public class TestCompactedV2 implements ITest {
 
         Invocation invocation = new Invocation(build.getId())
             .withStatus(failCode)
-            .withStartDate(build.getStartDateTs())
             .withChanges(build.changes());
 
         java.util.Map<Integer, Integer> importantParms = new TreeMap<>();

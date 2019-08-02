@@ -73,9 +73,6 @@ public class InvocationData {
         if (invocationMap.containsKey(build))
             return false;
 
-        if (isExpired(inv.startDate()))
-            return false;
-
         Invocation prevVal = invocationMap.putIfAbsent(build, inv);
 
         final boolean newVal = prevVal == null;
@@ -118,15 +115,7 @@ public class InvocationData {
      */
     @Nonnull public Stream<Invocation> invocations() {
         return invocationMap.values()
-            .stream()
-            .filter(this::isActual);
-    }
-
-    /**
-     * @param invocation Invocation.
-     */
-    private boolean isActual(Invocation invocation) {
-        return !isExpired(invocation.startDate());
+            .stream();
     }
 
     /**
