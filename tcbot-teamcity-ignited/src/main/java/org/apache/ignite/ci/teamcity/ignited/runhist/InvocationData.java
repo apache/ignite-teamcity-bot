@@ -19,6 +19,7 @@ package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import com.google.common.base.MoreObjects;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -51,15 +52,20 @@ public class InvocationData {
     /**
      * Runs registered all the times.
      */
+    @Deprecated
     private int allHistRuns;
 
     /**
      * Failures registered all the times.
      */
+    @Deprecated
     private int allHistFailures;
 
     /** Invocations map from build ID to invocation data. */
     private Map<Integer, Invocation> invocationMap = new TreeMap<>();
+
+    //todo replace map to list
+    private final List<Invocation> invocationList = new ArrayList<>();
 
     public int allHistRuns() {
         return allHistRuns;
@@ -87,13 +93,6 @@ public class InvocationData {
     }
 
     /**
-     * @param startDate Start date.
-     */
-    public static boolean isExpired(long startDate) {
-        return (U.currentTimeMillis() - startDate) > Duration.ofDays(MAX_DAYS).toMillis();
-    }
-
-    /**
      *
      */
     public int allHistFailures() {
@@ -114,6 +113,12 @@ public class InvocationData {
      *
      */
     @Nonnull public Stream<Invocation> invocations() {
+        return invocationMap.values()
+            .stream();
+    }
+
+    //todo
+    @Nonnull public Stream<Invocation> sortedInvocations() {
         return invocationMap.values()
             .stream();
     }
