@@ -31,6 +31,7 @@ import org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest;
 import org.apache.ignite.tcbot.engine.conf.TcBotJsonConfig;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.tcignited.buildlog.ILogProductSpecific;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
@@ -436,6 +437,7 @@ public class IgnitedTcInMemoryIntegrationTest {
             @Override protected void configure() {
                 bind(Ignite.class).toInstance(ignite);
                 bind(IStringCompactor.class).to(IgniteStringCompactor.class).in(new SingletonScope());
+                bind(ILogProductSpecific.class).toInstance(Mockito.mock(ILogProductSpecific.class));
             }
         });
 
