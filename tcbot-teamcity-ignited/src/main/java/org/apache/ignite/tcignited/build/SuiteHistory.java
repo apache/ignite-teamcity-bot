@@ -43,9 +43,11 @@ public class SuiteHistory implements ISuiteRunHistory {
     }
 
     private void finalizeInvocations() {
-        suiteHist.sort();
-
         //todo add missing status to tests
+        //  testsHistory.values().registerMissing(suiteHist.buildIds());
+
+        suiteHist.sort();
+        testsHistory.values().forEach(RunHistCompacted::sort);
     }
 
     public int size(Ignite ignite) {
