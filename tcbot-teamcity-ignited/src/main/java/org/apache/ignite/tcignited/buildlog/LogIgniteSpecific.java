@@ -21,6 +21,8 @@ package org.apache.ignite.tcignited.buildlog;
  * Ignite specific logic related to build logs.
  */
 public class LogIgniteSpecific implements ILogProductSpecific {
+    private static final String JAVA_LEVEL_DEADLOCK_TXT = " Java-level deadlock:";
+
     /** Starting test. */
     private static final String STARTING_TEST = ">>> Starting test: ";
     /** Test name end. */
@@ -36,5 +38,12 @@ public class LogIgniteSpecific implements ILogProductSpecific {
     /** {@inheritDoc} */
     @Override public boolean isTestStopping(String line) {
         return line.contains(STOPPING_TEST);
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean needWarn(String line) {
+        return line.contains("java.lang.AssertionError:")
+            || line.contains(JAVA_LEVEL_DEADLOCK_TXT)
+            || line.contains("Critical failure. Will be handled accordingly to configured handler");
     }
 }

@@ -573,6 +573,9 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             return existingBuild != null ? existingBuild : new FatBuildCompacted().setFakeStub(true);
         }
 
+        if (existingBuild != null)
+            fatBuildDao.runTestMigrationIfNeeded(srvIdMaskHigh, existingBuild);
+
         FatBuildCompacted savedVer = fatBuildSync.loadBuild(conn, buildId, existingBuild, mode);
 
         //build was modified, probably we need also to update reference accordingly

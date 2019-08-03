@@ -24,18 +24,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Objects;
-import java.util.TreeMap;
-import java.util.function.BiPredicate;
 
 import org.apache.ignite.ci.tcbot.common.StringFieldCompacted;
-import org.apache.ignite.tcservice.model.hist.BuildRef;
+import org.apache.ignite.tcbot.persistence.Persisted;
+import org.apache.ignite.tcignited.build.ITest;
+import org.apache.ignite.tcignited.build.TestCompactedV2;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
-import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
-import org.apache.ignite.tcservice.model.result.tests.TestRef;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
-import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
-import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
+
+import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xerial.snappy.Snappy;
@@ -45,7 +42,8 @@ import javax.annotation.Nullable;
 /**
  *
  */
-public class TestCompacted {
+@Persisted
+public class TestCompacted implements ITest {
     public static final int MUTED_F = 0;
     public static final int CUR_MUTED_F = 2;
     public static final int CUR_INV_F = 4;
@@ -116,43 +114,21 @@ public class TestCompacted {
         if (testOccurrence.test != null && testOccurrence.test.id != null)
             testId = Long.valueOf(testOccurrence.test.id);
 
-        setDetails(testOccurrence.details);
     }
 
     public static TestId extractFullId(String id) {
-        Integer buildId = extractIdPrefixed(id, "build:(id:", ")");
+        Integer buildId = TestCompactedV2.extractIdPrefixed(id, "build:(id:", ")");
 
         if (buildId == null)
             return null;
 
-        Integer testId = extractIdPrefixed(id, "id:", ",");
+        Integer testId = TestCompactedV2.extractIdPrefixed(id, "id:", ",");
 
         if (testId == null)
             return null;
 
         return new TestId(buildId, testId);
 
-    }
-
-    public static Integer extractIdPrefixed(String id, String prefix, String postfix) {
-        try {
-            int buildIdIdx = id.indexOf(prefix);
-            if (buildIdIdx < 0)
-                return null;
-
-            int buildIdPrefixLen = prefix.length();
-            int absBuildIdx = buildIdIdx + buildIdPrefixLen;
-            int buildIdEndIdx = id.substring(absBuildIdx).indexOf(postfix);
-            if (buildIdEndIdx < 0)
-                return null;
-
-            String substring = id.substring(absBuildIdx, absBuildIdx + buildIdEndIdx);
-
-            return Integer.valueOf(substring);
-        }
-        catch (Exception ignored) {
-            return null;
-        }
     }
 
     private void setFlag(int off, Boolean val) {
@@ -176,46 +152,13 @@ public class TestCompacted {
         return flags.get(off + 1);
     }
 
-    public TestOccurrenceFull toTestOccurrence(IStringCompactor compactor, int buildId) {
-        TestOccurrenceFull occurrence = new TestOccurrenceFull();
-
-        String fullStrId = "id:" +
-            idInBuild() + ",build:(id:" +
-            buildId +
-            ")";
-        occurrence.id(fullStrId);
-        occurrence.duration = getDuration();
-        occurrence.name = compactor.getStringFromId(name);
-        occurrence.status = compactor.getStringFromId(status);
-        occurrence.href = "/app/rest/latest/testOccurrences/" + fullStrId;
-
-        occurrence.muted = getMutedFlag();
-        occurrence.currentlyMuted = getFlag(CUR_MUTED_F);
-        occurrence.currentlyInvestigated = getCurrInvestigatedFlag();
-        occurrence.ignored = getIgnoredFlag();
-
-        if (actualBuildId > 0) {
-            BuildRef buildRef = new BuildRef();
-
-            buildRef.setId(actualBuildId);
-
-            occurrence.build = buildRef;
-        }
-
-        if (testId != 0) {
-            TestRef test = new TestRef();
-
-            test.id = String.valueOf(testId);
-
-            occurrence.test = test;
-        }
-
-        occurrence.details = getDetailsText();
-
-        return occurrence;
+    /** {@inheritDoc} */
+    @Override public Boolean getCurrentlyMuted() {
+        return getFlag(CUR_MUTED_F);
     }
 
-    public Boolean getCurrInvestigatedFlag() {
+    /** {@inheritDoc} */
+    @Override public Boolean getCurrInvestigatedFlag() {
         return getFlag(CUR_INV_F);
     }
 
@@ -250,61 +193,6 @@ public class TestCompacted {
             return null;
     }
 
-    public void setDetails(String dtlsStr) {
-        if (Strings.isNullOrEmpty(dtlsStr)) {
-            this.details = null;
-            return;
-        }
-
-        byte[] uncompressed;
-        byte[] snappy = null;
-        byte[] gzip = null;
-        try {
-            uncompressed = dtlsStr.getBytes(StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            logger.error("Set details failed: " + e.getMessage(), e);
-            return;
-        }
-        try {
-            snappy = Snappy.compress(uncompressed);
-        }
-        catch (Exception e) {
-            logger.error("Snappy.compress failed: " + e.getMessage(), e);
-        }
-
-        try {
-            gzip = StringFieldCompacted.zipBytes(uncompressed);
-        }
-        catch (Exception e) {
-            logger.error("Snappy.compress failed: " + e.getMessage(), e);
-        }
-
-        final int snappyLen = snappy != null ? snappy.length : -1;
-        final int gzipLen = gzip != null ? gzip.length : -1;
-
-        flags.set(COMPRESS_TYPE_FLAG1, true);
-        flags.set(COMPRESS_TYPE_FLAG2, false);
-        //uncompressed
-        details = uncompressed;
-
-        if (snappyLen > 0 && snappyLen < details.length) {
-            flags.set(COMPRESS_TYPE_FLAG1, false);
-            flags.set(COMPRESS_TYPE_FLAG2, false);
-            details = snappy;
-        }
-
-        if (gzipLen > 0 && gzipLen < details.length) {
-            flags.set(COMPRESS_TYPE_FLAG1, false);
-            flags.set(COMPRESS_TYPE_FLAG2, true);
-            details = gzip;
-        }
-
-
-        logger.debug("U " + uncompressed.length + " S " + snappyLen + " Z " + gzipLen + ": F (" +
-                flags.get(COMPRESS_TYPE_FLAG1) + ", " +
-                flags.get(COMPRESS_TYPE_FLAG2) +")");
-    }
-
     public Boolean getIgnoredFlag() {
         return getFlag(IGNORED_F);
     }
@@ -313,7 +201,11 @@ public class TestCompacted {
         return getFlag(MUTED_F);
     }
 
-    private int idInBuild() {
+    @Override public int getActualBuildId() {
+        return actualBuildId;
+    }
+
+    public int idInBuild() {
         return idInBuild;
     }
 
@@ -345,28 +237,7 @@ public class TestCompacted {
         return isFailedTest(compactor) && !(isMutedOrIgnored());
     }
 
-    /**
-     * @param successStatus Success status code.
-     */
-    public boolean isFailedButNotMuted(int successStatus) {
-        return successStatus != status() && !isMutedOrIgnored();
-    }
 
-    public boolean isMutedOrIgnored() {
-        return isMutedTest() || isIgnoredTest();
-    }
-
-    public boolean isIgnoredTest() {
-        Boolean flag = getIgnoredFlag();
-
-        return flag != null && flag;
-    }
-
-    public boolean isMutedTest() {
-        Boolean flag = getMutedFlag();
-
-        return flag != null && flag;
-    }
 
     public boolean isFailedTest(IStringCompactor compactor) {
         return compactor.getStringId(TestOccurrence.STATUS_SUCCESS) != status();
@@ -413,41 +284,6 @@ public class TestCompacted {
             return testId;
 
         return null;
-    }
-
-    /**
-     * @param build
-     * @param paramsFilter parameters filter to find out parameters to be saved in RunHistory (for future filtering).
-     * @param successStatusStrId
-     * @return
-     */
-    public Invocation toInvocation(FatBuildCompacted build,
-        BiPredicate<Integer, Integer> paramsFilter, int successStatusStrId) {
-        final boolean failedTest = successStatusStrId != status;
-
-        final int failCode = failedTest
-            ? (isIgnoredTest() || isMutedTest())
-            ? InvocationData.MUTED
-            : InvocationData.FAILURE
-            : InvocationData.OK;
-
-        Invocation invocation = new Invocation(build.getId())
-            .withStatus(failCode)
-            .withStartDate(build.getStartDateTs())
-            .withChanges(build.changes());
-
-        java.util.Map<Integer, Integer> importantParms = new TreeMap<>();
-
-        ParametersCompacted parameters = build.parameters();
-        if (parameters == null)
-            return invocation;
-
-        parameters.forEach((k, v) -> {
-            if (paramsFilter.test(k, v))
-                importantParms.put(k, v);
-        });
-
-        return invocation.withParameters(importantParms);
     }
 
     /**

@@ -31,6 +31,7 @@ import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcignited.build.TestCompactedV2;
 import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 import org.jetbrains.annotations.NotNull;
@@ -177,9 +178,9 @@ public class TeamcityIgnitedMock {
 
                 final RunHistCompacted hist = histCache.computeIfAbsent(histKey, RunHistCompacted::new);
 
-                Invocation inv = testCompacted.toInvocation(build, (k, v) -> true, successStatusStrId);
+                Invocation inv = TestCompactedV2.toInvocation(testCompacted, build, (k, v) -> true, successStatusStrId);
 
-                hist.innerAddInvocation(inv);
+                hist.addInvocation(inv);
             });
         }
 

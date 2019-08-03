@@ -39,13 +39,13 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.util.CollectionUtil;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.build.ITest;
 import org.apache.ignite.tcignited.buildlog.ILogCheckResult;
 import org.apache.ignite.tcignited.buildlog.ITestLogCheckResult;
 import org.apache.ignite.tcignited.history.IRunHistory;
@@ -334,7 +334,7 @@ public class MultBuildRunCtx implements ISuiteResults {
             .collect(Collectors.toList());
     }
 
-    public void saveToMap(Map<Integer, TestCompactedMult> res, Stream<TestCompacted> tests) {
+    public void saveToMap(Map<Integer, TestCompactedMult> res, Stream<ITest> tests) {
         tests.forEach(testCompacted -> {
             res.computeIfAbsent(testCompacted.testName(), k -> new TestCompactedMult(compactor, this))
                 .add(testCompacted);

@@ -21,25 +21,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.build.ITest;
 import org.apache.ignite.tcignited.history.IRunHistSummary;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.IRunStat;
 import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
-import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
 
 /**
  * Test occurrence merged from several runs.
  */
 public class TestCompactedMult {
-    private final List<TestCompacted> occurrences = new ArrayList<>();
+    private final List<ITest> occurrences = new ArrayList<>();
     private IStringCompactor compactor;
     private MultBuildRunCtx ctx;
     private long avgDuration = -1;
@@ -65,7 +63,7 @@ public class TestCompactedMult {
     }
  
     public boolean isInvestigated() {
-        return occurrences.stream().anyMatch(TestCompacted::isInvestigated);
+        return occurrences.stream().anyMatch(ITest::isInvestigated);
     }
 
     /** */
@@ -82,7 +80,7 @@ public class TestCompactedMult {
     public long getAvgDurationMs() {
         if (avgDuration < 0) {
             avgDuration = (long)occurrences.stream()
-                .map(TestCompacted::getDuration)
+                .map(ITest::getDuration)
                 .filter(Objects::nonNull)
                 .mapToInt(i -> i)
                 .average()
@@ -95,7 +93,7 @@ public class TestCompactedMult {
     /**
      *
      */
-    public Stream<TestCompacted> getInvocationsStream() {
+    public Stream<ITest> getInvocationsStream() {
         return occurrences.stream();
     }
 
@@ -135,7 +133,7 @@ public class TestCompactedMult {
          return null;
      }
 
-    public void add(TestCompacted next) {
+    public void add(ITest next) {
         occurrences.add(next);
     }
 
@@ -162,7 +160,7 @@ public class TestCompactedMult {
      *
      */
     public boolean isMutedOrIgored() {
-        return occurrences.stream().anyMatch(TestCompacted::isMutedOrIgnored);
+        return occurrences.stream().anyMatch(ITest::isMutedOrIgnored);
     }
 
     /**

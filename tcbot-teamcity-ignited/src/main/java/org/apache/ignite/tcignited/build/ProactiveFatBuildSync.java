@@ -18,39 +18,47 @@ package org.apache.ignite.tcignited.build;
 
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
-import java.util.stream.Stream;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.GuardedBy;
+import javax.inject.Inject;
+import org.apache.ignite.cache.affinity.Affinity;
+import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.internal.util.GridConcurrentHashSet;
+import org.apache.ignite.internal.util.GridIntList;
+import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
+import org.apache.ignite.tcbot.common.exeption.ServiceConflictException;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcignited.buildref.BuildRefDao;
+import org.apache.ignite.tcignited.history.RunHistSync;
+import org.apache.ignite.tcservice.ITeamcityConn;
 import org.apache.ignite.tcservice.model.changes.ChangesList;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
 import org.apache.ignite.tcservice.model.result.stat.Statistics;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrencesFull;
-import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
-import org.apache.ignite.tcignited.buildref.BuildRefDao;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.tcignited.ITeamcityIgnited;
-import org.apache.ignite.tcignited.SyncMode;
-import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
-import org.apache.ignite.tcignited.history.RunHistSync;
-import org.apache.ignite.tcservice.ITeamcityConn;
-import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
-import org.apache.ignite.tcbot.common.exeption.ServiceConflictException;
-import org.apache.ignite.internal.util.GridConcurrentHashSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.GuardedBy;
-import javax.inject.Inject;
-import java.io.FileNotFoundException;
-import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class ProactiveFatBuildSync {
     public static final int FAT_BUILD_PROACTIVE_TASKS = 5;
@@ -129,37 +137,67 @@ public class ProactiveFatBuildSync {
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @MonitoredTask(name = "Find missing builds", nameExtArgsIndexes = {0})
     @AutoProfiling
-    protected String findMissingBuildsFromBuildRef(String srvId, ITeamcityConn conn) {
-        int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
-
-        Stream<BuildRefCompacted> buildRefs = buildRefDao.compactedBuildsForServer(srvIdMaskHigh);
+    protected String findMissingBuildsFromBuildRef(String srvCode, ITeamcityConn conn) {
+        int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvCode);
 
         List<Integer> buildsIdsToLoad = new ArrayList<>();
         AtomicInteger totalAskedToLoad = new AtomicInteger();
 
-        buildRefs.forEach(buildRef -> {
-            Integer buildId = buildRef.getId();
-            if (buildId == null)
-                return;
+        Affinity<Long> affinity = fatBuildDao.affinity();
+        int partitions = affinity.partitions();
+        int checkBatchSize = 1000;
 
-            if (buildRef.isRunning(compactor)
-                || buildRef.isQueued(compactor)
-                || !fatBuildDao.containsKey(srvIdMaskHigh, buildId))
-                buildsIdsToLoad.add(buildId);
+        GridIntList keysToCheck = new GridIntList();
+        for (int p = 0; p < partitions; p++) {
+            int curPart = p;
 
-            if (buildsIdsToLoad.size() >= 100) {
-                totalAskedToLoad.addAndGet(buildsIdsToLoad.size());
-                scheduleBuildsLoad(conn, buildsIdsToLoad);
-                buildsIdsToLoad.clear();
-            }
-        });
+            buildRefDao.compactedBuildsForServer(srvIdMaskHigh, bref -> true)
+                .filter(
+                    bref -> {
+                        long fatBuildKey = FatBuildDao.buildIdToCacheKey(srvIdMaskHigh, bref.id());
+                        int part = affinity.partition(fatBuildKey);
+                        return part == curPart;
+                    }
+                )
+                .forEach(buildRef -> {
+                    int buildId = buildRef.id();
+
+                    if (buildRef.isRunning(compactor) || buildRef.isQueued(compactor))
+                        buildsIdsToLoad.add(buildId); //re-check queued
+                    else
+                        keysToCheck.add(buildId); // check if missing
+
+                    int initSize = keysToCheck.size();
+                    if (initSize >= checkBatchSize) {
+                        System.err.println("findMissingBuilds: Srv: " + srvCode + " Checking " + initSize + " builds for partition " + curPart);
+
+                        int[] buildIds = keysToCheck.array();
+                        keysToCheck.clear();
+
+                        Collection<Integer> builds = fatBuildDao.getMissingBuilds(srvIdMaskHigh, buildIds);
+                        System.err.println("foundMissing: " + builds.size() + ": Srv: " + srvCode + " Checking " + initSize + " builds for partition " + curPart);
+
+                        buildsIdsToLoad.addAll(builds);
+                    }
+
+                    if (buildsIdsToLoad.size() >= 100) {
+                        totalAskedToLoad.addAndGet(buildsIdsToLoad.size());
+                        scheduleBuildsLoad(conn, buildsIdsToLoad);
+                        buildsIdsToLoad.clear();
+                    }
+                });
+        }
+
+        if (!keysToCheck.isEmpty())
+            buildsIdsToLoad.addAll(fatBuildDao.getMissingBuilds(srvIdMaskHigh, keysToCheck.array()));
+
 
         if (!buildsIdsToLoad.isEmpty()) {
             totalAskedToLoad.addAndGet(buildsIdsToLoad.size());
             scheduleBuildsLoad(conn, buildsIdsToLoad);
         }
 
-        return "Invoked later load for " + totalAskedToLoad.get() + " builds from " + srvId;
+        return "Invoked later load for " + totalAskedToLoad.get() + " builds from " + srvCode;
     }
 
     /** */
@@ -244,8 +282,10 @@ public class ProactiveFatBuildSync {
      * @param conn Connection.
      */
     public void ensureActualizationRequested(String srvName, ITeamcityConn conn) {
-        scheduler.sheduleNamed(taskName("findMissingBuildsFromBuildRef", srvName),
-            () -> findMissingBuildsFromBuildRef(srvName, conn), 360, TimeUnit.MINUTES);
+        scheduler.invokeLater(() -> {
+            scheduler.sheduleNamed(taskName("findMissingBuildsFromBuildRef", srvName),
+                () -> findMissingBuildsFromBuildRef(srvName, conn), 360, TimeUnit.MINUTES);
+        }, 15, TimeUnit.MINUTES);
 
         /*
         scheduler.sheduleNamed(taskName("migrateBuildsToV6", srvName),

@@ -53,16 +53,6 @@ public class RunHistCompacted implements  IRunHistory {
     }
 
     /** {@inheritDoc} */
-    @Override public int getFailuresAllHist() {
-        return data.allHistFailures();
-    }
-
-    /** {@inheritDoc} */
-    @Override public int getRunsAllHist() {
-        return data.allHistRuns();
-    }
-
-    /** {@inheritDoc} */
     @Nullable
     @Override public List<Integer> getLatestRunResults() {
         return data.getLatestRuns();
@@ -135,8 +125,8 @@ public class RunHistCompacted implements  IRunHistory {
 
         Integer detectedAt = null;
         if (t.shouldBeFirst()) {
-            if (histAsArr.size() >= getRunsAllHist()) // skip if total runs can't fit to latest runs
-                detectedAt = checkTemplateAtPos(template, centralEvtBuild, histAsArr, 0);
+            //todo detect somehow test is new (e.g. status absent for test history).
+            detectedAt = checkTemplateAtPos(template, centralEvtBuild, histAsArr, 0);
         }
         else {
             //startIgnite from the end to find most recent
@@ -200,7 +190,11 @@ public class RunHistCompacted implements  IRunHistory {
     /**
      * @param v Invocation.
      */
-    public void innerAddInvocation(Invocation v) {
-        data.innerAdd(v);
+    public void addInvocation(Invocation v) {
+        data.add(v);
+    }
+
+    public void sort() {
+        data.sort();
     }
 }

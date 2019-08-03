@@ -30,6 +30,7 @@ public class LogMsgToWarn {
 
     private static final String JAVA_LEVEL_DEADLOCK_TXT = " Java-level deadlock:";
 
+    @Deprecated
     public static boolean needWarn(String line) {
         return line.contains("java.lang.AssertionError:")
             || line.contains(JAVA_LEVEL_DEADLOCK_TXT)

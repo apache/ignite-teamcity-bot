@@ -624,10 +624,6 @@ function showSuiteData(suite, settings, prNum) {
 
         moreInfoTxt += "Recent fails : "+ suite.failureRate +"% [" + suite.failures + " fails / " + suite.runs + " runs]; <br> " ;
 
-        if(isDefinedAndFilled(suite.failsAllHist) && isDefinedAndFilled(suite.failsAllHist.failures)) {
-            moreInfoTxt += "All hist fails: "+ suite.failsAllHist.failureRate +"% [" + suite.failsAllHist.failures + " fails / " + suite.failsAllHist.runs + " runs]; <br> " ;
-        }
-
         if(isDefinedAndFilled(suite.criticalFails) && isDefinedAndFilled(suite.criticalFails.failures)) {
             moreInfoTxt += "Critical recent fails: "+ suite.criticalFails.failureRate + "% [" + suite.criticalFails.failures + " fails / " + suite.criticalFails.runs + " runs]; <br> " ;
         }
@@ -926,13 +922,6 @@ function showTestFailData(testFail, isFailureShown, settings) {
 
         if(isDefinedAndFilled(hist.recent) && isDefinedAndFilled(hist.recent.failures))
             testFailTitle = "recent rate: " + hist.recent.failures + " fails / " + hist.recent.runs + " runs" ;
-
-        if(isDefinedAndFilled(hist.allTime) && isDefinedAndFilled(hist.allTime.failures)) {
-            testFailTitle +=
-                 "; all history: " + hist.allTime.failureRate + "% ["+
-                  hist.allTime.failures + " fails / " +
-                  hist.allTime.runs + " runs] " ;
-        }
 
         histContent += " <span title='" +testFailTitle + "'>";
         

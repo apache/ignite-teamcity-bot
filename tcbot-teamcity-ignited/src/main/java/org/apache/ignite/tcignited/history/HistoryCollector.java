@@ -43,17 +43,19 @@ import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
 import org.apache.ignite.tcbot.common.TcBotConst;
+import org.apache.ignite.tcbot.common.conf.TcBotSystemProperties;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.exeption.ServicesStartingException;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.build.FatBuildDao;
+import org.apache.ignite.tcignited.build.ITest;
 import org.apache.ignite.tcignited.build.SuiteHistory;
+import org.apache.ignite.tcignited.build.TestCompactedV2;
 import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
@@ -95,13 +97,10 @@ public class HistoryCollector {
      */
     private final com.google.common.cache.Cache<RunHistKey, SuiteHistory> runHistInMemCache
         = CacheBuilder.newBuilder()
-        .maximumSize(8000)
+        .maximumSize(Boolean.valueOf(System.getProperty(TcBotSystemProperties.DEV_MODE)) ? 1000 : 8000)
         .expireAfterAccess(16, TimeUnit.MINUTES)
         .softValues()
         .build();
-
-    /** Biggest build ID, which out of history scope (MAX days + 2). */
-    private final ConcurrentMap<Integer, AtomicInteger> biggestBuildIdOutOfHistScope = new ConcurrentHashMap<>();
 
     /**
      * @param srvIdMaskHigh Server id mask to be placed at high bits in the key.
@@ -117,6 +116,7 @@ public class HistoryCollector {
         return hist.getTestRunHist(testName);
     }
 
+    @SuppressWarnings("WeakerAccess")
     @AutoProfiling
     protected SuiteHistory getSuiteHist(int srvIdMaskHigh, int buildTypeId, int normalizedBaseBranch) {
         RunHistKey runHistKey = new RunHistKey(srvIdMaskHigh, buildTypeId, normalizedBaseBranch);
@@ -181,29 +181,13 @@ public class HistoryCollector {
             buildStartTimeStorage.setBuildsStartTime(srvId, buildStartTimeFromFatBuild);
         }
 
+        long minBuildStartTs = curTs - Duration.ofDays(TcBotConst.HISTORY_MAX_DAYS).toMillis();
+
         Set<Integer> buildInScope = buildIds.stream().filter(
             bId -> {
                 Long startTime = buildStartTimes.get(bId);
-                if (startTime == null)
-                    return false;
 
-                long ageInDays = Duration.ofMillis(curTs - startTime).toDays();
-
-                if (ageInDays > TcBotConst.HISTORY_BUILD_ID_BORDER_DAYS) {
-                    AtomicInteger integer = biggestBuildIdOutOfHistScope.computeIfAbsent(srvId,
-                        s -> {
-                            AtomicInteger atomicInteger = new AtomicInteger();
-                            atomicInteger.set(-1);
-                            return atomicInteger;
-                        });
-
-                    int newBorder = integer.accumulateAndGet(bId, Math::max);
-
-                    if (newBorder == bId)
-                        logger.info("History Collector: New border for server was set " + bId);
-                }
-
-                return ageInDays < TcBotConst.HISTORY_MAX_DAYS;
+                return startTime != null && startTime > minBuildStartTs;
             }
         ).collect(Collectors.toSet());
 
@@ -252,28 +236,18 @@ public class HistoryCollector {
             Map<Integer, SuiteInvocation> addl = addSuiteInvocationsToHistory(srvId, missedBuildsIds, normalizedBaseBranch);
 
             suiteRunHist.putAll(addl);
-
-            /*
-            Map<Integer, SuiteInvocation> reloaded = histDao.getSuiteRunHist(srvId, buildTypeId, normalizedBaseBranch);
-
-            addl.keySet().forEach((k) -> {
-                Preconditions.checkState( reloaded.containsKey(k));
-            });
-            */
         }
 
-        SuiteHistory sumary = new SuiteHistory();
-
-        suiteRunHist.forEach((buildId, suiteInv) -> sumary.addSuiteInvocation(suiteInv));
+        SuiteHistory summary = new SuiteHistory(suiteRunHist);
 
         if (logger.isDebugEnabled()) {
             logger.debug("***** History for suite "
                 + compactor.getStringFromId(buildTypeId)
                 + " branch" + compactor.getStringFromId(normalizedBaseBranch) + " requires " +
-                sumary.size(igniteProvider.get()) + " bytes");
+                summary.size(igniteProvider.get()) + " bytes");
         }
 
-        return sumary;
+        return summary;
     }
 
     /**
@@ -293,7 +267,7 @@ public class HistoryCollector {
         Map<Integer, SuiteInvocation> suiteRunHist = new HashMap<>();
         int successStatusStrId = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
 
-        System.err.println(Thread.currentThread().getName() + ": GET ALL: " + missedBuildsIds.size());
+        logger.info(Thread.currentThread().getName() + "addSuiteInvocationsToHistory: getAll: " + missedBuildsIds.size());
 
         Iterables.partition(missedBuildsIds, 32 * 10).forEach(
             chunk -> {
@@ -305,10 +279,11 @@ public class HistoryCollector {
 
                     SuiteInvocation sinv = new SuiteInvocation(srvId, normalizedBaseBranch, fatBuildCompacted, compactor, paramsFilter);
 
-                    Stream<TestCompacted> tests = fatBuildCompacted.getAllTests();
+                    Stream<ITest> tests = fatBuildCompacted.getAllTests();
                     tests.forEach(
                         testCompacted -> {
-                            Invocation invocation = testCompacted.toInvocation(fatBuildCompacted, paramsFilter, successStatusStrId);
+                            Invocation invocation = TestCompactedV2.toInvocation(testCompacted,
+                                fatBuildCompacted, paramsFilter, successStatusStrId);
 
                             sinv.addTest(testCompacted.testName(), invocation);
                         }
@@ -320,7 +295,7 @@ public class HistoryCollector {
         );
 
 
-        System.err.println("***** + Adding to persisted history   "
+        logger.info("***** + Adding to persisted history   "
             + " branch " + compactor.getStringFromId(normalizedBaseBranch) + ": added " +
             suiteRunHist.size() + " invocations from " + missedBuildsIds.size() + " builds checked");
 
