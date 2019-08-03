@@ -16,34 +16,10 @@
  */
 package org.apache.ignite.tcignited;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.OptionalInt;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeDao;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefDao;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeSync;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.*;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
@@ -60,11 +36,7 @@ import org.apache.ignite.tcignited.buildlog.BuildLogCheckResultDao;
 import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.tcignited.buildref.BuildRefSync;
-import org.apache.ignite.tcignited.history.BuildStartTimeStorage;
-import org.apache.ignite.tcignited.history.HistoryCollector;
-import org.apache.ignite.tcignited.history.IRunHistory;
-import org.apache.ignite.tcignited.history.ISuiteRunHistory;
-import org.apache.ignite.tcignited.history.SuiteInvocationHistoryDao;
+import org.apache.ignite.tcignited.history.*;
 import org.apache.ignite.tcignited.mute.MuteDao;
 import org.apache.ignite.tcignited.mute.MuteSync;
 import org.apache.ignite.tcservice.ITeamcityConn;
@@ -75,6 +47,17 @@ import org.apache.ignite.tcservice.model.mute.MuteInfo;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import java.io.File;
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.apache.ignite.tcservice.model.hist.BuildRef.STATUS_UNKNOWN;
 
@@ -203,10 +186,18 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         final int invalidVal = -3;
         final int unknownStatus = compactor.getStringId(STATUS_UNKNOWN);
 
+        Integer minBuildId ;
+        if (sinceDate != null) {
+            int ageDays = (int) Duration.ofMillis(System.currentTimeMillis() - sinceDate.getTime()).toDays();
+            minBuildId = buildStartTimeStorage.getBorderForAgeForBuildId(srvIdMaskHigh, ageDays + 1);
+        } else
+            minBuildId = null;
+
         List<BuildRefCompacted> buildRefs = getAllBuildsCompacted(buildTypeId, branchName)
             .stream()
             .filter(b -> b.isFinished(compactor))
             .filter(b -> b.status() != unknownStatus) //check build is not cancelled
+            .filter(buildRefCompacted -> minBuildId ==null || buildRefCompacted.id()> minBuildId)
             .sorted(Comparator.comparing(BuildRefCompacted::id))
             .collect(Collectors.toList());
 
