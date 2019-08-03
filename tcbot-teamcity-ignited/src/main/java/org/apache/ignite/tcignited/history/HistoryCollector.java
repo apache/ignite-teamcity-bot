@@ -117,6 +117,7 @@ public class HistoryCollector {
         return hist.getTestRunHist(testName);
     }
 
+    @SuppressWarnings("WeakerAccess")
     @AutoProfiling
     protected SuiteHistory getSuiteHist(int srvIdMaskHigh, int buildTypeId, int normalizedBaseBranch) {
         RunHistKey runHistKey = new RunHistKey(srvIdMaskHigh, buildTypeId, normalizedBaseBranch);
@@ -181,7 +182,7 @@ public class HistoryCollector {
             buildStartTimeStorage.setBuildsStartTime(srvId, buildStartTimeFromFatBuild);
         }
 
-        long minBuildStartTs = curTs - Duration.ofMillis(TcBotConst.HISTORY_MAX_DAYS).toMillis();
+        long minBuildStartTs = curTs - Duration.ofDays(TcBotConst.HISTORY_MAX_DAYS).toMillis();
 
         Set<Integer> buildInScope = buildIds.stream().filter(
             bId -> {

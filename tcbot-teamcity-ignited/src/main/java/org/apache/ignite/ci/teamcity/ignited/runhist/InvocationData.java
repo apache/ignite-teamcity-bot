@@ -32,8 +32,6 @@ import javax.annotation.Nonnull;
  *
  */
 public class InvocationData {
-    /** Max days to keep test invocatoin data in run statistics: affects Bot Visa. */
-    public static final int MAX_DAYS = TcBotConst.HISTORY_MAX_DAYS;
     /** Muted. */
     public static final int MUTED = RunStatus.RES_MUTED_FAILURE.getCode();
     /** Failure. */
