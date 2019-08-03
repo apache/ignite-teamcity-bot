@@ -20,5 +20,8 @@ apply plugin: 'java'
 dependencies {
     compile (project(":tcbot-teamcity"));
     compile (project(":tcbot-persistence"));
+
+    testCompile group: 'junit', name: 'junit', version: junitVer;
+    testCompile group: 'org.mockito', name: 'mockito-core', version: mockitoVer;
 }
  

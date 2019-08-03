@@ -32,6 +32,6 @@ dependencies {
     //impl is used by TC module, only converters needed here
     compile group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.1'
     
-    testCompile group: 'junit', name: 'junit', version: junitVer
-    testCompile group: 'org.mockito', name: 'mockito-core', version: mockitoVer
+    testCompile group: 'junit', name: 'junit', version: junitVer;
+    testCompile group: 'org.mockito', name: 'mockito-core', version: mockitoVer;
 }

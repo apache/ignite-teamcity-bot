@@ -16,7 +16,6 @@
  */
 package org.apache.ignite.tcignited;
 
-import com.google.common.collect.Sets;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -554,9 +553,14 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             return null;
     }
 
-    //@GuavaCached(maximumSize = 100000, expireAfterAccessSecs = 90, softValues = true)
+    /** {@inheritDoc} */
     public Long getBuildStartTime(int buildId) {
         return histCollector.getBuildStartTime(srvIdMaskHigh, buildId);
+    }
+
+    /** {@inheritDoc} */
+    @Override public Integer getBorderForAgeForBuildId(int days) {
+        return buildStartTimeStorage.getBorderForAgeForBuildId(srvIdMaskHigh, days);
     }
 
     /** {@inheritDoc} */
@@ -568,6 +572,9 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             // providing fake builds
             return existingBuild != null ? existingBuild : new FatBuildCompacted().setFakeStub(true);
         }
+
+        if (existingBuild != null)
+            fatBuildDao.runTestMigrationIfNeeded(srvIdMaskHigh, existingBuild);
 
         FatBuildCompacted savedVer = fatBuildSync.loadBuild(conn, buildId, existingBuild, mode);
 

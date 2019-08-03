@@ -37,6 +37,19 @@ public class SuiteHistory implements ISuiteRunHistory {
 
     private RunHistCompacted suiteHist = new RunHistCompacted();
 
+    public SuiteHistory(Map<Integer, SuiteInvocation> suiteRunHist) {
+        suiteRunHist.forEach((buildId, suiteInv) -> addSuiteInvocation(suiteInv));
+        finalizeInvocations();
+    }
+
+    private void finalizeInvocations() {
+        //todo add missing status to tests
+        //  testsHistory.values().registerMissing(suiteHist.buildIds());
+
+        suiteHist.sort();
+        testsHistory.values().forEach(RunHistCompacted::sort);
+    }
+
     public int size(Ignite ignite) {
         BinaryObjectExImpl binary = ignite.binary().toBinary(this);
         return binary.length();
@@ -46,22 +59,21 @@ public class SuiteHistory implements ISuiteRunHistory {
         return testsHistory.get(testName);
     }
 
-    public RunHistCompacted getOrAddTestsHistory(Integer tName) {
+    private RunHistCompacted getOrAddTestsHistory(Integer tName) {
         return testsHistory.computeIfAbsent(tName, k_ -> new RunHistCompacted());
     }
 
-    public void addTestInvocation(Integer tName, Invocation invocation) {
-        getOrAddTestsHistory(tName).innerAddInvocation(invocation);
+    private void addTestInvocation(Integer tName, Invocation invocation) {
+        getOrAddTestsHistory(tName).addInvocation(invocation);
     }
 
+    /**
+     * @param suiteInv suite invocation (build) to be added to history (summary).
+     */
     public void addSuiteInvocation(SuiteInvocation suiteInv) {
         suiteInv.tests().forEach(this::addTestInvocation);
 
-        suiteHist.innerAddInvocation(suiteInv.suiteInvocation());
-    }
-
-    public RunHistCompacted getSuiteHist() {
-        return suiteHist;
+        suiteHist.addInvocation(suiteInv.suiteInvocation());
     }
 
     @Override public IRunHistory self() {

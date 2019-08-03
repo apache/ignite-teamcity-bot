@@ -33,15 +33,50 @@ function loadData() {
         success: function(result) {
             $("#loadStatus").html("");
             showTrackedBranchesLinks(result);
+
+            $.ajax({
+                url: "rest/tracked/summary",
+                success: function(result) {
+                    $("#loadStatus").html("");
+                    showTrackedBranchesLinks2(result);
+                },
+                error: showErrInLoadStatus
+            });
         },
         error: showErrInLoadStatus
     });
 
 
+
+}
+
+function showTrackedBranchesLinks2(result) {
+    var res = "<table >";
+    res+="<tr><td>Branch name</td><td>Report</td><td>Merged 10</td><td>Finished last day</td><td>Running</td><td>Queued</td></tr>";
+    for (var i = 0; i < result.length; i++) {
+        let summary = result[i];
+        var id = summary.name;
+        res += "<tr>";
+        res += "<td align='right'>" + id + ":</td>";
+        res += "<td>" + "<a href='current.html?branch=" + id + "'><button>Latest (" + id + ")</button></a>" + "</td>";
+        res += "<td>" + " &nbsp;&nbsp;<a href='current.html?branch=" + id + "&count=10'><button title='Failures from last 10 runs merged'>History (" + id + ")</button></a>" + "</td>";
+
+        res += "<td>" +  JSON.stringify(summary.finishedLastDay)+ "</td>";
+        res += "<td>" +  JSON.stringify(summary.runningList)+ "</td>";
+        res += "<td>" +  JSON.stringify(summary.queuedList)+ "</td>";
+        res += "</tr>";
+    }
+
+    res += "</table>";
+
+
+    $("#branchesStatus").html(res);
 }
 
 function showTrackedBranchesLinks(result) {
     var res = "<table>";
+    res+="<tr><td>Branch name</td><td>Report</td><td>Merged 10</td><td>Finished last day</td><td>Running</td><td>Queued</td></tr>";
+
     for (var i = 0; i < result.length; i++) {
         var id = result[i];
         res += "<tr>";

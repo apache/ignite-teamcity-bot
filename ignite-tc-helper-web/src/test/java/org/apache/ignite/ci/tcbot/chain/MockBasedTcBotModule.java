@@ -45,7 +45,7 @@ import org.apache.ignite.tcbot.notify.IEmailSender;
 import org.apache.ignite.tcbot.notify.ISlackSender;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.ignited.InMemoryStringCompactor;
+import org.apache.ignite.tcbot.persistence.InMemoryStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;

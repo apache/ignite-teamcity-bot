@@ -18,7 +18,10 @@
 package org.apache.ignite.ci.web.rest.tracked;
 
 import com.google.inject.Injector;
+import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -38,6 +41,7 @@ import org.apache.ignite.tcbot.engine.tracked.DisplayMode;
 import org.apache.ignite.tcbot.engine.tracked.IDetailedStatusForTrackedBranch;
 import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
+import org.apache.ignite.tcbot.engine.ui.GuardBranchStatusUi;
 import org.apache.ignite.tcbot.engine.ui.UpdateInfo;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
@@ -219,5 +223,18 @@ public class GetTrackedBranchTestResults {
         return injector
             .getInstance(TcBotTriggerAndSignOffService.class)
             .getMutes(srvCode, projectId, creds);
+    }
+
+    @GET
+    @Path("summary")
+    public List<GuardBranchStatusUi> getIdsIfAccessible() {
+        ITcBotUserCreds prov = ITcBotUserCreds.get(req);
+        Injector injector = CtxListener.getInjector(ctx);
+        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
+        IDetailedStatusForTrackedBranch status = injector.getInstance(IDetailedStatusForTrackedBranch.class);
+
+        return cfg.getTrackedBranches().branchesStream()
+            .map(bt -> status.getBranchSummary(bt.name(), prov)).filter(Objects::nonNull)
+            .collect(Collectors.toList());
     }
 }
