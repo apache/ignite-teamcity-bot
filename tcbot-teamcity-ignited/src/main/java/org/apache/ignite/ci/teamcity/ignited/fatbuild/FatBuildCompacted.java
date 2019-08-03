@@ -18,14 +18,6 @@ package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
-
-import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiPredicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.RevisionCompacted;
@@ -53,6 +45,14 @@ import org.apache.ignite.tcservice.model.user.User;
 import org.apache.ignite.tcservice.model.vcs.Revision;
 import org.apache.ignite.tcservice.model.vcs.Revisions;
 import org.apache.ignite.tcservice.model.vcs.VcsRootInstance;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiPredicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Composed data from {@link Build} and other classes, compressed for storage.
@@ -667,7 +667,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
                 if (paramsFilter.test(k, v))
                     importantParms.put(k, v);
             });
-            //todo save parameters
+
+            if (!importantParms.isEmpty())
+                invocation.withParameters(importantParms);
         }
 
         return invocation;

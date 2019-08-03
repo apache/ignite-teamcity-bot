@@ -52,9 +52,7 @@ public class Invocation {
     private byte changePresent;
 
     /** Additional (important) build Parameters, which can be used for filtering. */
-    @Nullable private Map<Integer, Integer> parms;
-
-    private ParametersCompacted parameters = new ParametersCompacted();
+    @Nullable private ParametersCompacted parameters;
 
     /**
      * Creates invocation.
@@ -131,12 +129,13 @@ public class Invocation {
         if (parms == null || parms.isEmpty())
             return this;
 
-        this.parms = parms;
+        this.parameters = new ParametersCompacted(parms);
 
         return this;
     }
 
     public boolean containsParameters(Map<Integer, Integer> requireParameters) {
+        //todo implement contains parameters (compacted).
         return false;
     }
 }

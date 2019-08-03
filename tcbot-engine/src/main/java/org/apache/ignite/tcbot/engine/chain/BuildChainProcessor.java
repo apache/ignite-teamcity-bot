@@ -193,7 +193,7 @@ public class BuildChainProcessor {
 
             //ask for history for the suite in parallel
             tcUpdatePool.getService().submit(() -> {
-                ctx.history(tcIgn, failRateBranchId);
+                ctx.history(tcIgn, failRateBranchId, null);
             });
 
             analyzeTests(ctx, tcIgn, procLog);
@@ -212,7 +212,7 @@ public class BuildChainProcessor {
 
         if (sortOption == null || sortOption == SortOption.FailureRate) {
             function = ctx -> {
-                IRunHistory runStat = ctx.history(tcIgn, failRateBranchId);
+                IRunHistory runStat = ctx.history(tcIgn, failRateBranchId, null);
 
                 if (runStat == null)
                     return 0d;

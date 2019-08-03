@@ -303,7 +303,7 @@ public class PrChainsProcessor {
         return fullChainRunCtx
             .filteredChildSuites(filter)
             .map((ctx) -> {
-                IRunHistory statInBaseBranch = ctx.history(tcIgnited, baseBranchId);
+                IRunHistory statInBaseBranch = ctx.history(tcIgnited, baseBranchId, null);
 
                 String suiteComment = ctx.getPossibleBlockerComment(compactor, statInBaseBranch, tcIgnited.config());
 

@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -102,18 +103,8 @@ public class RunHistCompacted implements IRunHistory {
     }
 
     @Override
-    public IRunHistory filter(Map<Integer, Integer> requireParameters) {
-        RunHistCompacted runHistCompacted = new RunHistCompacted();
-
-        Stream<Invocation> invocationStream = data.invocations().filter(
-                invocation -> invocation.containsParameters(requireParameters)
-        );
-
-        invocationStream.forEach(i -> {
-            runHistCompacted.data.add(i);
-        });
-
-        return runHistCompacted;
+    public Set<Integer> buildIds() {
+        return data.buildIds();
     }
 
     private static int[] concatArr(int[] arr1, int[] arr2) {
@@ -214,5 +205,28 @@ public class RunHistCompacted implements IRunHistory {
 
     public void sort() {
         data.sort();
+    }
+
+
+    public RunHistCompacted filterSuiteInvByParms(Map<Integer, Integer> requireParameters) {
+        RunHistCompacted copy = new RunHistCompacted();
+
+        Stream<Invocation> invocationStream = data.invocations().filter(
+                invocation -> invocation.containsParameters(requireParameters)
+        );
+
+        invocationStream.forEach(invocation -> copy.data.add(invocation));
+
+        return copy;
+    }
+
+    public RunHistCompacted filterByBuilds(Set<Integer> builds) {
+        RunHistCompacted copy = new RunHistCompacted();
+
+        data.invocations()
+                .filter(invocation -> builds.contains(invocation.buildId()))
+                .forEach(invocation -> copy.data.add(invocation));
+
+        return copy;
     }
 }

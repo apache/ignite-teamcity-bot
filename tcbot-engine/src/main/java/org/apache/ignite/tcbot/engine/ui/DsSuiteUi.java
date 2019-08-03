@@ -146,13 +146,13 @@ public class DsSuiteUi extends ShortSuiteUi {
                                      @Nullable Map<Integer, Integer> requireParamVal) {
         String failRateNormalizedBranch = normalizeBranch(baseBranch);
         Integer baseBranchId = compactor.getStringIdIfPresent(failRateNormalizedBranch);
-        IRunHistory baseBranchHist = suite.history(tcIgnited, baseBranchId);
+        IRunHistory baseBranchHist = suite.history(tcIgnited, baseBranchId, requireParamVal);
         initFrom(suite, tcIgnited, compactor, baseBranchHist);
 
         String curBranchNormalized = normalizeBranch(suite.branchName());
         Integer curBranchId = compactor.getStringIdIfPresent(curBranchNormalized);
 
-        initSuiteStat(tcIgnited, baseBranchId, curBranchId, suite, baseBranchHist);
+        initSuiteStat(tcIgnited, baseBranchId, curBranchId, suite, baseBranchHist, requireParamVal);
 
         Set<String> collect = suite.lastChangeUsers().collect(Collectors.toSet());
 
@@ -170,7 +170,6 @@ public class DsSuiteUi extends ShortSuiteUi {
         webToHist = buildWebLinkToHist(tcIgnited, suite);
         webToHistBaseBranch = buildWebLinkToHist(tcIgnited, suite, baseBranch);
 
-        Integer buildTypeIdId = suite.buildTypeIdId();
         if (includeTests) {
             List<TestCompactedMult> tests = suite.getFilteredTests(test ->
                 test.hasLongRunningTest(maxDurationSec)
@@ -184,19 +183,17 @@ public class DsSuiteUi extends ShortSuiteUi {
 
             tests.sort(Comparator.comparing(function).reversed());
 
-            tests.forEach(occurrence -> {
-                DsTestFailureUi failure = new DsTestFailureUi()
-                        .initFromOccurrence(occurrence,
-                                tcIgnited,
-                                suite.projectId(),
-                                suite.branchName(),
-                                baseBranch,
-                                baseBranchId,
-                                curBranchId,
-                                requireParamVal);
-
-                testFailures.add(failure);
-            });
+            tests.stream()
+                    .map(occurrence -> new DsTestFailureUi()
+                            .initFromOccurrence(occurrence,
+                                    tcIgnited,
+                                    suite.projectId(),
+                                    suite.branchName(),
+                                    baseBranch,
+                                    baseBranchId,
+                                    curBranchId,
+                                    requireParamVal))
+                    .forEach(testFailureUi -> testFailures.add(testFailureUi));
 
             suite.getTopLongRunning().forEach(occurrence -> {
                 if (occurrence.getAvgDurationMs() > TimeUnit.SECONDS.toMillis(15)) {
@@ -257,9 +254,11 @@ public class DsSuiteUi extends ShortSuiteUi {
 
 
     private IRunHistory initSuiteStat(ITeamcityIgnited tcIgnited,
-        Integer failRateNormalizedBranch,
-        Integer curBranchNormalized,
-        MultBuildRunCtx suite, IRunHistory referenceStat) {
+                                      Integer failRateNormalizedBranch,
+                                      Integer curBranchNormalized,
+                                      MultBuildRunCtx suite,
+                                      IRunHistory referenceStat,
+                                      @Nullable Map<Integer, Integer> requireParamVal) {
         IRunHistory statInBaseBranch = referenceStat;
 
         if (statInBaseBranch != null) {
@@ -276,7 +275,7 @@ public class DsSuiteUi extends ShortSuiteUi {
 
         IRunHistory latestRunsSrc = null;
         if (!Objects.equals(failRateNormalizedBranch, curBranchNormalized)) {
-            IRunHistory statForStripe = suite.history(tcIgnited, curBranchNormalized);
+            IRunHistory statForStripe = suite.history(tcIgnited, curBranchNormalized, requireParamVal);
 
             latestRunsSrc = statForStripe;
             latestRuns = statForStripe != null ? statForStripe.getLatestRunResults() : null;

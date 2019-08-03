@@ -19,6 +19,7 @@ package org.apache.ignite.tcignited.history;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Test or Build run statistics.
@@ -60,5 +61,5 @@ public interface IRunHistory extends IRunStat, IRunHistSummary {
         return 1.0f * getFailuresCount() / runs;
     }
 
-    IRunHistory filter(Map<Integer, Integer> requireParameters);
+    Set<Integer> buildIds();
 }

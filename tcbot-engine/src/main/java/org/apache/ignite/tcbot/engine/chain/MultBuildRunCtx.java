@@ -20,23 +20,6 @@ package org.apache.ignite.tcbot.engine.chain;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.cache.CacheBuilder;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.OptionalDouble;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
 import org.apache.ignite.tcbot.common.TcBotConst;
@@ -53,6 +36,17 @@ import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
 import org.apache.ignite.tcservice.model.result.stat.Statistics;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Run configuration execution results loaded from different API URLs. Includes tests and problem occurrences; if logs
@@ -672,11 +666,13 @@ public class MultBuildRunCtx implements ISuiteResults {
      * @param tcIgn Tc ign.
      * @param baseBranchId Base branch id.
      */
-    public IRunHistory history(ITeamcityIgnited tcIgn, Integer baseBranchId) {
+    public IRunHistory history(ITeamcityIgnited tcIgn,
+                               @Nullable Integer baseBranchId,
+                               @Nullable Map<Integer, Integer> requireParameters) {
         if (baseBranchId == null)
             return null;
 
-        ISuiteRunHistory suiteHist = suiteHist(tcIgn, baseBranchId);
+        ISuiteRunHistory suiteHist = suiteHist(tcIgn, baseBranchId, requireParameters);
         if (suiteHist == null)
             return null;
 
@@ -684,7 +680,9 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     @Nullable
-    ISuiteRunHistory suiteHist(ITeamcityIgnited tcIgn, @Nullable Integer baseBranchId) {
+    ISuiteRunHistory suiteHist(ITeamcityIgnited tcIgn,
+                               @Nullable Integer baseBranchId,
+                               @Nullable Map<Integer, Integer> requireParameters) {
         Integer buildTypeIdId = buildTypeIdId();
         Preconditions.checkNotNull(buildTypeIdId, "Build type ID should be filled");
 
@@ -693,11 +691,14 @@ public class MultBuildRunCtx implements ISuiteResults {
             return null;
 
         try {
-            return histCacheMap.get(baseBranchId,
-                () -> {
-                    return Optional.ofNullable(tcIgn.getSuiteRunHist(buildTypeIdId, baseBranchId));
-                })
-                .orElse(null);
+            ISuiteRunHistory suiteRunHistory = histCacheMap.get(baseBranchId,
+                    () -> Optional.ofNullable(tcIgn.getSuiteRunHist(buildTypeIdId, baseBranchId)))
+                    .orElse(null);
+
+            if (suiteRunHistory != null && requireParameters != null && !requireParameters.isEmpty())
+                return suiteRunHistory.filter(requireParameters);
+
+            return suiteRunHistory;
         }
         catch (ExecutionException e) {
             throw  ExceptionUtil.propagateException(e);

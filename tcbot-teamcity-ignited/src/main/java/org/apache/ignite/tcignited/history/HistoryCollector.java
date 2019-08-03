@@ -26,11 +26,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -275,6 +272,9 @@ public class HistoryCollector {
                     if (!applicableForHistory(fatBuildCompacted))
                         return;
 
+
+                    //todo implement parameter filter based on TC Bot conf
+
                     BiPredicate<Integer, Integer> paramsFilter = (k, v) -> false;
 
                     SuiteInvocation sinv = new SuiteInvocation(srvId, normalizedBaseBranch, fatBuildCompacted, compactor, paramsFilter);
@@ -283,7 +283,7 @@ public class HistoryCollector {
                     tests.forEach(
                         testCompacted -> {
                             Invocation invocation = TestCompactedV2.toInvocation(testCompacted,
-                                fatBuildCompacted, paramsFilter, successStatusStrId);
+                                fatBuildCompacted, successStatusStrId);
 
                             sinv.addTest(testCompacted.testName(), invocation);
                         }

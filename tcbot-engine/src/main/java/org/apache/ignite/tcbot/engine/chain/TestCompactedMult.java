@@ -150,17 +150,12 @@ public class TestCompactedMult {
         if (name == null || baseBranchId == null)
             return null;
 
-        ISuiteRunHistory suiteRunHist = ctx.suiteHist(ignited, baseBranchId);
+        ISuiteRunHistory suiteRunHist = ctx.suiteHist(ignited, baseBranchId, requireParameters);
 
         if (suiteRunHist == null)
             return null;
 
-        IRunHistory testRunHist = suiteRunHist.getTestRunHist(name);
-
-        if (requireParameters == null || requireParameters.isEmpty())
-            return testRunHist;
-
-        return testRunHist.filter(requireParameters);
+        return suiteRunHist.getTestRunHist(name);
     }
 
     /**
