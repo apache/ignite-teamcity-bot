@@ -236,28 +236,18 @@ public class HistoryCollector {
             Map<Integer, SuiteInvocation> addl = addSuiteInvocationsToHistory(srvId, missedBuildsIds, normalizedBaseBranch);
 
             suiteRunHist.putAll(addl);
-
-            /*
-            Map<Integer, SuiteInvocation> reloaded = histDao.getSuiteRunHist(srvId, buildTypeId, normalizedBaseBranch);
-
-            addl.keySet().forEach((k) -> {
-                Preconditions.checkState( reloaded.containsKey(k));
-            });
-            */
         }
 
-        SuiteHistory sumary = new SuiteHistory();
-
-        suiteRunHist.forEach((buildId, suiteInv) -> sumary.addSuiteInvocation(suiteInv));
+        SuiteHistory summary = new SuiteHistory(suiteRunHist);
 
         if (logger.isDebugEnabled()) {
             logger.debug("***** History for suite "
                 + compactor.getStringFromId(buildTypeId)
                 + " branch" + compactor.getStringFromId(normalizedBaseBranch) + " requires " +
-                sumary.size(igniteProvider.get()) + " bytes");
+                summary.size(igniteProvider.get()) + " bytes");
         }
 
-        return sumary;
+        return summary;
     }
 
     /**

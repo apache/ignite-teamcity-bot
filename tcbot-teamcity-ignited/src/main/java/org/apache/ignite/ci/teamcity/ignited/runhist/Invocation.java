@@ -85,11 +85,7 @@ public class Invocation {
     }
 
     public Invocation withChanges(int[] changes) {
-        int i = changes.length > 0 ? CHANGE_PRESENT : NO_CHANGES;
-
-        Preconditions.checkState(i < 128);
-
-        this.changePresent = (byte)i;
+        this.changePresent = (byte) (changes.length > 0 ? CHANGE_PRESENT : NO_CHANGES);
 
         return this;
     }

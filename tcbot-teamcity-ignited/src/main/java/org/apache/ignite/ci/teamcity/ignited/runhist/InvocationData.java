@@ -18,18 +18,12 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import com.google.common.base.MoreObjects;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.TreeMap;
+
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.tcbot.common.TcBotConst;
-import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcignited.history.RunStatus;
 
 import javax.annotation.Nonnull;
@@ -49,54 +43,11 @@ public class InvocationData {
     /** Ok. */
     public static final int CRITICAL_FAILURE = RunStatus.RES_CRITICAL_FAILURE.getCode();
 
-    /**
-     * Runs registered all the times.
-     */
-    @Deprecated
-    private int allHistRuns;
-
-    /**
-     * Failures registered all the times.
-     */
-    @Deprecated
-    private int allHistFailures;
-
     /** Invocations map from build ID to invocation data. */
-    private Map<Integer, Invocation> invocationMap = new TreeMap<>();
-
-    //todo replace map to list
     private final List<Invocation> invocationList = new ArrayList<>();
 
-    public int allHistRuns() {
-        return allHistRuns;
-    }
-
-    public boolean innerAdd(Invocation inv) {
-        int build = inv.buildId();
-        if (build < 0)
-            return false;
-
-        if (invocationMap.containsKey(build))
-            return false;
-
-        Invocation prevVal = invocationMap.putIfAbsent(build, inv);
-
-        final boolean newVal = prevVal == null;
-
-        if (newVal) {
-            allHistRuns++;
-            if (inv.isFailure())
-                allHistFailures++;
-        }
-
-        return newVal;
-    }
-
-    /**
-     *
-     */
-    public int allHistFailures() {
-        return allHistFailures;
+    public void add(Invocation inv) {
+        invocationList.add(inv);
     }
 
     /**
@@ -112,30 +63,22 @@ public class InvocationData {
     /**
      *
      */
-    @Nonnull public Stream<Invocation> invocations() {
-        return invocationMap.values()
-            .stream();
-    }
-
-    //todo
-    @Nonnull public Stream<Invocation> sortedInvocations() {
-        return invocationMap.values()
-            .stream();
+    @Nonnull
+    Stream<Invocation> invocations() {
+        return invocationList.stream();
     }
 
     /**
      *
      */
-    public int failuresCount() {
+    int failuresCount() {
         return (int)invocations().filter(inv -> inv.status() == FAILURE || inv.status() == CRITICAL_FAILURE).count();
     }
 
     /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("allHistRuns", allHistRuns)
-            .add("allHistFailures", allHistFailures)
-            .add("invocationMap", invocationMap)
+            .add("invocationList", invocationList)
             .toString();
     }
 
@@ -146,14 +89,13 @@ public class InvocationData {
         if (o == null || getClass() != o.getClass())
             return false;
         InvocationData data = (InvocationData)o;
-        return allHistRuns == data.allHistRuns &&
-            allHistFailures == data.allHistFailures &&
-            Objects.equals(invocationMap, data.invocationMap);
+        return
+            Objects.equals(invocationList, data.invocationList);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(allHistRuns, allHistFailures, invocationMap);
+        return Objects.hash(invocationList);
     }
 
     /**
@@ -170,5 +112,9 @@ public class InvocationData {
      */
     public int criticalFailuresCount() {
         return (int)invocations().filter(inv -> inv.status() == CRITICAL_FAILURE).count();
+    }
+
+    public void sort() {
+        invocationList.sort(Comparator.comparing(Invocation::buildId));
     }
 }

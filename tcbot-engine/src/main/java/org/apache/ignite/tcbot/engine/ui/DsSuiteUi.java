@@ -83,9 +83,6 @@ public class DsSuiteUi extends ShortSuiteUi {
     public String branchName;
 
     /** Failure summary in tracked branch according to all runs history. */
-    @Nonnull public DsHistoryStatUi failsAllHist = new DsHistoryStatUi();
-
-    /** Failure summary in tracked branch according to all runs history. */
     @Nonnull public DsHistoryStatUi criticalFails = new DsHistoryStatUi();
 
     /** Latest runs, 0,1,3 values for each run. */
@@ -274,10 +271,6 @@ public class DsSuiteUi extends ShortSuiteUi {
             criticalFails.runs = runs;
             criticalFails.failureRate = statInBaseBranch.getCriticalFailPercentPrintable();
 
-            failsAllHist.failures = statInBaseBranch.getFailuresAllHist();
-            failsAllHist.runs = statInBaseBranch.getRunsAllHist();
-            failsAllHist.failureRate = statInBaseBranch.getFailPercentAllHistPrintable();
-
             latestRuns = statInBaseBranch.getLatestRunResults();
         }
 
@@ -391,7 +384,6 @@ public class DsSuiteUi extends ShortSuiteUi {
             Objects.equals(serverId, status.serverId) &&
             Objects.equals(suiteId, status.suiteId) &&
             Objects.equals(branchName, status.branchName) &&
-            Objects.equals(failsAllHist, status.failsAllHist) &&
             Objects.equals(criticalFails, status.criticalFails) &&
             Objects.equals(latestRuns, status.latestRuns) &&
             Objects.equals(userCommits, status.userCommits) &&
@@ -411,7 +403,7 @@ public class DsSuiteUi extends ShortSuiteUi {
     @Override public int hashCode() {
         return Objects.hash(super.hashCode(), name, result, hasCriticalProblem, webToHist,
             webToHistBaseBranch, webToBuild, testFailures, topLongRunning, warnOnly, logConsumers, webUrlThreadDump,
-            runningBuildCount, queuedBuildCount, serverId, suiteId, branchName, failsAllHist, criticalFails, latestRuns,
+            runningBuildCount, queuedBuildCount, serverId, suiteId, branchName, criticalFails, latestRuns,
             userCommits, failedTests, durationPrintable, durationNetTimePrintable, sourceUpdateDurationPrintable,
             artifcactPublishingDurationPrintable, dependeciesResolvingDurationPrintable, testsDurationPrintable,
             lostInTimeouts, problemRef, blockerComment);
