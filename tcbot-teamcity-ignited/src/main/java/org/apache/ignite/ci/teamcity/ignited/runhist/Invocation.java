@@ -20,6 +20,7 @@ package org.apache.ignite.ci.teamcity.ignited.runhist;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcignited.history.ChangesState;
 
@@ -52,6 +53,8 @@ public class Invocation {
 
     /** Additional (important) build Parameters, which can be used for filtering. */
     @Nullable private Map<Integer, Integer> parms;
+
+    private ParametersCompacted parameters = new ParametersCompacted();
 
     /**
      * Creates invocation.
@@ -131,5 +134,9 @@ public class Invocation {
         this.parms = parms;
 
         return this;
+    }
+
+    public boolean containsParameters(Map<Integer, Integer> requireParameters) {
+        return false;
     }
 }

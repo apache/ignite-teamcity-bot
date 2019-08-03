@@ -19,6 +19,7 @@ package org.apache.ignite.tcbot.engine.ui;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -85,13 +86,17 @@ public class DsTestFailureUi extends ShortTestFailureUi {
      * @param branchName current branch name.
      * @param baseBranchName base branch name (e.g. master), without normalization.
      * @param baseBranchId Normalized base branch ID (from compactor).
+     * @param curBranchId
+     * @param requireParameters
      */
-    public void initFromOccurrence(@Nonnull final TestCompactedMult failure,
-        @Nonnull final ITeamcityIgnited tcIgn,
-        @Nullable final String projectId,
-        @Nullable final String branchName,
-        @Nullable final String baseBranchName,
-        Integer baseBranchId) {
+    public DsTestFailureUi initFromOccurrence(@Nonnull final TestCompactedMult failure,
+                                              @Nonnull final ITeamcityIgnited tcIgn,
+                                              @Nullable final String projectId,
+                                              @Nullable final String branchName,
+                                              @Nullable final String baseBranchName,
+                                              Integer baseBranchId,
+                                              @Nullable Integer curBranchId,
+                                              @Nullable Map<Integer, Integer> requireParameters) {
         success = !failure.isFailedButNotMuted();
 
         investigated = failure.isInvestigated();
@@ -121,12 +126,17 @@ public class DsTestFailureUi extends ShortTestFailureUi {
             .map(ITest::getTestId)
             .filter(Objects::nonNull)
             .forEach(testNameId -> {
-                if (webUrl == null && testNameId != null)
+                if (webUrl == null)
                     webUrl = buildWebLink(tcIgn, testNameId, projectId, branchName);
 
-                if (webUrlBaseBranch == null && testNameId != null)
+                if (webUrlBaseBranch == null)
                     webUrlBaseBranch = buildWebLink(tcIgn, testNameId, projectId, baseBranchName);
             });
+
+
+        initStat(failure, tcIgn, baseBranchId, curBranchId, requireParameters);
+
+        return this;
     }
 
 
@@ -174,21 +184,23 @@ public class DsTestFailureUi extends ShortTestFailureUi {
 
     /**
      * @param occurrence
-     * @param buildTypeIdId
      * @param tcIgnited TC service as Run stat supplier.
      * @param baseBranchId Base branch: Fail rate and flakyness detection normalized branch.
      * @param curBranchNormalized Cur branch normalized.
+     * @param requireParameters
      */
-    public void initStat(TestCompactedMult occurrence, Integer buildTypeIdId, ITeamcityIgnited tcIgnited,
-        @Nullable Integer baseBranchId,
-        @Nullable Integer curBranchNormalized) {
-        final IRunHistory stat = occurrence.history(tcIgnited, baseBranchId);
+    public void initStat(TestCompactedMult occurrence,
+                         ITeamcityIgnited tcIgnited,
+                         @Nullable Integer baseBranchId,
+                         @Nullable Integer curBranchNormalized,
+                         @Nullable Map<Integer, Integer> requireParameters) {
+        final IRunHistory stat = occurrence.history(tcIgnited, baseBranchId, requireParameters);
         histBaseBranch.init(stat);
 
         IRunHistory statForProblemsDetection;
 
         if (!Objects.equals(curBranchNormalized, baseBranchId)) {
-            statForProblemsDetection = occurrence.history(tcIgnited, curBranchNormalized);
+            statForProblemsDetection = occurrence.history(tcIgnited, curBranchNormalized, requireParameters);
 
             if (statForProblemsDetection != null) {
                 histCurBranch = new DsTestHistoryUi();
@@ -205,6 +217,10 @@ public class DsTestFailureUi extends ShortTestFailureUi {
 
             if (statForProblemsDetection.detectTemplate(EventTemplates.newContributedTestFailure) != null)
                 problemRef = new DsProblemRef("Recently contributed test failure");
+
+            if (stat.isFlaky()
+                    && statForProblemsDetection.detectTemplate(EventTemplates.newFailureForFlakyTest) != null)
+                problemRef = new DsProblemRef("New failure of flaky test");
         }
     }
 

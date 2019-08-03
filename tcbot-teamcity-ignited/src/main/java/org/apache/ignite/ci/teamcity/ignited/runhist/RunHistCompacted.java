@@ -18,20 +18,23 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import com.google.common.base.MoreObjects;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcignited.history.ChangesState;
 import org.apache.ignite.tcignited.history.IEventTemplate;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.RunStatus;
 
+import javax.annotation.Nullable;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 /**
  *
  */
-public class RunHistCompacted implements  IRunHistory {
+public class RunHistCompacted implements IRunHistory {
     /** Data. */
     private InvocationData data = new InvocationData();
 
@@ -96,6 +99,21 @@ public class RunHistCompacted implements  IRunHistory {
     /** {@inheritDoc} */
     @Override public int getCriticalFailuresCount() {
         return data.criticalFailuresCount();
+    }
+
+    @Override
+    public IRunHistory filter(Map<Integer, Integer> requireParameters) {
+        RunHistCompacted runHistCompacted = new RunHistCompacted();
+
+        Stream<Invocation> invocationStream = data.invocations().filter(
+                invocation -> invocation.containsParameters(requireParameters)
+        );
+
+        invocationStream.forEach(i -> {
+            runHistCompacted.data.add(i);
+        });
+
+        return runHistCompacted;
     }
 
     private static int[] concatArr(int[] arr1, int[] arr2) {

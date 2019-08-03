@@ -138,7 +138,7 @@ public class BuildChainProcessor {
      * @param failRateBranch Fail rate branch.
      * @param mode background data update mode.
      * @param sortOption how to sort suites in context, default is by failure rate (most often - first).
-     * @param requireParamVal Require exact parameters value presence in the build.
+     * @param requireParamVal Require exact parameters value presence in the build. Null means no filtering.
      */
     @AutoProfiling
     public FullChainRunCtx loadFullChainContext(

@@ -17,19 +17,6 @@
 
 package org.apache.ignite.tcbot.engine.ui;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.common.util.UrlUtil;
 import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
 import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
@@ -39,6 +26,13 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.buildlog.ITestLogCheckResult;
 import org.apache.ignite.tcignited.history.IRunHistory;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static org.apache.ignite.tcbot.common.util.TimeUtil.millisToDurationPrintable;
 import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
@@ -140,14 +134,16 @@ public class DsSuiteUi extends ShortSuiteUi {
      * @param includeTests Include tests - usually {@code true}, but it may be disabled for speeding up VISA collection.
      * @param calcTrustedTests
      * @param maxDurationSec 0 or negative means don't indclude. has no effect if tests not included
+     * @param requireParamVal filtering for runs history based on parameter value selected.
      */
     public DsSuiteUi initFromContext(ITeamcityIgnited tcIgnited,
-        @Nonnull final MultBuildRunCtx suite,
-        @Nullable final String baseBranch,
-        @Nonnull IStringCompactor compactor,
-        boolean includeTests,
-        boolean calcTrustedTests,
-        int maxDurationSec) {
+                                     @Nonnull final MultBuildRunCtx suite,
+                                     @Nullable final String baseBranch,
+                                     @Nonnull IStringCompactor compactor,
+                                     boolean includeTests,
+                                     boolean calcTrustedTests,
+                                     int maxDurationSec,
+                                     @Nullable Map<Integer, Integer> requireParamVal) {
         String failRateNormalizedBranch = normalizeBranch(baseBranch);
         Integer baseBranchId = compactor.getStringIdIfPresent(failRateNormalizedBranch);
         IRunHistory baseBranchHist = suite.history(tcIgnited, baseBranchId);
@@ -189,18 +185,22 @@ public class DsSuiteUi extends ShortSuiteUi {
             tests.sort(Comparator.comparing(function).reversed());
 
             tests.forEach(occurrence -> {
-                final DsTestFailureUi failure = new DsTestFailureUi();
-
-                failure.initFromOccurrence(occurrence, tcIgnited, suite.projectId(),
-                    suite.branchName(), baseBranch, baseBranchId);
-                failure.initStat(occurrence, buildTypeIdId, tcIgnited, baseBranchId, curBranchId);
+                DsTestFailureUi failure = new DsTestFailureUi()
+                        .initFromOccurrence(occurrence,
+                                tcIgnited,
+                                suite.projectId(),
+                                suite.branchName(),
+                                baseBranch,
+                                baseBranchId,
+                                curBranchId,
+                                requireParamVal);
 
                 testFailures.add(failure);
             });
 
             suite.getTopLongRunning().forEach(occurrence -> {
                 if (occurrence.getAvgDurationMs() > TimeUnit.SECONDS.toMillis(15)) {
-                    final DsTestFailureUi failure = createOrrucForLongRun(tcIgnited, compactor, suite, occurrence, baseBranch);
+                    final DsTestFailureUi failure = createOrrucForLongRun(tcIgnited, compactor, suite, occurrence, baseBranch, requireParamVal);
 
                     topLongRunning.add(failure);
                 }
@@ -303,21 +303,18 @@ public class DsSuiteUi extends ShortSuiteUi {
         return failure;
     }
 
-    @Nonnull public static DsTestFailureUi createOrrucForLongRun(ITeamcityIgnited tcIgnited,
-        IStringCompactor compactor, @Nonnull MultBuildRunCtx suite,
-        final TestCompactedMult occurrence,
-        @Nullable final String failRateBranch) {
-        final DsTestFailureUi failure = new DsTestFailureUi();
-
+    @Nonnull
+    public static DsTestFailureUi createOrrucForLongRun(ITeamcityIgnited tcIgnited,
+                                                        IStringCompactor compactor,
+                                                        @Nonnull MultBuildRunCtx suite,
+                                                        TestCompactedMult occurrence,
+                                                        @Nullable String failRateBranch,
+                                                        @Nullable Map<Integer, Integer> requireParamVal) {
         Integer baseBranchId = compactor.getStringIdIfPresent(normalizeBranch(failRateBranch));
-        Integer buildTypeIdId = suite.buildTypeIdId();
-        failure.initFromOccurrence(occurrence, tcIgnited, suite.projectId(), suite.branchName(),
-            failRateBranch, baseBranchId);
+        Integer curBranchId = compactor.getStringIdIfPresent(normalizeBranch(suite.branchName()));
 
-        failure.initStat(occurrence, buildTypeIdId, tcIgnited,  baseBranchId,
-            compactor.getStringIdIfPresent(normalizeBranch(suite.branchName())));
-
-        return failure;
+        return new DsTestFailureUi().initFromOccurrence(occurrence, tcIgnited, suite.projectId(), suite.branchName(),
+                failRateBranch, baseBranchId, curBranchId, requireParamVal);
     }
 
     public void findFailureAndAddWarning(String testName, ITestLogCheckResult logCheckRes) {
