@@ -22,6 +22,7 @@ import org.apache.ignite.tcignited.history.IEventTemplate;
 public class EventTemplate implements IEventTemplate {
     private final int[] beforeEvent;
     private final int[] eventAndAfter;
+    private boolean includeMissing = false;
 
     public EventTemplate(int[] beforeEvent, int[] eventAndAfter) {
         this.beforeEvent = beforeEvent;
@@ -34,6 +35,17 @@ public class EventTemplate implements IEventTemplate {
 
     public int[] eventAndAfter() {
         return eventAndAfter;
+    }
+
+    @Override
+    public boolean includeMissing() {
+        return includeMissing;
+    }
+
+    EventTemplate includeMissing(boolean include) {
+        this.includeMissing = include;
+
+        return this;
     }
 
     public int cntEvents() {

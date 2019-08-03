@@ -40,7 +40,7 @@ public class EventTemplates {
     public static final EventTemplate newContributedTestFailure = new EventTemplate(
             new int[]{MISSING, MISSING, MISSING, MISSING},
             new int[]{FAIL, FAIL, FAIL, FAIL}
-    );
+    ).includeMissing(true);
 
     public static final EventTemplate newFailureForFlakyTest = new EventTemplate(
             new int[]{OK, OK, OK, OK, OK},

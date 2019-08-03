@@ -125,7 +125,8 @@ public class RunHistCompacted implements  IRunHistory {
         assert centralEvtBuild < template.length;
         assert centralEvtBuild >= 0;
 
-        List<Invocation> histAsArr = data.invocations().collect(Collectors.toList());
+        boolean includeMissing = t.includeMissing();
+        List<Invocation> histAsArr = data.invocations(!includeMissing).collect(Collectors.toList());
 
         if (histAsArr.size() < template.length)
             return null;

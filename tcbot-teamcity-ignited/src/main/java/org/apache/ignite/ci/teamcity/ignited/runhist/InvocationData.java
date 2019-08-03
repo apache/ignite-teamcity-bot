@@ -52,8 +52,8 @@ public class InvocationData {
      */
     public int notMutedAndNonMissingRunsCount() {
         return (int)
-            invocations()
-                .filter(invocation -> invocation.status() != MUTED && invocation.status() != MISSING)
+            invocations(true)
+                .filter(invocation -> invocation.status() != MUTED)
                 .count();
     }
 
@@ -62,7 +62,18 @@ public class InvocationData {
      */
     @Nonnull
     Stream<Invocation> invocations() {
-        return invocationList.stream();
+        return invocations(false);
+    }
+
+
+    @Nonnull Stream<Invocation> invocations(boolean skipMissing) {
+        Stream<Invocation> stream = invocationList.stream();
+
+        if (skipMissing) {
+            stream = stream.filter(invocation -> invocation.status() != MISSING);
+        }
+
+        return stream;
     }
 
     /**

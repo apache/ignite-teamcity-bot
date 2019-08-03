@@ -23,4 +23,6 @@ public interface IEventTemplate {
     int[] beforeEvent();
 
     int[] eventAndAfter();
+
+    boolean includeMissing();
 }
