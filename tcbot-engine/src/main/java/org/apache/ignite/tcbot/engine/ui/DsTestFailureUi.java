@@ -34,7 +34,7 @@ import org.apache.ignite.tcignited.buildlog.LogMsgToWarn;
 import org.apache.ignite.tcignited.history.IRunHistory;
 
 import static org.apache.ignite.tcbot.common.util.TimeUtil.millisToDurationPrintable;
-import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
+import static org.apache.ignite.tcignited.buildref.BranchEquivalence.normalizeBranch;
 
 
 /**

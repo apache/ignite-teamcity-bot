@@ -49,9 +49,9 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 import org.apache.ignite.tcignited.history.IRunHistory;
-import org.apache.ignite.tcignited.history.RunHistSync;
 import org.apache.ignite.tcservice.ITeamcity;
 
 /**
@@ -294,7 +294,7 @@ public class PrChainsProcessor {
     private List<ShortSuiteUi> findBlockerFailures(FullChainRunCtx fullChainRunCtx,
         ITeamcityIgnited tcIgnited,
         String baseBranch) {
-        String normalizedBaseBranch = RunHistSync.normalizeBranch(baseBranch);
+        String normalizedBaseBranch = BranchEquivalence.normalizeBranch(baseBranch);
         Integer baseBranchId = compactor.getStringIdIfPresent(normalizedBaseBranch);
 
         Predicate<MultBuildRunCtx> filter = suite ->

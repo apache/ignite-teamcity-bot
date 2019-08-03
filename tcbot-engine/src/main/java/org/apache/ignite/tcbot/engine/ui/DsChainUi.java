@@ -39,7 +39,7 @@ import org.apache.ignite.tcservice.model.conf.BuildType;
 
 import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.createOccurForLogConsumer;
 import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.createOrrucForLongRun;
-import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
+import static org.apache.ignite.tcignited.buildref.BranchEquivalence.normalizeBranch;
 
 /**
  * Detailed status of PR or tracked branch for chain.

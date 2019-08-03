@@ -35,7 +35,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.apache.ignite.tcbot.common.util.TimeUtil.millisToDurationPrintable;
-import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
+import static org.apache.ignite.tcignited.buildref.BranchEquivalence.normalizeBranch;
 
 
 /**

@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.annotation.Nonnull;
 import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -43,6 +44,8 @@ import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
 import org.apache.ignite.tcbot.common.TcBotConst;
+import org.apache.ignite.tcbot.common.conf.IBuildParameterSpec;
+import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 import org.apache.ignite.tcbot.common.conf.TcBotSystemProperties;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.exeption.ServicesStartingException;
@@ -88,6 +91,8 @@ public class HistoryCollector {
     /** Run history DAO. */
     @Inject private BuildStartTimeStorage buildStartTimeStorage;
 
+    @Inject private IDataSourcesConfigSupplier cfg;
+
     /**
      * Non persistence cache for all suite RunHistory for particular branch. RunHistKey(ServerId||BranchId||suiteId)->
      * Build reference
@@ -100,28 +105,29 @@ public class HistoryCollector {
         .build();
 
     /**
-     * @param srvIdMaskHigh Server id mask to be placed at high bits in the key.
+     * @param srvCode Server id mask to be placed at high bits in the key.
      * @param testName Test name.
      * @param buildTypeId Suite (Build type) id.
      * @param normalizedBaseBranch Branch name.
      */
-    public IRunHistory getTestRunHist(int srvIdMaskHigh, int testName, int buildTypeId,
-        int normalizedBaseBranch) {
+    public IRunHistory getTestRunHist(String srvCode, int testName, int buildTypeId,
+                                      int normalizedBaseBranch) {
 
-        SuiteHistory hist = getSuiteHist(srvIdMaskHigh, buildTypeId, normalizedBaseBranch);
+        SuiteHistory hist = getSuiteHist(srvCode, buildTypeId, normalizedBaseBranch);
 
         return hist.getTestRunHist(testName);
     }
 
     @SuppressWarnings("WeakerAccess")
     @AutoProfiling
-    protected SuiteHistory getSuiteHist(int srvIdMaskHigh, int buildTypeId, int normalizedBaseBranch) {
-        RunHistKey runHistKey = new RunHistKey(srvIdMaskHigh, buildTypeId, normalizedBaseBranch);
+    protected SuiteHistory getSuiteHist(String srvCode, int buildTypeId, int normalizedBaseBranch) {
+        int srvId = ITeamcityIgnited.serverIdToInt(srvCode);
+        RunHistKey runHistKey = new RunHistKey(srvId, buildTypeId, normalizedBaseBranch);
 
         SuiteHistory hist;
         try {
             hist = runHistInMemCache.get(runHistKey,
-                () -> loadSuiteHistory(srvIdMaskHigh, buildTypeId, normalizedBaseBranch));
+                () -> loadSuiteHistory(srvCode, buildTypeId, normalizedBaseBranch));
         }
         catch (ExecutionException e) {
             throw ExceptionUtil.propagateException(e);
@@ -214,9 +220,10 @@ public class HistoryCollector {
     }
 
     @AutoProfiling
-    protected SuiteHistory loadSuiteHistory(int srvId,
-        int buildTypeId,
-        int normalizedBaseBranch) {
+    protected SuiteHistory loadSuiteHistory(String srvCode,
+                                            int buildTypeId,
+                                            int normalizedBaseBranch) {
+        int srvId = ITeamcityIgnited.serverIdToInt(srvCode);
         Map<Integer, SuiteInvocation> suiteRunHist = histDao.getSuiteRunHist(srvId, buildTypeId, normalizedBaseBranch);
 
         logger.info("***** Found history for suite "
@@ -230,7 +237,7 @@ public class HistoryCollector {
         missedBuildsIds.removeAll(suiteRunHist.keySet());
 
         if (!missedBuildsIds.isEmpty()) {
-            Map<Integer, SuiteInvocation> addl = addSuiteInvocationsToHistory(srvId, missedBuildsIds, normalizedBaseBranch);
+            Map<Integer, SuiteInvocation> addl = addSuiteInvocationsToHistory(srvCode, missedBuildsIds, normalizedBaseBranch);
 
             suiteRunHist.putAll(addl);
         }
@@ -257,25 +264,38 @@ public class HistoryCollector {
         runHistInMemCache.invalidate(inv);
     }
 
+    @Nonnull
+    private Set<Integer> getFilteringParameters(String srvCode) {
+        Set<String> importantParameters = new HashSet<>();
+
+        cfg.getTeamcityConfig(srvCode)
+                .filteringParameters()
+                .stream()
+                .map(IBuildParameterSpec::name)
+                .forEach(importantParameters::add);
+
+        return importantParameters.stream().map(k -> compactor.getStringId(k)).collect(Collectors.toSet());
+    }
 
     @AutoProfiling
-    protected Map<Integer, SuiteInvocation> addSuiteInvocationsToHistory(int srvId,
-        HashSet<Integer> missedBuildsIds, int normalizedBaseBranch) {
+    protected Map<Integer, SuiteInvocation> addSuiteInvocationsToHistory(String srvCode,
+                                                                         HashSet<Integer> missedBuildsIds,
+                                                                         int normalizedBaseBranch) {
+
+        Set<Integer> filteringParameters = getFilteringParameters(srvCode);
+        BiPredicate<Integer, Integer> paramsFilter = (k, v) -> filteringParameters.contains(k);
+
         Map<Integer, SuiteInvocation> suiteRunHist = new HashMap<>();
         int successStatusStrId = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
 
         logger.info(Thread.currentThread().getName() + "addSuiteInvocationsToHistory: getAll: " + missedBuildsIds.size());
 
+        int srvId = ITeamcityIgnited.serverIdToInt(srvCode);
         Iterables.partition(missedBuildsIds, 32 * 10).forEach(
             chunk -> {
                 fatBuildDao.getAllFatBuilds(srvId, chunk).forEach((buildCacheKey, fatBuildCompacted) -> {
                     if (!applicableForHistory(fatBuildCompacted))
                         return;
-
-
-                    //todo implement parameter filter based on TC Bot conf
-
-                    BiPredicate<Integer, Integer> paramsFilter = (k, v) -> false;
 
                     SuiteInvocation sinv = new SuiteInvocation(srvId, normalizedBaseBranch, fatBuildCompacted, compactor, paramsFilter);
 
@@ -305,12 +325,12 @@ public class HistoryCollector {
     }
 
     /**
-     * @param srvId Server id.
+     * @param srvCode Server code.
      * @param buildTypeId Build type id.
      * @param normalizedBaseBranch Normalized base branch.
      */
-    public ISuiteRunHistory getSuiteRunHist(int srvId, int buildTypeId,  int  normalizedBaseBranch) {
-        return getSuiteHist(srvId, buildTypeId, normalizedBaseBranch);
+    public ISuiteRunHistory getSuiteRunHist(String srvCode, int buildTypeId,  int  normalizedBaseBranch) {
+        return getSuiteHist(srvCode, buildTypeId, normalizedBaseBranch);
     }
 
 

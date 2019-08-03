@@ -427,7 +427,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         if (buildTypeId < 0 || normalizedBaseBranch < 0)
             return null;
 
-        return histCollector.getSuiteRunHist(srvIdMaskHigh, buildTypeId, normalizedBaseBranch);
+        return histCollector.getSuiteRunHist(srvCode, buildTypeId, normalizedBaseBranch);
     }
 
     /** {@inheritDoc} */
@@ -439,7 +439,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         if (testName < 0 || buildTypeId < 0 || normalizedBaseBranch < 0)
             return null;
 
-        return histCollector.getTestRunHist(srvIdMaskHigh, testName, buildTypeId, normalizedBaseBranch);
+        return histCollector.getTestRunHist(srvCode, testName, buildTypeId, normalizedBaseBranch);
     }
 
     /** {@inheritDoc} */

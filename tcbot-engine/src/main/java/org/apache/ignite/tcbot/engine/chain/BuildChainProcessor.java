@@ -51,8 +51,8 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.tcignited.buildlog.IBuildLogProcessor;
+import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.history.IRunHistory;
-import org.apache.ignite.tcignited.history.RunHistSync;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.slf4j.Logger;
@@ -156,7 +156,7 @@ public class BuildChainProcessor {
         if (entryPoints.isEmpty())
             return new FullChainRunCtx(Build.createFakeStub());
 
-        Integer failRateBranchId = compactor.getStringIdIfPresent(RunHistSync.normalizeBranch(failRateBranch));
+        Integer failRateBranchId = compactor.getStringIdIfPresent(BranchEquivalence.normalizeBranch(failRateBranch));
 
         Map<Integer, Future<FatBuildCompacted>> builds = loadAllBuildsInChains(entryPoints, mode, tcIgn);
 
