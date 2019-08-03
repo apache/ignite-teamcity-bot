@@ -50,10 +50,10 @@ public class InvocationData {
     /**
      *
      */
-    public int notMutedRunsCount() {
+    public int notMutedAndNonMissingRunsCount() {
         return (int)
             invocations()
-                .filter(invocation -> invocation.status() != MUTED)
+                .filter(invocation -> invocation.status() != MUTED && invocation.status() != MISSING)
                 .count();
     }
 

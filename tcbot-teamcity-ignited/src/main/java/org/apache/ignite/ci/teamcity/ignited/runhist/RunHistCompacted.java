@@ -46,7 +46,7 @@ public class RunHistCompacted implements  IRunHistory {
 
     /** {@inheritDoc} */
     @Override public int getRunsCount() {
-        return data.notMutedRunsCount();
+        return data.notMutedAndNonMissingRunsCount();
     }
 
     /** {@inheritDoc} */
