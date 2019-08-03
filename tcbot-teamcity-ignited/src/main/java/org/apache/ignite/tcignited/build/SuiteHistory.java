@@ -43,8 +43,7 @@ public class SuiteHistory implements ISuiteRunHistory {
     }
 
     private void finalizeInvocations() {
-        //todo add missing status to tests
-        //  testsHistory.values().registerMissing(suiteHist.buildIds());
+        testsHistory.forEach((k, t)->t.registerMissing(k, suiteHist.buildIds()));
 
         suiteHist.sort();
         testsHistory.values().forEach(RunHistCompacted::sort);

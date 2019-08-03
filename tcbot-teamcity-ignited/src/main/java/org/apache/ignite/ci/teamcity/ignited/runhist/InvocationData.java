@@ -18,14 +18,12 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import com.google.common.base.MoreObjects;
-
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import org.apache.ignite.tcignited.history.RunStatus;
 
 import javax.annotation.Nonnull;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  *
@@ -39,6 +37,8 @@ public class InvocationData {
     public static final int OK = RunStatus.RES_OK.getCode();
     /** Ok. */
     public static final int CRITICAL_FAILURE = RunStatus.RES_CRITICAL_FAILURE.getCode();
+    /** Test is missing in suite run. */
+    public static final int MISSING = RunStatus.RES_MISSING.getCode();
 
     /** Invocations map from build ID to invocation data. */
     private final List<Invocation> invocationList = new ArrayList<>();
@@ -113,5 +113,19 @@ public class InvocationData {
 
     public void sort() {
         invocationList.sort(Comparator.comparing(Invocation::buildId));
+    }
+
+    Set<Integer> getBuildIds() {
+        return invocations().map(Invocation::buildId).collect(Collectors.toSet());
+    }
+
+    public void registerMissing(Integer testId, Set<Integer> suiteBuildIds) {
+        Set<Integer> idsPresent = getBuildIds();
+        HashSet<Integer> toAdd = new HashSet<>(suiteBuildIds);
+        toAdd.removeAll(idsPresent);
+
+        toAdd.forEach(id -> {
+            add(new Invocation(id).withStatus(MISSING));
+        });
     }
 }

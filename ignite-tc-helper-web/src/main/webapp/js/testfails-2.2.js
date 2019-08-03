@@ -1032,6 +1032,8 @@ function drawLatestRunsBlock(state, len) {
         runColor = "grey";
     else if (state === 3)
         runColor = "black";
+    else if (state === 4)
+        runColor = "lightgrey";
 
     return "<span style='background-color: " + runColor + "; width:" + (len * 1) + "px; height:10px; display: inline-block;'></span>";
 }

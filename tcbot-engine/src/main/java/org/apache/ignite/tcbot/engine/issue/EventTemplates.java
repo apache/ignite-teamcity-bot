@@ -20,14 +20,12 @@ package org.apache.ignite.tcbot.engine.issue;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 
-import static org.apache.ignite.tcignited.history.RunStatus.RES_CRITICAL_FAILURE;
-import static org.apache.ignite.tcignited.history.RunStatus.RES_FAILURE;
-import static org.apache.ignite.tcignited.history.RunStatus.RES_OK;
-import static org.apache.ignite.tcignited.history.RunStatus.RES_OK_OR_FAILURE;
+import static org.apache.ignite.tcignited.history.RunStatus.*;
 
 public class EventTemplates {
     private static final int OK = RES_OK.getCode();
     private static final int FAIL = RES_FAILURE.getCode();
+    private static final int MISSING = RES_MISSING.getCode();
 
     public static final EventTemplate newFailure = new EventTemplate(
             new int[]{OK, OK, OK, OK, OK},
@@ -40,9 +38,9 @@ public class EventTemplates {
     );
 
     public static final EventTemplate newContributedTestFailure = new EventTemplate(
-            new int[]{},
+            new int[]{MISSING, MISSING, MISSING, MISSING},
             new int[]{FAIL, FAIL, FAIL, FAIL}
-    ).setShouldBeFirst(true);
+    );
 
     public static final EventTemplate newFailureForFlakyTest = new EventTemplate(
             new int[]{OK, OK, OK, OK, OK},

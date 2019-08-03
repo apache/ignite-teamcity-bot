@@ -18,15 +18,17 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import com.google.common.base.MoreObjects;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcignited.history.ChangesState;
 import org.apache.ignite.tcignited.history.IEventTemplate;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.RunStatus;
+
+import javax.annotation.Nullable;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -124,18 +126,13 @@ public class RunHistCompacted implements  IRunHistory {
             return null;
 
         Integer detectedAt = null;
-        if (t.shouldBeFirst()) {
-            //todo detect somehow test is new (e.g. status absent for test history).
-            detectedAt = checkTemplateAtPos(template, centralEvtBuild, histAsArr, 0);
-        }
-        else {
-            //startIgnite from the end to find most recent
-            for (int idx = histAsArr.size() - template.length; idx >= 0; idx--) {
-                detectedAt = checkTemplateAtPos(template, centralEvtBuild, histAsArr, idx);
 
-                if (detectedAt != null)
-                    break;
-            }
+        //startIgnite from the end to find most recent
+        for (int idx = histAsArr.size() - template.length; idx >= 0; idx--) {
+            detectedAt = checkTemplateAtPos(template, centralEvtBuild, histAsArr, idx);
+
+            if (detectedAt != null)
+                break;
         }
 
         return detectedAt;
@@ -196,5 +193,13 @@ public class RunHistCompacted implements  IRunHistory {
 
     public void sort() {
         data.sort();
+    }
+
+    public Set<Integer> buildIds() {
+        return data.getBuildIds();
+    }
+
+    public void registerMissing(Integer testId, Set<Integer> buildIds) {
+        data.registerMissing(testId, buildIds);
     }
 }

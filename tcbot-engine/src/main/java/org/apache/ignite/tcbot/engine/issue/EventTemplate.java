@@ -22,7 +22,6 @@ import org.apache.ignite.tcignited.history.IEventTemplate;
 public class EventTemplate implements IEventTemplate {
     private final int[] beforeEvent;
     private final int[] eventAndAfter;
-    private boolean shouldBeFirst;
 
     public EventTemplate(int[] beforeEvent, int[] eventAndAfter) {
         this.beforeEvent = beforeEvent;
@@ -39,15 +38,5 @@ public class EventTemplate implements IEventTemplate {
 
     public int cntEvents() {
         return beforeEvent.length + eventAndAfter.length;
-    }
-
-    public EventTemplate setShouldBeFirst(boolean shouldBeFirst) {
-        this.shouldBeFirst = shouldBeFirst;
-
-        return this;
-    }
-
-    public boolean shouldBeFirst() {
-        return shouldBeFirst;
     }
 }
