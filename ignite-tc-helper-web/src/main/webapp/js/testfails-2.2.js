@@ -923,13 +923,6 @@ function showTestFailData(testFail, isFailureShown, settings) {
         if(isDefinedAndFilled(hist.recent) && isDefinedAndFilled(hist.recent.failures))
             testFailTitle = "recent rate: " + hist.recent.failures + " fails / " + hist.recent.runs + " runs" ;
 
-        if(isDefinedAndFilled(hist.allTime) && isDefinedAndFilled(hist.allTime.failures)) {
-            testFailTitle +=
-                 "; all history: " + hist.allTime.failureRate + "% ["+
-                  hist.allTime.failures + " fails / " +
-                  hist.allTime.runs + " runs] " ;
-        }
-
         histContent += " <span title='" +testFailTitle + "'>";
         
         if (isDefinedAndFilled(hist.recent) && isDefinedAndFilled(hist.recent.failureRate))

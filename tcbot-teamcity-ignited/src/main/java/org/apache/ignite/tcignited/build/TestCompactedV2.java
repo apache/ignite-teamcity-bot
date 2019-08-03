@@ -411,7 +411,9 @@ public class TestCompactedV2 implements ITest {
                 importantParms.put(k, v);
         });
 
-        return invocation.withParameters(importantParms);
+        //todo implement parameter filter and save to parms compacted
+        // return invocation.withParameters(importantParms);
+        return invocation;
     }
 
     /**

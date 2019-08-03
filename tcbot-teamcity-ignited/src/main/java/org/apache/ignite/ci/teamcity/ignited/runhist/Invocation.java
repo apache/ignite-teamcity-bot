@@ -50,7 +50,7 @@ public class Invocation {
     /** Change present: 0 - no changes, 1 - changes present, 2- unknown */
     private byte changePresent;
 
-    /** Additional (important) build Pareters, which can be used for filtering. */
+    /** Additional (important) build Parameters, which can be used for filtering. */
     @Nullable private Map<Integer, Integer> parms;
 
     /**

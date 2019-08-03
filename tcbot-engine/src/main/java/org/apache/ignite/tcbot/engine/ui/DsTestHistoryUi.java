@@ -26,9 +26,6 @@ import org.apache.ignite.tcignited.history.IRunHistory;
  * Summary of failures - all history and recent runs for suite or for suite.
  */
 public class DsTestHistoryUi {
-    /** 'All the time' runs history statistic. */
-    @Deprecated public DsHistoryStatUi allTime = new DsHistoryStatUi();
-
     /** Latest runs history statistic. */
     public DsHistoryStatUi recent = new DsHistoryStatUi();
 
@@ -46,10 +43,6 @@ public class DsTestHistoryUi {
         recent.runs = stat.getRunsCount();
         recent.failureRate = stat.getFailPercentPrintable();
 
-        allTime.failures = stat.getFailuresAllHist();
-        allTime.runs = stat.getRunsAllHist();
-        allTime.failureRate = stat.getFailPercentAllHistPrintable();
-
         latestRuns = stat.getLatestRunResults();
 
         flakyComments = stat.getFlakyComments();
@@ -62,14 +55,13 @@ public class DsTestHistoryUi {
         if (o == null || getClass() != o.getClass())
             return false;
         DsTestHistoryUi hist = (DsTestHistoryUi)o;
-        return Objects.equals(allTime, hist.allTime) &&
-            Objects.equals(recent, hist.recent) &&
+        return Objects.equals(recent, hist.recent) &&
             Objects.equals(latestRuns, hist.latestRuns) &&
             Objects.equals(flakyComments, hist.flakyComments);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(allTime, recent, latestRuns, flakyComments);
+        return Objects.hash(recent, latestRuns, flakyComments);
     }
 }

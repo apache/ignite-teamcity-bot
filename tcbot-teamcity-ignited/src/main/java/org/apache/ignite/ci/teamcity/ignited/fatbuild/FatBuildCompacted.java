@@ -18,14 +18,8 @@ package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
-import java.util.TreeMap;
+
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
@@ -664,7 +658,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             .withStatus(failCode)
             .withChanges(changes());
 
-        java.util.Map<Integer, Integer> importantParms = new TreeMap<>();
+        Map<Integer, Integer> importantParms = new TreeMap<>();
 
         ParametersCompacted parameters = parameters();
 
