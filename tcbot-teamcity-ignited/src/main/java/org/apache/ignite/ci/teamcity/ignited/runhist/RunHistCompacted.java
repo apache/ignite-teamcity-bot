@@ -79,9 +79,14 @@ public class RunHistCompacted implements  IRunHistory {
         List<Invocation> latestRuns = data.invocations().collect(Collectors.toList());
 
         for (Invocation cur : latestRuns) {
-            if (prev != null && cur != null) {
+            if (cur == null)
+                continue;
+            if (cur.status() == InvocationData.MISSING)
+                continue;
+
+            if (prev != null) {
                 if (prev.status() != cur.status()
-                    && cur.changesState() == ChangesState.NONE
+                        && cur.changesState() == ChangesState.NONE
                     && prev.changesState() != ChangesState.UNKNOWN)
                     statusChange++;
             }
