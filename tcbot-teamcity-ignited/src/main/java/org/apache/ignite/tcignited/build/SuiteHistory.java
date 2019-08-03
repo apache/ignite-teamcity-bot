@@ -68,12 +68,9 @@ public class SuiteHistory implements ISuiteRunHistory {
         Set<Integer> builds = suitesFiltered.buildIds();
 
         SuiteHistory res = new SuiteHistory();
-        res.suiteHist = suitesFiltered;
 
-        this.testsHistory.forEach((tName,invList)->{
-            RunHistCompacted filteredByBuild = invList.filterByBuilds(builds);
-            res.testsHistory.put(tName, filteredByBuild);
-        });
+        res.suiteHist = suitesFiltered;
+        this.testsHistory.forEach((tName,invList)-> res.testsHistory.put(tName, invList.filterByBuilds(builds)));
 
         return res;
     }

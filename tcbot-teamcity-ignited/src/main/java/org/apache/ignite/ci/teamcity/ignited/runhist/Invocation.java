@@ -25,6 +25,8 @@ import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcignited.history.ChangesState;
 
 import java.util.Map;
+import java.util.Set;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 
@@ -134,8 +136,24 @@ public class Invocation {
         return this;
     }
 
-    public boolean containsParameters(Map<Integer, Integer> requireParameters) {
-        //todo implement contains parameters (compacted).
+
+    public static boolean hasAnyParameterValue(ParametersCompacted parameters, @Nonnull Map<Integer, Integer> requireParamVal) {
+        if (parameters == null)
+            return false;
+
+        Set<Map.Entry<Integer, Integer>> entries = requireParamVal.entrySet();
+        for (Map.Entry<Integer, Integer> next : entries) {
+            Integer key = next.getKey();
+
+            int valId = parameters.findPropertyStringId(key);
+            if (java.util.Objects.equals(next.getValue(), valId))
+                return true;
+        }
+
         return false;
+    }
+
+    public boolean containsParameterValue(Map<Integer, Integer> requireParameters) {
+        return hasAnyParameterValue(this.parameters, requireParameters);
     }
 }

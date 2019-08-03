@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  *
@@ -207,15 +206,12 @@ public class RunHistCompacted implements IRunHistory {
         data.sort();
     }
 
-
     public RunHistCompacted filterSuiteInvByParms(Map<Integer, Integer> requireParameters) {
         RunHistCompacted copy = new RunHistCompacted();
 
-        Stream<Invocation> invocationStream = data.invocations().filter(
-                invocation -> invocation.containsParameters(requireParameters)
-        );
-
-        invocationStream.forEach(invocation -> copy.data.add(invocation));
+        data.invocations()
+                .filter(invocation -> invocation.containsParameterValue(requireParameters))
+                .forEach(invocation -> copy.data.add(invocation));
 
         return copy;
     }

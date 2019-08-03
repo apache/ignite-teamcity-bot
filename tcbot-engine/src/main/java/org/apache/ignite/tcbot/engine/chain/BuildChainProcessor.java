@@ -41,6 +41,7 @@ import javax.inject.Inject;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.util.FutureUtil;
 import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
@@ -398,19 +399,7 @@ public class BuildChainProcessor {
     private boolean hasAnyParameterValue(@Nonnull Map<Integer, Integer> requireParamVal, FatBuildCompacted fatBuild) {
         ParametersCompacted parameters = fatBuild.parameters();
 
-        if (parameters == null)
-            return false;
-
-        Set<Map.Entry<Integer, Integer>> entries = requireParamVal.entrySet();
-        for (Map.Entry<Integer, Integer> next : entries) {
-            Integer key = next.getKey();
-
-            int valId = parameters.findPropertyStringId(key);
-            if (Objects.equals(next.getValue(), valId))
-                return true;
-        }
-
-        return false;
+        return Invocation.hasAnyParameterValue(parameters, requireParamVal);
     }
 
     @SuppressWarnings("WeakerAccess")
