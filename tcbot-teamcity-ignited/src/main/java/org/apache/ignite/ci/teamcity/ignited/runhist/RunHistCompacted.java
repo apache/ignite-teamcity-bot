@@ -27,6 +27,7 @@ import org.apache.ignite.tcignited.history.RunStatus;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -139,6 +140,15 @@ public class RunHistCompacted implements  IRunHistory {
 
             if (detectedAt != null)
                 break;
+        }
+
+        if (detectedAt != null && t.shouldBeFirstNonMissing()) {
+            Optional<Invocation> first = data.invocations(true).findFirst();
+            if (!first.isPresent())
+                return null;
+
+            if (first.get().buildId() != detectedAt)
+                return null;
         }
 
         return detectedAt;

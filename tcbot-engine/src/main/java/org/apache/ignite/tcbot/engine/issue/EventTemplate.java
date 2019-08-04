@@ -23,6 +23,10 @@ public class EventTemplate implements IEventTemplate {
     private final int[] beforeEvent;
     private final int[] eventAndAfter;
     private boolean includeMissing = false;
+    /**
+     * Event template eventAndAfter should be always first build in history of non-missed object.
+     */
+    private boolean shouldBeFirstNonMissing = false;
 
     public EventTemplate(int[] beforeEvent, int[] eventAndAfter) {
         this.beforeEvent = beforeEvent;
@@ -42,6 +46,11 @@ public class EventTemplate implements IEventTemplate {
         return includeMissing;
     }
 
+    @Override
+    public boolean shouldBeFirstNonMissing() {
+        return shouldBeFirstNonMissing;
+    }
+
     EventTemplate includeMissing(boolean include) {
         this.includeMissing = include;
 
@@ -50,5 +59,11 @@ public class EventTemplate implements IEventTemplate {
 
     public int cntEvents() {
         return beforeEvent.length + eventAndAfter.length;
+    }
+
+    public EventTemplate onlyForFirstNonMissing(boolean shouldBeFirst) {
+        this.shouldBeFirstNonMissing = shouldBeFirst;
+
+        return this;
     }
 }
