@@ -22,7 +22,11 @@ import org.apache.ignite.tcignited.history.IEventTemplate;
 public class EventTemplate implements IEventTemplate {
     private final int[] beforeEvent;
     private final int[] eventAndAfter;
-    private boolean shouldBeFirst;
+    private boolean includeMissing = false;
+    /**
+     * Event template eventAndAfter should be always first build in history of non-missed object.
+     */
+    private boolean shouldBeFirstNonMissing = false;
 
     public EventTemplate(int[] beforeEvent, int[] eventAndAfter) {
         this.beforeEvent = beforeEvent;
@@ -37,17 +41,29 @@ public class EventTemplate implements IEventTemplate {
         return eventAndAfter;
     }
 
-    public int cntEvents() {
-        return beforeEvent.length + eventAndAfter.length;
+    @Override
+    public boolean includeMissing() {
+        return includeMissing;
     }
 
-    public EventTemplate setShouldBeFirst(boolean shouldBeFirst) {
-        this.shouldBeFirst = shouldBeFirst;
+    @Override
+    public boolean shouldBeFirstNonMissing() {
+        return shouldBeFirstNonMissing;
+    }
+
+    EventTemplate includeMissing(boolean include) {
+        this.includeMissing = include;
 
         return this;
     }
 
-    public boolean shouldBeFirst() {
-        return shouldBeFirst;
+    public int cntEvents() {
+        return beforeEvent.length + eventAndAfter.length;
+    }
+
+    public EventTemplate onlyForFirstNonMissing(boolean shouldBeFirst) {
+        this.shouldBeFirstNonMissing = shouldBeFirst;
+
+        return this;
     }
 }

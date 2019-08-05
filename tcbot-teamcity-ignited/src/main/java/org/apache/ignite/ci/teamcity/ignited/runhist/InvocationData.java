@@ -18,14 +18,12 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import com.google.common.base.MoreObjects;
-
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import org.apache.ignite.tcignited.history.RunStatus;
 
 import javax.annotation.Nonnull;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  *
@@ -39,6 +37,8 @@ public class InvocationData {
     public static final int OK = RunStatus.RES_OK.getCode();
     /** Ok. */
     public static final int CRITICAL_FAILURE = RunStatus.RES_CRITICAL_FAILURE.getCode();
+    /** Test is missing in suite run. */
+    public static final int MISSING = RunStatus.RES_MISSING.getCode();
 
     /** Invocations map from build ID to invocation data. */
     private final List<Invocation> invocationList = new ArrayList<>();
@@ -50,9 +50,9 @@ public class InvocationData {
     /**
      *
      */
-    public int notMutedRunsCount() {
+    public int notMutedAndNonMissingRunsCount() {
         return (int)
-            invocations()
+            invocations(true)
                 .filter(invocation -> invocation.status() != MUTED)
                 .count();
     }
@@ -62,7 +62,20 @@ public class InvocationData {
      */
     @Nonnull
     Stream<Invocation> invocations() {
-        return invocationList.stream();
+        return invocations(false);
+    }
+
+
+    /**
+     * @param skipMissing Skip missing (absent) invocations.
+     */
+    @Nonnull Stream<Invocation> invocations(boolean skipMissing) {
+        Stream<Invocation> stream = invocationList.stream();
+
+        if (skipMissing)
+            stream = stream.filter(invocation -> invocation.status() != MISSING);
+
+        return stream;
     }
 
     /**
@@ -117,5 +130,15 @@ public class InvocationData {
 
     public Set<Integer> buildIds() {
         return invocationList.stream().map(Invocation::buildId).collect(Collectors.toSet());
+    }
+
+    public void registerMissing(Integer testId, Set<Integer> suiteBuildIds) {
+        Set<Integer> idsPresent = buildIds();
+        HashSet<Integer> toAdd = new HashSet<>(suiteBuildIds);
+        toAdd.removeAll(idsPresent);
+
+        toAdd.forEach(id -> {
+            add(new Invocation(id).withStatus(MISSING));
+        });
     }
 }

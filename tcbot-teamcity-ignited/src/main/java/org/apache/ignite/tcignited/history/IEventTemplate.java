@@ -24,5 +24,7 @@ public interface IEventTemplate {
 
     int[] eventAndAfter();
 
-    boolean shouldBeFirst();
+    boolean includeMissing();
+
+    boolean shouldBeFirstNonMissing();
 }

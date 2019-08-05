@@ -24,10 +24,12 @@ import static org.apache.ignite.tcignited.history.RunStatus.RES_CRITICAL_FAILURE
 import static org.apache.ignite.tcignited.history.RunStatus.RES_FAILURE;
 import static org.apache.ignite.tcignited.history.RunStatus.RES_OK;
 import static org.apache.ignite.tcignited.history.RunStatus.RES_OK_OR_FAILURE;
+import static org.apache.ignite.tcignited.history.RunStatus.RES_MISSING;
 
 public class EventTemplates {
     private static final int OK = RES_OK.getCode();
     private static final int FAIL = RES_FAILURE.getCode();
+    private static final int MISSING = RES_MISSING.getCode();
 
     public static final EventTemplate newFailure = new EventTemplate(
             new int[]{OK, OK, OK, OK, OK},
@@ -40,9 +42,9 @@ public class EventTemplates {
     );
 
     public static final EventTemplate newContributedTestFailure = new EventTemplate(
-            new int[]{},
+            new int[]{MISSING, MISSING, MISSING, MISSING},
             new int[]{FAIL, FAIL, FAIL, FAIL}
-    ).setShouldBeFirst(true);
+    ).includeMissing(true).onlyForFirstNonMissing(true);
 
     public static final EventTemplate newFailureForFlakyTest = new EventTemplate(
             new int[]{OK, OK, OK, OK, OK},
