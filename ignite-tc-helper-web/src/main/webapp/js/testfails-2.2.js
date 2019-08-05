@@ -1035,9 +1035,9 @@ function drawLatestRunsBlock(state, len) {
     else if (state === 4) // RES_MISSING(4),  missing in run
         runColor = "lightgrey";
     else if (state === 5)   //     RES_OK_MUTED(5),
-        runColor = "rgba(160, 0, 0, 0.3)";
-    else if (state === 6)  //     RES_FAILURE_MUTED(6),
         runColor = "rgba(0, 160, 0, 0.3)";
+    else if (state === 6)  //     RES_FAILURE_MUTED(6),
+        runColor = "rgba(160, 0, 0, 0.3)";
     else if (state === 7) //     RES_IGNORED(7);
         runColor = "rgba(255, 160, 0, 0.3)";
 
