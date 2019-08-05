@@ -156,12 +156,12 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     /** */
     public long getMetricProblemCount() {
-        return buildsStream().filter(ISuiteResults::hasMetricProblem).count();
+        return buildsStream().filter(SingleBuildRunCtx::hasMetricProblem).count();
     }
 
     /** */
     public long getBuildMessageProblemCount() {
-        return buildsStream().filter(ISuiteResults::hasBuildMessageProblem).count();
+        return buildsStream().filter(SingleBuildRunCtx::hasBuildMessageProblem).count();
     }
 
     /** {@inheritDoc} */
@@ -171,7 +171,7 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     /** */
     public long getCompilationProblemCount() {
-        return buildsStream().filter(ISuiteResults::hasCompilationProblem).count();
+        return buildsStream().filter(SingleBuildRunCtx::hasCompilationProblem).count();
     }
 
     /** {@inheritDoc} */
@@ -203,11 +203,11 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     private long getExitCodeProblemsCount() {
-        return buildsStream().filter(ISuiteResults::hasExitCodeProblem).count();
+        return buildsStream().filter(SingleBuildRunCtx::hasExitCodeProblem).count();
     }
 
     private long getOomeProblemCount() {
-        return buildsStream().filter(ISuiteResults::hasOomeProblem).count();
+        return buildsStream().filter(SingleBuildRunCtx::hasOomeProblem).count();
     }
 
     public int failedTests() {
