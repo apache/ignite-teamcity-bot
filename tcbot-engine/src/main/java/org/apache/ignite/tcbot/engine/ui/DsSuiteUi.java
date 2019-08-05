@@ -132,23 +132,28 @@ public class DsSuiteUi extends ShortSuiteUi {
     public boolean success = false;
 
     /**
+     * @param includeTests Include tests - usually {@code true}, but it may be disabled for speeding up VISA collection.
      * @param tcIgnited Tc ignited.
      * @param suite Suite.
      * @param baseBranch Base branch.
      * @param compactor String Compactor.
-     * @param includeTests Include tests - usually {@code true}, but it may be disabled for speeding up VISA collection.
      * @param calcTrustedTests
      * @param maxDurationSec 0 or negative means don't indclude. has no effect if tests not included
      * @param requireParamVal filtering for runs history based on parameter value selected.
+     * @param showMuted
+     * @param showIgnored
      */
     public DsSuiteUi initFromContext(ITeamcityIgnited tcIgnited,
         @Nonnull final MultBuildRunCtx suite,
         @Nullable final String baseBranch,
         @Nonnull IStringCompactor compactor,
-        boolean includeTests,
+        boolean includeTest3s,
         boolean calcTrustedTests,
         int maxDurationSec,
-        @Nullable Map<Integer, Integer> requireParamVal) {
+        @Nullable Map<Integer, Integer> requireParamVal,
+        boolean showMuted,
+        boolean showIgnored) {
+
         String failRateNormalizedBranch = normalizeBranch(baseBranch);
         Integer baseBranchId = compactor.getStringIdIfPresent(failRateNormalizedBranch);
         IRunHistory baseBranchHist = suite.history(tcIgnited, baseBranchId, requireParamVal);
@@ -175,10 +180,10 @@ public class DsSuiteUi extends ShortSuiteUi {
         webToHist = buildWebLinkToHist(tcIgnited, suite);
         webToHistBaseBranch = buildWebLinkToHist(tcIgnited, suite, baseBranch);
 
-        if (includeTests) {
+        if (true) {
             List<TestCompactedMult> tests = suite.getFilteredTests(test ->
                 test.hasLongRunningTest(maxDurationSec)
-                    || test.includeIntoReport(tcIgnited, baseBranchId) );
+                    || test.includeIntoReport(tcIgnited, baseBranchId, showMuted, showIgnored));
 
             Function<TestCompactedMult, Float> function = testCompactedMult -> {
                 IRunHistory res = testCompactedMult.history(tcIgnited, baseBranchId);

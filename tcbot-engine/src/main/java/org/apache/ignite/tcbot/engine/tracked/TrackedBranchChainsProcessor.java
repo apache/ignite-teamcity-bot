@@ -106,9 +106,9 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
 
                 ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, creds);
 
-               Map<Integer, Integer> requireParamVal = new HashMap<>();
+                Map<Integer, Integer> requireParamVal = new HashMap<>();
 
-                if(!Strings.isNullOrEmpty(tagForHistSelected)) {
+                if (!Strings.isNullOrEmpty(tagForHistSelected)) {
                     requireParamVal.putAll(
                         reverseTagToParametersRequired(tagForHistSelected, srvCodeOrAlias));
                 }
@@ -150,7 +150,8 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
                     runningUpdates.addAndGet(cnt);
 
                 chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor, calcTrustedTests, tagSelected,
-                        displayMode, maxDurationSec, requireParamVal);
+                    displayMode, maxDurationSec, requireParamVal,
+                    showMuted, showIgnored);
 
                 return chainStatus;
             })

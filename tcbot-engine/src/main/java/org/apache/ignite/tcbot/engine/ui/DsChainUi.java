@@ -166,7 +166,9 @@ public class DsChainUi {
         @Nullable String tagSelected,
         @Nullable DisplayMode displayMode,
         int maxDurationSec,
-        @Nullable Map<Integer, Integer> requireParamVal) {
+        @Nullable Map<Integer, Integer> requireParamVal,
+        boolean showMuted,
+        boolean showIgnored) {
         failedTests = 0;
         failedToFinish = 0;
         totalTests = 0;
@@ -201,7 +203,7 @@ public class DsChainUi {
 
                 if (suite.isFailed()
                     || dModeToUse == DisplayMode.ShowAllSuites
-                    || suite.hasTestToReport(tcIgnited, baseBranchId)
+                    || suite.hasTestToReport(tcIgnited, baseBranchId, showMuted, showIgnored)
                     || suite.hasLongRunningTest(maxDurationSec)) {
                     DsSuiteUi suiteCurStatus = new DsSuiteUi()
                         .initFromContext(tcIgnited,
@@ -211,7 +213,9 @@ public class DsChainUi {
                             true,
                             calcTrustedTests,
                             maxDurationSec,
-                            requireParamVal);
+                            requireParamVal,
+                            showMuted,
+                            showIgnored);
 
                     failedTests += suiteCurStatus.failedTests != null ? suiteCurStatus.failedTests : 0;
 
