@@ -102,10 +102,6 @@ public class Invocation {
             return ChangesState.UNKNOWN;
     }
 
-    public boolean isFailure() {
-        return status == InvocationData.FAILURE || status == InvocationData.MUTED;
-    }
-
     public int buildId() {
         return buildId;
     }

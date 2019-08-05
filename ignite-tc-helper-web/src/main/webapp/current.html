@@ -68,6 +68,8 @@ function showQueryForm() {
             sortOption: 'FailureRate',
             //count of builds to merge
             count: 1,
+            muted: false,
+            ignored: false,
             trustedTests: true,
             checkAllLogs: false,
             hideFlakyFailures: false,
@@ -115,6 +117,10 @@ function showQueryForm() {
         gVue.$data.trustedTests = parm === "true";
     }
 
+
+    gVue.$data.muted = findGetParameter("muted") === "true";
+    gVue.$data.ignored = findGetParameter("ignored") === "true";
+
     gVue.$data.checkAllLogs = findGetParameter("checkAllLogs") === "true";
     gVue.$data.hideFlakyFailures = findGetParameter("hideFlakyFailures") === "true";
 
@@ -153,6 +159,14 @@ function parmsForRest() {
 
     if (gVue.$data.trustedTests != null) {
         curReqParms += "&trustedTests=" + gVue.$data.trustedTests;
+    }
+
+    if (gVue.$data.muted != null) {
+        curReqParms += "&muted=" + gVue.$data.muted;
+    }
+
+    if (gVue.$data.ignored != null) {
+        curReqParms += "&ignored=" + gVue.$data.ignored;
     }
 
     var tagSelected = gVue.$data.tagSelected;
@@ -346,7 +360,15 @@ function showData(result) {
                         &nbsp;&nbsp;&nbsp;<span>Merge Builds: </span>
                         <input v-model.number="count" type="number" @change="formChanged">
 
-                        <br><span title="Show trusted tests count">Trusted tests: </span>
+                        <br>
+                        <span title="Show muted tests">Muted: </span>
+                        <input type="checkbox" v-model="muted" @change="formChanged">
+                        &nbsp;&nbsp;&nbsp;
+                        <span title="Show ignored tests">Ignored: </span>
+                        <input type="checkbox" v-model="ignored" @change="formChanged">
+                        &nbsp;&nbsp;&nbsp;
+
+                        <span title="Show trusted tests count">Trusted tests: </span>
                         <input type="checkbox" v-model="trustedTests" @change="formChanged">
                         &nbsp;&nbsp;&nbsp;<span title="Download and parse all logs">Check logs: </span>
                         <input type="checkbox" v-model="checkAllLogs" @change="formChanged">

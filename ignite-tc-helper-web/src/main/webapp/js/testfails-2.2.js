@@ -1029,11 +1029,17 @@ function drawLatestRunsBlock(state, len) {
     else if (state === 1)
         runColor = "red";
     else if (state === 2)
-        runColor = "grey";
+        runColor = "grey"; // deprected MUTED
     else if (state === 3)
         runColor = "black";
-    else if (state === 4)
-        runColor = "lightgrey";
+    else if (state === 4) // RES_MISSING(4),  missing in run
+        runColor = "grey";
+    else if (state === 5)   //     RES_OK_MUTED(5),
+        runColor = "rgba(160, 0, 0, 0.3)";
+    else if (state === 6)
+        runColor = "rgba(0, 160, 0, 0.3)";  //     RES_FAILURE_MUTED(6),
+    else if (state === 7)
+        runColor = "rgba(255, 160, 0, 0.3)";   //     RES_IGNORED(7);
 
     return "<span style='background-color: " + runColor + "; width:" + (len * 1) + "px; height:10px; display: inline-block;'></span>";
 }
