@@ -14,9 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity.ignited;
-
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
+package org.apache.ignite.tcbot.persistence;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

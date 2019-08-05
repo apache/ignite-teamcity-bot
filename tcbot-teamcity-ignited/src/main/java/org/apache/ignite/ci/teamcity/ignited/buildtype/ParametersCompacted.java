@@ -19,17 +19,18 @@ package org.apache.ignite.ci.teamcity.ignited.buildtype;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.function.BiConsumer;
-import javax.annotation.Nullable;
-
+import org.apache.ignite.internal.util.GridIntList;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcservice.model.conf.bt.Parameters;
 import org.apache.ignite.tcservice.model.conf.bt.Property;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.internal.util.GridIntList;
+
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.BiConsumer;
 
 /**
  * Properties (Build/Build Type parameters) compacted value for storing in TC Bot DB
@@ -72,6 +73,16 @@ public class ParametersCompacted {
             keys.add(strId);
             values.add(val);
         }
+    }
+
+    public ParametersCompacted(Map<Integer, Integer> parms) {
+        keys = new GridIntList(parms.size());
+        values = new GridIntList(parms.size());
+
+        parms.forEach((strId, val) -> {
+            keys.add(strId);
+            values.add(val);
+        });
     }
 
     public Parameters toParameters(IStringCompactor compactor) {

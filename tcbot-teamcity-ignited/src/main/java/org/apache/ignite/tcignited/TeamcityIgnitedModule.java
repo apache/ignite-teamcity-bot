@@ -20,6 +20,8 @@ import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
 import org.apache.ignite.tcignited.buildlog.BuildLogCheckResultDao;
+import org.apache.ignite.tcignited.buildlog.ILogProductSpecific;
+import org.apache.ignite.tcignited.buildlog.LogIgniteSpecific;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.tcignited.buildref.BuildRefSync;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeDao;
@@ -35,7 +37,6 @@ import org.apache.ignite.tcignited.mute.MuteDao;
 import org.apache.ignite.tcignited.mute.MuteSync;
 import org.apache.ignite.tcignited.buildlog.BuildLogProcessorModule;
 import org.apache.ignite.tcignited.history.BuildStartTimeStorage;
-import org.apache.ignite.tcignited.history.RunHistSync;
 import org.apache.ignite.tcservice.TcRealConnectionModule;
 import org.apache.ignite.tcservice.http.ITeamcityHttpConnection;
 
@@ -63,12 +64,12 @@ public class TeamcityIgnitedModule extends AbstractModule {
         bind(BuildTypeDao.class).in(new SingletonScope());
         bind(BuildTypeSync.class).in(new SingletonScope());
         bind(BuildStartTimeStorage.class).in(new SingletonScope());
-        bind(RunHistSync.class).in(new SingletonScope());
         bind(MuteDao.class).in(new SingletonScope());
         bind(MuteSync.class).in(new SingletonScope());
         bind(BuildLogCheckResultDao.class).in(new SingletonScope());
         bind(SuiteInvocationHistoryDao.class).in(new SingletonScope());
         bind(HistoryCollector.class).in(new SingletonScope());
+        bind(ILogProductSpecific.class).to(LogIgniteSpecific.class).in(new SingletonScope());
 
         TcRealConnectionModule module = new TcRealConnectionModule();
         if (conn != null)

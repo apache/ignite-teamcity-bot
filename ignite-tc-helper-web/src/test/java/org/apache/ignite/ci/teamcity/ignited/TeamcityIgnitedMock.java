@@ -18,28 +18,29 @@
 package org.apache.ignite.ci.teamcity.ignited;
 
 import com.google.common.base.Preconditions;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
-
-import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
+import org.apache.ignite.tcbot.common.TcBotConst;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcignited.build.TestCompactedV2;
 import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 import org.jetbrains.annotations.NotNull;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
+import java.time.Duration;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -167,9 +168,14 @@ public class TeamcityIgnitedMock {
         Map<Integer, FatBuildCompacted> builds, int srvId) {
         Map<RunHistKey, RunHistCompacted> histCache = new ConcurrentHashMap<>();
 
+        long maxBuildAgeMs = Duration.ofDays(TcBotConst.HISTORY_MAX_DAYS).toMillis();
         int successStatusStrId = c.getStringId(TestOccurrence.STATUS_SUCCESS);
         for (FatBuildCompacted build : builds.values()) {
             if (!build.isFinished(c))
+                continue;
+
+            if (build.getStartDateTs() > 0
+                    && build.getStartDateTs() < System.currentTimeMillis() - maxBuildAgeMs)
                 continue;
 
             build.getAllTests().forEach(testCompacted -> {
@@ -177,9 +183,9 @@ public class TeamcityIgnitedMock {
 
                 final RunHistCompacted hist = histCache.computeIfAbsent(histKey, RunHistCompacted::new);
 
-                Invocation inv = testCompacted.toInvocation(build, (k, v) -> true, successStatusStrId);
+                Invocation inv = TestCompactedV2.toInvocation(testCompacted, build, successStatusStrId);
 
-                hist.innerAddInvocation(inv);
+                hist.addInvocation(inv);
             });
         }
 

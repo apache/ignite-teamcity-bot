@@ -16,8 +16,8 @@
  */
 package org.apache.ignite.tcignited;
 
-import com.google.common.collect.Sets;
 import java.io.File;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -204,10 +204,19 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         final int invalidVal = -3;
         final int unknownStatus = compactor.getStringId(STATUS_UNKNOWN);
 
+        Integer minBuildId;
+        if (sinceDate != null) {
+            int ageDays = (int)Duration.ofMillis(System.currentTimeMillis() - sinceDate.getTime()).toDays();
+            minBuildId = buildStartTimeStorage.getBorderForAgeForBuildId(srvIdMaskHigh, ageDays + 1);
+        }
+        else
+            minBuildId = null;
+
         List<BuildRefCompacted> buildRefs = getAllBuildsCompacted(buildTypeId, branchName)
             .stream()
             .filter(b -> b.isFinished(compactor))
             .filter(b -> b.status() != unknownStatus) //check build is not cancelled
+            .filter(buildRefCompacted -> minBuildId == null || buildRefCompacted.id() > minBuildId)
             .sorted(Comparator.comparing(BuildRefCompacted::id))
             .collect(Collectors.toList());
 
@@ -428,7 +437,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         if (buildTypeId < 0 || normalizedBaseBranch < 0)
             return null;
 
-        return histCollector.getSuiteRunHist(srvIdMaskHigh, buildTypeId, normalizedBaseBranch);
+        return histCollector.getSuiteRunHist(srvCode, buildTypeId, normalizedBaseBranch);
     }
 
     /** {@inheritDoc} */
@@ -440,7 +449,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         if (testName < 0 || buildTypeId < 0 || normalizedBaseBranch < 0)
             return null;
 
-        return histCollector.getTestRunHist(srvIdMaskHigh, testName, buildTypeId, normalizedBaseBranch);
+        return histCollector.getTestRunHist(srvCode, testName, buildTypeId, normalizedBaseBranch);
     }
 
     /** {@inheritDoc} */
@@ -554,9 +563,14 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             return null;
     }
 
-    //@GuavaCached(maximumSize = 100000, expireAfterAccessSecs = 90, softValues = true)
+    /** {@inheritDoc} */
     public Long getBuildStartTime(int buildId) {
         return histCollector.getBuildStartTime(srvIdMaskHigh, buildId);
+    }
+
+    /** {@inheritDoc} */
+    @Override public Integer getBorderForAgeForBuildId(int days) {
+        return buildStartTimeStorage.getBorderForAgeForBuildId(srvIdMaskHigh, days);
     }
 
     /** {@inheritDoc} */
@@ -568,6 +582,9 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             // providing fake builds
             return existingBuild != null ? existingBuild : new FatBuildCompacted().setFakeStub(true);
         }
+
+        if (existingBuild != null)
+            fatBuildDao.runTestMigrationIfNeeded(srvIdMaskHigh, existingBuild);
 
         FatBuildCompacted savedVer = fatBuildSync.loadBuild(conn, buildId, existingBuild, mode);
 

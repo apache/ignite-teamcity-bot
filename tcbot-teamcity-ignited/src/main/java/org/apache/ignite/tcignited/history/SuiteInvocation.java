@@ -25,6 +25,7 @@ import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcbot.persistence.IVersionedEntity;
 import org.apache.ignite.tcbot.persistence.Persisted;
 
 /**
@@ -32,7 +33,14 @@ import org.apache.ignite.tcbot.persistence.Persisted;
  * has time limitation of MAX_DAYS, may have TTL.
  */
 @Persisted
-public class SuiteInvocation {
+public class SuiteInvocation implements IVersionedEntity {
+    /** Latest version. */
+    private static final int LATEST_VERSION = 1;
+
+    /** Entity fields version. */
+    @SuppressWarnings("FieldCanBeLocal")
+    private short _ver = LATEST_VERSION;
+
     /** Server ID for queries */
     @QuerySqlField(orderedGroups = {@QuerySqlField.Group(name = "serverSuiteBranch", order = 0)})
     private int srvId;
@@ -50,7 +58,7 @@ public class SuiteInvocation {
 
     private Map<Integer, Invocation> tests = new HashMap<>();
 
-    Long buildStartTime;
+    private Long buildStartTime;
 
     public SuiteInvocation() {}
 
@@ -61,6 +69,17 @@ public class SuiteInvocation {
         this.buildStartTime = buildCompacted.getStartDateTs();
         this.suite = buildCompacted.toInvocation(comp, filter);
         this.buildTypeId = buildCompacted.buildTypeId();
+    }
+
+
+    /** {@inheritDoc} */
+    @Override public int version() {
+        return _ver;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int latestVersion() {
+        return LATEST_VERSION;
     }
 
     public void addTest(int testName, Invocation invocation) {

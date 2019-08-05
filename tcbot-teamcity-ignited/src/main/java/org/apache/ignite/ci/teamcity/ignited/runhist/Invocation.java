@@ -20,10 +20,13 @@ package org.apache.ignite.ci.teamcity.ignited.runhist;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcignited.history.ChangesState;
 
 import java.util.Map;
+import java.util.Set;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 
@@ -50,11 +53,8 @@ public class Invocation {
     /** Change present: 0 - no changes, 1 - changes present, 2- unknown */
     private byte changePresent;
 
-    /** Build Start date as timestamp. */
-    private long startDate;
-
-    /** Additional (important) build Pareters, which can be used for filtering. */
-    @Nullable private Map<Integer, Integer> parms;
+    /** Additional (important) build Parameters, which can be used for filtering. */
+    @Nullable private ParametersCompacted parameters;
 
     /**
      * Creates invocation.
@@ -87,18 +87,8 @@ public class Invocation {
         return status;
     }
 
-    public Invocation withStartDate(long startDateTs) {
-        this.startDate = startDateTs;
-
-        return this;
-    }
-
     public Invocation withChanges(int[] changes) {
-        int i = changes.length > 0 ? CHANGE_PRESENT : NO_CHANGES;
-
-        Preconditions.checkState(i < 128);
-
-        this.changePresent = (byte)i;
+        this.changePresent = (byte) (changes.length > 0 ? CHANGE_PRESENT : NO_CHANGES);
 
         return this;
     }
@@ -120,10 +110,6 @@ public class Invocation {
         return buildId;
     }
 
-    public long startDate() {
-        return startDate;
-    }
-
     /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)
@@ -133,21 +119,41 @@ public class Invocation {
         Invocation that = (Invocation)o;
         return buildId == that.buildId &&
             status == that.status &&
-            changePresent == that.changePresent &&
-            startDate == that.startDate;
+            changePresent == that.changePresent;
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(buildId, status, changePresent, startDate);
+        return Objects.hashCode(buildId, status, changePresent);
     }
 
     public Invocation withParameters(Map<Integer, Integer> parms) {
         if (parms == null || parms.isEmpty())
             return this;
 
-        this.parms = parms;
+        this.parameters = new ParametersCompacted(parms);
 
         return this;
+    }
+
+
+    public static boolean hasAnyParameterValue(ParametersCompacted parameters, @Nonnull Map<Integer, Integer> requireParamVal) {
+        if (parameters == null)
+            return false;
+
+        Set<Map.Entry<Integer, Integer>> entries = requireParamVal.entrySet();
+        for (Map.Entry<Integer, Integer> next : entries) {
+            Integer key = next.getKey();
+
+            int valId = parameters.findPropertyStringId(key);
+            if (java.util.Objects.equals(next.getValue(), valId))
+                return true;
+        }
+
+        return false;
+    }
+
+    public boolean containsParameterValue(Map<Integer, Integer> requireParameters) {
+        return hasAnyParameterValue(this.parameters, requireParameters);
     }
 }

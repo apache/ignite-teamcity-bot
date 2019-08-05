@@ -41,7 +41,7 @@ import org.apache.ignite.tcignited.buildlog.ITestLogCheckResult;
 import org.apache.ignite.tcignited.history.IRunHistory;
 
 import static org.apache.ignite.tcbot.common.util.TimeUtil.millisToDurationPrintable;
-import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
+import static org.apache.ignite.tcignited.buildref.BranchEquivalence.normalizeBranch;
 
 
 /**
@@ -51,7 +51,6 @@ import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
  */
 @SuppressWarnings({"WeakerAccess", "PublicField"})
 public class DsSuiteUi extends ShortSuiteUi {
-
     /** Has critical problem: Timeout, JMV Crash, Compilation Error or Failure on Metric */
     @Nullable public Boolean hasCriticalProblem;
 
@@ -81,9 +80,6 @@ public class DsSuiteUi extends ShortSuiteUi {
 
     /** Branch name in teamcity identification. */
     public String branchName;
-
-    /** Failure summary in tracked branch according to all runs history. */
-    @Nonnull public DsHistoryStatUi failsAllHist = new DsHistoryStatUi();
 
     /** Failure summary in tracked branch according to all runs history. */
     @Nonnull public DsHistoryStatUi criticalFails = new DsHistoryStatUi();
@@ -143,6 +139,7 @@ public class DsSuiteUi extends ShortSuiteUi {
      * @param includeTests Include tests - usually {@code true}, but it may be disabled for speeding up VISA collection.
      * @param calcTrustedTests
      * @param maxDurationSec 0 or negative means don't indclude. has no effect if tests not included
+     * @param requireParamVal filtering for runs history based on parameter value selected.
      */
     public DsSuiteUi initFromContext(ITeamcityIgnited tcIgnited,
         @Nonnull final MultBuildRunCtx suite,
@@ -150,16 +147,17 @@ public class DsSuiteUi extends ShortSuiteUi {
         @Nonnull IStringCompactor compactor,
         boolean includeTests,
         boolean calcTrustedTests,
-        int maxDurationSec) {
+        int maxDurationSec,
+        @Nullable Map<Integer, Integer> requireParamVal) {
         String failRateNormalizedBranch = normalizeBranch(baseBranch);
         Integer baseBranchId = compactor.getStringIdIfPresent(failRateNormalizedBranch);
-        IRunHistory baseBranchHist = suite.history(tcIgnited, baseBranchId);
+        IRunHistory baseBranchHist = suite.history(tcIgnited, baseBranchId, requireParamVal);
         initFrom(suite, tcIgnited, compactor, baseBranchHist);
 
         String curBranchNormalized = normalizeBranch(suite.branchName());
         Integer curBranchId = compactor.getStringIdIfPresent(curBranchNormalized);
 
-        initSuiteStat(tcIgnited, baseBranchId, curBranchId, suite, baseBranchHist);
+        initSuiteStat(tcIgnited, baseBranchId, curBranchId, suite, baseBranchHist, requireParamVal);
 
         Set<String> collect = suite.lastChangeUsers().collect(Collectors.toSet());
 
@@ -177,7 +175,6 @@ public class DsSuiteUi extends ShortSuiteUi {
         webToHist = buildWebLinkToHist(tcIgnited, suite);
         webToHistBaseBranch = buildWebLinkToHist(tcIgnited, suite, baseBranch);
 
-        Integer buildTypeIdId = suite.buildTypeIdId();
         if (includeTests) {
             List<TestCompactedMult> tests = suite.getFilteredTests(test ->
                 test.hasLongRunningTest(maxDurationSec)
@@ -191,19 +188,21 @@ public class DsSuiteUi extends ShortSuiteUi {
 
             tests.sort(Comparator.comparing(function).reversed());
 
-            tests.forEach(occurrence -> {
-                final DsTestFailureUi failure = new DsTestFailureUi();
-
-                failure.initFromOccurrence(occurrence, tcIgnited, suite.projectId(),
-                    suite.branchName(), baseBranch, baseBranchId);
-                failure.initStat(occurrence, buildTypeIdId, tcIgnited, baseBranchId, curBranchId);
-
-                testFailures.add(failure);
-            });
+            tests.stream()
+                .map(occurrence -> new DsTestFailureUi()
+                    .initFromOccurrence(occurrence,
+                        tcIgnited,
+                        suite.projectId(),
+                        suite.branchName(),
+                        baseBranch,
+                        baseBranchId,
+                        curBranchId,
+                        requireParamVal))
+                .forEach(testFailureUi -> testFailures.add(testFailureUi));
 
             suite.getTopLongRunning().forEach(occurrence -> {
                 if (occurrence.getAvgDurationMs() > TimeUnit.SECONDS.toMillis(15)) {
-                    final DsTestFailureUi failure = createOrrucForLongRun(tcIgnited, compactor, suite, occurrence, baseBranch);
+                    final DsTestFailureUi failure = createOrrucForLongRun(tcIgnited, compactor, suite, occurrence, baseBranch, requireParamVal);
 
                     topLongRunning.add(failure);
                 }
@@ -258,11 +257,12 @@ public class DsSuiteUi extends ShortSuiteUi {
         return this;
     }
 
-
     private IRunHistory initSuiteStat(ITeamcityIgnited tcIgnited,
         Integer failRateNormalizedBranch,
         Integer curBranchNormalized,
-        MultBuildRunCtx suite, IRunHistory referenceStat) {
+        MultBuildRunCtx suite,
+        IRunHistory referenceStat,
+        @Nullable Map<Integer, Integer> requireParamVal) {
         IRunHistory statInBaseBranch = referenceStat;
 
         if (statInBaseBranch != null) {
@@ -274,16 +274,12 @@ public class DsSuiteUi extends ShortSuiteUi {
             criticalFails.runs = runs;
             criticalFails.failureRate = statInBaseBranch.getCriticalFailPercentPrintable();
 
-            failsAllHist.failures = statInBaseBranch.getFailuresAllHist();
-            failsAllHist.runs = statInBaseBranch.getRunsAllHist();
-            failsAllHist.failureRate = statInBaseBranch.getFailPercentAllHistPrintable();
-
             latestRuns = statInBaseBranch.getLatestRunResults();
         }
 
         IRunHistory latestRunsSrc = null;
         if (!Objects.equals(failRateNormalizedBranch, curBranchNormalized)) {
-            IRunHistory statForStripe = suite.history(tcIgnited, curBranchNormalized);
+            IRunHistory statForStripe = suite.history(tcIgnited, curBranchNormalized, requireParamVal);
 
             latestRunsSrc = statForStripe;
             latestRuns = statForStripe != null ? statForStripe.getLatestRunResults() : null;
@@ -310,21 +306,18 @@ public class DsSuiteUi extends ShortSuiteUi {
         return failure;
     }
 
-    @Nonnull public static DsTestFailureUi createOrrucForLongRun(ITeamcityIgnited tcIgnited,
-        IStringCompactor compactor, @Nonnull MultBuildRunCtx suite,
-        final TestCompactedMult occurrence,
-        @Nullable final String failRateBranch) {
-        final DsTestFailureUi failure = new DsTestFailureUi();
-
+    @Nonnull
+    public static DsTestFailureUi createOrrucForLongRun(ITeamcityIgnited tcIgnited,
+        IStringCompactor compactor,
+        @Nonnull MultBuildRunCtx suite,
+        TestCompactedMult occurrence,
+        @Nullable String failRateBranch,
+        @Nullable Map<Integer, Integer> requireParamVal) {
         Integer baseBranchId = compactor.getStringIdIfPresent(normalizeBranch(failRateBranch));
-        Integer buildTypeIdId = suite.buildTypeIdId();
-        failure.initFromOccurrence(occurrence, tcIgnited, suite.projectId(), suite.branchName(),
-            failRateBranch, baseBranchId);
+        Integer curBranchId = compactor.getStringIdIfPresent(normalizeBranch(suite.branchName()));
 
-        failure.initStat(occurrence, buildTypeIdId, tcIgnited,  baseBranchId,
-            compactor.getStringIdIfPresent(normalizeBranch(suite.branchName())));
-
-        return failure;
+        return new DsTestFailureUi().initFromOccurrence(occurrence, tcIgnited, suite.projectId(), suite.branchName(),
+                failRateBranch, baseBranchId, curBranchId, requireParamVal);
     }
 
     public void findFailureAndAddWarning(String testName, ITestLogCheckResult logCheckRes) {
@@ -391,7 +384,6 @@ public class DsSuiteUi extends ShortSuiteUi {
             Objects.equals(serverId, status.serverId) &&
             Objects.equals(suiteId, status.suiteId) &&
             Objects.equals(branchName, status.branchName) &&
-            Objects.equals(failsAllHist, status.failsAllHist) &&
             Objects.equals(criticalFails, status.criticalFails) &&
             Objects.equals(latestRuns, status.latestRuns) &&
             Objects.equals(userCommits, status.userCommits) &&
@@ -411,7 +403,7 @@ public class DsSuiteUi extends ShortSuiteUi {
     @Override public int hashCode() {
         return Objects.hash(super.hashCode(), name, result, hasCriticalProblem, webToHist,
             webToHistBaseBranch, webToBuild, testFailures, topLongRunning, warnOnly, logConsumers, webUrlThreadDump,
-            runningBuildCount, queuedBuildCount, serverId, suiteId, branchName, failsAllHist, criticalFails, latestRuns,
+            runningBuildCount, queuedBuildCount, serverId, suiteId, branchName, criticalFails, latestRuns,
             userCommits, failedTests, durationPrintable, durationNetTimePrintable, sourceUpdateDurationPrintable,
             artifcactPublishingDurationPrintable, dependeciesResolvingDurationPrintable, testsDurationPrintable,
             lostInTimeouts, problemRef, blockerComment);

@@ -42,6 +42,7 @@ import javax.inject.Inject;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.util.FutureUtil;
 import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
@@ -51,8 +52,8 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.tcignited.buildlog.IBuildLogProcessor;
+import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.history.IRunHistory;
-import org.apache.ignite.tcignited.history.RunHistSync;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.slf4j.Logger;
@@ -139,7 +140,7 @@ public class BuildChainProcessor {
      * @param failRateBranch Fail rate branch.
      * @param mode background data update mode.
      * @param sortOption how to sort suites in context, default is by failure rate (most often - first).
-     * @param requireParamVal Require exact parameters value presence in the build.
+     * @param requireParamVal Require exact parameters value presence in the build. Null means no filtering.
      */
     @AutoProfiling
     public FullChainRunCtx loadFullChainContext(
@@ -156,7 +157,7 @@ public class BuildChainProcessor {
         if (entryPoints.isEmpty())
             return new FullChainRunCtx(Build.createFakeStub());
 
-        Integer failRateBranchId = compactor.getStringIdIfPresent(RunHistSync.normalizeBranch(failRateBranch));
+        Integer failRateBranchId = compactor.getStringIdIfPresent(BranchEquivalence.normalizeBranch(failRateBranch));
 
         Map<Integer, Future<FatBuildCompacted>> builds = loadAllBuildsInChains(entryPoints, mode, tcIgn);
 
@@ -194,7 +195,7 @@ public class BuildChainProcessor {
 
             //ask for history for the suite in parallel
             tcUpdatePool.getService().submit(() -> {
-                ctx.history(tcIgn, failRateBranchId);
+                ctx.history(tcIgn, failRateBranchId, null);
             });
 
             analyzeTests(ctx, tcIgn, procLog);
@@ -213,7 +214,7 @@ public class BuildChainProcessor {
 
         if (sortOption == null || sortOption == SortOption.FailureRate) {
             function = ctx -> {
-                IRunHistory runStat = ctx.history(tcIgn, failRateBranchId);
+                IRunHistory runStat = ctx.history(tcIgn, failRateBranchId, null);
 
                 if (runStat == null)
                     return 0d;
@@ -411,19 +412,7 @@ public class BuildChainProcessor {
     private boolean hasAnyParameterValue(@Nonnull Map<Integer, Integer> requireParamVal, FatBuildCompacted fatBuild) {
         ParametersCompacted parameters = fatBuild.parameters();
 
-        if (parameters == null)
-            return false;
-
-        Set<Map.Entry<Integer, Integer>> entries = requireParamVal.entrySet();
-        for (Map.Entry<Integer, Integer> next : entries) {
-            Integer key = next.getKey();
-
-            int valId = parameters.findPropertyStringId(key);
-            if (Objects.equals(next.getValue(), valId))
-                return true;
-        }
-
-        return false;
+        return Invocation.hasAnyParameterValue(parameters, requireParamVal);
     }
 
     @SuppressWarnings("WeakerAccess")

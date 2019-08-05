@@ -20,13 +20,12 @@ package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
+import org.apache.ignite.tcignited.build.TestCompactedV2;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted.extractIdPrefixed;
 
 /**
  *
@@ -59,7 +58,7 @@ public class ProblemCompacted {
         String problemIdStr = problemOccurrence.id();
         if (!Strings.isNullOrEmpty(problemIdStr)) {
             try {
-                final Integer problemId = extractIdPrefixed(problemIdStr, "problem:(id:", ")");
+                final Integer problemId = TestCompactedV2.extractIdPrefixed(problemIdStr, "problem:(id:", ")");
                 if (problemId != null)
                     id = problemId;
             } catch (Exception e) {

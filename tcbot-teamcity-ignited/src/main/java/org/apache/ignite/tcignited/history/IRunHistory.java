@@ -18,26 +18,12 @@ package org.apache.ignite.tcignited.history;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Test or Build run statistics.
  */
 public interface IRunHistory extends IRunStat, IRunHistSummary {
-    public int getFailuresAllHist();
-    public int getRunsAllHist();
-
-    public default float getFailRateAllHist() {
-        if (getRunsAllHist() == 0)
-            return 0.0f;
-
-        return 1.0f * getFailuresAllHist() / getRunsAllHist();
-    }
-
-    public default String getFailPercentAllHistPrintable() {
-        return IRunStat.getPercentPrintable(getFailRateAllHist() * 100.0f);
-    }
-
-
     @Nullable
     List<Integer> getLatestRunResults();
 
@@ -73,4 +59,6 @@ public interface IRunHistory extends IRunStat, IRunHistSummary {
 
         return 1.0f * getFailuresCount() / runs;
     }
+
+    Set<Integer> buildIds();
 }

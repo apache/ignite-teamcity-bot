@@ -31,6 +31,7 @@ import org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest;
 import org.apache.ignite.tcbot.engine.conf.TcBotJsonConfig;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.tcignited.buildlog.ILogProductSpecific;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
@@ -49,7 +50,6 @@ import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcignited.history.BuildStartTimeStorage;
-import org.apache.ignite.tcignited.history.RunHistSync;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcservice.TeamcityServiceConnection;
 import org.apache.ignite.tcservice.http.ITeamcityHttpConnection;
@@ -436,6 +436,7 @@ public class IgnitedTcInMemoryIntegrationTest {
             @Override protected void configure() {
                 bind(Ignite.class).toInstance(ignite);
                 bind(IStringCompactor.class).to(IgniteStringCompactor.class).in(new SingletonScope());
+                bind(ILogProductSpecific.class).toInstance(Mockito.mock(ILogProductSpecific.class));
             }
         });
 
@@ -620,8 +621,6 @@ public class IgnitedTcInMemoryIntegrationTest {
             fatBuildDao.putFatBuild(srvIdMaskHigh, id, build);
             buildRefDao.save(srvIdMaskHigh, new BuildRefCompacted(build));
         });
-
-        final RunHistSync histSync = injector.getInstance(RunHistSync.class);
 
         final IRunHistory testRunHist = srv.getTestRunHist(c.getStringId(PrChainsProcessorTest.TEST_FLAKY_IN_MASTER),
             c.getStringId(PrChainsProcessorTest.CACHE_1),

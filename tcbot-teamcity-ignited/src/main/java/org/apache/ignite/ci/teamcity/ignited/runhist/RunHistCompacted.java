@@ -18,20 +18,23 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import com.google.common.base.MoreObjects;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcignited.history.ChangesState;
 import org.apache.ignite.tcignited.history.IEventTemplate;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.RunStatus;
 
+import javax.annotation.Nullable;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 /**
  *
  */
-public class RunHistCompacted implements  IRunHistory {
+public class RunHistCompacted implements IRunHistory {
     /** Data. */
     private InvocationData data = new InvocationData();
 
@@ -50,16 +53,6 @@ public class RunHistCompacted implements  IRunHistory {
     /** {@inheritDoc} */
     @Override public int getFailuresCount() {
         return data.failuresCount();
-    }
-
-    /** {@inheritDoc} */
-    @Override public int getFailuresAllHist() {
-        return data.allHistFailures();
-    }
-
-    /** {@inheritDoc} */
-    @Override public int getRunsAllHist() {
-        return data.allHistRuns();
     }
 
     /** {@inheritDoc} */
@@ -108,6 +101,11 @@ public class RunHistCompacted implements  IRunHistory {
         return data.criticalFailuresCount();
     }
 
+    @Override
+    public Set<Integer> buildIds() {
+        return data.buildIds();
+    }
+
     private static int[] concatArr(int[] arr1, int[] arr2) {
         int[] arr1and2 = new int[arr1.length + arr2.length];
         System.arraycopy(arr1, 0, arr1and2, 0, arr1.length);
@@ -135,8 +133,8 @@ public class RunHistCompacted implements  IRunHistory {
 
         Integer detectedAt = null;
         if (t.shouldBeFirst()) {
-            if (histAsArr.size() >= getRunsAllHist()) // skip if total runs can't fit to latest runs
-                detectedAt = checkTemplateAtPos(template, centralEvtBuild, histAsArr, 0);
+            //todo detect somehow test is new (e.g. status absent for test history).
+            detectedAt = checkTemplateAtPos(template, centralEvtBuild, histAsArr, 0);
         }
         else {
             //startIgnite from the end to find most recent
@@ -200,7 +198,31 @@ public class RunHistCompacted implements  IRunHistory {
     /**
      * @param v Invocation.
      */
-    public void innerAddInvocation(Invocation v) {
-        data.innerAdd(v);
+    public void addInvocation(Invocation v) {
+        data.add(v);
+    }
+
+    public void sort() {
+        data.sort();
+    }
+
+    public RunHistCompacted filterSuiteInvByParms(Map<Integer, Integer> requireParameters) {
+        RunHistCompacted copy = new RunHistCompacted();
+
+        data.invocations()
+                .filter(invocation -> invocation.containsParameterValue(requireParameters))
+                .forEach(invocation -> copy.data.add(invocation));
+
+        return copy;
+    }
+
+    public RunHistCompacted filterByBuilds(Set<Integer> builds) {
+        RunHistCompacted copy = new RunHistCompacted();
+
+        data.invocations()
+                .filter(invocation -> builds.contains(invocation.buildId()))
+                .forEach(invocation -> copy.data.add(invocation));
+
+        return copy;
     }
 }

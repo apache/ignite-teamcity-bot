@@ -259,4 +259,8 @@ public interface ITeamcityIgnited {
      * should be re-synced.
      */
     public void actualizeRecentBuildRefs();
+
+    public Long getBuildStartTime(int buildId);
+
+    public Integer getBorderForAgeForBuildId(int days);
 }

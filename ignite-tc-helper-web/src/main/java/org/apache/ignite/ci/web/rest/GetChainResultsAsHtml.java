@@ -92,7 +92,7 @@ public class GetChainResultsAsHtml {
         status.chainName = ctx.suiteName();
 
         IStringCompactor c = injector.getInstance(IStringCompactor.class);
-        status.initFromContext(tcIgn, ctx, failRateBranch, c, false, null, null, -1);
+        status.initFromContext(tcIgn, ctx, failRateBranch, c, false, null, null, -1, null);
 
         res.append(showChainAtServerData(status));
 
@@ -276,13 +276,6 @@ public class GetChainResultsAsHtml {
 
             if(isDefinedAndFilled(hist.recent))
                 testFailTitle = "recent rate: " + hist.recent.failures + " fails / " + hist.recent.runs + " runs" ;
-
-            if(isDefinedAndFilled(hist.allTime) && isDefinedAndFilled(hist.allTime.failures)) {
-                testFailTitle +=
-                    "; all history: " + hist.allTime.failureRate + "% ["+
-                        hist.allTime.failures + " fails / " +
-                        hist.allTime.runs + " runs] " ;
-            }
 
             histContent += " <span title='" +testFailTitle + "'>";
 

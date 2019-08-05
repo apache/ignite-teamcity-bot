@@ -150,14 +150,14 @@ public class IssueDetectorTest {
         for (int i = 0; i < histLen; i++) {
             FatBuildCompacted pds1Build
                 = createFatBuild(c, "PDS1", ITeamcity.DEFAULT, 1100 + i, 1000 * i, false)
-                .addTests(c, testsMapToXmlModel(pds1Hist, histLen, i))
+                .addTests(c, testsMapToXmlModel(pds1Hist, histLen, i), null)
                 .changes(new int[] {i});
 
             apacheBuilds.put(pds1Build.id(), pds1Build);
 
             FatBuildCompacted pds2Build
                 = createFatBuild(c, "PDS2_noChanges", ITeamcity.DEFAULT, 1200 + i, 1000 * i, false)
-                .addTests(c, testsMapToXmlModel(buildWoChanges, histLen, i));
+                .addTests(c, testsMapToXmlModel(buildWoChanges, histLen, i), null);
 
             apacheBuilds.put(pds2Build.id(), pds2Build);
 

@@ -18,13 +18,14 @@ package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -41,6 +42,9 @@ import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.IVersionedEntity;
 import org.apache.ignite.tcbot.persistence.Persisted;
+import org.apache.ignite.tcignited.build.ITest;
+import org.apache.ignite.tcignited.build.TestCompactedV2;
+import org.apache.ignite.tcignited.buildlog.ILogProductSpecific;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcservice.model.conf.BuildType;
 import org.apache.ignite.tcservice.model.conf.bt.Parameters;
@@ -108,7 +112,11 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     /** Suite Name for this builds. */
     private int name = -1;
 
+    //field is still present for older DB records
+    @SuppressWarnings("unused")
     @Nullable private List<TestCompacted> tests;
+
+    @Nullable private List<ITest> testsV2;
 
     @Nullable private int snapshotDeps[];
 
@@ -280,10 +288,10 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         type.setProjectId(projectId(compactor));
         res.setBuildType(type);
 
-        if (tests != null) {
+        if (testsV2 != null) {
             TestOccurrencesRef testOccurrencesRef = new TestOccurrencesRef();
             testOccurrencesRef.href = "/app/rest/latest/testOccurrences?locator=build:(id:" + id() + ")";
-            testOccurrencesRef.count = tests.size();
+            testOccurrencesRef.count = testsV2.size();
             res.testOccurrences = testOccurrencesRef;
         }
 
@@ -357,15 +365,17 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     /**
      * @param compactor Compactor.
      * @param page Page.
+     * @param specific
      */
-    public FatBuildCompacted addTests(IStringCompactor compactor, List<TestOccurrenceFull> page) {
+    public FatBuildCompacted addTests(IStringCompactor compactor, List<TestOccurrenceFull> page,
+        ILogProductSpecific specific) {
         for (TestOccurrenceFull next : page) {
-            TestCompacted compacted = new TestCompacted(compactor, next);
+            TestCompactedV2 compacted = new TestCompactedV2(compactor, next, specific);
 
-            if (tests == null)
-                tests = new ArrayList<>();
+            if (testsV2 == null)
+                testsV2 = new ArrayList<>();
 
-            tests.add(compacted);
+            testsV2.add(compacted);
         }
 
         return this;
@@ -400,13 +410,13 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
      * @param compactor Compactor.
      */
     public TestOccurrencesFull getTestOcurrences(IStringCompactor compactor) {
-        if (tests == null)
+        if (testsV2 == null)
             return new TestOccurrencesFull();
 
         List<TestOccurrenceFull> res = new ArrayList<>();
 
-        for (TestCompacted compacted : tests)
-            res.add(compacted.toTestOccurrence(compactor, id()));
+        for (ITest compacted : testsV2)
+            res.add(TestCompactedV2.toTestOccurrence(compacted, compactor, id()));
 
         TestOccurrencesFull testOccurrences = new TestOccurrencesFull();
 
@@ -441,6 +451,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             projectId == that.projectId &&
             name == that.name &&
             Objects.equals(tests, that.tests) &&
+            Objects.equals(testsV2, that.testsV2) &&
             Arrays.equals(snapshotDeps, that.snapshotDeps) &&
             Objects.equals(flags, that.flags) &&
             Objects.equals(problems, that.problems) &&
@@ -453,7 +464,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        int res = Objects.hash(super.hashCode(), _ver, startDate, finishDate, queuedDate, projectId, name, tests, flags, problems, statistics, triggered, buildParameters);
+        int res = Objects.hash(super.hashCode(), _ver, startDate, finishDate, queuedDate, projectId, name, tests,
+            testsV2, flags, problems, statistics, triggered, buildParameters);
         res = 31 * res + Arrays.hashCode(snapshotDeps);
         res = 31 * res + Arrays.hashCode(changesIds);
         res = 31 * res + Arrays.hashCode(revisions);
@@ -490,11 +502,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         return flag != null && flag;
     }
 
-    public Stream<TestCompacted> getFailedNotMutedTests(IStringCompactor compactor) {
-        if (tests == null)
-            return Stream.of();
-
-        return tests.stream()
+    public Stream<ITest> getFailedNotMutedTests(IStringCompactor compactor) {
+        return getAllTests()
                 .filter(t -> t.isFailedButNotMuted(compactor));
     }
 
@@ -502,14 +511,20 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         return getFailedNotMutedTests(compactor).map(t -> t.testName(compactor));
     }
 
-    public Stream<TestCompacted> getAllTests() {
+    public Stream<ITest> getAllTests() {
+        if (testsV2 != null)
+            return testsV2.stream();
+
         if (tests == null)
             return Stream.of();
 
-        return tests.stream();
+        return tests.stream().map(t -> t);
     }
 
     public int getTestsCount() {
+        if (testsV2 != null)
+            return testsV2.size();
+
         return tests != null ? tests.size() : 0;
     }
 
@@ -616,6 +631,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             .add("projectId", projectId)
             .add("name", name)
             .add("tests", tests)
+            .add("testsV2", testsV2)
             .add("snapshotDeps", snapshotDeps)
             .add("flags", flags)
             .add("problems", problems)
@@ -648,10 +664,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         Invocation invocation = new Invocation(getId())
             .withStatus(failCode)
-            .withStartDate(getStartDateTs())
             .withChanges(changes());
 
-        java.util.Map<Integer, Integer> importantParms = new TreeMap<>();
+        Map<Integer, Integer> importantParms = new TreeMap<>();
 
         ParametersCompacted parameters = parameters();
 
@@ -660,7 +675,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
                 if (paramsFilter.test(k, v))
                     importantParms.put(k, v);
             });
-            //todo save parameters
+
+            if (!importantParms.isEmpty())
+                invocation.withParameters(importantParms);
         }
 
         return invocation;
@@ -704,19 +721,33 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     }
 
     public int totalNotMutedTests() {
-        if(tests == null)
-            return 0;
-
-        int cnt = 0;
-        for (TestCompacted next : tests) {
-            if (!next.isMutedTest() && !next.isIgnoredTest())
-                cnt++;
-        }
-
-        return cnt;
+        return (int)getAllTests().filter(next -> !next.isMutedTest() && !next.isIgnoredTest()).count();
     }
 
     public long getFinishDateTs() {
         return finishDate;
+    }
+
+    public boolean migrateTests(ILogProductSpecific specific) {
+        if (tests == null || tests.isEmpty())
+            return false;
+
+        if (testsV2 != null)
+            return false;
+
+        testsV2 = tests.stream()
+            .map(t -> new TestCompactedV2().copyFrom(t, specific))
+            .collect(Collectors.toList());
+
+        tests.clear();
+        tests = null;
+        return true;
+    }
+
+    void oldTestsFmtAdd(TestCompacted  compacted) {
+        if ( tests == null)
+             tests = new ArrayList<>();
+
+        tests.add(compacted);
     }
 }

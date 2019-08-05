@@ -20,18 +20,15 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
-
+import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
 import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi;
 import org.apache.ignite.tcbot.engine.ui.ShortTestFailureUi;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcservice.model.conf.BuildType;
@@ -41,21 +38,19 @@ import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
 import org.apache.ignite.tcservice.model.result.tests.TestRef;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.user.ITcBotUserCreds;
-import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
-import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -205,17 +200,21 @@ public class PrChainsProcessorTest {
     public Map<Integer, FatBuildCompacted> initHistory(IStringCompactor c) {
         for (int i = 0; i < NUM_OF_TESTS_IN_MASTER; i++) {
             FatBuildCompacted cache1InMaster = createFailedBuild(c, CACHE_1,
-                ITeamcity.DEFAULT, 500 + i, 100000 + (i * 10000))
+                ITeamcity.DEFAULT, 500 + i, (i * 1000))
                 .addTests(c, Lists.newArrayList(
                     createFailedTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER),
                     createPassingTest(3L, TEST_WITH_HISTORY_PASSING_IN_MASTER),
                     createTest(50L, TEST_FLAKY_IN_MASTER, i % 2 == 0),
-                    createPassingTest(400L, TEST_WAS_FIXED_IN_MASTER)));
+                    createPassingTest(400L, TEST_WAS_FIXED_IN_MASTER)), null);
 
             if (i % 7 == 1) {
                 ProblemOccurrence timeout = new ProblemOccurrence();
                 timeout.setType(ProblemOccurrence.TC_EXECUTION_TIMEOUT);
                 cache1InMaster.addProblems(c, Collections.singletonList(timeout));
+            }
+
+            if (i == 0) {
+                cache1InMaster.changes(new int[]{123}); // emulating change
             }
 
             addBuildsToEmulatedStor(cache1InMaster);
@@ -227,7 +226,7 @@ public class PrChainsProcessorTest {
             addBuildsToEmulatedStor(createFailedBuild(c, CACHE_1,
                 ITeamcity.DEFAULT, i, ageMs + (i * 10000))
                 .addTests(c, Lists.newArrayList(
-                    createFailedTest(400L, TEST_WAS_FIXED_IN_MASTER))));
+                    createFailedTest(400L, TEST_WAS_FIXED_IN_MASTER)), null));
         }
 
         for (int i = 0; i < 10; i++) {
@@ -239,7 +238,7 @@ public class PrChainsProcessorTest {
                             createPassingTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER),
                             createPassingTest(3L, TEST_WITH_HISTORY_PASSING_IN_MASTER),
                             createPassingTest(50L, TEST_FLAKY_IN_MASTER),
-                            createPassingTest(400L, TEST_WAS_FIXED_IN_MASTER)));
+                            createPassingTest(400L, TEST_WAS_FIXED_IN_MASTER)), null);
 
             addBuildsToEmulatedStor(successfull);
         }
@@ -254,7 +253,7 @@ public class PrChainsProcessorTest {
                 .addTests(c,
                     Lists.newArrayList(
                         createTest(1L, TEST_RARE_FAILED_WITHOUT_CHANGES, !failNoChanges),
-                        createTest(2L, TEST_RARE_FAILED_WITH_CHANGES, !failWithChanges)));
+                        createTest(2L, TEST_RARE_FAILED_WITH_CHANGES, !failWithChanges)), null);
 
             if (failWithChanges || i == 56) // addBuild change to test status change after failure.
                 fatBuild.changes(new int[] {1000000 + i, 1000020 + i});
@@ -286,7 +285,7 @@ public class PrChainsProcessorTest {
                         createFailedTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER),
                         createFailedTest(3L, TEST_WITH_HISTORY_PASSING_IN_MASTER),
                         createFailedTest(50L, TEST_FLAKY_IN_MASTER),
-                        createFailedTest(400L, TEST_WAS_FIXED_IN_MASTER)));
+                        createFailedTest(400L, TEST_WAS_FIXED_IN_MASTER)), null);
 
         cache1.snapshotDependencies(new int[] {buildBuild.id()});
 
@@ -319,7 +318,7 @@ public class PrChainsProcessorTest {
             .addTests(c,
                 Lists.newArrayList(
                     createFailedTest(1L, TEST_RARE_FAILED_WITH_CHANGES),
-                    createFailedTest(2L, TEST_RARE_FAILED_WITHOUT_CHANGES)));
+                    createFailedTest(2L, TEST_RARE_FAILED_WITHOUT_CHANGES)), null);
 
         cache9.snapshotDependencies(new int[] {buildBuild.id()});
 
@@ -413,7 +412,7 @@ public class PrChainsProcessorTest {
                 createFailedBuild(c, CACHE_8, branch, 9331 + i, 100090)
                     .addTests(c,
                         Lists.newArrayList(
-                            createTest(1L, TEST_BECAME_FAILED_IN_BRANCH, i < firstFailedBuild)))
+                            createTest(1L, TEST_BECAME_FAILED_IN_BRANCH, i < firstFailedBuild)), null)
                     .snapshotDependencies(new int[] {buildBuild.id()});
 
             if (i == firstFailedBuild)

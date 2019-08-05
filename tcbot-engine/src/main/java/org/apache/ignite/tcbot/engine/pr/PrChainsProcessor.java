@@ -49,9 +49,9 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 import org.apache.ignite.tcignited.history.IRunHistory;
-import org.apache.ignite.tcignited.history.RunHistSync;
 import org.apache.ignite.tcservice.ITeamcity;
 
 /**
@@ -165,7 +165,8 @@ public class PrChainsProcessor {
                 runningUpdates.addAndGet(cnt0);
 
             //fail rate reference is always default (master)
-            chainStatus.initFromContext(tcIgnited, ctx, baseBranchForTc, compactor, false, null, null, -1); // don't need for PR
+            chainStatus.initFromContext(tcIgnited, ctx, baseBranchForTc, compactor, false,
+                    null, null, -1, null); // don't need for PR
 
             initJiraAndGitInfo(chainStatus, jiraIntegration, gitHubConnIgnited);
         }
@@ -293,7 +294,7 @@ public class PrChainsProcessor {
     private List<ShortSuiteUi> findBlockerFailures(FullChainRunCtx fullChainRunCtx,
         ITeamcityIgnited tcIgnited,
         String baseBranch) {
-        String normalizedBaseBranch = RunHistSync.normalizeBranch(baseBranch);
+        String normalizedBaseBranch = BranchEquivalence.normalizeBranch(baseBranch);
         Integer baseBranchId = compactor.getStringIdIfPresent(normalizedBaseBranch);
 
         Predicate<MultBuildRunCtx> filter = suite ->
@@ -302,7 +303,7 @@ public class PrChainsProcessor {
         return fullChainRunCtx
             .filteredChildSuites(filter)
             .map((ctx) -> {
-                IRunHistory statInBaseBranch = ctx.history(tcIgnited, baseBranchId);
+                IRunHistory statInBaseBranch = ctx.history(tcIgnited, baseBranchId, null);
 
                 String suiteComment = ctx.getPossibleBlockerComment(compactor, statInBaseBranch, tcIgnited.config());
 

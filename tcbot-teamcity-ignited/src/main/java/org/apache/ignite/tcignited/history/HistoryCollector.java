@@ -18,43 +18,50 @@ package org.apache.ignite.tcignited.history;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Iterables;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiPredicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.Nonnull;
+import javax.cache.Cache;
+import javax.inject.Inject;
+import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
 import org.apache.ignite.tcbot.common.TcBotConst;
+import org.apache.ignite.tcbot.common.conf.IBuildParameterSpec;
+import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
+import org.apache.ignite.tcbot.common.conf.TcBotSystemProperties;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.exeption.ServicesStartingException;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.build.FatBuildDao;
+import org.apache.ignite.tcignited.build.ITest;
 import org.apache.ignite.tcignited.build.SuiteHistory;
+import org.apache.ignite.tcignited.build.TestCompactedV2;
 import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.cache.Cache;
-import javax.inject.Inject;
-import javax.inject.Provider;
-import java.time.Duration;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiPredicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  *
@@ -84,42 +91,43 @@ public class HistoryCollector {
     /** Run history DAO. */
     @Inject private BuildStartTimeStorage buildStartTimeStorage;
 
+    @Inject private IDataSourcesConfigSupplier cfg;
+
     /**
      * Non persistence cache for all suite RunHistory for particular branch. RunHistKey(ServerId||BranchId||suiteId)->
      * Build reference
      */
     private final com.google.common.cache.Cache<RunHistKey, SuiteHistory> runHistInMemCache
         = CacheBuilder.newBuilder()
-        .maximumSize(8000)
+        .maximumSize(Boolean.valueOf(System.getProperty(TcBotSystemProperties.DEV_MODE)) ? 1000 : 8000)
         .expireAfterAccess(16, TimeUnit.MINUTES)
         .softValues()
         .build();
 
-    /** Biggest build ID, which out of history scope (MAX days + 2). */
-    private final ConcurrentMap<Integer, AtomicInteger> biggestBuildIdOutOfHistScope = new ConcurrentHashMap<>();
-
     /**
-     * @param srvIdMaskHigh Server id mask to be placed at high bits in the key.
+     * @param srvCode Server id mask to be placed at high bits in the key.
      * @param testName Test name.
      * @param buildTypeId Suite (Build type) id.
      * @param normalizedBaseBranch Branch name.
      */
-    public IRunHistory getTestRunHist(int srvIdMaskHigh, int testName, int buildTypeId,
-        int normalizedBaseBranch) {
+    public IRunHistory getTestRunHist(String srvCode, int testName, int buildTypeId,
+                                      int normalizedBaseBranch) {
 
-        SuiteHistory hist = getSuiteHist(srvIdMaskHigh, buildTypeId, normalizedBaseBranch);
+        SuiteHistory hist = getSuiteHist(srvCode, buildTypeId, normalizedBaseBranch);
 
         return hist.getTestRunHist(testName);
     }
 
+    @SuppressWarnings("WeakerAccess")
     @AutoProfiling
-    protected SuiteHistory getSuiteHist(int srvIdMaskHigh, int buildTypeId, int normalizedBaseBranch) {
-        RunHistKey runHistKey = new RunHistKey(srvIdMaskHigh, buildTypeId, normalizedBaseBranch);
+    protected SuiteHistory getSuiteHist(String srvCode, int buildTypeId, int normalizedBaseBranch) {
+        int srvId = ITeamcityIgnited.serverIdToInt(srvCode);
+        RunHistKey runHistKey = new RunHistKey(srvId, buildTypeId, normalizedBaseBranch);
 
         SuiteHistory hist;
         try {
             hist = runHistInMemCache.get(runHistKey,
-                () -> loadSuiteHistory(srvIdMaskHigh, buildTypeId, normalizedBaseBranch));
+                () -> loadSuiteHistory(srvCode, buildTypeId, normalizedBaseBranch));
         }
         catch (ExecutionException e) {
             throw ExceptionUtil.propagateException(e);
@@ -147,24 +155,19 @@ public class HistoryCollector {
         long curTs = System.currentTimeMillis();
         Set<Integer> buildIds = bRefsList.stream()
             .filter(b -> {
-               /* AtomicInteger biggestIdOutOfScope = biggestBuildIdOutOfHistoryScope.get(srvId);
-                int outOfScopeBuildId = biggestIdOutOfScope == null ? -1 : biggestIdOutOfScope.get();
-                return b.id() > outOfScopeBuildId;
-                */
-
                 Integer maxBuildIdForDay = buildStartTimeStorage.getBorderForAgeForBuildId(srvId, TcBotConst.HISTORY_BUILD_ID_BORDER_DAYS);
 
                 if (maxBuildIdForDay == null)
                     return true;
 
-                return b.id()>maxBuildIdForDay;
+                return b.id() > maxBuildIdForDay;
 
             })
             .filter(this::applicableForHistory)
             .map(BuildRefCompacted::id)
             .filter(bId -> !knownBuilds.contains(bId)).collect(Collectors.toSet());
 
-        System.out.println("***** Loading build start time history for suite "
+        logger.info("***** Loading build start time history for suite "
             + compactor.getStringFromId(buildTypeId)
             + " branch " + compactor.getStringFromId(normalizedBaseBranch) + ": " + buildIds.size() + " builds" );
 
@@ -181,33 +184,17 @@ public class HistoryCollector {
             buildStartTimeStorage.setBuildsStartTime(srvId, buildStartTimeFromFatBuild);
         }
 
+        long minBuildStartTs = curTs - Duration.ofDays(TcBotConst.HISTORY_MAX_DAYS).toMillis();
+
         Set<Integer> buildInScope = buildIds.stream().filter(
             bId -> {
                 Long startTime = buildStartTimes.get(bId);
-                if (startTime == null)
-                    return false;
 
-                long ageInDays = Duration.ofMillis(curTs - startTime).toDays();
-
-                if (ageInDays > TcBotConst.HISTORY_BUILD_ID_BORDER_DAYS) {
-                    AtomicInteger integer = biggestBuildIdOutOfHistScope.computeIfAbsent(srvId,
-                        s -> {
-                            AtomicInteger atomicInteger = new AtomicInteger();
-                            atomicInteger.set(-1);
-                            return atomicInteger;
-                        });
-
-                    int newBorder = integer.accumulateAndGet(bId, Math::max);
-
-                    if (newBorder == bId)
-                        logger.info("History Collector: New border for server was set " + bId);
-                }
-
-                return ageInDays < TcBotConst.HISTORY_MAX_DAYS;
+                return startTime != null && startTime > minBuildStartTs;
             }
         ).collect(Collectors.toSet());
 
-        System.err.println("*** Build " + btId + " branch " + branchId + " builds in scope " +
+        logger.info("*** Build " + btId + " branch " + branchId + " builds in scope " +
             buildInScope.size() + " from " + bRefsList.size());
 
         return buildInScope;
@@ -233,9 +220,10 @@ public class HistoryCollector {
     }
 
     @AutoProfiling
-    protected SuiteHistory loadSuiteHistory(int srvId,
-        int buildTypeId,
-        int normalizedBaseBranch) {
+    protected SuiteHistory loadSuiteHistory(String srvCode,
+                                            int buildTypeId,
+                                            int normalizedBaseBranch) {
+        int srvId = ITeamcityIgnited.serverIdToInt(srvCode);
         Map<Integer, SuiteInvocation> suiteRunHist = histDao.getSuiteRunHist(srvId, buildTypeId, normalizedBaseBranch);
 
         logger.info("***** Found history for suite "
@@ -249,31 +237,21 @@ public class HistoryCollector {
         missedBuildsIds.removeAll(suiteRunHist.keySet());
 
         if (!missedBuildsIds.isEmpty()) {
-            Map<Integer, SuiteInvocation> addl = addSuiteInvocationsToHistory(srvId, missedBuildsIds, normalizedBaseBranch);
+            Map<Integer, SuiteInvocation> addl = addSuiteInvocationsToHistory(srvCode, missedBuildsIds, normalizedBaseBranch);
 
             suiteRunHist.putAll(addl);
-
-            /*
-            Map<Integer, SuiteInvocation> reloaded = histDao.getSuiteRunHist(srvId, buildTypeId, normalizedBaseBranch);
-
-            addl.keySet().forEach((k) -> {
-                Preconditions.checkState( reloaded.containsKey(k));
-            });
-            */
         }
 
-        SuiteHistory sumary = new SuiteHistory();
-
-        suiteRunHist.forEach((buildId, suiteInv) -> sumary.addSuiteInvocation(suiteInv));
+        SuiteHistory summary = new SuiteHistory(suiteRunHist);
 
         if (logger.isDebugEnabled()) {
             logger.debug("***** History for suite "
                 + compactor.getStringFromId(buildTypeId)
                 + " branch" + compactor.getStringFromId(normalizedBaseBranch) + " requires " +
-                sumary.size(igniteProvider.get()) + " bytes");
+                summary.size(igniteProvider.get()) + " bytes");
         }
 
-        return sumary;
+        return summary;
     }
 
     /**
@@ -286,29 +264,46 @@ public class HistoryCollector {
         runHistInMemCache.invalidate(inv);
     }
 
+    @Nonnull
+    private Set<Integer> getFilteringParameters(String srvCode) {
+        Set<String> importantParameters = new HashSet<>();
+
+        cfg.getTeamcityConfig(srvCode)
+                .filteringParameters()
+                .stream()
+                .map(IBuildParameterSpec::name)
+                .forEach(importantParameters::add);
+
+        return importantParameters.stream().map(k -> compactor.getStringId(k)).collect(Collectors.toSet());
+    }
 
     @AutoProfiling
-    protected Map<Integer, SuiteInvocation> addSuiteInvocationsToHistory(int srvId,
-        HashSet<Integer> missedBuildsIds, int normalizedBaseBranch) {
+    protected Map<Integer, SuiteInvocation> addSuiteInvocationsToHistory(String srvCode,
+                                                                         HashSet<Integer> missedBuildsIds,
+                                                                         int normalizedBaseBranch) {
+
+        Set<Integer> filteringParameters = getFilteringParameters(srvCode);
+        BiPredicate<Integer, Integer> paramsFilter = (k, v) -> filteringParameters.contains(k);
+
         Map<Integer, SuiteInvocation> suiteRunHist = new HashMap<>();
         int successStatusStrId = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
 
-        System.err.println(Thread.currentThread().getName() + ": GET ALL: " + missedBuildsIds.size());
+        logger.info(Thread.currentThread().getName() + "addSuiteInvocationsToHistory: getAll: " + missedBuildsIds.size());
 
+        int srvId = ITeamcityIgnited.serverIdToInt(srvCode);
         Iterables.partition(missedBuildsIds, 32 * 10).forEach(
             chunk -> {
                 fatBuildDao.getAllFatBuilds(srvId, chunk).forEach((buildCacheKey, fatBuildCompacted) -> {
                     if (!applicableForHistory(fatBuildCompacted))
                         return;
 
-                    BiPredicate<Integer, Integer> paramsFilter = (k, v) -> false;
-
                     SuiteInvocation sinv = new SuiteInvocation(srvId, normalizedBaseBranch, fatBuildCompacted, compactor, paramsFilter);
 
-                    Stream<TestCompacted> tests = fatBuildCompacted.getAllTests();
+                    Stream<ITest> tests = fatBuildCompacted.getAllTests();
                     tests.forEach(
                         testCompacted -> {
-                            Invocation invocation = testCompacted.toInvocation(fatBuildCompacted, paramsFilter, successStatusStrId);
+                            Invocation invocation = TestCompactedV2.toInvocation(testCompacted,
+                                fatBuildCompacted, successStatusStrId);
 
                             sinv.addTest(testCompacted.testName(), invocation);
                         }
@@ -320,7 +315,7 @@ public class HistoryCollector {
         );
 
 
-        System.err.println("***** + Adding to persisted history   "
+        logger.info("***** + Adding to persisted history   "
             + " branch " + compactor.getStringFromId(normalizedBaseBranch) + ": added " +
             suiteRunHist.size() + " invocations from " + missedBuildsIds.size() + " builds checked");
 
@@ -330,12 +325,12 @@ public class HistoryCollector {
     }
 
     /**
-     * @param srvId Server id.
+     * @param srvCode Server code.
      * @param buildTypeId Build type id.
      * @param normalizedBaseBranch Normalized base branch.
      */
-    public ISuiteRunHistory getSuiteRunHist(int srvId, int buildTypeId,  int  normalizedBaseBranch) {
-        return getSuiteHist(srvId, buildTypeId, normalizedBaseBranch);
+    public ISuiteRunHistory getSuiteRunHist(String srvCode, int buildTypeId,  int  normalizedBaseBranch) {
+        return getSuiteHist(srvCode, buildTypeId, normalizedBaseBranch);
     }
 
 

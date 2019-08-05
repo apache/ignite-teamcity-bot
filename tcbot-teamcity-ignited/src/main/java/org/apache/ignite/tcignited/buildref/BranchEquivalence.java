@@ -19,6 +19,7 @@ package org.apache.ignite.tcignited.buildref;
 import com.google.common.collect.Lists;
 import java.util.Collections;
 import java.util.List;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.tcservice.ITeamcity;
 
@@ -27,6 +28,22 @@ public class BranchEquivalence {
     private static final List<String> DEFAULT_SYNONYMS
         = Collections.unmodifiableList(
         Lists.newArrayList(ITeamcity.DEFAULT, ITeamcity.REFS_HEADS_MASTER, ITeamcity.MASTER));
+
+    /**
+     * @param branchName Branch name.
+     */
+    @Nonnull
+    public static String normalizeBranch(@Nullable String branchName) {
+        String branch = branchName == null ? ITeamcity.DEFAULT : branchName;
+
+        if (ITeamcity.REFS_HEADS_MASTER.equals(branch))
+            return ITeamcity.DEFAULT;
+
+        if (ITeamcity.MASTER.equals(branch))
+            return ITeamcity.DEFAULT;
+
+        return branch;
+    }
 
 
     public List<String> branchForQuery(@Nullable String branchName) {

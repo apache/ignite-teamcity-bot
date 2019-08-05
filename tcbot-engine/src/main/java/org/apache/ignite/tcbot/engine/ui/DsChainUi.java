@@ -39,7 +39,7 @@ import org.apache.ignite.tcservice.model.conf.BuildType;
 
 import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.createOccurForLogConsumer;
 import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.createOrrucForLongRun;
-import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
+import static org.apache.ignite.tcignited.buildref.BranchEquivalence.normalizeBranch;
 
 /**
  * Detailed status of PR or tracked branch for chain.
@@ -165,7 +165,8 @@ public class DsChainUi {
         boolean calcTrustedTests,
         @Nullable String tagSelected,
         @Nullable DisplayMode displayMode,
-        int maxDurationSec) {
+        int maxDurationSec,
+        @Nullable Map<Integer, Integer> requireParamVal) {
         failedTests = 0;
         failedToFinish = 0;
         totalTests = 0;
@@ -188,8 +189,8 @@ public class DsChainUi {
             .filter(suite -> !suite.isComposite())
             .filter(suiteFilter)
             .peek(suite -> {
-                Integer totalTests = suite.totalTests();
-                this.totalTests += totalTests != null ? totalTests : 0;
+                int totalTests = suite.totalTests();
+                this.totalTests += totalTests;
 
                 if (calcTrustedTests)
                     trustedTests += suite.trustedTests(tcIgnited, baseBranchId);
@@ -202,10 +203,15 @@ public class DsChainUi {
                     || dModeToUse == DisplayMode.ShowAllSuites
                     || suite.hasTestToReport(tcIgnited, baseBranchId)
                     || suite.hasLongRunningTest(maxDurationSec)) {
-                    final DsSuiteUi suiteCurStatus = new DsSuiteUi();
-
-                    suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true, calcTrustedTests,
-                        maxDurationSec);
+                    DsSuiteUi suiteCurStatus = new DsSuiteUi()
+                        .initFromContext(tcIgnited,
+                            suite,
+                            baseBranchTc,
+                            compactor,
+                            true,
+                            calcTrustedTests,
+                            maxDurationSec,
+                            requireParamVal);
 
                     failedTests += suiteCurStatus.failedTests != null ? suiteCurStatus.failedTests : 0;
 
@@ -241,7 +247,7 @@ public class DsChainUi {
                 MultBuildRunCtx suite = pairCtxAndOccur.get1();
                 TestCompactedMult longRunningOccur = pairCtxAndOccur.get2();
 
-                DsTestFailureUi failure = createOrrucForLongRun(tcIgnited, compactor, suite, longRunningOccur, baseBranchTc);
+                DsTestFailureUi failure = createOrrucForLongRun(tcIgnited, compactor, suite, longRunningOccur, baseBranchTc, requireParamVal);
 
                 failure.testName = "[" + suite.suiteName() + "] " + failure.testName; //may be separate field
 

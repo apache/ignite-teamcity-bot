@@ -107,7 +107,7 @@ public class TrackedBranchProcessorTest {
             .addTests(c,
                 Lists.newArrayList(
                     createTest(1L, TEST_RARE_FAILED_WITHOUT_CHANGES, false),
-                    createTest(2L, TEST_RARE_FAILED_WITH_CHANGES, false)));
+                    createTest(2L, TEST_RARE_FAILED_WITH_CHANGES, false)), null);
 
         fatBuild.changes(new int[] {1000000 + buildCnt, 1000020 + buildCnt});
 
