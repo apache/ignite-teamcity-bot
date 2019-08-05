@@ -18,20 +18,23 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import com.google.common.base.MoreObjects;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcignited.history.ChangesState;
 import org.apache.ignite.tcignited.history.IEventTemplate;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.RunStatus;
 
+import javax.annotation.Nullable;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 /**
  *
  */
-public class RunHistCompacted implements  IRunHistory {
+public class RunHistCompacted implements IRunHistory {
     /** Data. */
     private InvocationData data = new InvocationData();
 
@@ -96,6 +99,11 @@ public class RunHistCompacted implements  IRunHistory {
     /** {@inheritDoc} */
     @Override public int getCriticalFailuresCount() {
         return data.criticalFailuresCount();
+    }
+
+    @Override
+    public Set<Integer> buildIds() {
+        return data.buildIds();
     }
 
     private static int[] concatArr(int[] arr1, int[] arr2) {
@@ -196,5 +204,25 @@ public class RunHistCompacted implements  IRunHistory {
 
     public void sort() {
         data.sort();
+    }
+
+    public RunHistCompacted filterSuiteInvByParms(Map<Integer, Integer> requireParameters) {
+        RunHistCompacted copy = new RunHistCompacted();
+
+        data.invocations()
+                .filter(invocation -> invocation.containsParameterValue(requireParameters))
+                .forEach(invocation -> copy.data.add(invocation));
+
+        return copy;
+    }
+
+    public RunHistCompacted filterByBuilds(Set<Integer> builds) {
+        RunHistCompacted copy = new RunHistCompacted();
+
+        data.invocations()
+                .filter(invocation -> builds.contains(invocation.buildId()))
+                .forEach(invocation -> copy.data.add(invocation));
+
+        return copy;
     }
 }

@@ -162,12 +162,12 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     /** */
     public long getMetricProblemCount() {
-        return buildsStream().filter(ISuiteResults::hasMetricProblem).count();
+        return buildsStream().filter(SingleBuildRunCtx::hasMetricProblem).count();
     }
 
     /** */
     public long getBuildMessageProblemCount() {
-        return buildsStream().filter(ISuiteResults::hasBuildMessageProblem).count();
+        return buildsStream().filter(SingleBuildRunCtx::hasBuildMessageProblem).count();
     }
 
     /** {@inheritDoc} */
@@ -177,7 +177,7 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     /** */
     public long getCompilationProblemCount() {
-        return buildsStream().filter(ISuiteResults::hasCompilationProblem).count();
+        return buildsStream().filter(SingleBuildRunCtx::hasCompilationProblem).count();
     }
 
     /** {@inheritDoc} */
@@ -209,11 +209,11 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     private long getExitCodeProblemsCount() {
-        return buildsStream().filter(ISuiteResults::hasExitCodeProblem).count();
+        return buildsStream().filter(SingleBuildRunCtx::hasExitCodeProblem).count();
     }
 
     private long getOomeProblemCount() {
-        return buildsStream().filter(ISuiteResults::hasOomeProblem).count();
+        return buildsStream().filter(SingleBuildRunCtx::hasOomeProblem).count();
     }
 
     public int failedTests() {
@@ -672,11 +672,13 @@ public class MultBuildRunCtx implements ISuiteResults {
      * @param tcIgn Tc ign.
      * @param baseBranchId Base branch id.
      */
-    public IRunHistory history(ITeamcityIgnited tcIgn, Integer baseBranchId) {
+    public IRunHistory history(ITeamcityIgnited tcIgn,
+        @Nullable Integer baseBranchId,
+        @Nullable Map<Integer, Integer> requireParameters) {
         if (baseBranchId == null)
             return null;
 
-        ISuiteRunHistory suiteHist = suiteHist(tcIgn, baseBranchId);
+        ISuiteRunHistory suiteHist = suiteHist(tcIgn, baseBranchId, requireParameters);
         if (suiteHist == null)
             return null;
 
@@ -684,7 +686,9 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     @Nullable
-    ISuiteRunHistory suiteHist(ITeamcityIgnited tcIgn, @Nullable Integer baseBranchId) {
+    ISuiteRunHistory suiteHist(ITeamcityIgnited tcIgn,
+        @Nullable Integer baseBranchId,
+        @Nullable Map<Integer, Integer> requireParameters) {
         Integer buildTypeIdId = buildTypeIdId();
         Preconditions.checkNotNull(buildTypeIdId, "Build type ID should be filled");
 
@@ -693,14 +697,17 @@ public class MultBuildRunCtx implements ISuiteResults {
             return null;
 
         try {
-            return histCacheMap.get(baseBranchId,
-                () -> {
-                    return Optional.ofNullable(tcIgn.getSuiteRunHist(buildTypeIdId, baseBranchId));
-                })
+            ISuiteRunHistory suiteRunHistory = histCacheMap.get(baseBranchId,
+                () -> Optional.ofNullable(tcIgn.getSuiteRunHist(buildTypeIdId, baseBranchId)))
                 .orElse(null);
+
+            if (suiteRunHistory != null && requireParameters != null && !requireParameters.isEmpty())
+                return suiteRunHistory.filter(requireParameters);
+
+            return suiteRunHistory;
         }
         catch (ExecutionException e) {
-            throw  ExceptionUtil.propagateException(e);
+            throw ExceptionUtil.propagateException(e);
         }
     }
 

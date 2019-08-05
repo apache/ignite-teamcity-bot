@@ -50,7 +50,6 @@ import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcignited.history.BuildStartTimeStorage;
-import org.apache.ignite.tcignited.history.RunHistSync;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcservice.TeamcityServiceConnection;
 import org.apache.ignite.tcservice.http.ITeamcityHttpConnection;
@@ -622,8 +621,6 @@ public class IgnitedTcInMemoryIntegrationTest {
             fatBuildDao.putFatBuild(srvIdMaskHigh, id, build);
             buildRefDao.save(srvIdMaskHigh, new BuildRefCompacted(build));
         });
-
-        final RunHistSync histSync = injector.getInstance(RunHistSync.class);
 
         final IRunHistory testRunHist = srv.getTestRunHist(c.getStringId(PrChainsProcessorTest.TEST_FLAKY_IN_MASTER),
             c.getStringId(PrChainsProcessorTest.CACHE_1),

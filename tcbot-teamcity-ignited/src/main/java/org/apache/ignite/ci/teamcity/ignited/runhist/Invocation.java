@@ -20,10 +20,13 @@ package org.apache.ignite.ci.teamcity.ignited.runhist;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcignited.history.ChangesState;
 
 import java.util.Map;
+import java.util.Set;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 
@@ -51,7 +54,7 @@ public class Invocation {
     private byte changePresent;
 
     /** Additional (important) build Parameters, which can be used for filtering. */
-    @Nullable private Map<Integer, Integer> parms;
+    @Nullable private ParametersCompacted parameters;
 
     /**
      * Creates invocation.
@@ -128,8 +131,29 @@ public class Invocation {
         if (parms == null || parms.isEmpty())
             return this;
 
-        this.parms = parms;
+        this.parameters = new ParametersCompacted(parms);
 
         return this;
+    }
+
+
+    public static boolean hasAnyParameterValue(ParametersCompacted parameters, @Nonnull Map<Integer, Integer> requireParamVal) {
+        if (parameters == null)
+            return false;
+
+        Set<Map.Entry<Integer, Integer>> entries = requireParamVal.entrySet();
+        for (Map.Entry<Integer, Integer> next : entries) {
+            Integer key = next.getKey();
+
+            int valId = parameters.findPropertyStringId(key);
+            if (java.util.Objects.equals(next.getValue(), valId))
+                return true;
+        }
+
+        return false;
+    }
+
+    public boolean containsParameterValue(Map<Integer, Integer> requireParameters) {
+        return hasAnyParameterValue(this.parameters, requireParameters);
     }
 }

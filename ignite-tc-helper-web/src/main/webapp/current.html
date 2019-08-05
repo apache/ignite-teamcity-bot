@@ -110,7 +110,11 @@ function showQueryForm() {
         gVue.$data.count = count;
     }
 
-    gVue.$data.trustedTests = findGetParameter("trustedTests") === "true";
+    let parm = findGetParameter("trustedTests");
+    if (isDefinedAndFilled(parm)) {
+        gVue.$data.trustedTests = parm === "true";
+    }
+
     gVue.$data.checkAllLogs = findGetParameter("checkAllLogs") === "true";
     gVue.$data.hideFlakyFailures = findGetParameter("hideFlakyFailures") === "true";
 
@@ -267,7 +271,7 @@ function loadPartialData() {
 
 function showData(result) {
     let setOfTags = new Set(gVue.$data.tagsPresent);
-    let setOfHistTags = new Set(gVue.$data.tagForHistSelected);
+    let setOfHistTags = new Set(gVue.$data.tagsForHistPresent);
     for (let i = 0; i < result.servers.length; i++) {
         let chain = result.servers[i];
 
@@ -320,7 +324,7 @@ function showData(result) {
                             </option>
                         </select>
 
-                        <span title="Tag filter for filtering history of suites">History tag filter: </span>
+                        &nbsp;&nbsp;&nbsp;<span title="Tag filter for filtering history of suites">History tag filter: </span>
                         <select v-model="tagForHistSelected" @change="formChanged">
                             <option disabled value="">Please select one</option>
 
@@ -334,20 +338,20 @@ function showData(result) {
                             <option value="Failures">Show failures only</option>
                             <option value="AllSuites">Show all suites</option>
                         </select>
-                        <span>Sort: </span>
+                        &nbsp;&nbsp;&nbsp;<span>Sort: </span>
                         <select v-model="sortOption" @change="formChanged">
                             <option value="FailureRate">Failure Rate</option>
                             <option value="SuiteDuration">Suite Duration</option>
                         </select>
-                        <span>Merge Builds: </span>
+                        &nbsp;&nbsp;&nbsp;<span>Merge Builds: </span>
                         <input v-model.number="count" type="number" @change="formChanged">
 
-                        <br>&nbsp;&nbsp;<span title="Show trusted tests count">Trusted tests: </span>
+                        <br><span title="Show trusted tests count">Trusted tests: </span>
                         <input type="checkbox" v-model="trustedTests" @change="formChanged">
-                        &nbsp;&nbsp;<span title="Download and parse all logs">Check logs: </span>
+                        &nbsp;&nbsp;&nbsp;<span title="Download and parse all logs">Check logs: </span>
                         <input type="checkbox" v-model="checkAllLogs" @change="formChanged">
 
-                        <span>Show test longer than, seconds: </span>
+                        &nbsp;&nbsp;&nbsp;<span>Show test longer than, seconds: </span>
                         <input v-model.number="showTestLongerThan" type="number" @change="formChanged">
                     </td>
 

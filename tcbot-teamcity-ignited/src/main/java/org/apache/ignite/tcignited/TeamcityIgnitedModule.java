@@ -37,7 +37,6 @@ import org.apache.ignite.tcignited.mute.MuteDao;
 import org.apache.ignite.tcignited.mute.MuteSync;
 import org.apache.ignite.tcignited.buildlog.BuildLogProcessorModule;
 import org.apache.ignite.tcignited.history.BuildStartTimeStorage;
-import org.apache.ignite.tcignited.history.RunHistSync;
 import org.apache.ignite.tcservice.TcRealConnectionModule;
 import org.apache.ignite.tcservice.http.ITeamcityHttpConnection;
 
@@ -65,7 +64,6 @@ public class TeamcityIgnitedModule extends AbstractModule {
         bind(BuildTypeDao.class).in(new SingletonScope());
         bind(BuildTypeSync.class).in(new SingletonScope());
         bind(BuildStartTimeStorage.class).in(new SingletonScope());
-        bind(RunHistSync.class).in(new SingletonScope());
         bind(MuteDao.class).in(new SingletonScope());
         bind(MuteSync.class).in(new SingletonScope());
         bind(BuildLogCheckResultDao.class).in(new SingletonScope());

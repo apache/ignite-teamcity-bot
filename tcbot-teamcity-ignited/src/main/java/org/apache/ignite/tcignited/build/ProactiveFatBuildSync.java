@@ -50,7 +50,6 @@ import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
-import org.apache.ignite.tcignited.history.RunHistSync;
 import org.apache.ignite.tcservice.ITeamcityConn;
 import org.apache.ignite.tcservice.model.changes.ChangesList;
 import org.apache.ignite.tcservice.model.result.Build;
@@ -80,9 +79,6 @@ public class ProactiveFatBuildSync {
 
     /** Change sync. */
     @Inject private ChangeSync changeSync;
-
-    /** Run history sync. */
-    @Inject private RunHistSync runHistSync;
 
     @GuardedBy("this")
     private Map<String, SyncTask> buildToLoad = new HashMap<>();

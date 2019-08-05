@@ -16,7 +16,11 @@
  */
 package org.apache.ignite.tcignited.history;
 
+import java.util.Map;
+
 public interface ISuiteRunHistory {
     IRunHistory self();
     IRunHistory getTestRunHist(int testName);
+
+    ISuiteRunHistory filter(Map<Integer, Integer> requireParameters);
 }

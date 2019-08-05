@@ -158,7 +158,8 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
                 if (cnt > 0)
                     runningUpdates.addAndGet(cnt);
 
-                chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor, calcTrustedTests, tagSelected, displayMode, maxDurationSec);
+                chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor, calcTrustedTests, tagSelected,
+                        displayMode, maxDurationSec, requireParamVal);
 
                 return chainStatus;
             })

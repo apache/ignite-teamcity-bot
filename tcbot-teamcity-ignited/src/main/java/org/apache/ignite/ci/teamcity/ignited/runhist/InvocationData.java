@@ -114,4 +114,8 @@ public class InvocationData {
     public void sort() {
         invocationList.sort(Comparator.comparing(Invocation::buildId));
     }
+
+    public Set<Integer> buildIds() {
+        return invocationList.stream().map(Invocation::buildId).collect(Collectors.toSet());
+    }
 }

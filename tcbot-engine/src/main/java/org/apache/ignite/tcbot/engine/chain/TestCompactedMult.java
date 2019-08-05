@@ -17,12 +17,6 @@
 
 package org.apache.ignite.tcbot.engine.chain;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
-import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
@@ -32,6 +26,14 @@ import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.IRunStat;
 import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
+
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 /**
  * Test occurrence merged from several runs.
@@ -138,11 +140,17 @@ public class TestCompactedMult {
     }
 
     public IRunHistory history(ITeamcityIgnited ignited, @Nullable Integer baseBranchId) {
+         return history(ignited, baseBranchId, null);
+    }
+
+    public IRunHistory history(ITeamcityIgnited ignited,
+                               @Nullable Integer baseBranchId,
+                               @Nullable Map<Integer, Integer> requireParameters) {
         Integer name = testName();
         if (name == null || baseBranchId == null)
             return null;
 
-        ISuiteRunHistory suiteRunHist = ctx.suiteHist(ignited, baseBranchId);
+        ISuiteRunHistory suiteRunHist = ctx.suiteHist(ignited, baseBranchId, requireParameters);
 
         if (suiteRunHist == null)
             return null;
