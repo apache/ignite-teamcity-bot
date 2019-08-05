@@ -132,7 +132,6 @@ public class DsSuiteUi extends ShortSuiteUi {
     public boolean success = false;
 
     /**
-     * @param includeTests Include tests - usually {@code true}, but it may be disabled for speeding up VISA collection.
      * @param tcIgnited Tc ignited.
      * @param suite Suite.
      * @param baseBranch Base branch.
@@ -147,7 +146,6 @@ public class DsSuiteUi extends ShortSuiteUi {
         @Nonnull final MultBuildRunCtx suite,
         @Nullable final String baseBranch,
         @Nonnull IStringCompactor compactor,
-        boolean includeTest3s,
         boolean calcTrustedTests,
         int maxDurationSec,
         @Nullable Map<Integer, Integer> requireParamVal,

@@ -35,7 +35,7 @@ import org.apache.ignite.tcbot.persistence.Persisted;
 @Persisted
 public class SuiteInvocation implements IVersionedEntity {
     /** Latest version. */
-    private static final int LATEST_VERSION = 1;
+    private static final int LATEST_VERSION = 2;
 
     /** Entity fields version. */
     @SuppressWarnings("FieldCanBeLocal")

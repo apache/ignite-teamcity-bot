@@ -77,7 +77,7 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("count") Integer mergeCnt,
         @Nullable @QueryParam("showTestLongerThan") Integer showTestLongerThan,
         @Nullable @QueryParam("muted") Boolean showMuted,
-        @Nullable @QueryParam("muted") Boolean showIgnored) {
+        @Nullable @QueryParam("ignored") Boolean showIgnored) {
         return new UpdateInfo().copyFrom(
             getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected, tagForHistSelected,
                 displayMode, sortOption, mergeCnt, showTestLongerThan, showMuted, showIgnored));
@@ -96,7 +96,7 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("count") Integer mergeCnt,
         @Nullable @QueryParam("showTestLongerThan") Integer showTestLongerThan,
         @Nullable @QueryParam("muted") Boolean showMuted,
-        @Nullable @QueryParam("muted") Boolean showIgnored) {
+        @Nullable @QueryParam("ignored") Boolean showIgnored) {
         return getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected, tagForHistSelected,
             displayMode, sortOption, mergeCnt, showTestLongerThan, showMuted, showIgnored).toString();
     }
@@ -114,7 +114,7 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("count") Integer mergeCnt,
         @Nullable @QueryParam("showTestLongerThan") Integer showTestLongerThan,
         @Nullable @QueryParam("muted") Boolean showMuted,
-        @Nullable @QueryParam("muted") Boolean showIgnored) {
+        @Nullable @QueryParam("ignored") Boolean showIgnored) {
         return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, tagForHistSelected,
             SyncMode.NONE, displayMode, sortOption, mergeCnt, showTestLongerThan, showMuted, showIgnored);
     }
@@ -133,7 +133,7 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("count") Integer mergeCnt,
         @Nullable @QueryParam("showTestLongerThan") Integer showTestLongerThan,
         @Nullable @QueryParam("muted") Boolean showMuted,
-        @Nullable @QueryParam("muted") Boolean showIgnored) {
+        @Nullable @QueryParam("ignored") Boolean showIgnored) {
         return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, tagForHistSelected,
             SyncMode.RELOAD_QUEUED, displayMode, sortOption, mergeCnt, showTestLongerThan, showMuted, showIgnored);
     }

@@ -210,7 +210,6 @@ public class DsChainUi {
                             suite,
                             baseBranchTc,
                             compactor,
-                            true,
                             calcTrustedTests,
                             maxDurationSec,
                             requireParamVal,
