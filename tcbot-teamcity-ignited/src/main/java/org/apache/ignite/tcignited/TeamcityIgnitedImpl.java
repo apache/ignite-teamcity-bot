@@ -17,6 +17,7 @@
 package org.apache.ignite.tcignited;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -203,10 +204,19 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         final int invalidVal = -3;
         final int unknownStatus = compactor.getStringId(STATUS_UNKNOWN);
 
+        Integer minBuildId;
+        if (sinceDate != null) {
+            int ageDays = (int)Duration.ofMillis(System.currentTimeMillis() - sinceDate.getTime()).toDays();
+            minBuildId = buildStartTimeStorage.getBorderForAgeForBuildId(srvIdMaskHigh, ageDays + 1);
+        }
+        else
+            minBuildId = null;
+
         List<BuildRefCompacted> buildRefs = getAllBuildsCompacted(buildTypeId, branchName)
             .stream()
             .filter(b -> b.isFinished(compactor))
             .filter(b -> b.status() != unknownStatus) //check build is not cancelled
+            .filter(buildRefCompacted -> minBuildId == null || buildRefCompacted.id() > minBuildId)
             .sorted(Comparator.comparing(BuildRefCompacted::id))
             .collect(Collectors.toList());
 
