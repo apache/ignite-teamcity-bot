@@ -153,53 +153,60 @@ function parmsForRest() {
     var branch = findGetParameter("branch");
     curReqParms += "?branch=" + (branch != null ? branch : "master");
 
-    if (gVue.$data.checkAllLogs != null) {
+    if (gVue.$data.checkAllLogs === true) {
         curReqParms += "&checkAllLogs=" + gVue.$data.checkAllLogs;
     }
 
-    if (gVue.$data.trustedTests != null) {
+    if (gVue.$data.trustedTests === false) {
         curReqParms += "&trustedTests=" + gVue.$data.trustedTests;
     }
 
-    if (gVue.$data.muted != null) {
+    if (gVue.$data.muted === true) {
         curReqParms += "&muted=" + gVue.$data.muted;
     }
 
-    if (gVue.$data.ignored != null) {
+    if (gVue.$data.ignored === true) {
         curReqParms += "&ignored=" + gVue.$data.ignored;
     }
 
     var tagSelected = gVue.$data.tagSelected;
-    if (tagSelected != null) {
+    if (tagSelected != null && tagSelected !== "") {
         curReqParms += "&tagSelected=" + tagSelected;
     }
 
     var displayMode = gVue.$data.displayMode;
-    if (displayMode != null) {
+    if (displayMode != null && displayMode !== "" && displayMode !== "Failures") {
         curReqParms += "&displayMode=" + displayMode;
     }
 
     var sortOption = gVue.$data.sortOption;
-    if (sortOption != null) {
+    if (sortOption != null && sortOption !== "" && sortOption !== "FailureRate") {
         curReqParms += "&sortOption=" + sortOption;
     }
 
-    if (gVue.$data.count != null)
-        curReqParms += "&count=" + gVue.$data.count;
+    let count = gVue.$data.count;
+    if (count != null && count > 1)
+        curReqParms += "&count=" + count;
 
-    if (gVue.$data.failRateRange[0] != null)
-        curReqParms += "&minFailRate=" + gVue.$data.failRateRange[0];
+    let minFailRate = gVue.$data.failRateRange[0];
+    if (minFailRate != null && minFailRate > 0)
+        curReqParms += "&minFailRate=" + minFailRate;
 
-    if (gVue.$data.failRateRange[1] != null)
-        curReqParms += "&maxFailRate=" + gVue.$data.failRateRange[1];
+    let maxFailRate = gVue.$data.failRateRange[1];
+    if (maxFailRate != null && maxFailRate < 100)
+        curReqParms += "&maxFailRate=" + maxFailRate;
 
-    curReqParms += "&hideFlakyFailures=" + gVue.$data.hideFlakyFailures;
+    let hideFlakyFailures = gVue.$data.hideFlakyFailures;
+    if (hideFlakyFailures != null && hideFlakyFailures === true)
+        curReqParms += "&hideFlakyFailures=" + hideFlakyFailures;
 
-    if (gVue.$data.tagForHistSelected != null)
-        curReqParms += "&tagForHistSelected=" + gVue.$data.tagForHistSelected;
+    let tagForHistSelected = gVue.$data.tagForHistSelected;
+    if (tagForHistSelected != null && tagForHistSelected !== "")
+        curReqParms += "&tagForHistSelected=" + tagForHistSelected;
 
-    if (gVue.$data.showTestLongerThan != null)
-        curReqParms += "&showTestLongerThan=" + gVue.$data.showTestLongerThan;
+    let runTime = gVue.$data.showTestLongerThan;
+    if (runTime != null && runTime > 0)
+        curReqParms += "&showTestLongerThan=" + runTime;
 
     return curReqParms;
 }

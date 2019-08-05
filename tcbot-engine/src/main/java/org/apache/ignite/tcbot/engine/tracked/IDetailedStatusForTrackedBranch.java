@@ -39,6 +39,8 @@ public interface IDetailedStatusForTrackedBranch {
      * @param displayMode Suites and tests display mode. Default - failures only.
      * @param sortOption Sort mode
      * @param maxDurationSec Show test as failed if duration is greater than provided seconds count.
+     * @param showMuted Show muted tests.
+     * @param showIgnored Show ignored tests.
      */
     public DsSummaryUi getTrackedBranchTestFailures(
         @Nullable String branch,
@@ -51,7 +53,9 @@ public interface IDetailedStatusForTrackedBranch {
         @Nullable String tagForHistSelected,
         @Nullable DisplayMode displayMode,
         @Nullable SortOption sortOption,
-        int maxDurationSec);
+        int maxDurationSec,
+        boolean showMuted,
+        boolean showIgnored);
 
     /**
      * @param name Name.
