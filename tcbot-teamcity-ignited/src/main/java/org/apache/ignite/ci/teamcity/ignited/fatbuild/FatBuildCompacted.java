@@ -19,7 +19,15 @@ package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
@@ -667,7 +675,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
                 if (paramsFilter.test(k, v))
                     importantParms.put(k, v);
             });
-            //todo save parameters
+
+            if (!importantParms.isEmpty())
+                invocation.withParameters(importantParms);
         }
 
         return invocation;

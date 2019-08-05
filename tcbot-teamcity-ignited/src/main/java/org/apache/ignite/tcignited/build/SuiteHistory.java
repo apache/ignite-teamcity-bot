@@ -19,6 +19,7 @@ package org.apache.ignite.tcignited.build;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
@@ -42,6 +43,8 @@ public class SuiteHistory implements ISuiteRunHistory {
         finalizeInvocations();
     }
 
+    private SuiteHistory() {}
+
     private void finalizeInvocations() {
         testsHistory.forEach((k, t)->t.registerMissing(k, suiteHist.buildIds()));
 
@@ -56,6 +59,19 @@ public class SuiteHistory implements ISuiteRunHistory {
 
     public IRunHistory getTestRunHist(int testName) {
         return testsHistory.get(testName);
+    }
+
+    @Override
+    public ISuiteRunHistory filter(Map<Integer, Integer> requireParameters) {
+        RunHistCompacted suitesFiltered = this.suiteHist.filterSuiteInvByParms(requireParameters);
+        Set<Integer> builds = suitesFiltered.buildIds();
+
+        SuiteHistory res = new SuiteHistory();
+
+        res.suiteHist = suitesFiltered;
+        this.testsHistory.forEach((tName,invList)-> res.testsHistory.put(tName, invList.filterByBuilds(builds)));
+
+        return res;
     }
 
     private RunHistCompacted getOrAddTestsHistory(Integer tName) {

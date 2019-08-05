@@ -26,6 +26,13 @@ import org.apache.ignite.tcignited.history.RunStatus;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -34,7 +41,7 @@ import java.util.stream.Collectors;
 /**
  *
  */
-public class RunHistCompacted implements  IRunHistory {
+public class RunHistCompacted implements IRunHistory {
     /** Data. */
     private InvocationData data = new InvocationData();
 
@@ -104,6 +111,11 @@ public class RunHistCompacted implements  IRunHistory {
     /** {@inheritDoc} */
     @Override public int getCriticalFailuresCount() {
         return data.criticalFailuresCount();
+    }
+
+    @Override
+    public Set<Integer> buildIds() {
+        return data.buildIds();
     }
 
     private static int[] concatArr(int[] arr1, int[] arr2) {
@@ -217,5 +229,25 @@ public class RunHistCompacted implements  IRunHistory {
 
     public void registerMissing(Integer testId, Set<Integer> buildIds) {
         data.registerMissing(testId, buildIds);
+    }
+
+    public RunHistCompacted filterSuiteInvByParms(Map<Integer, Integer> requireParameters) {
+        RunHistCompacted copy = new RunHistCompacted();
+
+        data.invocations()
+            .filter(invocation -> invocation.containsParameterValue(requireParameters))
+            .forEach(invocation -> copy.data.add(invocation));
+
+        return copy;
+    }
+
+    public RunHistCompacted filterByBuilds(Set<Integer> builds) {
+        RunHistCompacted copy = new RunHistCompacted();
+
+        data.invocations()
+            .filter(invocation -> builds.contains(invocation.buildId()))
+            .forEach(invocation -> copy.data.add(invocation));
+
+        return copy;
     }
 }

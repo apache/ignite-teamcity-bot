@@ -45,7 +45,7 @@ public class SuiteInvocationHistoryDao {
     private Provider<Ignite> igniteProvider;
 
     /** Suite history cache. */
-    private IgniteCache<Long, SuiteInvocation> suiteHistory;
+    private IgniteCache<Long, SuiteInvocation> suiteHist;
 
     public void init() {
         CacheConfiguration<Long , SuiteInvocation> ccfg = CacheConfigs.getCacheV2Config("teamcitySuiteHistory");
@@ -56,20 +56,27 @@ public class SuiteInvocationHistoryDao {
 
         Ignite ignite = igniteProvider.get();
 
-        suiteHistory = ignite.getOrCreateCache(ccfg);
+        suiteHist = ignite.getOrCreateCache(ccfg);
     }
 
     @AutoProfiling
     public Map<Integer, SuiteInvocation> getSuiteRunHist(int srvId, int buildTypeId, int normalizedBranchName) {
-        java.util.Map<Integer, SuiteInvocation> map = new HashMap<>();
-        try (QueryCursor<Cache.Entry<Long, SuiteInvocation>> qryCursor = suiteHistory.query(
+        Map<Integer, SuiteInvocation> map = new HashMap<>();
+
+        try (QueryCursor<Cache.Entry<Long, SuiteInvocation>> qryCursor = suiteHist.query(
             new SqlQuery<Long, SuiteInvocation>(SuiteInvocation.class, "srvId = ? and buildTypeId = ? and normalizedBranchName = ?")
                 .setArgs(srvId, buildTypeId, normalizedBranchName))) {
 
             for (Cache.Entry<Long, SuiteInvocation> next : qryCursor) {
                 Long key = next.getKey();
                 int buildId = BuildRefDao.cacheKeyToBuildId(key);
-                map.put(buildId, next.getValue());
+
+                SuiteInvocation invocation = next.getValue();
+
+                if(invocation.isOutdatedEntityVersion())
+                    continue;
+
+                map.put(buildId, invocation);
             }
         }
 
@@ -82,6 +89,6 @@ public class SuiteInvocationHistoryDao {
 
         addl.forEach((k, v) -> data.put(BuildRefDao.buildIdToCacheKey(srvId, k), v));
 
-        suiteHistory.putAll(data);
+        suiteHist.putAll(data);
     }
 }

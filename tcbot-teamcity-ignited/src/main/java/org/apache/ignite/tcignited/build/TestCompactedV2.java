@@ -20,11 +20,8 @@ package org.apache.ignite.tcignited.build;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
 import java.util.Objects;
-import java.util.TreeMap;
-import java.util.function.BiPredicate;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.tcbot.common.StringFieldCompacted;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
@@ -380,40 +377,25 @@ public class TestCompactedV2 implements ITest {
 
     /**
      * @param build
-     * @param paramsFilter parameters filter to find out parameters to be saved in RunHistory (for future filtering).
      * @param successStatusStrId
      * @return
      */
     public static Invocation toInvocation(
-        ITest test,
-        FatBuildCompacted build,
-        BiPredicate<Integer, Integer> paramsFilter, int successStatusStrId) {
+            ITest test,
+            FatBuildCompacted build,
+            int successStatusStrId) {
         final boolean failedTest = successStatusStrId != test.status();
 
+        //todo implement IGNORED, MUTED_FAILURE, MUTED_SUCCESS
         final int failCode = failedTest
             ? (test.isIgnoredTest() || test.isMutedTest())
             ? InvocationData.MUTED
             : InvocationData.FAILURE
             : InvocationData.OK;
 
-        Invocation invocation = new Invocation(build.getId())
+        return new Invocation(build.getId())
             .withStatus(failCode)
             .withChanges(build.changes());
-
-        java.util.Map<Integer, Integer> importantParms = new TreeMap<>();
-
-        ParametersCompacted parameters = build.parameters();
-        if (parameters == null)
-            return invocation;
-
-        parameters.forEach((k, v) -> {
-            if (paramsFilter.test(k, v))
-                importantParms.put(k, v);
-        });
-
-        //todo implement parameter filter and save to parms compacted
-        // return invocation.withParameters(importantParms);
-        return invocation;
     }
 
     /**

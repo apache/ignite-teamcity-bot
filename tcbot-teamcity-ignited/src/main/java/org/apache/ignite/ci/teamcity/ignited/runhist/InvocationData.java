@@ -126,8 +126,8 @@ public class InvocationData {
         invocationList.sort(Comparator.comparing(Invocation::buildId));
     }
 
-    Set<Integer> getBuildIds() {
-        return invocations().map(Invocation::buildId).collect(Collectors.toSet());
+    public Set<Integer> buildIds() {
+        return invocationList.stream().map(Invocation::buildId).collect(Collectors.toSet());
     }
 
     public void registerMissing(Integer testId, Set<Integer> suiteBuildIds) {
