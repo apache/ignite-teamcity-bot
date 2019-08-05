@@ -50,6 +50,7 @@ import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.build.FatBuildDao;
+import org.apache.ignite.tcignited.build.ITest;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 
 public class BoardService {
@@ -99,7 +100,7 @@ public class BoardService {
 
                     Set<DefectIssue> issues = cause.issues();
                     for (DefectIssue issue : issues) {
-                        Optional<TestCompacted> any = buildCompacted.getAllTests()
+                        Optional<ITest> any = buildCompacted.getAllTests()
                             .filter(t -> t.testName() == issue.testNameCid())
                             .findAny();
 
