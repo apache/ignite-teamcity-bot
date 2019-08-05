@@ -113,8 +113,8 @@ public class RunHistCompacted implements IRunHistory {
         return data.criticalFailuresCount();
     }
 
-    @Override
-    public Set<Integer> buildIds() {
+    /** {@inheritDoc} */
+    @Override public Set<Integer> buildIds() {
         return data.buildIds();
     }
 
@@ -221,10 +221,6 @@ public class RunHistCompacted implements IRunHistory {
 
     public void sort() {
         data.sort();
-    }
-
-    public Set<Integer> buildIds() {
-        return data.getBuildIds();
     }
 
     public void registerMissing(Integer testId, Set<Integer> buildIds) {

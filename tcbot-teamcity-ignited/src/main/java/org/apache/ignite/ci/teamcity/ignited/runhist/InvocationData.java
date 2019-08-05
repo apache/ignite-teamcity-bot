@@ -131,7 +131,7 @@ public class InvocationData {
     }
 
     public void registerMissing(Integer testId, Set<Integer> suiteBuildIds) {
-        Set<Integer> idsPresent = getBuildIds();
+        Set<Integer> idsPresent = buildIds();
         HashSet<Integer> toAdd = new HashSet<>(suiteBuildIds);
         toAdd.removeAll(idsPresent);
 
