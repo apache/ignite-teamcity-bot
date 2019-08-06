@@ -27,8 +27,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import org.apache.ignite.ci.issue.IssueList;
-import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
+import org.apache.ignite.tcbot.engine.ui.IssueListUi;
+import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.tcbot.engine.ui.UpdateInfo;
@@ -58,7 +58,7 @@ public class TcIssues {
 
     @GET
     @Path("list")
-    public IssueList listIssues(@Nullable @QueryParam("branch") String branchOpt,
+    public IssueListUi listIssues(@Nullable @QueryParam("branch") String branchOpt,
                                 @Nullable @QueryParam("count") Integer count,
                                 @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
         Injector injector = CtxListener.getInjector(ctx);
@@ -67,7 +67,7 @@ public class TcIssues {
 
         IIssuesStorage issues = injector.getInstance(IIssuesStorage.class);
 
-        IssueList issueList = new IssueList(issues.allIssues().collect(Collectors.toList()));
+        IssueListUi issueList = new IssueListUi(issues.allIssues().collect(Collectors.toList()));
 
         issueList.branch = branch;
 

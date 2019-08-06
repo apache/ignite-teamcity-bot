@@ -16,20 +16,18 @@
  */
 package org.apache.ignite.tcbot.engine.ui;
 
-@SuppressWarnings({"WeakerAccess", "PublicField"})
-public class BuildTimeRecordUi {
-    public String buildType;
-    public String averageDuration;
-    public String totalDuration;
+import java.util.List;
+import java.util.ArrayList;
 
-    private Integer cnt;
+public class BoardSummaryUi {
+    private List<BoardDefectSummaryUi> defects = new ArrayList<>();
 
-    /** */
-    public Integer getCnt() {
-        return cnt;
+
+    public void addDefect(BoardDefectSummaryUi defect) {
+        this.defects.add(defect);
     }
 
-    public void setCnt(Integer cnt) {
-        this.cnt = cnt;
+    public List<BoardDefectSummaryUi> getDefects() {
+        return defects;
     }
 }

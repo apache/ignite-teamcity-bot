@@ -14,22 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.tcbot.engine.ui;
+package org.apache.ignite.tcbot.engine.defect;
 
-@SuppressWarnings({"WeakerAccess", "PublicField"})
-public class BuildTimeRecordUi {
-    public String buildType;
-    public String averageDuration;
-    public String totalDuration;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcbot.persistence.Persisted;
 
-    private Integer cnt;
+@Persisted
+public class BlameCandidate {
+    private int vcsUsername = -1;
 
-    /** */
-    public Integer getCnt() {
-        return cnt;
+    public void vcsUsername(int username) {
+        vcsUsername = username;
     }
 
-    public void setCnt(Integer cnt) {
-        this.cnt = cnt;
+    public String vcsUsername(IStringCompactor compactor) {
+        return compactor.getStringFromId(vcsUsername);
     }
 }

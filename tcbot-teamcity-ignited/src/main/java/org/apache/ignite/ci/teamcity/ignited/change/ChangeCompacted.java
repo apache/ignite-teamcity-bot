@@ -143,9 +143,9 @@ public class ChangeCompacted implements IVersionedEntity {
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        int result = Objects.hash(_ver, id, vcsUsername, tcUserId, tcUserUsername, tcUserFullname, date);
-        result = 31 * result + Arrays.hashCode(version);
-        return result;
+        int res = Objects.hash(_ver, id, vcsUsername, tcUserId, tcUserUsername, tcUserFullname, date);
+        res = 31 * res + Arrays.hashCode(version);
+        return res;
     }
 
     /**
@@ -153,5 +153,16 @@ public class ChangeCompacted implements IVersionedEntity {
      */
     public String commitFullVersion() {
         return DatatypeConverter.printHexBinary(version).toLowerCase();
+    }
+
+    /**
+     *
+     */
+    public byte[] commitVersion() {
+        return version;
+    }
+
+    public int vcsUsername() {
+        return vcsUsername;
     }
 }

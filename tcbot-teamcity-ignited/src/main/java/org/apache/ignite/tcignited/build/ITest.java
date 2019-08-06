@@ -48,8 +48,14 @@ public interface ITest {
      * @param successStatus Success status code.
      */
     public default boolean isFailedButNotMuted(int successStatus) {
-        return successStatus != status() && !isMutedOrIgnored();
+        return isFailedTest(successStatus) && !isMutedOrIgnored();
     }
+
+    public default boolean isFailedTest(int successStatus) {
+        return successStatus != status();
+    }
+
+    public boolean isFailedTest(IStringCompactor compactor);
 
     public default boolean isMutedOrIgnored() {
         return isMutedTest() || isIgnoredTest();

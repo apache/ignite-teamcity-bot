@@ -33,7 +33,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
 import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
@@ -268,13 +267,18 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return tags;
     }
 
-    public void addTagsFromParameters(ParametersCompacted parameters, ITcServerConfig tcCfg,
-        IStringCompactor compactor) {
+    public static Set<String> getBuildTagsFromParameters(ITcServerConfig tcCfg,
+        IStringCompactor compactor, FatBuildCompacted fatBuildCompacted) {
+        ParametersCompacted parameters = fatBuildCompacted.parameters();
+        if (parameters == null)
+            return Collections.emptySet();
+
+        HashSet<String> tags = new HashSet<>();
         for (IBuildParameterSpec parm0 : tcCfg.filteringParameters()) {
             if (!parm0.isFilled())
                 continue;
 
-            String propVal = getPropertyOrSpecialValue(parameters, compactor, parm0.name());
+            String propVal = getPropertyOrSpecialValue(parameters, compactor, parm0.name(), fatBuildCompacted);
 
             if (Strings.isNullOrEmpty(propVal))
                 continue;
@@ -283,35 +287,37 @@ public class SingleBuildRunCtx implements ISuiteResults {
                 .filter(pvs -> {
                     String valRegExp = pvs.valueRegExp();
 
-                    if(!Strings.isNullOrEmpty(valRegExp))
+                    if (!Strings.isNullOrEmpty(valRegExp))
                         return Pattern.compile(valRegExp).matcher(propVal).find();
 
                     String exactVal = pvs.value();
 
-                    if(!Strings.isNullOrEmpty(exactVal))
+                    if (!Strings.isNullOrEmpty(exactVal))
                         return Objects.equals(exactVal, propVal);
 
                     return false;
                 })
                 .findAny()
-                .ifPresent(v -> addTag(v.label()));
+                .ifPresent(v -> tags.add(v.label()));
 
         }
+        return tags;
     }
 
     /**
      * @param parameters Parameters from build.
      * @param compactor Compactor.
      * @param parmKey Parmeters key.
+     * @param fatBuildCompacted
      */
-    public String getPropertyOrSpecialValue(ParametersCompacted parameters, IStringCompactor compactor,
-        String parmKey) {
+    public static String getPropertyOrSpecialValue(ParametersCompacted parameters, IStringCompactor compactor,
+        String parmKey, FatBuildCompacted fatBuildCompacted) {
 
         String propVal;
         if (ITeamcity.SUITE_ID_PROPERTY.equals(parmKey))
-            propVal = suiteId();
+            propVal = fatBuildCompacted.buildTypeId(compactor);
         else if (ITeamcity.SUITE_NAME_PROPERTY.equals(parmKey))
-            propVal = suiteName();
+            propVal = fatBuildCompacted.buildTypeName(compactor);
         else
             propVal = parameters.getProperty(compactor, parmKey);
 
@@ -337,5 +343,9 @@ public class SingleBuildRunCtx implements ISuiteResults {
 
     public int buildTypeIdId() {
         return buildCompacted.buildTypeId();
+    }
+
+    public void addTags(Set<String> strings) {
+        this.tags.addAll(strings);
     }
 }

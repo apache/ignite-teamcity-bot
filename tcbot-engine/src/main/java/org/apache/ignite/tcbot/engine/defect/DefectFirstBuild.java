@@ -14,41 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.tcbot.engine.defect;
 
-package org.apache.ignite.ci.issue;
-
-import com.google.common.base.MoreObjects;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.tcbot.persistence.Persisted;
 
 @Persisted
-public class IssueKey {
-    public String server;
-    public Integer buildId;
-    public String testOrBuildName;
+public class DefectFirstBuild {
+    private FatBuildCompacted build;
 
-    public IssueKey(String srv, Integer buildId, String testOrBuildName) {
-        this.server = srv;
-        this.buildId = buildId;
-        this.testOrBuildName = testOrBuildName;
+    private Set<DefectIssue> issues = new HashSet<>();
+
+    public DefectFirstBuild(FatBuildCompacted build) {
+        this.build = build;
     }
 
-    public String getServer() {
-        return server;
+    public DefectFirstBuild addIssue(int typeCid, Integer testNameCid) {
+        issues.add(new DefectIssue(typeCid, testNameCid));
+
+        return this;
     }
 
-    public Integer getBuildId() {
-        return buildId;
+    public FatBuildCompacted build() {
+        return build;
     }
 
-    public String getTestOrBuildName() {
-        return testOrBuildName;
-    }
-
-    @Override public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("server", server)
-            .add("buildId", buildId)
-            .add("testOrBuildName", testOrBuildName)
-            .toString();
+    public Set<DefectIssue> issues() {
+        return Collections.unmodifiableSet(issues);
     }
 }

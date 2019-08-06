@@ -18,37 +18,38 @@
 package org.apache.ignite.ci.issue;
 
 import com.google.common.base.MoreObjects;
+import org.apache.ignite.tcbot.persistence.Persisted;
 
-public class ChangeUi {
-    public final String username;
-    public final String webUrl;
+@Persisted
+public class IssueKey {
+    public String server;
+    public Integer buildId;
+    public String testOrBuildName;
 
-    public ChangeUi(String username, String webUrl) {
-        this.username = username;
-        this.webUrl = webUrl;
+    public IssueKey(String srv, Integer buildId, String testOrBuildName) {
+        this.server = srv;
+        this.buildId = buildId;
+        this.testOrBuildName = testOrBuildName;
     }
 
-    public String toHtml() {
-        return "<a href='" + webUrl + "'>" + username + "</a>";
+    public String getServer() {
+        return server;
     }
 
-    public String toSlackMarkup() {
-        String str = username
-            .replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;");
-        return "<" + webUrl + "|" + str + ">";
+    public Integer getBuildId() {
+        return buildId;
     }
 
-    public String toPlainText() {
-        return username + " " + webUrl;
+    public String getTestOrBuildName() {
+        return testOrBuildName;
     }
 
     /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("username", username)
-            .add("webUrl", webUrl)
+            .add("server", server)
+            .add("buildId", buildId)
+            .add("testOrBuildName", testOrBuildName)
             .toString();
     }
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.tcbot.persistence;
 
+import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
 import org.apache.ignite.configuration.CacheConfiguration;
 
@@ -42,4 +43,10 @@ public class CacheConfigs {
 
         return ccfg;
     }
+
+    @Nonnull
+    public static <K, V> CacheConfiguration<K, V> getCacheV2TxConfig(String name) {
+        return CacheConfigs.<K, V>getCacheV2Config(name).setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL);
+    }
+
 }

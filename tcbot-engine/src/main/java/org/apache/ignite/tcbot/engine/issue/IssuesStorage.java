@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.issue;
+package org.apache.ignite.tcbot.engine.issue;
 
 import java.util.HashMap;
 import java.util.stream.Stream;
@@ -26,8 +26,9 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
+import org.apache.ignite.ci.issue.Issue;
+import org.apache.ignite.ci.issue.IssueKey;
+import org.apache.ignite.tcbot.persistence.CacheConfigs;
 
 /**
  *
@@ -50,7 +51,7 @@ public class IssuesStorage implements IIssuesStorage {
     }
 
     public static IgniteCache<IssueKey, Issue> botDetectedIssuesCache(Ignite ignite) {
-        return ignite.getOrCreateCache(TcHelperDb.getCacheV2TxConfig(BOT_DETECTED_ISSUES));
+        return ignite.getOrCreateCache(CacheConfigs.getCacheV2TxConfig(BOT_DETECTED_ISSUES));
     }
 
     /** {@inheritDoc} */

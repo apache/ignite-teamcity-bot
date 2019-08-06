@@ -106,11 +106,6 @@ public class TcHelperDb {
         return TcHelperDb.<K, V>getCacheV3Config(name).setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL);
     }
 
-    public static <K, V> CacheConfiguration<K, V> getCacheV2TxConfig(String name) {
-        return CacheConfigs.<K, V>getCacheV2Config(name).setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL);
-
-    }
-
     public static class LocalOnlyTcpDiscoveryIpFinder implements TcpDiscoveryIpFinder {
         /** Port. */
         private int port;

@@ -25,7 +25,7 @@ import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
-import org.apache.ignite.ci.issue.IssuesStorage;
+import org.apache.ignite.tcbot.engine.issue.IssuesStorage;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.jetbrains.annotations.NotNull;

@@ -279,7 +279,7 @@ public class FatBuildDao {
                             int srvId = BuildRefDao.cacheKeyToSrvId(key);
                             boolean hasTimeout = build.hasBuildProblemType(timeoutProblemCode);
 
-                            res.add(srvId, buildTypeId, runningTime, hasTimeout);
+                            res.addBuild(srvId, buildTypeId, runningTime, hasTimeout);
                         }
                     });
                 }

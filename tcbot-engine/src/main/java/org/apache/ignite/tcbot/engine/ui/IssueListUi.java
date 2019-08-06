@@ -15,17 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.issue;
+package org.apache.ignite.tcbot.engine.ui;
 
 import java.util.List;
+import org.apache.ignite.ci.issue.Issue;
 
-public class IssueList {
-
+public class IssueListUi {
     public String branch;
 
     private List<Issue> issues;
 
-    public IssueList(List<Issue> all) {
+    public IssueListUi(List<Issue> all) {
         issues = all;
     }
 

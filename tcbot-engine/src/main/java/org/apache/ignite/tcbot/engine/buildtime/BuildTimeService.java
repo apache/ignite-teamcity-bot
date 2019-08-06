@@ -25,7 +25,6 @@ import org.apache.ignite.tcbot.engine.ui.BuildTimeResultUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
-import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.tcignited.buildtime.BuildTimeRecord;
@@ -42,9 +41,10 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+/**
+ * Prepares overview related to build times of suites, tests, and branches
+ */
 public class BuildTimeService {
-    @Inject private ITeamcityIgnitedProvider tcProv;
-
     /** Config. */
     @Inject private ITcBotConfig cfg;
 
@@ -64,17 +64,17 @@ public class BuildTimeService {
         if (buildRefDao.buildRefsCache() == null)
             return new BuildTimeResultUi();
 
-        Collection<String> allServers = cfg.getServerIds();
+        Collection<String> allSrvs = cfg.getServerIds();
 
         scheduler.sheduleNamed("BuildTimeService.loadAnalytics",
                 this::loadAnalytics, 15, TimeUnit.MINUTES);
 
-        Set<Integer> availableServers = allServers.stream()
+        Set<Integer> availableSrvs = allSrvs.stream()
                 .filter(prov::hasAccess)
                 .map(ITeamcityIgnited::serverIdToInt)
                 .collect(Collectors.toSet());
 
-        BuildTimeResultUi resultUi = new BuildTimeResultUi();
+        BuildTimeResultUi resUi = new BuildTimeResultUi();
 
         long minDuration = Duration.ofMinutes(90).toMillis();
         long minDurationTimeout = Duration.ofMinutes(60).toMillis();
@@ -82,13 +82,13 @@ public class BuildTimeService {
         int cntToInclude = 50;
         BuildTimeResult res = lastRes1d;
 
-        res.topByBuildTypes(availableServers, minDuration, cntToInclude, totalDurationMs)
-                .stream().map(this::convertToUi).forEach(e -> resultUi.byBuildType.add(e));
+        res.topByBuildTypes(availableSrvs, minDuration, cntToInclude, totalDurationMs)
+                .stream().map(this::convertToUi).forEach(e -> resUi.byBuildType.add(e));
 
-        res.topTimeoutsByBuildTypes(availableServers, minDurationTimeout, cntToInclude, totalDurationMs)
-                .stream().map(this::convertToUi).forEach(e -> resultUi.timedOutByBuildType.add(e));
+        res.topTimeoutsByBuildTypes(availableSrvs, minDurationTimeout, cntToInclude, totalDurationMs)
+                .stream().map(this::convertToUi).forEach(e -> resUi.timedOutByBuildType.add(e));
 
-        return resultUi;
+        return resUi;
     }
 
     public BuildTimeRecordUi convertToUi(Map.Entry<Long, BuildTimeRecord> e) {
@@ -97,8 +97,12 @@ public class BuildTimeService {
         int btId = BuildTimeResult.cacheKeyToBuildType(key);
         buildTimeRecordUi.buildType = compactor.getStringFromId(btId);
 
-        buildTimeRecordUi.averageDuration = TimeUtil.millisToDurationPrintable(e.getValue().avgDuration());
-        buildTimeRecordUi.totalDuration =  TimeUtil.millisToDurationPrintable(e.getValue().totalDuration());
+        BuildTimeRecord val = e.getValue();
+        buildTimeRecordUi.averageDuration = TimeUtil.millisToDurationPrintable(val.avgDuration());
+        buildTimeRecordUi.totalDuration =  TimeUtil.millisToDurationPrintable(val.totalDuration());
+
+        buildTimeRecordUi.setCnt(val.count());
+
         return buildTimeRecordUi;
     }
 

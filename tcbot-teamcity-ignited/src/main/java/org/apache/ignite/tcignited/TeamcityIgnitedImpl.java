@@ -517,7 +517,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         Stream<Integer> allIds = Stream.concat(Stream.of(build.getId()), deps.stream().map(BuildRef::getId));
 
-        //todo may add additional parameter: load builds into DB in sync/async fashion
+        //todo may addBuild additional parameter: load builds into DB in sync/async fashion
         buildRefSync.runActualizeBuildRefs(srvCode, BuildRefSync.SyncMode.ULTRAFAST, allIds.collect(Collectors.toSet()), conn);
 
         return build;
@@ -613,16 +613,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public Collection<ChangeCompacted> getAllChanges(int[] changeIds) {
-        final Map<Long, ChangeCompacted> all = changesDao.getAll(srvIdMaskHigh, changeIds);
-
-        final Map<Integer, ChangeCompacted> changes = new HashMap<>();
-
-        //todo support change version upgrade
-        all.forEach((k, v) -> {
-            final int changeId = ChangeDao.cacheKeyToChangeId(k);
-
-            changes.put(changeId, v);
-        });
+        final Map<Integer, ChangeCompacted> changes = changesDao.getAll(srvIdMaskHigh, changeIds);
 
         for (int changeId : changeIds) {
             if (!changes.containsKey(changeId)) {

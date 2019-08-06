@@ -24,9 +24,9 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.user.UserSession;
+import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.jetbrains.annotations.Nullable;
 
 public class UserAndSessionsStorage implements IUserStorage {
@@ -38,7 +38,7 @@ public class UserAndSessionsStorage implements IUserStorage {
     private volatile Ignite ignite;
 
     public IgniteCache<String, TcHelperUser> users() {
-        return getIgnite().getOrCreateCache(TcHelperDb.getCacheV2TxConfig(USERS));
+        return getIgnite().getOrCreateCache(CacheConfigs.<String, TcHelperUser>getCacheV2TxConfig(USERS));
     }
 
     public Ignite getIgnite() {
@@ -56,7 +56,7 @@ public class UserAndSessionsStorage implements IUserStorage {
     }
 
     private IgniteCache<String, UserSession> sessions() {
-        return getIgnite().getOrCreateCache(TcHelperDb.getCacheV2TxConfig(USER_SESSIONS));
+        return getIgnite().getOrCreateCache(CacheConfigs.<String, UserSession>getCacheV2TxConfig(USER_SESSIONS));
     }
 
     /** {@inheritDoc} */

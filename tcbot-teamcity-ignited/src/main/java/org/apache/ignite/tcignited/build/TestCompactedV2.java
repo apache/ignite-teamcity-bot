@@ -354,6 +354,10 @@ public class TestCompactedV2 implements ITest {
         return duration < 0 ? null : duration;
     }
 
+    @Override public boolean isFailedTest(IStringCompactor compactor) {
+        return isFailedTest(statusSuccess(compactor));
+    }
+
     /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)

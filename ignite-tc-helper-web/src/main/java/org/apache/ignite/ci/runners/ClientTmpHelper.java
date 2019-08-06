@@ -22,7 +22,7 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.githubignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.issue.Issue;
-import org.apache.ignite.ci.issue.IssuesStorage;
+import org.apache.ignite.tcbot.engine.issue.IssuesStorage;
 import org.apache.ignite.jiraignited.JiraTicketDao;
 
 /**

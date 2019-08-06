@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcbot.issue;
+package org.apache.ignite.tcbot.engine.issue;
 
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
