@@ -18,21 +18,22 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import com.google.common.base.MoreObjects;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcignited.history.ChangesState;
 import org.apache.ignite.tcignited.history.IEventTemplate;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.RunStatus;
 
-import javax.annotation.Nullable;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 /**
- *
+ * In memory replacement of invocation history (RunHist/RunStat).
  */
 public class RunHistCompacted implements IRunHistory {
     /** Data. */
@@ -47,7 +48,7 @@ public class RunHistCompacted implements IRunHistory {
 
     /** {@inheritDoc} */
     @Override public int getRunsCount() {
-        return data.notMutedRunsCount();
+        return data.notMutedAndNonMissingRunsCount();
     }
 
     /** {@inheritDoc} */
@@ -80,12 +81,21 @@ public class RunHistCompacted implements IRunHistory {
         List<Invocation> latestRuns = data.invocations().collect(Collectors.toList());
 
         for (Invocation cur : latestRuns) {
-            if (prev != null && cur != null) {
+            if (cur == null)
+                continue;
+
+            if (cur.status() == InvocationData.MISSING)
+                continue;
+
+            //todo here all previous MISSING invocations status could be checked
+            // (using outside build history)
+            if (prev != null) {
                 if (prev.status() != cur.status()
                     && cur.changesState() == ChangesState.NONE
                     && prev.changesState() != ChangesState.UNKNOWN)
                     statusChange++;
             }
+
             prev = cur;
         }
         return statusChange;
@@ -101,8 +111,8 @@ public class RunHistCompacted implements IRunHistory {
         return data.criticalFailuresCount();
     }
 
-    @Override
-    public Set<Integer> buildIds() {
+    /** {@inheritDoc} */
+    @Override public Set<Integer> buildIds() {
         return data.buildIds();
     }
 
@@ -126,24 +136,29 @@ public class RunHistCompacted implements IRunHistory {
         assert centralEvtBuild < template.length;
         assert centralEvtBuild >= 0;
 
-        List<Invocation> histAsArr = data.invocations().collect(Collectors.toList());
+        boolean includeMissing = t.includeMissing();
+        List<Invocation> histAsArr = data.invocations(!includeMissing).collect(Collectors.toList());
 
         if (histAsArr.size() < template.length)
             return null;
 
         Integer detectedAt = null;
-        if (t.shouldBeFirst()) {
-            //todo detect somehow test is new (e.g. status absent for test history).
-            detectedAt = checkTemplateAtPos(template, centralEvtBuild, histAsArr, 0);
-        }
-        else {
-            //startIgnite from the end to find most recent
-            for (int idx = histAsArr.size() - template.length; idx >= 0; idx--) {
-                detectedAt = checkTemplateAtPos(template, centralEvtBuild, histAsArr, idx);
 
-                if (detectedAt != null)
-                    break;
-            }
+        //startIgnite from the end to find most recent
+        for (int idx = histAsArr.size() - template.length; idx >= 0; idx--) {
+            detectedAt = checkTemplateAtPos(template, centralEvtBuild, histAsArr, idx);
+
+            if (detectedAt != null)
+                break;
+        }
+
+        if (detectedAt != null && t.shouldBeFirstNonMissing()) {
+            Optional<Invocation> first = data.invocations(true).findFirst();
+            if (!first.isPresent())
+                return null;
+
+            if (first.get().buildId() != detectedAt)
+                return null;
         }
 
         return detectedAt;
@@ -174,7 +189,11 @@ public class RunHistCompacted implements IRunHistory {
 
     /** {@inheritDoc} */
     @Override public String toString() {
+        Stream<CharSequence> stream = data.getLatestRuns().stream().filter(Objects::nonNull).map(Object::toString);
+        String join = String.join("", stream::iterator);
+
         return MoreObjects.toStringHelper(this)
+            .add("runs", join)
             .add("failRate", getFailPercentPrintable())
             .add("data", data)
             .toString();
@@ -206,23 +225,27 @@ public class RunHistCompacted implements IRunHistory {
         data.sort();
     }
 
+    public void registerMissing(Integer testId, Set<Integer> buildIds) {
+        data.registerMissing(testId, buildIds);
+    }
+
     public RunHistCompacted filterSuiteInvByParms(Map<Integer, Integer> requireParameters) {
-        RunHistCompacted copy = new RunHistCompacted();
+        RunHistCompacted cp = new RunHistCompacted();
 
         data.invocations()
-                .filter(invocation -> invocation.containsParameterValue(requireParameters))
-                .forEach(invocation -> copy.data.add(invocation));
+            .filter(invocation -> invocation.containsParameterValue(requireParameters))
+            .forEach(invocation -> cp.data.add(invocation));
 
-        return copy;
+        return cp;
     }
 
     public RunHistCompacted filterByBuilds(Set<Integer> builds) {
-        RunHistCompacted copy = new RunHistCompacted();
+        RunHistCompacted cp = new RunHistCompacted();
 
         data.invocations()
-                .filter(invocation -> builds.contains(invocation.buildId()))
-                .forEach(invocation -> copy.data.add(invocation));
+            .filter(invocation -> builds.contains(invocation.buildId()))
+            .forEach(invocation -> cp.data.add(invocation));
 
-        return copy;
+        return cp;
     }
 }

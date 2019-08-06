@@ -162,8 +162,10 @@ public class BuildRefCompacted {
     }
 
     /** */
-    protected void status(int status) {
+    public BuildRefCompacted status(int status) {
         this.status = status;
+
+        return this;
     }
 
     /** */
@@ -172,8 +174,10 @@ public class BuildRefCompacted {
     }
 
     /** */
-    public void state(int state) {
+    public BuildRefCompacted state(int state) {
         this.state = state;
+
+        return this;
     }
 
     /** */
@@ -221,5 +225,23 @@ public class BuildRefCompacted {
 
     public String state(IStringCompactor compactor) {
         return compactor.getStringFromId(state());
+    }
+
+    public BuildRefCompacted branchName(int branchName) {
+        this.branchName = branchName;
+
+        return this;
+    }
+
+    public BuildRefCompacted buildTypeId(int buildTypeId) {
+        this.buildTypeId = buildTypeId;
+
+        return this;
+    }
+
+    public BuildRefCompacted withId(int id) {
+        this.id = id;
+
+        return this;
     }
 }

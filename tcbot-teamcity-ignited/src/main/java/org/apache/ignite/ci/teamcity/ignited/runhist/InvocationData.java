@@ -18,14 +18,16 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import com.google.common.base.MoreObjects;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import org.apache.ignite.tcignited.history.RunStatus;
-
 import javax.annotation.Nonnull;
+import org.apache.ignite.tcignited.history.RunStatus;
 
 /**
  *
@@ -39,6 +41,17 @@ public class InvocationData {
     public static final int OK = RunStatus.RES_OK.getCode();
     /** Ok. */
     public static final int CRITICAL_FAILURE = RunStatus.RES_CRITICAL_FAILURE.getCode();
+    /** Test is missing in suite run. */
+    public static final int MISSING = RunStatus.RES_MISSING.getCode();
+
+    /** Failure muted. */
+    public static final int FAILURE_MUTED = RunStatus.RES_FAILURE_MUTED.getCode();
+
+    /** Ok muted. */
+    public static final int OK_MUTED = RunStatus.RES_OK_MUTED.getCode();
+
+    /** Test Ignored. */
+    public static final int IGNORED = RunStatus.RES_IGNORED.getCode();
 
     /** Invocations map from build ID to invocation data. */
     private final List<Invocation> invocationList = new ArrayList<>();
@@ -50,10 +63,13 @@ public class InvocationData {
     /**
      *
      */
-    public int notMutedRunsCount() {
+    public int notMutedAndNonMissingRunsCount() {
         return (int)
-            invocations()
-                .filter(invocation -> invocation.status() != MUTED)
+            invocations(true)
+                .filter(invocation -> {
+                    byte s = invocation.status();
+                    return s != MUTED && s != FAILURE_MUTED && s != OK_MUTED && s != IGNORED;
+                })
                 .count();
     }
 
@@ -62,7 +78,20 @@ public class InvocationData {
      */
     @Nonnull
     Stream<Invocation> invocations() {
-        return invocationList.stream();
+        return invocations(false);
+    }
+
+
+    /**
+     * @param skipMissing Skip missing (absent) invocations.
+     */
+    @Nonnull Stream<Invocation> invocations(boolean skipMissing) {
+        Stream<Invocation> stream = invocationList.stream();
+
+        if (skipMissing)
+            stream = stream.filter(invocation -> invocation.status() != MISSING);
+
+        return stream;
     }
 
     /**
@@ -117,5 +146,15 @@ public class InvocationData {
 
     public Set<Integer> buildIds() {
         return invocationList.stream().map(Invocation::buildId).collect(Collectors.toSet());
+    }
+
+    public void registerMissing(Integer testId, Set<Integer> suiteBuildIds) {
+        Set<Integer> idsPresent = buildIds();
+        HashSet<Integer> toAdd = new HashSet<>(suiteBuildIds);
+        toAdd.removeAll(idsPresent);
+
+        toAdd.forEach(id -> {
+            add(new Invocation(id).withStatus(MISSING));
+        });
     }
 }

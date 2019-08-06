@@ -68,6 +68,7 @@ public class RemoteClientTmpHelper {
      * @param args Args.
      */
     public static void main(String[] args) {
+        mainExport(args);
         // mainDropInvalidIssues(args);
         System.err.println("Please insert option of main");
     }
@@ -336,13 +337,13 @@ public class RemoteClientTmpHelper {
         if (dumpDict)
             dumpDictionary(ignite);
 
-        if (false) {
+        if (true) {
             IgniteCache<Long, FatBuildCompacted> cache1 = ignite.cache(FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME);
 
             int apache = ITeamcityIgnited.serverIdToInt("apache");
 
-            int id = 2200135;
-            int id1 = 2200209;
+            int id = 4466392;
+            int id1 = 4465532;
             dumpFatBuild(cache1, apache, id);
             dumpFatBuild(cache1, apache, id1);
 
@@ -350,6 +351,8 @@ public class RemoteClientTmpHelper {
             dumpBuildRef(cache2, apache, id);
             dumpBuildRef(cache2, apache, id1);
         }
+
+        ignite.close();
     }
 
     public static void dumpDictionary(Ignite ignite) {

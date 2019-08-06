@@ -101,6 +101,7 @@ public class HistoryCollector {
         = CacheBuilder.newBuilder()
         .maximumSize(Boolean.valueOf(System.getProperty(TcBotSystemProperties.DEV_MODE)) ? 1000 : 8000)
         .expireAfterAccess(16, TimeUnit.MINUTES)
+        .expireAfterWrite(17, TimeUnit.MINUTES) //workaround for stale records
         .softValues()
         .build();
 
@@ -149,8 +150,9 @@ public class HistoryCollector {
         int srvId, int buildTypeId, int normalizedBaseBranch, Set<Integer> knownBuilds) {
         String btId = compactor.getStringFromId(buildTypeId);
         String branchId = compactor.getStringFromId(normalizedBaseBranch);
-        List<BuildRefCompacted> bRefsList = buildRefDao.getAllBuildsCompacted(srvId, btId,
-            branchEquivalence.branchForQuery(branchId));
+        Set<Integer> strings = branchEquivalence.branchIdsForQuery(branchId, compactor);
+        List<BuildRefCompacted> bRefsList =
+            buildRefDao.getAllBuildsCompacted(srvId, buildTypeId, strings);
 
         long curTs = System.currentTimeMillis();
         Set<Integer> buildIds = bRefsList.stream()
@@ -226,8 +228,7 @@ public class HistoryCollector {
         int srvId = ITeamcityIgnited.serverIdToInt(srvCode);
         Map<Integer, SuiteInvocation> suiteRunHist = histDao.getSuiteRunHist(srvId, buildTypeId, normalizedBaseBranch);
 
-        logger.info("***** Found history for suite "
-            + compactor.getStringFromId(buildTypeId)
+        logger.info("***** Found persisted history for suite "  + compactor.getStringFromId(buildTypeId)
             + " branch " + compactor.getStringFromId(normalizedBaseBranch) + ": " + suiteRunHist.size() );
 
         Set<Integer> buildIds = determineLatestBuilds(srvId, buildTypeId, normalizedBaseBranch, suiteRunHist.keySet());

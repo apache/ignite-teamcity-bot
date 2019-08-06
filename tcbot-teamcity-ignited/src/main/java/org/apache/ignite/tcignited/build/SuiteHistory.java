@@ -20,7 +20,6 @@ package org.apache.ignite.tcignited.build;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
@@ -30,7 +29,7 @@ import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcignited.history.SuiteInvocation;
 
 /**
- * Suite run history summary.
+ * Suite run history (in memory) summary with tests grouped by name.
  */
 public class SuiteHistory implements ISuiteRunHistory {
     /** Tests history: Test name ID->RunHistory */
@@ -46,8 +45,9 @@ public class SuiteHistory implements ISuiteRunHistory {
     private SuiteHistory() {}
 
     private void finalizeInvocations() {
-        //todo add missing status to tests
-        //  testsHistory.values().registerMissing(suiteHist.buildIds());
+        Set<Integer> presentBuilds = suiteHist.buildIds();
+
+        testsHistory.forEach((k, t) -> t.registerMissing(k, presentBuilds));
 
         suiteHist.sort();
         testsHistory.values().forEach(RunHistCompacted::sort);
@@ -86,7 +86,7 @@ public class SuiteHistory implements ISuiteRunHistory {
     /**
      * @param suiteInv suite invocation (build) to be added to history (summary).
      */
-    public void addSuiteInvocation(SuiteInvocation suiteInv) {
+    private void addSuiteInvocation(SuiteInvocation suiteInv) {
         suiteInv.tests().forEach(this::addTestInvocation);
 
         suiteHist.addInvocation(suiteInv.suiteInvocation());

@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.OptionalInt;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcbot.engine.conf.BranchTracked;
 import org.apache.ignite.tcbot.engine.conf.ChainAtServerTracked;
@@ -85,7 +86,7 @@ public class IssueDetectorTest {
     }
 
     @Test
-    public void testDetector() throws IOException {
+    public void testDetector() {
         String brachName = "masterTest";
         String chainId = TeamcityIgnitedImpl.DEFAULT_PROJECT_ID;
         BranchTracked branch = new BranchTracked();
@@ -143,25 +144,26 @@ public class IssueDetectorTest {
         IStringCompactor c,
         Map<String, String> pds1Hist,
         Map<String, String> buildWoChanges) {
-        OptionalInt longestHist = pds1Hist.values().stream().mapToInt(String::length).max();
+        OptionalInt longestHist = Stream.concat(pds1Hist.values().stream(),
+            buildWoChanges.values().stream()).mapToInt(String::length).max();
         Preconditions.checkState(longestHist.isPresent());
         int histLen = longestHist.getAsInt();
 
         for (int i = 0; i < histLen; i++) {
             FatBuildCompacted pds1Build
-                = createFatBuild(c, "PDS1", ITeamcity.DEFAULT, 1100 + i, 1000 * i, false)
+                = createFatBuild(c, "PDS1", ITeamcity.DEFAULT, 1100 + i, 100 * i, false)
                 .addTests(c, testsMapToXmlModel(pds1Hist, histLen, i), null)
                 .changes(new int[] {i});
 
             apacheBuilds.put(pds1Build.id(), pds1Build);
 
             FatBuildCompacted pds2Build
-                = createFatBuild(c, "PDS2_noChanges", ITeamcity.DEFAULT, 1200 + i, 1000 * i, false)
+                = createFatBuild(c, "PDS2_noChanges", ITeamcity.DEFAULT, 1200 + i, 100 * i, false)
                 .addTests(c, testsMapToXmlModel(buildWoChanges, histLen, i), null);
 
             apacheBuilds.put(pds2Build.id(), pds2Build);
 
-            FatBuildCompacted chainBuild = createFatBuild(c, chainId, ITeamcity.DEFAULT, 1000 + i, 1000 * i, false)
+            FatBuildCompacted chainBuild = createFatBuild(c, chainId, ITeamcity.DEFAULT, 1000 + i, 100 * i, false)
                 .snapshotDependencies(new int[] {pds1Build.id(), pds2Build.id()});
             apacheBuilds.put(chainBuild.id(), chainBuild);
         }
