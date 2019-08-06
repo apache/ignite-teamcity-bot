@@ -1033,13 +1033,13 @@ function drawLatestRunsBlock(state, len) {
     else if (state === 3) // CRITICAL failure - incomplete suite
         runColor = "black";
     else if (state === 4) // RES_MISSING(4),  missing in run
-        runColor = "lightgrey";
+        runColor = "#AAAAAA";
     else if (state === 5)   //     RES_OK_MUTED(5),
-        runColor = "rgba(0, 160, 0, 0.3)";
+        runColor = "#44AA44";
     else if (state === 6)  //     RES_FAILURE_MUTED(6),
-        runColor = "rgba(160, 0, 0, 0.3)";
+        runColor = "#AA4444";
     else if (state === 7) //     RES_IGNORED(7);
-        runColor = "rgba(255, 160, 0, 0.3)";
+        runColor = "#F09F00";
 
-    return "<span style='background-color: " + runColor + "; width:" + (len * 1) + "px; height:10px; display: inline-block;'></span>";
+    return "<span style='background-color: " + runColor + ";  width:" + (len * 1) + "px; height:10px; display: inline-block;'></span>";
 }
