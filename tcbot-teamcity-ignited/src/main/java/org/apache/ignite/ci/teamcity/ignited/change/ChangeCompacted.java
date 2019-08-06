@@ -161,4 +161,8 @@ public class ChangeCompacted implements IVersionedEntity {
     public byte[] commitVersion() {
         return version;
     }
+
+    public int vcsUsername() {
+        return vcsUsername;
+    }
 }

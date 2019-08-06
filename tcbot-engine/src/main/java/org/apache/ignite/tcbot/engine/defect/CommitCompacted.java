@@ -17,7 +17,9 @@
 package org.apache.ignite.tcbot.engine.defect;
 
 import java.util.Arrays;
+import org.apache.ignite.tcbot.persistence.Persisted;
 
+@Persisted
 public class CommitCompacted implements Comparable<CommitCompacted> {
     /** Sha of the commit. */
     private byte[] data;
@@ -41,6 +43,7 @@ public class CommitCompacted implements Comparable<CommitCompacted> {
         return Arrays.hashCode(data);
     }
 
+    /** {@inheritDoc} */
     @Override public int compareTo(CommitCompacted o) {
         return compare(data, o.data);
     }

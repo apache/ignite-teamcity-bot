@@ -34,9 +34,6 @@ public class BoardDefectSummaryUi {
     public Integer fixedIssues;
     public Integer notFixedIssues;
 
-    public String usernames = "";
-
-    public String trackedBranch;
     public List<String> testOrSuitesAffected = new ArrayList<>();
     public Set<String> tags = new HashSet<>();
 
@@ -55,8 +52,15 @@ public class BoardDefectSummaryUi {
         ).distinct().map(compactor::getStringFromId).collect(Collectors.toList());
     }
 
+    public List<String> getBlameCandidates() {
+        return defect.blameCandidates().stream().map(c -> c.vcsUsername(compactor)).collect(Collectors.toList());
+    }
 
-    public int getId(){
+    public String getTrackedBranch() {
+       return compactor.getStringFromId(defect.trackedBranchCid());
+    }
+
+    public int getId() {
         return defect.id();
     }
 
@@ -68,7 +72,6 @@ public class BoardDefectSummaryUi {
 
         testOrSuitesAffected.add(testOrBuildName);
 
-        trackedBranch = trackedBranchName;
     }
 
     public void addFixedIssue() {

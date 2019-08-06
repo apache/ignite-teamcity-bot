@@ -117,6 +117,7 @@ public class DefectsStorage {
 
         DefectCompacted defect = new DefectCompacted(id)
             .commits(commitsToUse)
+            .changeMap(changeList)
             .tcBranch(fatBuild.branchName())
             .tcSrvId(srvId)
             .tcSrvCodeCid(tcSrvCodeCid);

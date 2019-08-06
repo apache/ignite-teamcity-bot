@@ -16,33 +16,18 @@
  */
 package org.apache.ignite.tcbot.engine.defect;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.Persisted;
 
 @Persisted
-public class DefectFirstBuild {
-    private FatBuildCompacted build;
+public class BlameCandidate {
+    private int vcsUsername = -1;
 
-    private Set<DefectIssue> issues = new HashSet<>();
-
-    public DefectFirstBuild(FatBuildCompacted build) {
-        this.build = build;
+    public void vcsUsername(int username) {
+        vcsUsername = username;
     }
 
-    public DefectFirstBuild addIssue(int typeCid, Integer testNameCid) {
-        issues.add(new DefectIssue(typeCid, testNameCid));
-
-        return this;
-    }
-
-    public FatBuildCompacted build() {
-        return build;
-    }
-
-    public Set<DefectIssue> issues() {
-        return Collections.unmodifiableSet(issues);
+    public String vcsUsername(IStringCompactor compactor) {
+        return compactor.getStringFromId(vcsUsername);
     }
 }

@@ -21,7 +21,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 
@@ -29,22 +29,27 @@ public class DefectCompacted {
     /** Syntetic Defect Id. */
     private int id;
 
-    private int tcBranch;
+    private int tcBranch = -1;
 
     /** Tc server code hashcode. */
-    private int tcSrvId;
+    private int tcSrvId = -1;
 
     /** Tc server code compactor string ID. */
-    private int tcSrvCodeCid;
+    private int tcSrvCodeCid = -1;
 
     /** Tracked branch Compactor string ID. */
-    private int trackedBranchCid;
+    private int trackedBranchCid = -1;
 
     /** Resolved by username id. */
     private int resolvedByUsernameId = -1;
     /** Commits hashes involved. */
     private List<CommitCompacted> commits = new ArrayList<>();
+
+    /** Blame candidates. */
+    private List<BlameCandidate> blameCandidates = new ArrayList<>();
+
     private Map<Integer, DefectFirstBuild> buildsInvolved = new HashMap<>();
+    private Map<Integer, ChangeCompacted> changes = new HashMap<>();
 
     public DefectCompacted(int id) {
         this.id = id;
@@ -130,5 +135,30 @@ public class DefectCompacted {
 
     public boolean hasBuild(int id) {
         return buildsInvolved.containsKey(id);
+    }
+
+    public List<BlameCandidate> blameCandidates() {
+        if (blameCandidates == null)
+            return Collections.emptyList();
+
+        return Collections.unmodifiableList(blameCandidates);
+    }
+
+    public DefectCompacted changeMap(Map<Integer, ChangeCompacted> changes) {
+        this.changes = changes;
+
+        return this;
+    }
+
+    public Map<Integer, ChangeCompacted> changeMap() {
+        return changes;
+    }
+
+    public void addBlameCandidate(BlameCandidate candidate) {
+        blameCandidates.add(candidate);
+    }
+
+    public int trackedBranchCid() {
+        return trackedBranchCid;
     }
 }

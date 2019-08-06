@@ -16,7 +16,9 @@
  */
 package org.apache.ignite.tcbot.engine.board;
 
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,6 +30,7 @@ import java.util.stream.Stream;
 import javax.inject.Inject;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
+import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
@@ -35,6 +38,7 @@ import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.common.util.FutureUtil;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.chain.SingleBuildRunCtx;
+import org.apache.ignite.tcbot.engine.defect.BlameCandidate;
 import org.apache.ignite.tcbot.engine.defect.DefectCompacted;
 import org.apache.ignite.tcbot.engine.defect.DefectFirstBuild;
 import org.apache.ignite.tcbot.engine.defect.DefectIssue;
@@ -84,6 +88,9 @@ public class BoardService {
             ITeamcityIgnited tcIgn = tcProv.server(srvCode, creds);
 
             ITcServerConfig cfg = tcIgn.config();
+
+            List<BlameCandidate> candidates = next.blameCandidates();
+
 
             Map<Integer, DefectFirstBuild> build = next.buildsInvolved();
             for (DefectFirstBuild cause : build.values()) {
@@ -172,9 +179,18 @@ public class BoardService {
                     (k, defect) -> {
                         defect.trackedBranchCidSetIfEmpty(trackedBranchCid);
 
-                        DefectFirstBuild build = defect.computeIfAbsent(fatBuild);
+                        defect.computeIfAbsent(fatBuild).addIssue(issueTypeCid, testNameCid);
 
-                        build.addIssue(issueTypeCid, testNameCid);
+                        if(defect.blameCandidates().isEmpty()) {
+                            Map<Integer, ChangeCompacted> map = defect.changeMap();
+
+                            Collection<ChangeCompacted> values = map.values();
+                            for (ChangeCompacted next : values) {
+                                BlameCandidate candidate = new BlameCandidate();
+                                candidate.vcsUsername(next.vcsUsername());
+                                defect.addBlameCandidate(candidate);
+                            }
+                        }
 
                         return defect;
                     });
