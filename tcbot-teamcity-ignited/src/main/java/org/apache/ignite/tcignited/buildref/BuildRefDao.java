@@ -79,6 +79,7 @@ public class BuildRefDao {
         .softValues()
         .build();
 
+    //todo check if invalidation may be missed in this cache
 
     /** */
     public BuildRefDao init() {
