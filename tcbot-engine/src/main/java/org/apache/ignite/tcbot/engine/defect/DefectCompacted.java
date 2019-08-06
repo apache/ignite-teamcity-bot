@@ -129,4 +129,8 @@ public class DefectCompacted {
     public void id(int id) {
         this.id = id;
     }
+
+    public boolean hasBuild(int id) {
+        return buildsInvolved.containsKey(id);
+    }
 }

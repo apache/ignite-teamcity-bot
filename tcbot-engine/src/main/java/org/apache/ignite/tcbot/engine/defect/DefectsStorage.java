@@ -19,7 +19,9 @@ package org.apache.ignite.tcbot.engine.defect;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.cache.Cache;
 import javax.inject.Inject;
@@ -30,6 +32,8 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.QueryEntity;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.ScanQuery;
+import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
+import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
@@ -43,6 +47,8 @@ public class DefectsStorage {
 
     @Inject
     private Provider<Ignite> igniteProvider;
+    @Inject
+    private ChangeDao changeDao;
 
 
     public DefectsStorage() {
@@ -70,34 +76,40 @@ public class DefectsStorage {
 
     public DefectCompacted merge(
         int tcSrvCodeCid,
-        int srvId,
-        FatBuildCompacted build,
-        List<CommitCompacted> collect,
+        final int srvId,
+        FatBuildCompacted fatBuild,
         BiFunction<Integer, DefectCompacted, DefectCompacted> function) {
-
-        List<CommitCompacted> commitsToUse = new ArrayList<>(collect);
-        commitsToUse.sort(CommitCompacted::compareTo);
 
         IgniteCache<Integer, DefectCompacted> cache = cache();
 
         try (QueryCursor<Cache.Entry<Integer, DefectCompacted>> qry = cache.query(new ScanQuery<Integer, DefectCompacted>()
-            .setFilter((k, v) -> v.resolvedByUsernameId()  < 1))){
+            .setFilter((k, v) -> v.resolvedByUsernameId() < 1 && v.tcSrvId() == srvId))) {
             for (Cache.Entry<Integer, DefectCompacted> next : qry) {
-                Integer id = next.getKey();
                 DefectCompacted openDefect = next.getValue();
 
-                if (openDefect.tcSrvId() == srvId) {
-                    if (openDefect.sameCommits(commitsToUse)) {
+                if (openDefect.hasBuild(fatBuild.id()))
+                    return processExisting(function, cache, next.getKey(), openDefect);
+            }
+        }
 
-                        DefectCompacted defect = function.apply(id, openDefect);
+        int[] changes = fatBuild.changes();
+        Map<Long, ChangeCompacted> changeList = changeDao.getAll(srvId, changes);
 
-                        defect.id(id);
+        List<CommitCompacted> commitsToUse = changeList
+            .values()
+            .stream()
+            .map(ChangeCompacted::commitVersion)
+            .map(CommitCompacted::new)
+            .sorted(CommitCompacted::compareTo)
+            .collect(Collectors.toList());
 
-                        cache.put(id, defect);
+        try (QueryCursor<Cache.Entry<Integer, DefectCompacted>> qry = cache.query(new ScanQuery<Integer, DefectCompacted>()
+            .setFilter((k, v) -> v.resolvedByUsernameId() < 1 && v.tcSrvId() == srvId))) {
+            for (Cache.Entry<Integer, DefectCompacted> next : qry) {
+                DefectCompacted openDefect = next.getValue();
 
-                        return defect;
-                    }
-                }
+                if (openDefect.sameCommits(commitsToUse))
+                    return processExisting(function, cache, next.getKey(), openDefect);
             }
         }
 
@@ -105,7 +117,7 @@ public class DefectsStorage {
 
         DefectCompacted defect = new DefectCompacted(id)
             .commits(commitsToUse)
-            .tcBranch(build.branchName())
+            .tcBranch(fatBuild.branchName())
             .tcSrvId(srvId)
             .tcSrvCodeCid(tcSrvCodeCid);
 
@@ -114,6 +126,17 @@ public class DefectsStorage {
         boolean putSuccess = cache.putIfAbsent(id, defectT);
 
         return defectT;
+    }
+
+    public DefectCompacted processExisting(BiFunction<Integer, DefectCompacted, DefectCompacted> function,
+        IgniteCache<Integer, DefectCompacted> cache, Integer id, DefectCompacted openDefect) {
+        DefectCompacted defect = function.apply(id, openDefect);
+
+        defect.id(id);
+
+        cache.put(id, defect);
+
+        return defect;
     }
 
     public List<DefectCompacted> loadAllDefects() {

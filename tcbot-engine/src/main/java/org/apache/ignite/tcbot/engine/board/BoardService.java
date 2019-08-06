@@ -167,13 +167,8 @@ public class BoardService {
                 Integer testNameCid = compactor.getStringIdIfPresent(testName);
                 int trackedBranchCid = compactor.getStringId(issue.trackedBranchName);
 
-                int[] changes = fatBuild.changes();
-                Map<Long, ChangeCompacted> all = changeDao.getAll(srvId, changes);
-                Stream<CommitCompacted> stream1 = all.values().stream().map(ChangeCompacted::commitVersion)
-                    .map(CommitCompacted::new);
-
                 int tcSrvCodeCid = compactor.getStringId(srvCode);
-                defectStorage.merge(tcSrvCodeCid, srvId, fatBuild, stream1.collect(Collectors.toList()),
+                defectStorage.merge(tcSrvCodeCid, srvId, fatBuild,
                     (k, defect) -> {
                         defect.trackedBranchCidSetIfEmpty(trackedBranchCid);
 
