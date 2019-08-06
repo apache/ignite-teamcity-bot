@@ -436,6 +436,7 @@ public class IgnitedTcInMemoryIntegrationTest {
             @Override protected void configure() {
                 bind(Ignite.class).toInstance(ignite);
                 bind(IStringCompactor.class).to(IgniteStringCompactor.class).in(new SingletonScope());
+                bind(IDataSourcesConfigSupplier.class).toInstance(Mockito.mock(IDataSourcesConfigSupplier.class));
                 bind(ILogProductSpecific.class).toInstance(Mockito.mock(ILogProductSpecific.class));
             }
         });

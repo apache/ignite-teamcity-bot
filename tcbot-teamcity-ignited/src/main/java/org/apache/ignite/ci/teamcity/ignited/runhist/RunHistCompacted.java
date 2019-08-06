@@ -24,6 +24,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcignited.history.ChangesState;
@@ -188,7 +189,11 @@ public class RunHistCompacted implements IRunHistory {
 
     /** {@inheritDoc} */
     @Override public String toString() {
+        Stream<CharSequence> stream = data.getLatestRuns().stream().filter(Objects::nonNull).map(Object::toString);
+        String join = String.join("", stream::iterator);
+
         return MoreObjects.toStringHelper(this)
+            .add("runs", join)
             .add("failRate", getFailPercentPrintable())
             .add("data", data)
             .toString();
