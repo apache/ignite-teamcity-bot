@@ -21,35 +21,52 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.internal.SingletonScope;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import javax.xml.bind.JAXBException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.tcbot.persistence.scheduler.DirectExecNoWaitScheduler;
-import org.apache.ignite.jiraservice.IJiraIntegrationProvider;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest;
-import org.apache.ignite.tcbot.engine.conf.TcBotJsonConfig;
-import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
-import org.apache.ignite.tcignited.buildlog.ILogProductSpecific;
-import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.tcignited.build.FatBuildDao;
-import org.apache.ignite.tcignited.build.ProactiveFatBuildSync;
 import org.apache.ignite.ci.teamcity.pure.BuildHistoryEmulator;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.configuration.IgniteConfiguration;
+import org.apache.ignite.jiraservice.IJiraIntegrationProvider;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
-import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.conf.TcBotJsonConfig;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.IgniteStringCompactor;
 import org.apache.ignite.tcbot.persistence.TcBotPersistenceModule;
+import org.apache.ignite.tcbot.persistence.scheduler.DirectExecNoWaitScheduler;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
+import org.apache.ignite.tcignited.build.FatBuildDao;
+import org.apache.ignite.tcignited.build.ProactiveFatBuildSync;
+import org.apache.ignite.tcignited.buildlog.ILogProductSpecific;
+import org.apache.ignite.tcignited.buildref.BuildRefDao;
+import org.apache.ignite.tcignited.history.BuildStartTimeStorage;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.ISuiteRunHistory;
-import org.apache.ignite.tcignited.history.BuildStartTimeStorage;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcservice.TeamcityServiceConnection;
 import org.apache.ignite.tcservice.http.ITeamcityHttpConnection;
@@ -76,14 +93,12 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import javax.xml.bind.JAXBException;
-import java.io.*;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
-
 import static com.google.common.base.Preconditions.checkNotNull;
-import static junit.framework.TestCase.*;
+import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertFalse;
+import static junit.framework.TestCase.assertNotNull;
+import static junit.framework.TestCase.assertNull;
+import static junit.framework.TestCase.assertTrue;
 import static org.apache.ignite.tcbot.common.conf.TcBotWorkDir.ensureDirExist;
 import static org.apache.ignite.tcbot.persistence.IgniteStringCompactor.STRINGS_CACHE;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -713,6 +728,37 @@ public class IgnitedTcInMemoryIntegrationTest {
 
     @NotNull public List<BuildRef> printRefs(IStringCompactor c, List<BuildRefCompacted> running2) {
         return running2.stream().map(bref -> bref.toBuildRef(c)).collect(Collectors.toList());
+    }
+
+    @Test
+    public void testCachesInvalidation() {
+        TeamcityIgnitedModule module = new TeamcityIgnitedModule();
+
+        Injector injector = Guice.createInjector(module, new IgniteAndSchedulerTestModule());
+
+        IStringCompactor c = injector.getInstance(IStringCompactor.class);
+        BuildRefDao storage = injector.getInstance(BuildRefDao.class);
+        storage.init();
+
+        int srvId = ITeamcityIgnited.serverIdToInt("apache");
+        int branch = c.getStringId("myBranch");
+        AtomicInteger idGen = new AtomicInteger();
+        int buildTypeId = c.getStringId("myBuildType");
+        BuildRefCompacted ref = new BuildRefCompacted().withId(idGen.incrementAndGet()).state(0).status(2).branchName(branch).buildTypeId(buildTypeId);
+
+        storage.save(srvId, ref);
+
+        Set<Integer> branchList = Collections.singleton(branch);
+        assertEquals(1, storage.getAllBuildsCompacted(srvId, buildTypeId, branchList).size());
+
+        storage.save(srvId, ref.withId(idGen.incrementAndGet()));
+        assertEquals(2, storage.getAllBuildsCompacted(srvId, buildTypeId, branchList).size());
+
+        storage.save(srvId, ref.withId(idGen.incrementAndGet()).branchName(c.getStringId("SomeUnrelatedBranch")));
+        assertEquals(2, storage.getAllBuildsCompacted(srvId, buildTypeId, branchList).size());
+
+        storage.save(srvId, ref.withId(idGen.incrementAndGet()).branchName(branch));
+        assertEquals(3, storage.getAllBuildsCompacted(srvId, buildTypeId, branchList).size());
     }
 
     /**

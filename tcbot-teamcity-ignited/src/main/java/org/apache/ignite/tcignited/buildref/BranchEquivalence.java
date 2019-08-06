@@ -19,8 +19,12 @@ package org.apache.ignite.tcignited.buildref;
 import com.google.common.collect.Lists;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcservice.ITeamcity;
 
 public class BranchEquivalence {
@@ -53,4 +57,11 @@ public class BranchEquivalence {
             return Collections.singletonList(branchName);
     }
 
+    public Set<Integer> branchIdsForQuery(@Nullable String branchName, IStringCompactor compactor) {
+        List<String> bracnhNameQry = branchForQuery(branchName);
+        return bracnhNameQry.stream()
+            .map(compactor::getStringIdIfPresent)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+    }
 }

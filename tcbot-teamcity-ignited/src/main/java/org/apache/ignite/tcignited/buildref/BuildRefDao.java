@@ -19,6 +19,7 @@ package org.apache.ignite.tcignited.buildref;
 
 import com.google.common.cache.CacheBuilder;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -194,23 +195,13 @@ public class BuildRefDao {
 
     /**
      * @param srvId Server id mask high.
-     * @param buildTypeId Build type (suite) id.
-     * @param bracnhNameQry Bracnh name query.
+     * @param buildTypeIdId Build type (suite) id from compactor.
+     * @param branchNameIds Branch names for query.
      */
     @AutoProfiling
     @Nonnull public List<BuildRefCompacted> getAllBuildsCompacted(int srvId,
-        String buildTypeId,
-        List<String> bracnhNameQry) {
-        Integer buildTypeIdId = compactor.getStringIdIfPresent(buildTypeId);
-        if (buildTypeIdId == null)
-            return Collections.emptyList();
-
-        Set<Integer> branchNameIds = bracnhNameQry.stream().map(str -> compactor.getStringIdIfPresent(str))
-            .filter(Objects::nonNull).collect(Collectors.toSet());
-
-        if (branchNameIds.isEmpty())
-            return Collections.emptyList();
-
+        int buildTypeIdId,
+        Collection<Integer> branchNameIds) {
         List<BuildRefCompacted> res = new ArrayList<>();
 
         branchNameIds.forEach(branchNameId -> {
@@ -226,7 +217,7 @@ public class BuildRefDao {
 
                         if (!resForBranch.isEmpty()) {
                             System.err.println("Branch " + compactor.getStringFromId(branchNameId)
-                                + " Suite " + buildTypeId
+                                + " Suite " + compactor.getStringFromId(buildTypeIdId)
                                 + " builds " + resForBranch.size() + " ");
                         }
 

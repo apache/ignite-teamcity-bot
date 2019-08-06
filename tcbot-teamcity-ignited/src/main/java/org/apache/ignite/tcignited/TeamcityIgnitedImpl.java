@@ -361,7 +361,16 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             @Nullable String branchName) {
         ensureActualizeRequested();
 
-        return buildRefDao.getAllBuildsCompacted(srvIdMaskHigh, buildTypeId, branchEquivalence.branchForQuery(branchName));
+        Integer buildTypeIdId = compactor.getStringIdIfPresent(buildTypeId);
+        if (buildTypeIdId == null)
+            return Collections.emptyList();
+
+        Set<Integer> branchNameIds = branchEquivalence.branchIdsForQuery(branchName, compactor);
+
+        if (branchNameIds.isEmpty())
+            return Collections.emptyList();
+
+        return buildRefDao.getAllBuildsCompacted(srvIdMaskHigh, buildTypeIdId, branchNameIds);
     }
 
     /** {@inheritDoc} */

@@ -150,8 +150,9 @@ public class HistoryCollector {
         int srvId, int buildTypeId, int normalizedBaseBranch, Set<Integer> knownBuilds) {
         String btId = compactor.getStringFromId(buildTypeId);
         String branchId = compactor.getStringFromId(normalizedBaseBranch);
-        List<BuildRefCompacted> bRefsList = buildRefDao.getAllBuildsCompacted(srvId, btId,
-            branchEquivalence.branchForQuery(branchId));
+        Set<Integer> strings = branchEquivalence.branchIdsForQuery(branchId, compactor);
+        List<BuildRefCompacted> bRefsList =
+            buildRefDao.getAllBuildsCompacted(srvId, buildTypeId, strings);
 
         long curTs = System.currentTimeMillis();
         Set<Integer> buildIds = bRefsList.stream()
