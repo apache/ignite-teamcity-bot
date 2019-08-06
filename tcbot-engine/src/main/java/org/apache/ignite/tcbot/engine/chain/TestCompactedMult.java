@@ -17,6 +17,13 @@
 
 package org.apache.ignite.tcbot.engine.chain;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
@@ -26,14 +33,6 @@ import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.IRunStat;
 import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 /**
  * Test occurrence merged from several runs.
@@ -173,12 +172,21 @@ public class TestCompactedMult {
 
     /**
      * Filter to determine if this test execution should be shown in the report of failures.
-     *
-     * @param tcIgnited Tc ignited.
+     *  @param tcIgnited Tc ignited.
      * @param baseBranchId Base branch id.
+     * @param showMuted
+     * @param showIgnored
      */
-    public boolean includeIntoReport(ITeamcityIgnited tcIgnited, Integer baseBranchId) {
+    public boolean includeIntoReport(ITeamcityIgnited tcIgnited, Integer baseBranchId,
+        boolean showMuted,
+        boolean showIgnored) {
         if (isFailedButNotMuted())
+            return true;
+
+        if (showMuted && occurrences.stream().anyMatch(ITest::isMutedTest))
+            return true;
+
+        if (showIgnored && occurrences.stream().anyMatch(ITest::isIgnoredTest))
             return true;
 
         boolean longRun = getAvgDurationMs() > TcBotConst.MAX_NEW_TEST_DURATION_FOR_RUNALL_MS;

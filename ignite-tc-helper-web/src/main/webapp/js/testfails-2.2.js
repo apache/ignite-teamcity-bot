@@ -1024,16 +1024,23 @@ function drawLatestRuns(latestRuns) {
 function drawLatestRunsBlock(state, len) {
     var runColor = "white";
 
-    if (state === 0)
+    const resOk = 0;
+    if (state === resOk)
         runColor = "green";
     else if (state === 1)
         runColor = "red";
-    else if (state === 2)
+    else if (state === 2) // deprected MUTED
         runColor = "grey";
-    else if (state === 3)
-        runColor = "black";
-    else if (state === 4)
-        runColor = "lightgrey";
+    else if (state === 3) // CRITICAL failure - incomplete suite
+        runColor = "#000000";
+    else if (state === 4) // RES_MISSING(4),  missing in run
+        runColor = "#AAAAAA";
+    else if (state === 5)   // RES_OK_MUTED(5),
+        runColor = "#44AA44";
+    else if (state === 6)  // RES_FAILURE_MUTED(6),
+        runColor = "#b76a6a";
+    else if (state === 7) //  RES_IGNORED(7);
+        runColor = "#F09F00";
 
-    return "<span style='background-color: " + runColor + "; width:" + (len * 1) + "px; height:10px; display: inline-block;'></span>";
+    return "<span style='background-color: " + runColor + ";  width:" + (len * 1) + "px; height:10px; display: inline-block;'></span>";
 }

@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
@@ -82,7 +83,9 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         @Nullable String tagForHistSelected,
         @Nullable DisplayMode displayMode,
         @Nullable SortOption sortOption,
-        int maxDurationSec) {
+        int maxDurationSec,
+        boolean showMuted,
+        boolean showIgnored) {
         final DsSummaryUi res = new DsSummaryUi();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
@@ -103,23 +106,11 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
 
                 ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, creds);
 
-                java.util.Map<Integer, Integer> requireParamVal = new HashMap<>();
+                Map<Integer, Integer> requireParamVal = new HashMap<>();
 
-                if(!Strings.isNullOrEmpty(tagForHistSelected)) {
-                    ITcServerConfig cfg = tcBotCfg.getTeamcityConfig(srvCodeOrAlias);
-                    Collection<? extends IBuildParameterSpec> specs = cfg.filteringParameters();
-                    for (IBuildParameterSpec buildParameterSpec : specs) {
-                        Collection<? extends IParameterValueSpec> selection = buildParameterSpec.selection();
-                        for (IParameterValueSpec valueSpec : selection) {
-                            if(tagForHistSelected.equals(valueSpec.label())
-                                && !Strings.isNullOrEmpty(valueSpec.value())) {
-
-                                requireParamVal.put(
-                                    compactor.getStringId(buildParameterSpec.name()),
-                                    compactor.getStringId(valueSpec.value()));
-                            }
-                        }
-                    }
+                if (!Strings.isNullOrEmpty(tagForHistSelected)) {
+                    requireParamVal.putAll(
+                        reverseTagToParametersRequired(tagForHistSelected, srvCodeOrAlias));
                 }
 
                 DsChainUi chainStatus = new DsChainUi(srvCodeOrAlias,
@@ -159,7 +150,8 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
                     runningUpdates.addAndGet(cnt);
 
                 chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor, calcTrustedTests, tagSelected,
-                        displayMode, maxDurationSec, requireParamVal);
+                    displayMode, maxDurationSec, requireParamVal,
+                    showMuted, showIgnored);
 
                 return chainStatus;
             })
@@ -170,6 +162,29 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         res.postProcess(runningUpdates.get());
 
         return res;
+    }
+
+    public Map<Integer, Integer> reverseTagToParametersRequired(@Nullable String tagForHistSelected,
+        String srvCodeOrAlias) {
+
+        Map<Integer, Integer> requireParamVal = new HashMap<>();
+
+        ITcServerConfig cfg = tcBotCfg.getTeamcityConfig(srvCodeOrAlias);
+        Collection<? extends IBuildParameterSpec> specs = cfg.filteringParameters();
+        for (IBuildParameterSpec buildParameterSpec : specs) {
+            Collection<? extends IParameterValueSpec> selection = buildParameterSpec.selection();
+            for (IParameterValueSpec valueSpec : selection) {
+                if(tagForHistSelected.equals(valueSpec.label())
+                    && !Strings.isNullOrEmpty(valueSpec.value())) {
+
+                    requireParamVal.put(
+                        compactor.getStringId(buildParameterSpec.name()),
+                        compactor.getStringId(valueSpec.value()));
+                }
+            }
+        }
+
+        return requireParamVal;
     }
 
     @Override public GuardBranchStatusUi getBranchSummary(String name, ICredentialsProv prov) {

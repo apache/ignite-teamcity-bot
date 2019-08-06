@@ -18,12 +18,16 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import com.google.common.base.MoreObjects;
-import org.apache.ignite.tcignited.history.RunStatus;
-
-import javax.annotation.Nonnull;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.annotation.Nonnull;
+import org.apache.ignite.tcignited.history.RunStatus;
 
 /**
  *
@@ -40,6 +44,15 @@ public class InvocationData {
     /** Test is missing in suite run. */
     public static final int MISSING = RunStatus.RES_MISSING.getCode();
 
+    /** Failure muted. */
+    public static final int FAILURE_MUTED = RunStatus.RES_FAILURE_MUTED.getCode();
+
+    /** Ok muted. */
+    public static final int OK_MUTED = RunStatus.RES_OK_MUTED.getCode();
+
+    /** Test Ignored. */
+    public static final int IGNORED = RunStatus.RES_IGNORED.getCode();
+
     /** Invocations map from build ID to invocation data. */
     private final List<Invocation> invocationList = new ArrayList<>();
 
@@ -53,7 +66,10 @@ public class InvocationData {
     public int notMutedAndNonMissingRunsCount() {
         return (int)
             invocations(true)
-                .filter(invocation -> invocation.status() != MUTED)
+                .filter(invocation -> {
+                    byte s = invocation.status();
+                    return s != MUTED && s != FAILURE_MUTED && s != OK_MUTED && s != IGNORED;
+                })
                 .count();
     }
 

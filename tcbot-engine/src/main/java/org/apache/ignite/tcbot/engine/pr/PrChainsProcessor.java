@@ -166,7 +166,7 @@ public class PrChainsProcessor {
 
             //fail rate reference is always default (master)
             chainStatus.initFromContext(tcIgnited, ctx, baseBranchForTc, compactor, false,
-                    null, null, -1, null); // don't need for PR
+                    null, null, -1, null, false, false); // don't need for PR
 
             initJiraAndGitInfo(chainStatus, jiraIntegration, gitHubConnIgnited);
         }
@@ -298,7 +298,7 @@ public class PrChainsProcessor {
         Integer baseBranchId = compactor.getStringIdIfPresent(normalizedBaseBranch);
 
         Predicate<MultBuildRunCtx> filter = suite ->
-            suite.isFailed() || suite.hasTestToReport(tcIgnited, baseBranchId);
+            suite.isFailed() || suite.hasTestToReport(tcIgnited, baseBranchId, false, false);
 
         return fullChainRunCtx
             .filteredChildSuites(filter)
@@ -307,7 +307,7 @@ public class PrChainsProcessor {
 
                 String suiteComment = ctx.getPossibleBlockerComment(compactor, statInBaseBranch, tcIgnited.config());
 
-                List<ShortTestFailureUi> failures = ctx.getFilteredTests(test -> test.includeIntoReport(tcIgnited, baseBranchId))
+                List<ShortTestFailureUi> failures = ctx.getFilteredTests(test -> test.includeIntoReport(tcIgnited, baseBranchId, false, false))
                     .stream()
                     .map(occurrence -> {
                         ShortTestFailureUi tst = new ShortTestFailureUi().initFrom(occurrence, tcIgnited, baseBranchId);

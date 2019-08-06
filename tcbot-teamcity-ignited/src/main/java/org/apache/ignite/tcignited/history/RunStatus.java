@@ -36,7 +36,14 @@ public enum RunStatus {
     /** Result of suite: Critical failure, no results. */
     RES_CRITICAL_FAILURE(3),
     /** Test is not present in current run */
-    RES_MISSING(4);
+    RES_MISSING(4),
+    /** Muted, but test passed. */
+    RES_OK_MUTED(5),
+    /** Muted, and test failed. */
+    RES_FAILURE_MUTED(6),
+    /** Test ignored. */
+    RES_IGNORED(7);
+
 
     /** Mapping of status int -> object. */
     private static Map<Integer, RunStatus> holder = Stream.of(values()).collect(Collectors.toMap(RunStatus::getCode, i -> i));

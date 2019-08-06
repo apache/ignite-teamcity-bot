@@ -381,17 +381,18 @@ public class TestCompactedV2 implements ITest {
      * @return
      */
     public static Invocation toInvocation(
-            ITest test,
-            FatBuildCompacted build,
-            int successStatusStrId) {
+        ITest test,
+        FatBuildCompacted build,
+        int successStatusStrId) {
         final boolean failedTest = successStatusStrId != test.status();
 
-        //todo implement IGNORED, MUTED_FAILURE, MUTED_SUCCESS
-        final int failCode = failedTest
-            ? (test.isIgnoredTest() || test.isMutedTest())
-            ? InvocationData.MUTED
-            : InvocationData.FAILURE
-            : InvocationData.OK;
+        final int failCode;
+        if (test.isIgnoredTest())
+            failCode = InvocationData.IGNORED;
+        else if (test.isMutedTest())
+            failCode = failedTest ? InvocationData.FAILURE_MUTED : InvocationData.OK_MUTED;
+        else
+            failCode = failedTest ? InvocationData.FAILURE : InvocationData.OK;
 
         return new Invocation(build.getId())
             .withStatus(failCode)

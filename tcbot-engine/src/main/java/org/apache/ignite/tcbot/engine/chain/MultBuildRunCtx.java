@@ -711,8 +711,9 @@ public class MultBuildRunCtx implements ISuiteResults {
         }
     }
 
-    public boolean hasTestToReport(ITeamcityIgnited tcIgnited, Integer baseBranchId) {
-        return !getFilteredTests(test -> test.includeIntoReport(tcIgnited, baseBranchId)).isEmpty();
+    public boolean hasTestToReport(ITeamcityIgnited tcIgnited, Integer baseBranchId, boolean showMuted,
+        boolean showIgnored) {
+        return !getFilteredTests(test -> test.includeIntoReport(tcIgnited, baseBranchId, showMuted, showIgnored)).isEmpty();
     }
 
     public boolean hasLongRunningTest(int maxSec) {

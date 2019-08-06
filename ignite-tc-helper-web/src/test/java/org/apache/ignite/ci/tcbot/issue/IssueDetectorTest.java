@@ -86,7 +86,7 @@ public class IssueDetectorTest {
     }
 
     @Test
-    public void testDetector() throws IOException {
+    public void testDetector() {
         String brachName = "masterTest";
         String chainId = TeamcityIgnitedImpl.DEFAULT_PROJECT_ID;
         BranchTracked branch = new BranchTracked();
