@@ -64,17 +64,18 @@ public class RunHistKey {
         return Objects.hashCode(srvId, testOrSuiteName, branch);
     }
 
-    /**
-     *
-     */
+    /**  */
     public int testNameOrSuite() {
         return testOrSuiteName;
     }
 
-    /**
-     *
-     */
+    /** */
     public int srvId() {
         return srvId;
+    }
+
+    /** */
+    public int branch() {
+        return branch;
     }
 }

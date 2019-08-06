@@ -50,7 +50,6 @@ import org.apache.ignite.lang.IgnitePredicate;
 import org.apache.ignite.tcbot.common.conf.TcBotSystemProperties;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
-import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
@@ -78,11 +77,19 @@ public class BuildRefDao {
         = CacheBuilder.newBuilder()
         .maximumSize(Boolean.valueOf(System.getProperty(TcBotSystemProperties.DEV_MODE)) ? 1000 : 8000)
         .expireAfterAccess(16, TimeUnit.MINUTES)
-        .expireAfterWrite(17, TimeUnit.MINUTES) //workaround for stale records
+        .expireAfterWrite(45, TimeUnit.MINUTES) //workaround for stale records, enforcing to ask persistence sometimes.
         .softValues()
         .build();
 
-    //todo check if invalidation may be missed in this cache
+
+    /** Build refs in mem cache for all branch. Mostly this cache exist for fast building replace with recent builds. */
+    private final com.google.common.cache.Cache<Long, List<BuildRefCompacted>> buildRefsInMemCacheForAllBranch
+        = CacheBuilder.newBuilder()
+        .maximumSize(Boolean.valueOf(System.getProperty(TcBotSystemProperties.DEV_MODE)) ? 200 : 2000)
+        .expireAfterAccess(2, TimeUnit.MINUTES)
+        .expireAfterWrite(4, TimeUnit.MINUTES) //workaround for stale records
+        .softValues()
+        .build();
 
     /** */
     public BuildRefDao init() {
@@ -162,12 +169,17 @@ public class BuildRefDao {
     }
 
     public void invalidateHistoryInMem(int srvId, Stream<BuildRefCompacted> stream) {
-        Iterable<RunHistKey> objects =
-            stream
-                .map(b -> new RunHistKey(srvId, b.buildTypeId(), b.branchName()))
+        Set<RunHistKey> setOfHistToClear = stream
+            .map(b -> new RunHistKey(srvId, b.buildTypeId(), b.branchName()))
+            .collect(Collectors.toSet());
+
+        Iterable<Long> cacheForAllBranch =
+            setOfHistToClear.stream()
+                .map(b -> branchNameToHistCacheKey(srvId, b.branch()))
                 .collect(Collectors.toSet());
 
-        buildRefsInMemCache.invalidateAll(objects);
+        buildRefsInMemCacheForAllBranch.invalidateAll(cacheForAllBranch);
+        buildRefsInMemCache.invalidateAll(setOfHistToClear);
     }
 
     /**
@@ -252,6 +264,11 @@ public class BuildRefDao {
             .collect(Collectors.toList());
     }
 
+    private static long branchNameToHistCacheKey(long srvId, int branchName) {
+        return (long)branchName | srvId << 32;
+    }
+
+
     /**
      * Collects all builds for branch. Short-term cached because builds from same branch may be queued several times.
      *
@@ -259,8 +276,18 @@ public class BuildRefDao {
      * @param branchNameId  Branch name - IDs from compactor.
      */
     @AutoProfiling
-    @GuavaCached(softValues = true, maximumSize = 10000, expireAfterWriteSecs = 90)
     public List<BuildRefCompacted> getBuildsForBranch(int srvId, int branchNameId) {
+        long branchKey = branchNameToHistCacheKey(srvId, branchNameId);
+
+        try {
+            return buildRefsInMemCacheForAllBranch.get(branchKey, () -> getBuildsForBranchNonCached(srvId, branchNameId));
+        }
+        catch (ExecutionException e) {
+            throw ExceptionUtil.propagateException(e);
+        }
+    }
+
+    public List<BuildRefCompacted> getBuildsForBranchNonCached(int srvId, int branchNameId) {
         List<BuildRefCompacted> list = new ArrayList<>();
 
         try (QueryCursor<Cache.Entry<Long, BuildRefCompacted>> qryCursor = buildRefsCache.query(

@@ -27,6 +27,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,9 +35,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.locks.LockSupport;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.xml.bind.JAXBException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
@@ -53,6 +60,8 @@ import org.apache.ignite.jiraservice.IJiraIntegrationProvider;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.common.interceptor.GuavaCachedModule;
+import org.apache.ignite.tcbot.common.util.FutureUtil;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.TcBotJsonConfig;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -734,7 +743,7 @@ public class IgnitedTcInMemoryIntegrationTest {
     public void testCachesInvalidation() {
         TeamcityIgnitedModule module = new TeamcityIgnitedModule();
 
-        Injector injector = Guice.createInjector(module, new IgniteAndSchedulerTestModule());
+        Injector injector = Guice.createInjector(module, new GuavaCachedModule(), new IgniteAndSchedulerTestModule());
 
         IStringCompactor c = injector.getInstance(IStringCompactor.class);
         BuildRefDao storage = injector.getInstance(BuildRefDao.class);
@@ -758,7 +767,50 @@ public class IgnitedTcInMemoryIntegrationTest {
         assertEquals(2, storage.getAllBuildsCompacted(srvId, buildTypeId, branchList).size());
 
         storage.save(srvId, ref.withId(idGen.incrementAndGet()).branchName(branch));
-        assertEquals(3, storage.getAllBuildsCompacted(srvId, buildTypeId, branchList).size());
+        int present = 3;
+        assertEquals(present, storage.getAllBuildsCompacted(srvId, buildTypeId, branchList).size());
+
+        LongAdder savedCnt = new LongAdder();
+        ExecutorService svc = Executors.newFixedThreadPool(10);
+        List<Future<Void>> futures = new ArrayList<>();
+        int tasks = 100;
+        int buildPerTask = 100;
+        for (int i = 0; i < tasks; i++) {
+            int finalI = i;
+            futures.add(svc.submit(() -> {
+                List<BuildRefCompacted> collect = Stream.generate(() -> new BuildRefCompacted()
+                    .withId(idGen.incrementAndGet())
+                    .state(10000 + finalI).status(1032)
+                    .branchName(branch)
+                    .buildTypeId(buildTypeId)).limit(buildPerTask).collect(Collectors.toList());
+
+                collect.forEach(bRef -> {
+                    storage.save(srvId, bRef);
+                    savedCnt.add(1);
+                });
+
+                return null;
+            }));
+        }
+
+        long ms = System.currentTimeMillis();
+        do {
+            int saved = savedCnt.intValue() + present;
+            int size = storage.getAllBuildsCompacted(srvId, buildTypeId, branchList).size();
+
+            System.out.println("Builds available " + size + " save completed for " + saved);
+            assertTrue(size >= saved);
+
+            if (savedCnt.intValue() >= tasks * buildPerTask)
+                break;
+
+            LockSupport.parkNanos(Duration.ofMillis(10).toNanos());
+        }
+        while (System.currentTimeMillis() - ms < 5000);
+
+        FutureUtil.getResults(futures);
+        svc.shutdown();
+
     }
 
     /**
