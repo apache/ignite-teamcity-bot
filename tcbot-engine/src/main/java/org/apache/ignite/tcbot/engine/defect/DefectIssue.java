@@ -17,7 +17,9 @@
 package org.apache.ignite.tcbot.engine.defect;
 
 import java.util.Objects;
+import org.apache.ignite.tcbot.persistence.Persisted;
 
+@Persisted
 public class DefectIssue {
     private int issueTypeCode;
     private int testOrSuiteName;

@@ -93,7 +93,7 @@ public class DefectsStorage {
         }
 
         int[] changes = fatBuild.changes();
-        Map<Long, ChangeCompacted> changeList = changeDao.getAll(srvId, changes);
+        Map<Integer, ChangeCompacted> changeList = changeDao.getAll(srvId, changes);
 
         List<CommitCompacted> commitsToUse = changeList
             .values()

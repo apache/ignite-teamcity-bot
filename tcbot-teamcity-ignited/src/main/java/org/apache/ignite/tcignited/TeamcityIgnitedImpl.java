@@ -613,16 +613,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public Collection<ChangeCompacted> getAllChanges(int[] changeIds) {
-        final Map<Long, ChangeCompacted> all = changesDao.getAll(srvIdMaskHigh, changeIds);
-
-        final Map<Integer, ChangeCompacted> changes = new HashMap<>();
-
-        //todo support change version upgrade
-        all.forEach((k, v) -> {
-            final int changeId = ChangeDao.cacheKeyToChangeId(k);
-
-            changes.put(changeId, v);
-        });
+        final Map<Integer, ChangeCompacted> changes = changesDao.getAll(srvIdMaskHigh, changeIds);
 
         for (int changeId : changeIds) {
             if (!changes.containsKey(changeId)) {

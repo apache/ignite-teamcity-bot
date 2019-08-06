@@ -20,7 +20,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.tcbot.persistence.Persisted;
 
+@Persisted
 public class DefectFirstBuild {
     private BuildRefCompacted build;
 

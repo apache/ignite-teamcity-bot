@@ -75,10 +75,7 @@ public class DefectCompacted {
     }
 
     public DefectFirstBuild computeIfAbsent(BuildRefCompacted build) {
-        return buildsInvolved.computeIfAbsent(build.id(), k->{
-            DefectFirstBuild defectFirstBuild = new DefectFirstBuild(build);
-            return defectFirstBuild;
-        });
+        return buildsInvolved.computeIfAbsent(build.id(), k -> new DefectFirstBuild(build));
     }
 
     public int tcSrvId() {

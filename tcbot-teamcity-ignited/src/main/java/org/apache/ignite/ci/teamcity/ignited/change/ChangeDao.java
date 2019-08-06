@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.teamcity.ignited.change;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -24,10 +25,9 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.configuration.CacheConfiguration;
 
 public class ChangeDao {
     /** Cache name */
@@ -91,12 +91,19 @@ public class ChangeDao {
     }
 
     @AutoProfiling
-    public Map<Long, ChangeCompacted> getAll(int srvIdMaskHigh, int[] changeIds) {
+    public Map<Integer, ChangeCompacted> getAll(int srvIdMaskHigh, int[] changeIds) {
         final Set<Long> collect = new HashSet<>();
 
         for (int changeId : changeIds)
             collect.add(changeIdToCacheKey(srvIdMaskHigh, changeId));
 
-        return changesCache.getAll(collect);
+        final Map<Integer, ChangeCompacted> changes = new HashMap<>();
+        changesCache.getAll(collect).forEach((k, v) -> {
+            final int changeId = ChangeDao.cacheKeyToChangeId(k);
+
+            changes.put(changeId, v);
+        });
+
+        return changes;
     }
 }
