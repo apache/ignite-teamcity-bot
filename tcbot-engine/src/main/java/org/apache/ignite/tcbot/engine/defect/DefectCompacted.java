@@ -39,6 +39,7 @@ public class DefectCompacted {
     /** Tracked branch Compactor string ID. */
     private int trackedBranchCid;
 
+    /** Resolved by username id. */
     private int resolvedByUsernameId = -1;
     /** Commits hashes involved. */
     private List<CommitCompacted> commits = new ArrayList<>();

@@ -31,7 +31,7 @@ public class BoardDefectSummaryUi {
     public Integer fixedIssues;
     public Integer notFixedIssues;
 
-    public String usernames;
+    public String usernames = "";
 
     public String trackedBranch;
     public List<String> testOrSuitesAffected = new ArrayList<>();

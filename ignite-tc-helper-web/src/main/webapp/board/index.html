@@ -11,7 +11,7 @@
     <!--<script src="https://cdn.jsdelivr.net/npm/vue"></script>-->
 
     <script src="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.js"></script>
-   <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900|Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900|Material+Icons" rel="stylesheet">
 
     <link href="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@mdi/font@3.x/css/materialdesignicons.min.css" rel="stylesheet">
@@ -24,7 +24,7 @@
 <body>
 <script>
     var g_shownDataHashCodeHex = "";
-    let gVue;
+    let gVue, g_Loading, g_TcBotVersion;
 
     $(document).ready(function() {
         $.getScript("/js/testfails-2.2.js", function(data, textStatus, jqxhr){ });
@@ -33,6 +33,8 @@
         showQueryForm();
 
         loadData();
+
+        setInterval(loadDataSilent, 3000);
 
         $.ajax({ url: "/rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
     });
@@ -74,20 +76,44 @@
 
         return curReqParms;
     }
-    function loadData() {
+
+    function loadDataFromServer(silent) {
+        g_Loading = true;
+        if (!silent) $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
+
         var curFailuresUrl = "/rest/board/summary" + parmsForRest();
-
-        $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
-
         $.ajax({
             url: curFailuresUrl,
             success: function (result) {
-                $("#loadStatus").html("");
+                if (!silent) $("#loadStatus").html("");
 
                 showData(result);
                 g_shownDataHashCodeHex = isDefinedAndFilled(result.hashCodeHex) ? result.hashCodeHex : "";
+
+                g_Loading = false;
             },
             error: showErrInLoadStatus
+        });
+    }
+
+    function loadData() {
+        loadDataFromServer(false);
+    }
+
+    function loadDataSilent() {
+        if(g_Loading)
+            return;
+
+        loadDataFromServer(true);
+
+        $.ajax({
+            url: "/rest/branches/version", success: function (result) {
+                if (g_TcBotVersion == null)
+                    g_TcBotVersion = result.version;
+                else if (g_TcBotVersion !== result.version)
+                    window.location.reload(true);
+
+            }, error: showErrInLoadStatus
         });
     }
 
@@ -100,13 +126,13 @@
 <div id="loadStatus"></div>
 <div id="vueQueryForm" class="h-25">
     <v-app id="queryForm" class="h-25">
-        <select v-model="baseBranchSelected" @change="formChanged">
+        <!-- <select v-model="baseBranchSelected" @change="formChanged">
             <option disabled value="">Please select one</option>
             <option>A</option>
             <option>B</option>
             <option>C</option>
         </select>
-        <span>Base branch: {{ baseBranchSelected }}</span>
+        <span>Base branch: {{ baseBranchSelected }}</span> -->
 
 
         <v-data-table
