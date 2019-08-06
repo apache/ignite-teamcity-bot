@@ -86,7 +86,7 @@ public class SuiteHistory implements ISuiteRunHistory {
     /**
      * @param suiteInv suite invocation (build) to be added to history (summary).
      */
-    public void addSuiteInvocation(SuiteInvocation suiteInv) {
+    private void addSuiteInvocation(SuiteInvocation suiteInv) {
         suiteInv.tests().forEach(this::addTestInvocation);
 
         suiteHist.addInvocation(suiteInv.suiteInvocation());

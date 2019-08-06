@@ -46,6 +46,7 @@ import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.internal.util.GridIntList;
 import org.apache.ignite.lang.IgnitePredicate;
+import org.apache.ignite.tcbot.common.conf.TcBotSystemProperties;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
@@ -74,8 +75,9 @@ public class BuildRefDao {
      */
     private final com.google.common.cache.Cache<RunHistKey, List<BuildRefCompacted>> buildRefsInMemCache
         = CacheBuilder.newBuilder()
-        .maximumSize(8000)
+        .maximumSize(Boolean.valueOf(System.getProperty(TcBotSystemProperties.DEV_MODE)) ? 1000 : 8000)
         .expireAfterAccess(16, TimeUnit.MINUTES)
+        .expireAfterWrite(17, TimeUnit.MINUTES) //workaround for stale records
         .softValues()
         .build();
 
