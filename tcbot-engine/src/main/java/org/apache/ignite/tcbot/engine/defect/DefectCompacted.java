@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 
 public class DefectCompacted {
@@ -74,7 +75,7 @@ public class DefectCompacted {
         return Collections.unmodifiableMap(buildsInvolved);
     }
 
-    public DefectFirstBuild computeIfAbsent(BuildRefCompacted build) {
+    public DefectFirstBuild computeIfAbsent(FatBuildCompacted build) {
         return buildsInvolved.computeIfAbsent(build.id(), k -> new DefectFirstBuild(build));
     }
 

@@ -28,15 +28,13 @@ import java.util.stream.Stream;
 import javax.inject.Inject;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
-import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
-import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.common.util.FutureUtil;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
-import org.apache.ignite.tcbot.engine.defect.CommitCompacted;
+import org.apache.ignite.tcbot.engine.chain.SingleBuildRunCtx;
 import org.apache.ignite.tcbot.engine.defect.DefectCompacted;
 import org.apache.ignite.tcbot.engine.defect.DefectFirstBuild;
 import org.apache.ignite.tcbot.engine.defect.DefectIssue;
@@ -64,7 +62,6 @@ public class BoardService {
 
     @Inject BuildChainProcessor buildChainProcessor;
 
-
     /**
      * @param creds Credentials.
      */
@@ -86,10 +83,13 @@ public class BoardService {
 
             ITeamcityIgnited tcIgn = tcProv.server(srvCode, creds);
 
+            ITcServerConfig cfg = tcIgn.config();
+
             Map<Integer, DefectFirstBuild> build = next.buildsInvolved();
             for (DefectFirstBuild cause : build.values()) {
-                BuildRefCompacted bref = cause.build();
-                FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(next.tcSrvId(), bref.id());
+                FatBuildCompacted firstBuild = cause.build();
+                defectUi.addTags(SingleBuildRunCtx.getBuildTagsFromParameters(cfg, compactor, firstBuild));
+                FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(next.tcSrvId(), firstBuild.id());
 
                 List<Future<FatBuildCompacted>> futures = buildChainProcessor.replaceWithRecent(fatBuild, allBuildsMap, tcIgn);
 
@@ -136,7 +136,7 @@ public class BoardService {
 
         long minIssueTs = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(3);
 
-        //todo wrong to call it twice
+        //todo not so good to to call init() twice
         fatBuildDao.init();
         changeDao.init();
 
@@ -172,7 +172,9 @@ public class BoardService {
                     (k, defect) -> {
                         defect.trackedBranchCidSetIfEmpty(trackedBranchCid);
 
-                        defect.computeIfAbsent(fatBuild).addIssue(issueTypeCid, testNameCid);
+                        DefectFirstBuild build = defect.computeIfAbsent(fatBuild);
+
+                        build.addIssue(issueTypeCid, testNameCid);
 
                         return defect;
                     });

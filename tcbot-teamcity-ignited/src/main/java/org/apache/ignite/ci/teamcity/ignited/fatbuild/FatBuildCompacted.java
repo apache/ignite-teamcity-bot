@@ -533,7 +533,11 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     }
 
     public String buildTypeName(IStringCompactor compactor) {
-        return compactor.getStringFromId(name);
+        return compactor.getStringFromId(buildTypeName());
+    }
+
+    public int buildTypeName() {
+        return name;
     }
 
     public String projectId(IStringCompactor compactor) {

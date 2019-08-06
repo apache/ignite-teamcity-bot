@@ -304,9 +304,7 @@ public class BuildChainProcessor {
 
         ctx.setChanges(tcIgnited.getAllChanges(buildCompacted.changes()));
 
-        ParametersCompacted parameters = buildCompacted.parameters();
-        if (parameters != null)
-            ctx.addTagsFromParameters(parameters, tcIgnited.config(), this.compactor);
+        ctx.addTags(SingleBuildRunCtx.getBuildTagsFromParameters(tcIgnited.config(), compactor, buildCompacted));
 
         return ctx;
     }

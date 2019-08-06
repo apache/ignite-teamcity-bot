@@ -17,7 +17,10 @@
 package org.apache.ignite.tcbot.engine.ui;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.ignite.tcbot.engine.defect.DefectCompacted;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 
@@ -35,11 +38,23 @@ public class BoardDefectSummaryUi {
 
     public String trackedBranch;
     public List<String> testOrSuitesAffected = new ArrayList<>();
+    public Set<String> tags = new HashSet<>();
 
     public BoardDefectSummaryUi(DefectCompacted defect, IStringCompactor compactor) {
         this.defect = defect;
         this.compactor = compactor;
     }
+
+    public Set<String> getTags() {
+        return tags;
+    }
+
+    public List<String> getSuites() {
+        return defect.buildsInvolved().values().stream().map(
+            b -> b.build().buildTypeName()
+        ).distinct().map(compactor::getStringFromId).collect(Collectors.toList());
+    }
+
 
     public int getId(){
         return defect.id();
@@ -68,5 +83,9 @@ public class BoardDefectSummaryUi {
             notFixedIssues = 0;
 
         notFixedIssues++;
+    }
+
+    public void addTags(Set<String> parameters) {
+        this.tags.addAll(parameters);
     }
 }

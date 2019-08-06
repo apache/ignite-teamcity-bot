@@ -49,7 +49,8 @@
                 expanded: [],
                 headers: [
                     {text: "Branch", value: 'branch'},
-                    {text: 'Usernames', value: 'usernames'},
+                    {text: 'Tags', value: 'tags'},
+                    {text: 'Suites', value: 'suites'},
                     {text: "Issues", value: 'cntissues'},
                     {text: "Fixed", value: 'fixedissues'},
                     {text: "Not Fixed", value: 'notfixedissues'}
@@ -92,7 +93,10 @@
 
                 g_Loading = false;
             },
-            error: showErrInLoadStatus
+            error: function (jqXHR, exception) {
+                g_Loading = false;
+                showErrInLoadStatus(jqXHR, exception);
+            }
         });
     }
 
@@ -100,12 +104,7 @@
         loadDataFromServer(false);
     }
 
-    function loadDataSilent() {
-        if(g_Loading)
-            return;
-
-        loadDataFromServer(true);
-
+    function validateVersionsConsistency() {
         $.ajax({
             url: "/rest/branches/version", success: function (result) {
                 if (g_TcBotVersion == null)
@@ -115,6 +114,18 @@
 
             }, error: showErrInLoadStatus
         });
+    }
+
+    function loadDataSilent() {
+        if(g_Loading)
+            return;
+
+        try {
+            loadDataFromServer(true);
+            validateVersionsConsistency();
+        } catch (e) {
+            console.log(e);
+        }
     }
 
     function showData(result) {
@@ -157,12 +168,20 @@
                 </td>
             </template>
 
-            <template v-slot:item.cntIssues="{ item }">
-                <b> {{ item.cntIssues }} </b>
+            <template v-slot:item.tags="{ item }">
+                <span v-for="(tag) in item.tags">
+                    {{ tag }}
+                </span>
+            </template>
+
+            <template v-slot:item.suites="{ item }">
+                <span v-for="(suite) in item.suites">
+                    {{ suite }}
+                </span>
             </template>
 
             <template v-slot:item.cntIssues="{ item }">
-                <span class='visaStage'>  {{ item.cntIssues }} </span>
+                {{ item.cntIssues }}
             </template>
             <template v-slot:item.fixedIssues="{ item }">
                 <span class='visaStage' style="background: #12AD5E">  {{ item.fixedIssues }} </span>

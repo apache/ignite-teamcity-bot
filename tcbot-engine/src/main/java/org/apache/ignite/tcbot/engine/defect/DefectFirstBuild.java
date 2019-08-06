@@ -20,15 +20,16 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.tcbot.persistence.Persisted;
 
 @Persisted
 public class DefectFirstBuild {
-    private BuildRefCompacted build;
+    private FatBuildCompacted build;
 
     private Set<DefectIssue> issues = new HashSet<>();
 
-    public DefectFirstBuild(BuildRefCompacted build) {
+    public DefectFirstBuild(FatBuildCompacted build) {
         this.build = build;
     }
 
@@ -38,7 +39,7 @@ public class DefectFirstBuild {
         return this;
     }
 
-    public BuildRefCompacted build() {
+    public FatBuildCompacted build() {
         return build;
     }
 
