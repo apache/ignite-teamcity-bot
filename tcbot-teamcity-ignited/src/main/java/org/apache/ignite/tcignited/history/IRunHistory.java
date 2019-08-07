@@ -59,6 +59,4 @@ public interface IRunHistory extends IRunStat, IRunHistSummary {
 
         return 1.0f * getFailuresCount() / runs;
     }
-
-    Set<Integer> buildIds();
 }

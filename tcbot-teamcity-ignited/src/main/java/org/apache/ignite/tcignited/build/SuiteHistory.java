@@ -17,15 +17,20 @@
 
 package org.apache.ignite.tcignited.build;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nullable;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
 import org.apache.ignite.internal.binary.BinaryObjectExImpl;
+import org.apache.ignite.tcignited.history.IEventTemplate;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.ISuiteRunHistory;
+import org.apache.ignite.tcignited.history.RunStatus;
 import org.apache.ignite.tcignited.history.SuiteInvocation;
 
 /**
@@ -35,10 +40,28 @@ public class SuiteHistory implements ISuiteRunHistory {
     /** Tests history: Test name ID->RunHistory */
     private Map<Integer, RunHistCompacted> testsHistory = new HashMap<>();
 
+    private Map<Integer, byte[]> testsCompactedHist = new HashMap<>();
+
     private RunHistCompacted suiteHist = new RunHistCompacted();
 
     public SuiteHistory(Map<Integer, SuiteInvocation> suiteRunHist) {
+        //filling data
         suiteRunHist.forEach((buildId, suiteInv) -> addSuiteInvocation(suiteInv));
+
+        suiteHist.sort();
+        Map<Integer, Integer> buildIdToIdx = suiteHist.buildIdsMapping();
+        int buildsCnt = buildIdToIdx.size();
+
+        byte missingCode = (byte)RunStatus.RES_MISSING.getCode();
+        testsHistory.forEach((k, t) -> {
+            byte[] val = new byte[buildsCnt];
+            for (int i = 0; i < val.length; i++)
+                val[i] = missingCode;
+
+
+            testsCompactedHist.put(k, val);
+        });
+
         finalizeInvocations();
     }
 
@@ -59,7 +82,44 @@ public class SuiteHistory implements ISuiteRunHistory {
     }
 
     public IRunHistory getTestRunHist(int testName) {
-        return testsHistory.get(testName);
+        RunHistCompacted original = testsHistory.get(testName);
+        return new IRunHistory() {
+            @Nullable @Override public List<Integer> getLatestRunResults() {
+                byte[] bytes = testsCompactedHist.get(testName);
+                if (bytes == null)
+                    return null;
+
+                List<Integer> res = new ArrayList<>();
+                for (int i = 0; i < bytes.length; i++)
+                    res.add((int)bytes[i]);
+
+                return res;
+            }
+
+            @Nullable @Override public String getFlakyComments() {
+                return null;
+            }
+
+            @Nullable @Override public Integer detectTemplate(IEventTemplate t) {
+                return null;
+            }
+
+            @Override public int getCriticalFailuresCount() {
+                return -1;
+            }
+
+            @Override public boolean isFlaky() {
+                return false;
+            }
+
+            @Override public int getRunsCount() {
+                return -1;
+            }
+
+            @Override public int getFailuresCount() {
+                return -1;
+            }
+        };
     }
 
     @Override

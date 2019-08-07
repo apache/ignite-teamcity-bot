@@ -111,10 +111,14 @@ public class RunHistCompacted implements IRunHistory {
         return data.criticalFailuresCount();
     }
 
-    /** {@inheritDoc} */
-    @Override public Set<Integer> buildIds() {
+    public Set<Integer> buildIds() {
         return data.buildIds();
     }
+
+    public Map<Integer, Integer> buildIdsMapping() {
+        return data.buildIdsMapping();
+    }
+
 
     private static int[] concatArr(int[] arr1, int[] arr2) {
         int[] arr1and2 = new int[arr1.length + arr2.length];

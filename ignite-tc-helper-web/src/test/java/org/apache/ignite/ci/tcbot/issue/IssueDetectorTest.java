@@ -21,25 +21,24 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
-import org.apache.ignite.tcservice.ITeamcity;
-import org.apache.ignite.tcbot.engine.conf.BranchTracked;
-import org.apache.ignite.tcbot.engine.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.tcbot.chain.MockBasedTcBotModule;
-import org.apache.ignite.tcbot.engine.conf.TcBotJsonConfig;
-import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.tcignited.TeamcityIgnitedImpl;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
+import org.apache.ignite.tcbot.engine.conf.BranchTracked;
+import org.apache.ignite.tcbot.engine.conf.ChainAtServerTracked;
+import org.apache.ignite.tcbot.engine.conf.TcBotJsonConfig;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcignited.TeamcityIgnitedImpl;
+import org.apache.ignite.tcservice.ITeamcity;
+import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,6 +56,8 @@ import static org.mockito.Mockito.when;
 public class IssueDetectorTest {
     /** Server id. */
     public static final String SRV_ID = "apacheTest";
+    public static final String PDS_1 = "PDS1";
+    public static final String PDS_2 = "PDS2_noChanges";
 
     /** Builds emulated storage. */
     private Map<Integer, FatBuildCompacted> apacheBuilds = new ConcurrentHashMap<>();
@@ -144,6 +145,15 @@ public class IssueDetectorTest {
         IStringCompactor c,
         Map<String, String> pds1Hist,
         Map<String, String> buildWoChanges) {
+        Map<Integer, FatBuildCompacted> builds = apacheBuilds;
+
+        emulateHistory(builds, chainId, c, PDS_1, pds1Hist, PDS_2, buildWoChanges);
+    }
+
+    public static void emulateHistory(Map<Integer, FatBuildCompacted> builds,
+        String chainId, IStringCompactor c,
+        String pds1, Map<String, String> pds1Hist,
+        String pds2, Map<String, String> buildWoChanges) {
         OptionalInt longestHist = Stream.concat(pds1Hist.values().stream(),
             buildWoChanges.values().stream()).mapToInt(String::length).max();
         Preconditions.checkState(longestHist.isPresent());
@@ -151,26 +161,26 @@ public class IssueDetectorTest {
 
         for (int i = 0; i < histLen; i++) {
             FatBuildCompacted pds1Build
-                = createFatBuild(c, "PDS1", ITeamcity.DEFAULT, 1100 + i, 100 * i, false)
+                = createFatBuild(c, pds1, ITeamcity.DEFAULT, 1100 + i, 100 * i, false)
                 .addTests(c, testsMapToXmlModel(pds1Hist, histLen, i), null)
                 .changes(new int[] {i});
 
-            apacheBuilds.put(pds1Build.id(), pds1Build);
+            builds.put(pds1Build.id(), pds1Build);
 
             FatBuildCompacted pds2Build
-                = createFatBuild(c, "PDS2_noChanges", ITeamcity.DEFAULT, 1200 + i, 100 * i, false)
+                = createFatBuild(c, pds2, ITeamcity.DEFAULT, 1200 + i, 100 * i, false)
                 .addTests(c, testsMapToXmlModel(buildWoChanges, histLen, i), null);
 
-            apacheBuilds.put(pds2Build.id(), pds2Build);
+            builds.put(pds2Build.id(), pds2Build);
 
             FatBuildCompacted chainBuild = createFatBuild(c, chainId, ITeamcity.DEFAULT, 1000 + i, 100 * i, false)
                 .snapshotDependencies(new int[] {pds1Build.id(), pds2Build.id()});
-            apacheBuilds.put(chainBuild.id(), chainBuild);
+            builds.put(chainBuild.id(), chainBuild);
         }
     }
 
     @NotNull
-    public List<TestOccurrenceFull> testsMapToXmlModel(
+    public static List<TestOccurrenceFull> testsMapToXmlModel(
         Map<String, String> pds1Hist,
         int histLen,
         int idx) {
@@ -184,9 +194,15 @@ public class IssueDetectorTest {
 
             char chState = stat.charAt(locIdx);
             boolean ok = '0' == chState;
-            boolean failed = '1' == chState;
-            if (ok || failed)
-                page.add(createTest(name.hashCode(), name, ok));
+            boolean failed = '1' == chState || '6' == chState;
+            boolean muted = '6' == chState;
+            if (ok || failed) {
+                TestOccurrenceFull test = createTest(name.hashCode(), name, ok);
+                if (muted)
+                    test.muted = true;
+
+                page.add(test);
+            }
         });
 
         return page;

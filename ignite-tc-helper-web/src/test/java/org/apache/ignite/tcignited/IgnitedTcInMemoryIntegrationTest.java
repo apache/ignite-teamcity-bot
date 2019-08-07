@@ -29,11 +29,14 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -50,6 +53,7 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest;
+import org.apache.ignite.ci.tcbot.issue.IssueDetectorTest;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
@@ -74,8 +78,10 @@ import org.apache.ignite.tcignited.build.ProactiveFatBuildSync;
 import org.apache.ignite.tcignited.buildlog.ILogProductSpecific;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.tcignited.history.BuildStartTimeStorage;
+import org.apache.ignite.tcignited.history.HistoryCollector;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.ISuiteRunHistory;
+import org.apache.ignite.tcignited.history.SuiteInvocationHistoryDao;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcservice.TeamcityServiceConnection;
 import org.apache.ignite.tcservice.http.ITeamcityHttpConnection;
@@ -108,6 +114,7 @@ import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertNull;
 import static junit.framework.TestCase.assertTrue;
+import static org.apache.ignite.ci.tcbot.issue.IssueDetectorTest.SRV_ID;
 import static org.apache.ignite.tcbot.common.conf.TcBotWorkDir.ensureDirExist;
 import static org.apache.ignite.tcbot.persistence.IgniteStringCompactor.STRINGS_CACHE;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -810,7 +817,67 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         FutureUtil.getResults(futures);
         svc.shutdown();
+    }
 
+
+    @Test
+    public void testTestHistoryPropagation() {
+        TeamcityIgnitedModule module = new TeamcityIgnitedModule();
+
+        Injector injector = Guice.createInjector(module, new GuavaCachedModule(), new IgniteAndSchedulerTestModule());
+
+
+        String brachName = "masterTest2";
+        String chainId = TeamcityIgnitedImpl.DEFAULT_PROJECT_ID;
+        /*   BranchTracked branch = new BranchTracked() .id(brachName);
+        branch.chains.add(trackedChain(chainId));
+        branchesTracked.addBranch(branch);*/
+
+        IStringCompactor c = injector.getInstance(IStringCompactor.class);
+
+        String testUnmuted = "testUnmuted";
+        Map<String, String> pds1Hist = new TreeMap<String, String>() {
+            {
+                put(testUnmuted, "66666611111");
+                put("testOk", "      0000");
+            }
+        };
+
+        Map<String, String> pds2Hist = new TreeMap<String, String>() {
+            {
+                put("testFailedShoudlBeConsideredAsFlaky", "0000011111");
+                put("testFlakyStableFailure", "0000011111111111");
+            }
+        };
+
+        Map<Integer, FatBuildCompacted> builds = new HashMap<>();
+        IssueDetectorTest.emulateHistory(builds, chainId, c, IssueDetectorTest.PDS_1, pds1Hist, IssueDetectorTest.PDS_2, pds2Hist);
+
+        BuildRefDao buildRefDao = injector.getInstance(BuildRefDao.class).init();
+
+        FatBuildDao fatBuildDao = injector.getInstance(FatBuildDao.class).init();
+
+        injector.getInstance(SuiteInvocationHistoryDao.class).init();
+        injector.getInstance(BuildStartTimeStorage.class).init();
+
+        int srvId = ITeamcityIgnited.serverIdToInt(IssueDetectorTest.SRV_ID);
+        builds.forEach((k, v) -> {
+            buildRefDao.save(srvId, new BuildRefCompacted(v));
+            fatBuildDao.putFatBuild(srvId, k, v);
+        });
+
+        HistoryCollector histCollector = injector.getInstance(HistoryCollector.class);
+
+        IRunHistory hist = histCollector.getTestRunHist(SRV_ID,
+            c.getStringId(testUnmuted),
+            c.getStringId(IssueDetectorTest.PDS_1),
+            c.getStringId(ITeamcity.DEFAULT));
+
+        assertNotNull(hist);
+
+        assertEquals(Arrays.asList(4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 1, 1, 1, 1, 1), hist.getLatestRunResults());
+
+        assertEquals(0, hist.getCriticalFailuresCount());
     }
 
     /**

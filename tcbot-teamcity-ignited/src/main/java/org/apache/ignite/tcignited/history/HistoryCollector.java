@@ -113,7 +113,6 @@ public class HistoryCollector {
      */
     public IRunHistory getTestRunHist(String srvCode, int testName, int buildTypeId,
                                       int normalizedBaseBranch) {
-
         SuiteHistory hist = getSuiteHist(srvCode, buildTypeId, normalizedBaseBranch);
 
         return hist.getTestRunHist(testName);

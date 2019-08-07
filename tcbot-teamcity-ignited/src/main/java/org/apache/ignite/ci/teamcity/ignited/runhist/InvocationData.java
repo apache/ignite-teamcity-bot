@@ -20,8 +20,10 @@ package org.apache.ignite.ci.teamcity.ignited.runhist;
 import com.google.common.base.MoreObjects;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -156,5 +158,20 @@ public class InvocationData {
         toAdd.forEach(id -> {
             add(new Invocation(id).withStatus(MISSING));
         });
+    }
+
+    /**
+     * Build ID - index mapping should be always called after sort.
+     */
+    public Map<Integer, Integer> buildIdsMapping() {
+        Map<Integer, Integer> buildIdToIdx = new HashMap<>();
+        int idx = 0;
+
+        for (Invocation next : invocationList) {
+            buildIdToIdx.put(next.buildId(), idx);
+            idx++;
+        }
+
+        return buildIdToIdx;
     }
 }
