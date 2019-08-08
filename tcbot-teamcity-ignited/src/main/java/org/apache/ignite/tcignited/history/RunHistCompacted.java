@@ -33,7 +33,7 @@ import org.apache.ignite.tcbot.common.TcBotConst;
 /**
  * In memory replacement of invocation history (RunHist/RunStat).
  */
-public class RunHistCompacted implements IRunHistory {
+public class RunHistCompacted extends AbstractRunHist implements IRunHistory {
     /** Data. */
     private InvocationData data = new InvocationData();
 
@@ -61,51 +61,13 @@ public class RunHistCompacted implements IRunHistory {
     }
 
     /** {@inheritDoc} */
-    @Override public String getFlakyComments() {
-        int statusChange = getStatusChangesWithoutCodeModification();
-
-        if (statusChange < TcBotConst.FLAKYNESS_STATUS_CHANGE_BORDER)
-            return null;
-
-        return "Test seems to be flaky: " +
-            "changed its status [" + statusChange + "/" + getInvocations().count() + "] without code modifications";
-    }
-
-    public int getStatusChangesWithoutCodeModification() {
-        int statusChange = 0;
-
-        Invocation prev = null;
-
-        List<Invocation> latestRuns = getInvocations().collect(Collectors.toList());
-
-        for (Invocation cur : latestRuns) {
-            if (cur == null)
-                continue;
-
-            if (cur.status() == InvocationData.MISSING)
-                continue;
-
-            //todo here all previous MISSING invocations status could be checked
-            // (using outside build history)
-            if (prev != null) {
-                if (prev.status() != cur.status()
-                    && cur.changesState() == ChangesState.NONE
-                    && prev.changesState() != ChangesState.UNKNOWN)
-                    statusChange++;
-            }
-
-            prev = cur;
-        }
-        return statusChange;
-    }
-
-    public Stream<Invocation> getInvocations() {
+    @Override public Stream<Invocation> getInvocations() {
         return data.invocations();
     }
 
     /** {@inheritDoc} */
-    @Override public boolean isFlaky() {
-        return getStatusChangesWithoutCodeModification() >= TcBotConst.FLAKYNESS_STATUS_CHANGE_BORDER;
+    @Override public Iterable<Invocation> invocations() {
+        return data.invocationsIterable();
     }
 
     /** {@inheritDoc} */

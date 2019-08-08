@@ -91,43 +91,10 @@ public class SuiteHistory implements ISuiteRunHistory {
 
     public IRunHistory getTestRunHist(int testName) {
         RunHistCompacted original = testsHistory.get(testName);
-        return new IRunHistory() {
-            @Nullable @Override public List<Integer> getLatestRunResults() {
-                byte[] bytes = testsCompactedHist.get(testName);
-                if (bytes == null)
-                    return null;
 
-                List<Integer> res = new ArrayList<>();
-                for (int i = 0; i < bytes.length; i++)
-                    res.add((int)bytes[i]);
+        //return original;
 
-                return res;
-            }
-
-            @Nullable @Override public String getFlakyComments() {
-                return null;
-            }
-
-            @Nullable @Override public Integer detectTemplate(IEventTemplate t) {
-                return null;
-            }
-
-            @Override public int getCriticalFailuresCount() {
-                return -1;
-            }
-
-            @Override public boolean isFlaky() {
-                return false;
-            }
-
-            @Override public int getRunsCount() {
-                return -1;
-            }
-
-            @Override public int getFailuresCount() {
-                return -1;
-            }
-        };
+        return new TestUltraCompactRunHist(testName, testsCompactedHist.get(testName));
     }
 
     @Override
@@ -162,5 +129,48 @@ public class SuiteHistory implements ISuiteRunHistory {
 
     @Override public IRunHistory self() {
         return suiteHist;
+    }
+
+    private static class TestUltraCompactRunHist extends AbstractRunHist {
+        private final int testName;
+        private byte[] bytes;
+
+        public TestUltraCompactRunHist(int testName, byte[] bytes) {
+            this.testName = testName;
+            this.bytes = bytes;
+        }
+
+        /** {@inheritDoc} */
+        @Nullable @Override public List<Integer> getLatestRunResults() {
+            byte[] bytes = this.bytes;
+            if (bytes == null)
+                return null;
+
+            List<Integer> res = new ArrayList<>();
+            for (int i = 0; i < bytes.length; i++)
+                res.add((int)bytes[i]);
+
+            return res;
+        }
+
+        @Nullable @Override public Integer detectTemplate(IEventTemplate t) {
+            return null;
+        }
+
+        @Override public int getCriticalFailuresCount() {
+            return -1;
+        }
+
+        @Override public int getRunsCount() {
+            return -1;
+        }
+
+        @Override public int getFailuresCount() {
+            return -1;
+        }
+
+        @Override public Iterable<Invocation> invocations() {
+            throw new UnsupportedOperationException();
+        }
     }
 }

@@ -19,6 +19,8 @@ package org.apache.ignite.tcignited.history;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Set;
+import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
+import org.apache.ignite.tcbot.common.TcBotConst;
 
 /**
  * Test or Build run statistics.
@@ -33,6 +35,7 @@ public interface IRunHistory extends IRunStat {
     List<Integer> getLatestRunResults();
 
     @Nullable String getFlakyComments();
+
 
     @Nullable
     public Integer detectTemplate(IEventTemplate t);

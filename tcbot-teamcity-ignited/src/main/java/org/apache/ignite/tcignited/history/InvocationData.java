@@ -19,6 +19,7 @@ package org.apache.ignite.tcignited.history;
 
 import com.google.common.base.MoreObjects;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -173,5 +174,9 @@ public class InvocationData {
         }
 
         return buildIdToIdx;
+    }
+
+    public Iterable<Invocation> invocationsIterable() {
+        return Collections.unmodifiableList(invocationList);
     }
 }

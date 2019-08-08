@@ -878,6 +878,9 @@ public class IgnitedTcInMemoryIntegrationTest {
         assertEquals(Arrays.asList(4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 1, 1, 1, 1, 1), hist.getLatestRunResults());
 
         assertEquals(0, hist.getCriticalFailuresCount());
+
+        assertFalse(hist.isFlaky());
+        assertEquals(1.0, hist.getFailRate(), 0.05);
     }
 
     /**
