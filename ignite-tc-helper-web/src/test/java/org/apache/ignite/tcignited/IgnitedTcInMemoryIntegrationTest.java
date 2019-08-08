@@ -68,6 +68,7 @@ import org.apache.ignite.tcbot.common.interceptor.GuavaCachedModule;
 import org.apache.ignite.tcbot.common.util.FutureUtil;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.TcBotJsonConfig;
+import org.apache.ignite.tcbot.engine.issue.EventTemplates;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.IgniteStringCompactor;
 import org.apache.ignite.tcbot.persistence.TcBotPersistenceModule;
@@ -842,16 +843,19 @@ public class IgnitedTcInMemoryIntegrationTest {
                 put("testOk", "      0000");
             }
         };
+        String testFlakyStableFailure = "testFlakyStableFailure";
 
         Map<String, String> pds2Hist = new TreeMap<String, String>() {
             {
                 put("testFailedShoudlBeConsideredAsFlaky", "0000011111");
-                put("testFlakyStableFailure", "0000011111111111");
+                put(testFlakyStableFailure, "0000011111111111");
             }
         };
 
         Map<Integer, FatBuildCompacted> builds = new HashMap<>();
-        IssueDetectorTest.emulateHistory(builds, chainId, c, IssueDetectorTest.PDS_1, pds1Hist, IssueDetectorTest.PDS_2, pds2Hist);
+        String suite1 = IssueDetectorTest.PDS_1;
+        String suite2 = IssueDetectorTest.PDS_2;
+        IssueDetectorTest.emulateHistory(builds, chainId, c, suite1, pds1Hist, suite2, pds2Hist);
 
         BuildRefDao buildRefDao = injector.getInstance(BuildRefDao.class).init();
 
@@ -870,7 +874,7 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         IRunHistory hist = histCollector.getTestRunHist(SRV_ID,
             c.getStringId(testUnmuted),
-            c.getStringId(IssueDetectorTest.PDS_1),
+            c.getStringId(suite1),
             c.getStringId(ITeamcity.DEFAULT));
 
         assertNotNull(hist);
@@ -881,6 +885,16 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         assertFalse(hist.isFlaky());
         assertEquals(1.0, hist.getFailRate(), 0.05);
+
+        IRunHistory histFailedFlaky = histCollector.getTestRunHist(SRV_ID,
+            c.getStringId(testFlakyStableFailure),
+            c.getStringId(suite2),
+            c.getStringId(ITeamcity.DEFAULT));
+
+        assertTrue(histFailedFlaky.isFlaky());
+
+        Integer integer = histFailedFlaky.detectTemplate(EventTemplates.newFailureForFlakyTest);
+        assertNotNull(integer);
     }
 
     /**

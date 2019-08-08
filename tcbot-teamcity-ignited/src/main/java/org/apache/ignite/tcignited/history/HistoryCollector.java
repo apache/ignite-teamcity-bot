@@ -34,8 +34,6 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.cache.Cache;
 import javax.inject.Inject;
-import javax.inject.Provider;
-import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.query.QueryCursor;
@@ -80,9 +78,6 @@ public class HistoryCollector {
 
     /** Compactor. */
     @Inject private IStringCompactor compactor;
-
-    /** Ignite provider. */
-    @Inject private Provider<Ignite> igniteProvider;
 
     /** Branch equivalence. */
     @Inject private BranchEquivalence branchEquivalence;
@@ -246,8 +241,7 @@ public class HistoryCollector {
         if (logger.isDebugEnabled()) {
             logger.debug("***** History for suite "
                 + compactor.getStringFromId(buildTypeId)
-                + " branch" + compactor.getStringFromId(normalizedBaseBranch) + " requires " +
-                summary.size(igniteProvider.get()) + " bytes");
+                + " branch" + compactor.getStringFromId(normalizedBaseBranch) + "   ");
         }
 
         return summary;

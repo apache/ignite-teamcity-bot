@@ -18,6 +18,7 @@
 package org.apache.ignite.tcignited.history;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -69,10 +70,7 @@ public class InvocationData {
     public int notMutedAndNonMissingRunsCount() {
         return (int)
             invocations(true)
-                .filter(invocation -> {
-                    byte s = invocation.status();
-                    return s != MUTED && s != FAILURE_MUTED && s != OK_MUTED && s != IGNORED;
-                })
+                .filter(invocation -> !invocation.isMutedOrIgnored())
                 .count();
     }
 
@@ -136,13 +134,6 @@ public class InvocationData {
             .collect(Collectors.toList());
     }
 
-    /**
-     *
-     */
-    public int criticalFailuresCount() {
-        return (int)invocations().filter(inv -> inv.status() == CRITICAL_FAILURE).count();
-    }
-
     public void sort() {
         invocationList.sort(Comparator.comparing(Invocation::buildId));
     }
@@ -178,5 +169,12 @@ public class InvocationData {
 
     public Iterable<Invocation> invocationsIterable() {
         return Collections.unmodifiableList(invocationList);
+    }
+
+    public Invocation getInvocationAt(int idx) {
+        int size = invocationList.size();
+        Preconditions.checkState(idx < size,
+            "Requested invocation outside suite history [" + idx + "] size [" + size + "]");
+        return invocationList.get(idx);
     }
 }

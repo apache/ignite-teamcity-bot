@@ -28,12 +28,11 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
-import org.apache.ignite.tcbot.common.TcBotConst;
 
 /**
  * In memory replacement of invocation history (RunHist/RunStat).
  */
-public class RunHistCompacted extends AbstractRunHist implements IRunHistory {
+public class RunHistCompacted extends AbstractRunHist {
     /** Data. */
     private InvocationData data = new InvocationData();
 
@@ -70,10 +69,6 @@ public class RunHistCompacted extends AbstractRunHist implements IRunHistory {
         return data.invocationsIterable();
     }
 
-    /** {@inheritDoc} */
-    @Override public int getCriticalFailuresCount() {
-        return data.criticalFailuresCount();
-    }
 
     public Set<Integer> buildIds() {
         return data.buildIds();
@@ -83,77 +78,6 @@ public class RunHistCompacted extends AbstractRunHist implements IRunHistory {
         return data.buildIdsMapping();
     }
 
-
-    private static int[] concatArr(int[] arr1, int[] arr2) {
-        int[] arr1and2 = new int[arr1.length + arr2.length];
-        System.arraycopy(arr1, 0, arr1and2, 0, arr1.length);
-        System.arraycopy(arr2, 0, arr1and2, arr1.length, arr2.length);
-
-        return arr1and2;
-    }
-
-    @Nullable
-    public Integer detectTemplate(IEventTemplate t) {
-        if (data == null)
-            return null;
-
-        int centralEvtBuild = t.beforeEvent().length;
-
-        int[] template = concatArr(t.beforeEvent(), t.eventAndAfter());
-
-        assert centralEvtBuild < template.length;
-        assert centralEvtBuild >= 0;
-
-        boolean includeMissing = t.includeMissing();
-        List<Invocation> histAsArr = data.invocations(!includeMissing).collect(Collectors.toList());
-
-        if (histAsArr.size() < template.length)
-            return null;
-
-        Integer detectedAt = null;
-
-        //startIgnite from the end to find most recent
-        for (int idx = histAsArr.size() - template.length; idx >= 0; idx--) {
-            detectedAt = checkTemplateAtPos(template, centralEvtBuild, histAsArr, idx);
-
-            if (detectedAt != null)
-                break;
-        }
-
-        if (detectedAt != null && t.shouldBeFirstNonMissing()) {
-            Optional<Invocation> first = data.invocations(true).findFirst();
-            if (!first.isPresent())
-                return null;
-
-            if (first.get().buildId() != detectedAt)
-                return null;
-        }
-
-        return detectedAt;
-    }
-
-    @Nullable
-    private static Integer checkTemplateAtPos(int[] template, int centralEvtBuild, List<Invocation> histAsArr,
-        int idx) {
-        for (int tIdx = 0; tIdx < template.length; tIdx++) {
-            Invocation curStatus = histAsArr.get(idx + tIdx);
-
-            if (curStatus == null)
-                break;
-
-            RunStatus tmpl = RunStatus.byCode(template[tIdx]);
-
-            if ((tmpl == RunStatus.RES_OK_OR_FAILURE && (curStatus.status() == InvocationData.OK || curStatus.status() == InvocationData.FAILURE))
-                || curStatus.status() == tmpl.getCode()) {
-                if (tIdx == template.length - 1)
-                    return histAsArr.get(idx + centralEvtBuild).buildId();
-            }
-            else
-                break;
-        }
-
-        return null;
-    }
 
     /** {@inheritDoc} */
     @Override public String toString() {
@@ -215,5 +139,12 @@ public class RunHistCompacted extends AbstractRunHist implements IRunHistory {
             .forEach(invocation -> cp.data.add(invocation));
 
         return cp;
+    }
+
+    /**
+     * @param idx Index.
+     */
+    public Invocation getInvocationAt(int idx) {
+        return data.getInvocationAt(idx);
     }
 }

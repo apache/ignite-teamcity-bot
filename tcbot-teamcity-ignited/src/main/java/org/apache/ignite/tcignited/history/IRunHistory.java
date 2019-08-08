@@ -18,14 +18,11 @@ package org.apache.ignite.tcignited.history;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Set;
-import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
-import org.apache.ignite.tcbot.common.TcBotConst;
 
 /**
  * Test or Build run statistics.
  */
-public interface IRunHistory extends IRunStat {
+public interface IRunHistory {
     /**
      *
      */
@@ -36,12 +33,11 @@ public interface IRunHistory extends IRunStat {
 
     @Nullable String getFlakyComments();
 
-
     @Nullable
     public Integer detectTemplate(IEventTemplate t);
 
     public default String getCriticalFailPercentPrintable() {
-        return IRunStat.getPercentPrintable(getCriticalFailRate() * 100.0f);
+        return getPercentPrintable(getCriticalFailRate() * 100.0f);
     }
 
     /**
@@ -59,7 +55,14 @@ public interface IRunHistory extends IRunStat {
 
     public int getCriticalFailuresCount();
 
-    @Override default float getFailRate() {
+    public int getRunsCount();
+    public int getFailuresCount();
+
+    /**
+     * Recent runs fail rate.
+     * @return fail rate as float: 0.0...1.0
+     */
+    public default float getFailRate() {
         int runs = getRunsCount();
 
         if (runs == 0)
@@ -67,4 +70,14 @@ public interface IRunHistory extends IRunStat {
 
         return 1.0f * getFailuresCount() / runs;
     }
+
+    public default String getFailPercentPrintable() {
+        return getPercentPrintable(getFailRate() * 100.0f);
+    }
+
+
+    public static String getPercentPrintable(float percent) {
+        return String.format("%.1f", percent).replace(".", ",");
+    }
+
 }

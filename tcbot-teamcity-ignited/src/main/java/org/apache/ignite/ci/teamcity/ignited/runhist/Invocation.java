@@ -20,15 +20,14 @@ package org.apache.ignite.ci.teamcity.ignited.runhist;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
-import org.apache.ignite.tcbot.persistence.Persisted;
-import org.apache.ignite.tcignited.history.ChangesState;
-
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
+import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
+import org.apache.ignite.tcbot.persistence.Persisted;
+import org.apache.ignite.tcignited.history.ChangesState;
+import org.apache.ignite.tcignited.history.InvocationData;
 
 /**
  * Run history element: invocation of build or test.
@@ -151,5 +150,21 @@ public class Invocation {
 
     public boolean containsParameterValue(Map<Integer, Integer> requireParameters) {
         return hasAnyParameterValue(this.parameters, requireParameters);
+    }
+
+    public Invocation withChangeState(ChangesState state) {
+        if (state == ChangesState.NONE)
+            changePresent = NO_CHANGES;
+        else if (state == ChangesState.EXIST)
+            changePresent = CHANGE_PRESENT;
+        else
+            changePresent = CHANGE_NOT_FILLED;
+
+        return this;
+    }
+
+    public boolean isMutedOrIgnored() {
+        byte s = status();
+        return s == InvocationData.MUTED || s == InvocationData.FAILURE_MUTED || s == InvocationData.OK_MUTED || s == InvocationData.IGNORED;
     }
 }

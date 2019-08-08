@@ -29,7 +29,6 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.build.ITest;
 import org.apache.ignite.tcignited.history.IRunHistory;
-import org.apache.ignite.tcignited.history.IRunStat;
 import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 
@@ -123,7 +122,7 @@ public class TestCompactedMult {
          boolean lowFailureRate = failRate * 100.0f < TcBotConst.NON_FLAKY_TEST_FAIL_RATE_BLOCKER_BORDER_PERCENTS;
 
          if (lowFailureRate && !flaky) {
-             String runStatPrintable = IRunStat.getPercentPrintable(failRate * 100.0f);
+             String runStatPrintable = IRunHistory.getPercentPrintable(failRate * 100.0f);
 
              return "Test has low fail rate in base branch "
                  + runStatPrintable
