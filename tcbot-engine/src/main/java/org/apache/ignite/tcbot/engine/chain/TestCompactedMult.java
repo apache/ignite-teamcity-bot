@@ -42,15 +42,19 @@ public class TestCompactedMult {
     private long avgDuration = -1;
 
     /** Status success. */
-    private static volatile int STATUS_SUCCESS = -1;
+    private static volatile int STATUS_SUCCESS_CID = -1;
 
     public TestCompactedMult(IStringCompactor compactor, MultBuildRunCtx ctx) {
         this.compactor = compactor;
         this.ctx = ctx;
 
         //Each time compactor should give same result
-        if (STATUS_SUCCESS == -1)
-            STATUS_SUCCESS = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
+        if (STATUS_SUCCESS_CID == -1)
+            STATUS_SUCCESS_CID = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
+    }
+
+    public static void resetCached() {
+        STATUS_SUCCESS_CID = -1;
     }
 
     @Nullable public Integer testName() {
@@ -69,7 +73,7 @@ public class TestCompactedMult {
     private int getFailedButNotMutedCount() {
         return (int)occurrences.stream()
             .filter(Objects::nonNull)
-            .filter(t -> t.isFailedButNotMuted(STATUS_SUCCESS)).count();
+            .filter(t -> t.isFailedButNotMuted(STATUS_SUCCESS_CID)).count();
     }
 
     public int failuresCount() {
@@ -158,7 +162,7 @@ public class TestCompactedMult {
     /**
      */
     public boolean isFailedButNotMuted() {
-        return occurrences.stream().anyMatch(o -> o.isFailedButNotMuted(STATUS_SUCCESS));
+        return occurrences.stream().anyMatch(o -> o.isFailedButNotMuted(STATUS_SUCCESS_CID));
     }
 
     /**

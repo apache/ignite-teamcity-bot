@@ -49,7 +49,7 @@ public class TestCompactedV2 implements ITest {
     public static final int IGNORED_F = 6;
 
     /** Status success. */
-    private static volatile int STATUS_SUCCESS = -1;
+    private static volatile int STATUS_SUCCESS_CID = -1;
 
     /** Id in this build only. Does not identify test for its history */
     private int idInBuild = -1;
@@ -110,6 +110,10 @@ public class TestCompactedV2 implements ITest {
             testId = Long.valueOf(testOccurrence.test.id);
 
         setDetails(testOccurrence.details, logSpecific);
+    }
+
+    public static void resetCached() {
+        STATUS_SUCCESS_CID = -1;
     }
 
     public void setIgnored(Boolean ignored) {
@@ -326,10 +330,10 @@ public class TestCompactedV2 implements ITest {
 
     public int statusSuccess(IStringCompactor compactor) {
         //Each time compactor should give same result, so no locking applied
-        if (STATUS_SUCCESS == -1)
-            STATUS_SUCCESS = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
+        if (STATUS_SUCCESS_CID == -1)
+            STATUS_SUCCESS_CID = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
 
-        return STATUS_SUCCESS;
+        return STATUS_SUCCESS_CID;
     }
 
     public String testName(IStringCompactor compactor) {

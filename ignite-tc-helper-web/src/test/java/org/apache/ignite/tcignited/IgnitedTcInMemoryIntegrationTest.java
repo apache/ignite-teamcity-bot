@@ -66,6 +66,7 @@ import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.GuavaCachedModule;
 import org.apache.ignite.tcbot.common.util.FutureUtil;
+import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.TcBotJsonConfig;
 import org.apache.ignite.tcbot.engine.issue.EventTemplates;
@@ -76,6 +77,7 @@ import org.apache.ignite.tcbot.persistence.scheduler.DirectExecNoWaitScheduler;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.build.ProactiveFatBuildSync;
+import org.apache.ignite.tcignited.build.TestCompactedV2;
 import org.apache.ignite.tcignited.buildlog.ILogProductSpecific;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.tcignited.history.BuildStartTimeStorage;
@@ -169,6 +171,10 @@ public class IgnitedTcInMemoryIntegrationTest {
     public void clearIgniteCaches() {
         clearCache(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
         clearCache(FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME);
+
+        BuildRefCompacted.resetCached();
+        TestCompactedV2.resetCached();
+        TestCompactedMult.resetCached();
     }
 
     /**

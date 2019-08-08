@@ -76,6 +76,17 @@ public class BuildRefCompacted {
         fillFieldsFromBuildRef(compactor, ref);
     }
 
+    /**
+     * Reset cached Ids for tests
+     */
+    public static void resetCached() {
+        STATE_FINISHED_CID = -1;
+        STATE_QUEUED_CID = -1;
+        STATUS_UNKNOWN_CID = -1;
+        STATUS_SUCCESS_CID = -1;
+        STATE_RUNNING_CID = -1;
+    }
+
     public void fillFieldsFromBuildRef(IStringCompactor compactor, BuildRef ref) {
         setId(ref.getId());
         buildTypeId = compactor.getStringId(ref.buildTypeId());
