@@ -827,13 +827,7 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         Injector injector = Guice.createInjector(module, new GuavaCachedModule(), new IgniteAndSchedulerTestModule());
 
-
-        String brachName = "masterTest2";
         String chainId = TeamcityIgnitedImpl.DEFAULT_PROJECT_ID;
-        /*   BranchTracked branch = new BranchTracked() .id(brachName);
-        branch.chains.add(trackedChain(chainId));
-        branchesTracked.addBranch(branch);*/
-
         IStringCompactor c = injector.getInstance(IStringCompactor.class);
 
         String testUnmuted = "testUnmuted";

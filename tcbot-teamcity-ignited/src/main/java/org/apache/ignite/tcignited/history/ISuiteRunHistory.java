@@ -17,10 +17,11 @@
 package org.apache.ignite.tcignited.history;
 
 import java.util.Map;
+import javax.annotation.Nullable;
 
 public interface ISuiteRunHistory {
     IRunHistory self();
-    IRunHistory getTestRunHist(int testName);
+    @Nullable IRunHistory getTestRunHist(int testName);
 
     ISuiteRunHistory filter(Map<Integer, Integer> requireParameters);
 }

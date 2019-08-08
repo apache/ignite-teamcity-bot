@@ -140,9 +140,9 @@ public class TestCompactedMult {
          return history(ignited, baseBranchId, null);
     }
 
-    public IRunHistory history(ITeamcityIgnited ignited,
-                               @Nullable Integer baseBranchId,
-                               @Nullable Map<Integer, Integer> requireParameters) {
+    @Nullable public IRunHistory history(ITeamcityIgnited ignited,
+        @Nullable Integer baseBranchId,
+        @Nullable Map<Integer, Integer> requireParameters) {
         Integer name = testName();
         if (name == null || baseBranchId == null)
             return null;

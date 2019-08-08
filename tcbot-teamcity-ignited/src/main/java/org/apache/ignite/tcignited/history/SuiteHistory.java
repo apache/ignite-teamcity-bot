@@ -92,8 +92,13 @@ public class SuiteHistory implements ISuiteRunHistory {
     }
 
     /** {@inheritDoc} */
-    @Override public IRunHistory getTestRunHist(int testName) {
-        return new TestUltraCompactRunHist(testsInvStatues.get(testName), suiteHist);
+    @Nullable @Override public IRunHistory getTestRunHist(int testName) {
+        byte[] testInvStatuses = testsInvStatues.get(testName);
+
+        if(testInvStatuses == null)
+            return null;
+
+        return new TestUltraCompactRunHist(testInvStatuses, suiteHist);
     }
 
     /** {@inheritDoc} */
@@ -165,7 +170,7 @@ public class SuiteHistory implements ISuiteRunHistory {
             int res = 0;
             for (int i = 0; i < testInvStatuses.length; i++) {
                 byte status = testInvStatuses[i];
-                if (status != InvocationData.MISSING && Invocation.isMutedOrIgnored(status))
+                if (status != InvocationData.MISSING && !Invocation.isMutedOrIgnored(status))
                     res++;
             }
 

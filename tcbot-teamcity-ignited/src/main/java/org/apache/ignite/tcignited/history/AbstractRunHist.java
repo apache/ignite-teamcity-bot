@@ -55,7 +55,7 @@ public abstract class AbstractRunHist implements IRunHistory {
     /** {@inheritDoc} */
     @Override public int getRunsCount() {
         return (int)getInvocations().filter(inv ->
-            inv.status() != InvocationData.MISSING && Invocation.isMutedOrIgnored(inv.status())).count();
+            inv.status() != InvocationData.MISSING && !Invocation.isMutedOrIgnored(inv.status())).count();
     }
 
     /** {@inheritDoc} */
