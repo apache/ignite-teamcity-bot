@@ -15,8 +15,9 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.tcignited.build;
+package org.apache.ignite.tcignited.history;
 
+import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,13 +26,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
-import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
 import org.apache.ignite.internal.binary.BinaryObjectExImpl;
-import org.apache.ignite.tcignited.history.IEventTemplate;
-import org.apache.ignite.tcignited.history.IRunHistory;
-import org.apache.ignite.tcignited.history.ISuiteRunHistory;
-import org.apache.ignite.tcignited.history.RunStatus;
-import org.apache.ignite.tcignited.history.SuiteInvocation;
 
 /**
  * Suite run history (in memory) summary with tests grouped by name.
@@ -53,13 +48,26 @@ public class SuiteHistory implements ISuiteRunHistory {
         int buildsCnt = buildIdToIdx.size();
 
         byte missingCode = (byte)RunStatus.RES_MISSING.getCode();
-        testsHistory.forEach((k, t) -> {
-            byte[] val = new byte[buildsCnt];
-            for (int i = 0; i < val.length; i++)
-                val[i] = missingCode;
+        testsHistory.forEach((k, testHist) -> {
+            byte[] testStatusesUltraComp = new byte[buildsCnt];
 
+            for (int i = 0; i < testStatusesUltraComp.length; i++)
+                testStatusesUltraComp[i] = missingCode;
 
-            testsCompactedHist.put(k, val);
+            testHist.getInvocations().forEach(
+                invocation -> {
+                    int i = invocation.buildId();
+                    Integer idx = buildIdToIdx.get(i);
+                    if (idx == null)
+                        return;
+
+                    Preconditions.checkState(idx < testStatusesUltraComp.length);
+
+                    testStatusesUltraComp[idx] = invocation.status();
+                }
+            );
+
+            testsCompactedHist.put(k, testStatusesUltraComp);
         });
 
         finalizeInvocations();

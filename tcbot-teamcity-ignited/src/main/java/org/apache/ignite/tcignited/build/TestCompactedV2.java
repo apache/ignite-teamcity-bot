@@ -24,7 +24,7 @@ import javax.annotation.Nullable;
 import org.apache.ignite.ci.tcbot.common.StringFieldCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
-import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
+import org.apache.ignite.tcignited.history.InvocationData;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcignited.buildlog.ILogProductSpecific;

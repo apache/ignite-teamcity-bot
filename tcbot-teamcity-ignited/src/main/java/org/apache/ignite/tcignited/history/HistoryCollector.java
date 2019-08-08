@@ -54,7 +54,6 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.build.ITest;
-import org.apache.ignite.tcignited.build.SuiteHistory;
 import org.apache.ignite.tcignited.build.TestCompactedV2;
 import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;

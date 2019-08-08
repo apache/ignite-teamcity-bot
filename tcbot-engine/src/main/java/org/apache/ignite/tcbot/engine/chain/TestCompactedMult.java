@@ -28,7 +28,6 @@ import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.build.ITest;
-import org.apache.ignite.tcignited.history.IRunHistSummary;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.IRunStat;
 import org.apache.ignite.tcignited.history.ISuiteRunHistory;
@@ -102,7 +101,7 @@ public class TestCompactedMult {
       * @param baseBranchStat Base branch statistics.
       * @return non null comment in case test failure is a blocker for merge into base branch.
       */
-     public String getPossibleBlockerComment(IRunHistSummary baseBranchStat) {
+     public String getPossibleBlockerComment(IRunHistory baseBranchStat) {
          if (failuresCount() == 0) {
              if (baseBranchStat == null) {
                  long durationMs = getAvgDurationMs();

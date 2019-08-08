@@ -23,7 +23,12 @@ import java.util.Set;
 /**
  * Test or Build run statistics.
  */
-public interface IRunHistory extends IRunStat, IRunHistSummary {
+public interface IRunHistory extends IRunStat {
+    /**
+     *
+     */
+    public boolean isFlaky();
+
     @Nullable
     List<Integer> getLatestRunResults();
 

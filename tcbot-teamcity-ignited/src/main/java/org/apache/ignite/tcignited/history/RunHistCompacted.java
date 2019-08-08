@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.teamcity.ignited.runhist;
+package org.apache.ignite.tcignited.history;
 
 import com.google.common.base.MoreObjects;
 import java.util.List;
@@ -26,11 +26,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
+import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
 import org.apache.ignite.tcbot.common.TcBotConst;
-import org.apache.ignite.tcignited.history.ChangesState;
-import org.apache.ignite.tcignited.history.IEventTemplate;
-import org.apache.ignite.tcignited.history.IRunHistory;
-import org.apache.ignite.tcignited.history.RunStatus;
 
 /**
  * In memory replacement of invocation history (RunHist/RunStat).
@@ -70,7 +68,7 @@ public class RunHistCompacted implements IRunHistory {
             return null;
 
         return "Test seems to be flaky: " +
-            "changed its status [" + statusChange + "/" + data.invocations().count() + "] without code modifications";
+            "changed its status [" + statusChange + "/" + getInvocations().count() + "] without code modifications";
     }
 
     public int getStatusChangesWithoutCodeModification() {
@@ -78,7 +76,7 @@ public class RunHistCompacted implements IRunHistory {
 
         Invocation prev = null;
 
-        List<Invocation> latestRuns = data.invocations().collect(Collectors.toList());
+        List<Invocation> latestRuns = getInvocations().collect(Collectors.toList());
 
         for (Invocation cur : latestRuns) {
             if (cur == null)
@@ -99,6 +97,10 @@ public class RunHistCompacted implements IRunHistory {
             prev = cur;
         }
         return statusChange;
+    }
+
+    public Stream<Invocation> getInvocations() {
+        return data.invocations();
     }
 
     /** {@inheritDoc} */
@@ -236,7 +238,7 @@ public class RunHistCompacted implements IRunHistory {
     public RunHistCompacted filterSuiteInvByParms(Map<Integer, Integer> requireParameters) {
         RunHistCompacted cp = new RunHistCompacted();
 
-        data.invocations()
+        getInvocations()
             .filter(invocation -> invocation.containsParameterValue(requireParameters))
             .forEach(invocation -> cp.data.add(invocation));
 
@@ -246,7 +248,7 @@ public class RunHistCompacted implements IRunHistory {
     public RunHistCompacted filterByBuilds(Set<Integer> builds) {
         RunHistCompacted cp = new RunHistCompacted();
 
-        data.invocations()
+        getInvocations()
             .filter(invocation -> builds.contains(invocation.buildId()))
             .forEach(invocation -> cp.data.add(invocation));
 

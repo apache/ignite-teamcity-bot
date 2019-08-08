@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.teamcity.ignited.runhist;
+package org.apache.ignite.tcignited.history;
 
 import com.google.common.base.MoreObjects;
 import java.util.ArrayList;
@@ -29,7 +29,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
-import org.apache.ignite.tcignited.history.RunStatus;
+import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 
 /**
  *
