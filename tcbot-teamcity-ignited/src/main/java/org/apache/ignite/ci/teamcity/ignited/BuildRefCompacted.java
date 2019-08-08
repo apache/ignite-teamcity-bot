@@ -18,16 +18,18 @@ package org.apache.ignite.ci.teamcity.ignited;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.apache.ignite.cache.query.annotations.QuerySqlField;
-
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import static org.apache.ignite.tcservice.model.hist.BuildRef.*;
+import static org.apache.ignite.tcservice.model.hist.BuildRef.STATE_FINISHED;
+import static org.apache.ignite.tcservice.model.hist.BuildRef.STATE_QUEUED;
+import static org.apache.ignite.tcservice.model.hist.BuildRef.STATE_RUNNING;
+import static org.apache.ignite.tcservice.model.hist.BuildRef.STATUS_SUCCESS;
+import static org.apache.ignite.tcservice.model.hist.BuildRef.STATUS_UNKNOWN;
 
 @Persisted
 public class BuildRefCompacted {
@@ -46,6 +48,19 @@ public class BuildRefCompacted {
 
     /** Compacter identifier for string 'State'. */
     private int state = -1;
+
+    /** Status Unknown: Compactor identifier. */
+    private static volatile int STATUS_UNKNOWN_CID = -1;
+    /** Status success: Compactor identifier. */
+    private static volatile int STATUS_SUCCESS_CID = -1;
+
+    /** State running: Compactor identifier. */
+    private static volatile int STATE_RUNNING_CID = -1;
+    /** State queued: Compactor identifier. */
+    private static volatile int STATE_QUEUED_CID = -1;
+    /** State finished: Compactor identifier. */
+    private static volatile int STATE_FINISHED_CID = -1;
+
 
     /**
      * Default constructor.
@@ -185,6 +200,42 @@ public class BuildRefCompacted {
         return id() < 0;
     }
 
+
+    private int statusUnkown(IStringCompactor compactor) {
+        if (STATUS_UNKNOWN_CID == -1) //Each time compactor should give same result, so no locking applied
+            STATUS_UNKNOWN_CID = compactor.getStringId(STATUS_UNKNOWN);
+
+        return STATUS_UNKNOWN_CID;
+    }
+
+    public int statusSuccess(IStringCompactor compactor) {
+        if (STATUS_SUCCESS_CID == -1) //Each time compactor should give same result, so no locking applied
+            STATUS_SUCCESS_CID =  compactor.getStringId(STATUS_SUCCESS);
+
+        return STATUS_SUCCESS_CID;
+    }
+
+    public int stateRunning(IStringCompactor compactor) {
+        if (STATE_RUNNING_CID == -1) //Each time compactor should give same result, so no locking applied
+            STATE_RUNNING_CID = compactor.getStringId(STATE_RUNNING);
+
+        return STATE_RUNNING_CID;
+    }
+
+    public int stateFinished(IStringCompactor compactor) {
+        if (STATE_FINISHED_CID == -1) //Each time compactor should give same result, so no locking applied
+            STATE_FINISHED_CID =  compactor.getStringId(STATE_FINISHED);
+
+        return STATE_FINISHED_CID;
+    }
+
+    public int stateQueued(IStringCompactor compactor) {
+        if (STATE_QUEUED_CID == -1) //Each time compactor should give same result, so no locking applied
+            STATE_QUEUED_CID = compactor.getStringId(STATE_QUEUED);
+
+        return STATE_QUEUED_CID;
+    }
+
     public boolean isNotCancelled(IStringCompactor compactor) {
         return !isCancelled(compactor);
     }
@@ -194,25 +245,30 @@ public class BuildRefCompacted {
     }
 
     private boolean hasUnknownStatus(IStringCompactor compactor) {
-        return compactor.getStringId(STATUS_UNKNOWN) == status();
+        return statusUnkown(compactor) == status();
     }
+
 
     public boolean isRunning(IStringCompactor compactor) {
-        return compactor.getStringId(STATE_RUNNING) == state();
+        return stateRunning(compactor) == state();
     }
+
 
     public boolean isFinished(IStringCompactor compactor) {
-        return compactor.getStringId(STATE_FINISHED) == state();
+        return stateFinished(compactor) == state();
     }
+
 
     public boolean isQueued(IStringCompactor compactor) {
-        return compactor.getStringId(STATE_QUEUED) == state();
+        return stateQueued(compactor) == state();
     }
+
 
     public boolean isSuccess(IStringCompactor compactor) {
-        return compactor.getStringId(STATUS_SUCCESS) == status();
+        return statusSuccess(compactor) == status();
     }
 
+    /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("id", id)

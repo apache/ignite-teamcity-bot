@@ -45,10 +45,8 @@ public abstract class AbstractRunHist implements IRunHistory {
         return (int)getInvocations().filter(inv -> inv.status() == InvocationData.CRITICAL_FAILURE).count();
     }
 
-    /**
-     *
-     */
-    public int getFailuresCount() {
+    /** {@inheritDoc} */
+    @Override public int getFailuresCount() {
         return (int)getInvocations().filter(inv ->
             inv.status() == InvocationData.FAILURE
                 || inv.status() == InvocationData.CRITICAL_FAILURE).count();
