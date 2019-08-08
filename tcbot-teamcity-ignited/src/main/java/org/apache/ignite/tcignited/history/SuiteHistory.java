@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 
@@ -33,24 +34,25 @@ import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
  * Suite run history (in memory) summary with tests grouped by name.
  */
 public class SuiteHistory implements ISuiteRunHistory {
-    /** Tests history: Test name ID->RunHistory */
-    @Deprecated
-    private Map<Integer, RunHistCompacted> testsHistory = new HashMap<>();
+    /** Tests history: Test name ID->statuses for invocations */
+    private Map<Integer, byte[]> testsInvStatues = new HashMap<>();
 
-    private Map<Integer, byte[]> testsCompactedHist = new HashMap<>();
-
+    /** Suite history. */
     private RunHistCompacted suiteHist = new RunHistCompacted();
 
     public SuiteHistory(Map<Integer, SuiteInvocation> suiteRunHist) {
-        //filling data
-        suiteRunHist.forEach((buildId, suiteInv) -> addSuiteInvocation(suiteInv));
+        //filling data for tests invoked.
+        Map<Integer, RunHistCompacted> testsHist = new HashMap<>();
+
+        suiteRunHist.forEach((buildId, suiteInv) -> addSuiteInvocation(suiteInv, testsHist));
 
         suiteHist.sort();
+
         Map<Integer, Integer> buildIdToIdx = suiteHist.buildIdsMapping();
         int buildsCnt = buildIdToIdx.size();
 
         byte missingCode = (byte)RunStatus.RES_MISSING.getCode();
-        testsHistory.forEach((k, testHist) -> {
+        testsHist.forEach((k, testHist) -> {
             byte[] testStatusesUltraComp = new byte[buildsCnt];
 
             for (int i = 0; i < testStatusesUltraComp.length; i++)
@@ -69,33 +71,33 @@ public class SuiteHistory implements ISuiteRunHistory {
                 }
             );
 
-            testsCompactedHist.put(k, testStatusesUltraComp);
+            testsInvStatues.put(k, testStatusesUltraComp);
         });
-
-        finalizeInvocations();
     }
 
     private SuiteHistory() {}
 
-    private void finalizeInvocations() {
-        Set<Integer> presentBuilds = suiteHist.buildIds();
+    /**
+     * @param suiteInv suite invocation (build) to be added to history (summary).
+     * @param testsHist tests map.
+     */
+    private void addSuiteInvocation(SuiteInvocation suiteInv, Map<Integer, RunHistCompacted> testsHist) {
+        suiteInv.tests().forEach(
+            (tName, invocation) -> {
+                testsHist.computeIfAbsent(tName, k_ -> new RunHistCompacted())
+                    .addInvocation(invocation);
+            });
 
-        testsHistory.forEach((k, t) -> t.registerMissing(k, presentBuilds));
-
-        suiteHist.sort();
-        testsHistory.values().forEach(RunHistCompacted::sort);
+        suiteHist.addInvocation(suiteInv.suiteInvocation());
     }
 
-    public IRunHistory getTestRunHist(int testName) {
-        RunHistCompacted original = testsHistory.get(testName);
-
-        //return original;
-
-        return new TestUltraCompactRunHist(testsCompactedHist.get(testName), suiteHist);
+    /** {@inheritDoc} */
+    @Override public IRunHistory getTestRunHist(int testName) {
+        return new TestUltraCompactRunHist(testsInvStatues.get(testName), suiteHist);
     }
 
-    @Override
-    public ISuiteRunHistory filter(Map<Integer, Integer> requireParameters) {
+    /** {@inheritDoc} */
+    @Override public ISuiteRunHistory filter(Map<Integer, Integer> requireParameters) {
         RunHistCompacted suitesFiltered = suiteHist.filterSuiteInvByParms(requireParameters);
 
         Map<Integer, Integer> buildIdToIdx = suiteHist.buildIdsMapping();
@@ -105,117 +107,121 @@ public class SuiteHistory implements ISuiteRunHistory {
         SuiteHistory res = new SuiteHistory();
 
         res.suiteHist = suitesFiltered;
-        this.testsCompactedHist.forEach((tName, invList) -> {
+
+        testsInvStatues.forEach((tName, invList) -> {
             byte[] buildsFiltered = new byte[indexesToKeep.size()];
 
             int j = 0;
-            for (int i = 0; i < buildsFiltered.length; i++) {
+            for (int i = 0; i < invList.length; i++) {
                 if (!indexesToKeep.contains(i))
                     continue;
 
-                buildsFiltered[j] = buildsFiltered[i];
+                buildsFiltered[j] = invList[i];
                 j++;
             }
 
-            res.testsCompactedHist.put(tName, buildsFiltered);
+            res.testsInvStatues.put(tName, buildsFiltered);
         });
-
-        this.testsHistory.forEach((tName,invList)-> res.testsHistory.put(tName, invList.filterByBuilds(suitesFiltered.buildIds())));
 
         return res;
     }
-
-    private RunHistCompacted getOrAddTestsHistory(Integer tName, Map<Integer, RunHistCompacted> map) {
-        return map.computeIfAbsent(tName, k_ -> new RunHistCompacted());
-    }
-
-    private void addTestInvocation(Integer tName, Invocation invocation, Map<Integer, RunHistCompacted> map) {
-        getOrAddTestsHistory(tName, map).addInvocation(invocation);
-    }
-
-    /**
-     * @param suiteInv suite invocation (build) to be added to history (summary).
-     */
-    private void addSuiteInvocation(SuiteInvocation suiteInv) {
-        suiteInv.tests().forEach((tName, invocation) -> addTestInvocation(tName, invocation, testsHistory));
-
-        suiteHist.addInvocation(suiteInv.suiteInvocation());
-    }
-
     @Override public IRunHistory self() {
         return suiteHist;
     }
 
     private static class TestUltraCompactRunHist extends AbstractRunHist {
-        private final byte[] bytes;
-        private final RunHistCompacted suiteHist;
+        @Nonnull private final byte[] testInvStatuses;
+        @Nonnull private final RunHistCompacted suiteHist;
 
-        public TestUltraCompactRunHist(byte[] bytes, RunHistCompacted suiteHist) {
-            this.bytes = bytes;
+        public TestUltraCompactRunHist(@Nonnull byte[] testInvStatuses, @Nonnull RunHistCompacted suiteHist) {
+            this.testInvStatuses = testInvStatuses;
             this.suiteHist = suiteHist;
 
-            Preconditions.checkState(bytes.length == suiteHist.getInvocations().count());
-
+            Preconditions.checkState(testInvStatuses.length == suiteHist.getInvocations().count());
         }
 
         /** {@inheritDoc} */
         @Nullable @Override public List<Integer> getLatestRunResults() {
-            byte[] bytes = this.bytes;
-            if (bytes == null)
-                return null;
-
             List<Integer> res = new ArrayList<>();
-            for (int i = 0; i < bytes.length; i++)
-                res.add((int)bytes[i]);
+            for (int i = 0; i < testInvStatuses.length; i++)
+                res.add((int)testInvStatuses[i]);
 
             return res;
         }
 
-        @Override public int getRunsCount() {
-            return -1;
+        /** {@inheritDoc} */
+        @Override public int getCriticalFailuresCount() {
+            int res = 0;
+            for (int i = 0; i < testInvStatuses.length; i++) {
+                if (testInvStatuses[i] == InvocationData.CRITICAL_FAILURE)
+                    res++;
+            }
+
+            return res;
         }
 
+        /** {@inheritDoc} */
+        @Override public int getRunsCount() {
+            int res = 0;
+            for (int i = 0; i < testInvStatuses.length; i++) {
+                byte status = testInvStatuses[i];
+                if (status != InvocationData.MISSING && Invocation.isMutedOrIgnored(status))
+                    res++;
+            }
+
+            return res;
+        }
+
+        /** {@inheritDoc} */
         @Override public int getFailuresCount() {
-            return -1;
+            int res = 0;
+            for (int i = 0; i < testInvStatuses.length; i++) {
+                byte status = testInvStatuses[i];
+                if (status == InvocationData.FAILURE || status == InvocationData.CRITICAL_FAILURE)
+                    res++;
+            }
+
+            return res;
         }
 
         /** {@inheritDoc} */
         @Override public Iterable<Invocation> invocations() {
-            return () -> new TestUltraCompactRunHistIterator(bytes, suiteHist);
+            return () -> new TestUltraCompactRunHistIterator(testInvStatuses, suiteHist);
+        }
+    }
+
+
+    private static class TestUltraCompactRunHistIterator implements Iterator<Invocation> {
+        /** Cur index: index of element to be returned in case next is called now. */
+        private int curIdx = 0;
+        @Nonnull private final byte[] testInvStatuses;
+        @Nonnull private final RunHistCompacted suiteHist;
+
+        public TestUltraCompactRunHistIterator(@Nonnull byte[] testInvStatuses,
+            @Nonnull RunHistCompacted suiteHist) {
+            this.testInvStatuses = testInvStatuses;
+            this.suiteHist = suiteHist;
         }
 
-        private static class TestUltraCompactRunHistIterator implements Iterator<Invocation> {
-            /** Cur index: index of element to be returned in case next is called now. */
-            private int curIdx = 0;
-            private final byte[] bytes;
-            private final RunHistCompacted suiteHist;
+        /** {@inheritDoc} */
+        @Override public boolean hasNext() {
+            return curIdx < testInvStatuses.length;
+        }
 
-            public TestUltraCompactRunHistIterator(byte[] bytes,
-                RunHistCompacted suiteHist) {
-                this.bytes = bytes;
-                this.suiteHist = suiteHist;
-            }
+        /** {@inheritDoc} */
+        @Override public Invocation next() {
+            if (!hasNext())
+                throw new NoSuchElementException();
 
-            /** {@inheritDoc} */
-            @Override public boolean hasNext() {
-                return curIdx < bytes.length;
-            }
+            Invocation suiteInv = suiteHist.getInvocationAt(curIdx);
 
-            /** {@inheritDoc} */
-            @Override public Invocation next() {
-                if (!hasNext())
-                    throw new NoSuchElementException();
+            Invocation invocation = new Invocation(suiteInv.buildId())
+                .withChangeState(suiteInv.changesState())
+                .withStatus(testInvStatuses[curIdx]);
 
-                Invocation suiteInv = suiteHist.getInvocationAt(curIdx);
+            curIdx++;
 
-                Invocation invocation = new Invocation(suiteInv.buildId())
-                    .withChangeState(suiteInv.changesState())
-                    .withStatus(bytes[curIdx]);
-
-                curIdx++;
-
-                return invocation;
-            }
+            return invocation;
         }
     }
 }

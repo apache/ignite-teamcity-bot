@@ -164,7 +164,10 @@ public class Invocation {
     }
 
     public boolean isMutedOrIgnored() {
-        byte s = status();
+        return isMutedOrIgnored(status());
+    }
+
+    public static boolean isMutedOrIgnored(byte s) {
         return s == InvocationData.MUTED || s == InvocationData.FAILURE_MUTED || s == InvocationData.OK_MUTED || s == InvocationData.IGNORED;
     }
 }

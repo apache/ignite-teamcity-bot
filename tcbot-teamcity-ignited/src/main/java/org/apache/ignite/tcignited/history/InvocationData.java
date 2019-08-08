@@ -23,11 +23,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
@@ -95,13 +93,6 @@ public class InvocationData {
         return stream;
     }
 
-    /**
-     *
-     */
-    int failuresCount() {
-        return (int)invocations().filter(inv -> inv.status() == FAILURE || inv.status() == CRITICAL_FAILURE).count();
-    }
-
     /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
@@ -136,20 +127,6 @@ public class InvocationData {
 
     public void sort() {
         invocationList.sort(Comparator.comparing(Invocation::buildId));
-    }
-
-    public Set<Integer> buildIds() {
-        return invocationList.stream().map(Invocation::buildId).collect(Collectors.toSet());
-    }
-
-    public void registerMissing(Integer testId, Set<Integer> suiteBuildIds) {
-        Set<Integer> idsPresent = buildIds();
-        HashSet<Integer> toAdd = new HashSet<>(suiteBuildIds);
-        toAdd.removeAll(idsPresent);
-
-        toAdd.forEach(id -> {
-            add(new Invocation(id).withStatus(MISSING));
-        });
     }
 
     /**

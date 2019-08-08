@@ -45,6 +45,21 @@ public abstract class AbstractRunHist implements IRunHistory {
         return (int)getInvocations().filter(inv -> inv.status() == InvocationData.CRITICAL_FAILURE).count();
     }
 
+    /**
+     *
+     */
+    public int getFailuresCount() {
+        return (int)getInvocations().filter(inv ->
+            inv.status() == InvocationData.FAILURE
+                || inv.status() == InvocationData.CRITICAL_FAILURE).count();
+    }
+
+    /** {@inheritDoc} */
+    @Override public int getRunsCount() {
+        return (int)getInvocations().filter(inv ->
+            inv.status() != InvocationData.MISSING && Invocation.isMutedOrIgnored(inv.status())).count();
+    }
+
     /** {@inheritDoc} */
     @Override public boolean isFlaky() {
         return getStatusChangesWithoutCodeModification() >= TcBotConst.FLAKYNESS_STATUS_CHANGE_BORDER;

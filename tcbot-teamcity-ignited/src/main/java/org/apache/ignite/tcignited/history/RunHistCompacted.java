@@ -44,16 +44,6 @@ public class RunHistCompacted extends AbstractRunHist {
     }
 
     /** {@inheritDoc} */
-    @Override public int getRunsCount() {
-        return data.notMutedAndNonMissingRunsCount();
-    }
-
-    /** {@inheritDoc} */
-    @Override public int getFailuresCount() {
-        return data.failuresCount();
-    }
-
-    /** {@inheritDoc} */
     @Nullable
     @Override public List<Integer> getLatestRunResults() {
         return data.getLatestRuns();
@@ -69,15 +59,13 @@ public class RunHistCompacted extends AbstractRunHist {
         return data.invocationsIterable();
     }
 
-
     public Set<Integer> buildIds() {
-        return data.buildIds();
+        return data.buildIdsMapping().keySet();
     }
 
     public Map<Integer, Integer> buildIdsMapping() {
         return data.buildIdsMapping();
     }
-
 
     /** {@inheritDoc} */
     @Override public String toString() {
@@ -117,25 +105,11 @@ public class RunHistCompacted extends AbstractRunHist {
         data.sort();
     }
 
-    public void registerMissing(Integer testId, Set<Integer> buildIds) {
-        data.registerMissing(testId, buildIds);
-    }
-
     public RunHistCompacted filterSuiteInvByParms(Map<Integer, Integer> requireParameters) {
         RunHistCompacted cp = new RunHistCompacted();
 
         getInvocations()
             .filter(invocation -> invocation.containsParameterValue(requireParameters))
-            .forEach(invocation -> cp.data.add(invocation));
-
-        return cp;
-    }
-
-    public RunHistCompacted filterByBuilds(Set<Integer> builds) {
-        RunHistCompacted cp = new RunHistCompacted();
-
-        getInvocations()
-            .filter(invocation -> builds.contains(invocation.buildId()))
             .forEach(invocation -> cp.data.add(invocation));
 
         return cp;

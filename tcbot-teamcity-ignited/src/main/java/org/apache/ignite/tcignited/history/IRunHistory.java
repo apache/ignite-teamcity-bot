@@ -52,7 +52,6 @@ public interface IRunHistory {
         return 1.0f * getCriticalFailuresCount() / runs;
     }
 
-
     public int getCriticalFailuresCount();
 
     public int getRunsCount();
