@@ -46,7 +46,6 @@ import org.apache.ignite.tcbot.engine.ui.GuardBranchStatusUi;
 import org.apache.ignite.tcbot.engine.ui.UpdateInfo;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
-import org.apache.ignite.tcignited.build.UpdateCountersStorage;
 import org.apache.ignite.tcservice.model.mute.MuteInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -69,28 +68,13 @@ public class GetTrackedBranchTestResults {
 
     @GET
     @Path("updates")
-    public UpdateInfo getTestFailsUpdates(@Nullable @QueryParam("branch") String branchOrNull,
-        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
-        @Nullable @QueryParam("trustedTests") Boolean trustedTests,
-        @Nullable @QueryParam("tagSelected") String tagSelected,
-        @Nullable @QueryParam("tagForHistSelected") String tagForHistSelected,
-        @Nullable @QueryParam("displayMode") String displayMode,
-        @Nullable @QueryParam("sortOption") String sortOption,
-        @Nullable @QueryParam("count") Integer mergeCnt,
-        @Nullable @QueryParam("showTestLongerThan") Integer showTestLongerThan,
-        @Nullable @QueryParam("muted") Boolean showMuted,
-        @Nullable @QueryParam("ignored") Boolean showIgnored) {
-
-        ITcBotUserCreds creds = ITcBotUserCreds.get(req);
-
-        Injector injector = CtxListener.getInjector(ctx);
-
-        IDetailedStatusForTrackedBranch instance = injector.getInstance(IDetailedStatusForTrackedBranch.class);
-
+    public UpdateInfo getTestFailsUpdates(@Nullable @QueryParam("branch") String branchOrNull) {
         UpdateInfo info = new UpdateInfo();
 
-        Map<Integer, Integer> cnts = instance.getTrackedBranchUpdateCounters(branchOrNull, creds);
-        info.hashCodeHex = UpdateCountersStorage.getCountersHash(cnts);
+        Map<Integer, Integer> counters = CtxListener.getInjector(ctx).getInstance(IDetailedStatusForTrackedBranch.class)
+            .getTrackedBranchUpdateCounters(branchOrNull, ITcBotUserCreds.get(req));
+        info.initCounters(counters);
+
         return info;
     }
 
@@ -188,10 +172,11 @@ public class GetTrackedBranchTestResults {
 
     @GET
     @Path("mergedUpdates")
-    public UpdateInfo getAllTestFailsUpdates(@Nullable @QueryParam("branch") String branch,
-        @Nullable @QueryParam("count") Integer cnt,
-        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        return new UpdateInfo().copyFrom(getAllTestFailsNoSync(branch, cnt, checkAllLogs));
+    public UpdateInfo getAllTestFailsUpdates(@Nullable @QueryParam("branch") String branchOrNull) {
+        return new UpdateInfo().initCounters(
+            CtxListener.getInjector(ctx)
+                .getInstance(IDetailedStatusForTrackedBranch.class)
+                .getTrackedBranchUpdateCounters(branchOrNull, ITcBotUserCreds.get(req)));
     }
 
     @GET

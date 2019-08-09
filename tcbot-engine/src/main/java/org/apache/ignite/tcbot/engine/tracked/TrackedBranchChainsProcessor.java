@@ -73,6 +73,9 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
     /** Compactor. */
     @Inject private IStringCompactor compactor;
 
+    @Inject private BranchEquivalence branchEquivalence;
+
+    /** Update Counters for branch-related changes storage. */
     @Inject private UpdateCountersStorage countersStorage;
 
     /** {@inheritDoc} */
@@ -93,7 +96,6 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         boolean showMuted,
         boolean showIgnored) {
         final DsSummaryUi res = new DsSummaryUi();
-        final AtomicInteger runningUpdates = new AtomicInteger();
 
         final String branchNn = isNullOrEmpty(branch) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
         res.setTrackedBranch(branchNn);
@@ -151,10 +153,6 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
                     requireParamVal
                 );
 
-                int cnt = (int)ctx.getRunningUpdates().count();
-                if (cnt > 0)
-                    runningUpdates.addAndGet(cnt);
-
                 chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor, calcTrustedTests, tagSelected,
                     displayMode, maxDurationSec, requireParamVal,
                     showMuted, showIgnored);
@@ -165,7 +163,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
 
         res.servers.sort(Comparator.comparing(DsChainUi::serverName));
 
-        res.postProcess(runningUpdates.get());
+        res.initCounters(getTrackedBranchUpdateCounters(branch, creds));
 
         return res;
     }
@@ -260,7 +258,11 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
             .forEach(chainTracked -> {
                 String tcBranch = chainTracked.tcBranch();
 
-                Set<Integer> allBranchIds = new BranchEquivalence().branchIdsForQuery(tcBranch, compactor);
+                Set<Integer> allBranchIds = new HashSet<>(branchEquivalence.branchIdsForQuery(tcBranch, compactor));
+
+                chainTracked.tcBaseBranch().ifPresent(base -> {
+                    allBranchIds.addAll(branchEquivalence.branchIdsForQuery(base, compactor));
+                });
 
                 allBranches.addAll(allBranchIds);
             });

@@ -17,8 +17,10 @@
 
 package org.apache.ignite.tcbot.engine.ui;
 
+import java.util.Map;
 import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
 import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
+import org.apache.ignite.tcignited.build.UpdateCountersStorage;
 
 /**
  * General update information for JS data updating requests. UI model, so it contains public fields.
@@ -43,6 +45,8 @@ import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
     /** Hash code hexadecimal, protects from redraw and minimizing mode info in case data not changed */
     public String hashCodeHex;
 
+    public Map<Integer, Integer> counters;
+
     public UpdateInfo copyFrom(UpdateInfo info) {
         //todo there is no chance to update running futures if info is cached
         this.runningUpdates = info.runningUpdates;
@@ -64,5 +68,12 @@ import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
 
         if (jiraCfg.isJiraTokenAvailable())
             javaFlags |= JIRA_FLAG;
+    }
+
+    public UpdateInfo initCounters(Map<Integer, Integer> counters) {
+        this.counters = counters;
+        hashCodeHex = UpdateCountersStorage.getCountersHash(counters);
+
+        return this;
     }
 }

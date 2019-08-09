@@ -63,6 +63,7 @@ public class DsSummaryUi extends UpdateInfo {
         return this;
     }
 
+    @Deprecated
     public void postProcess(int running) {
         runningUpdates = running;
 
