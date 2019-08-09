@@ -19,6 +19,7 @@ package org.apache.ignite.ci.web.rest.tracked;
 
 import com.google.inject.Injector;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -45,6 +46,7 @@ import org.apache.ignite.tcbot.engine.ui.GuardBranchStatusUi;
 import org.apache.ignite.tcbot.engine.ui.UpdateInfo;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcignited.build.UpdateCountersStorage;
 import org.apache.ignite.tcservice.model.mute.MuteInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -78,9 +80,18 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("showTestLongerThan") Integer showTestLongerThan,
         @Nullable @QueryParam("muted") Boolean showMuted,
         @Nullable @QueryParam("ignored") Boolean showIgnored) {
-        return new UpdateInfo().copyFrom(
-            getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected, tagForHistSelected,
-                displayMode, sortOption, mergeCnt, showTestLongerThan, showMuted, showIgnored));
+
+        ITcBotUserCreds creds = ITcBotUserCreds.get(req);
+
+        Injector injector = CtxListener.getInjector(ctx);
+
+        IDetailedStatusForTrackedBranch instance = injector.getInstance(IDetailedStatusForTrackedBranch.class);
+
+        UpdateInfo info = new UpdateInfo();
+
+        Map<Integer, Integer> cnts = instance.getTrackedBranchUpdateCounters(branchOrNull, creds);
+        info.hashCodeHex = UpdateCountersStorage.getCountersHash(cnts);
+        return info;
     }
 
     @GET

@@ -19,6 +19,7 @@ package org.apache.ignite.tcignited;
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
+import org.apache.ignite.tcignited.build.UpdateCountersStorage;
 import org.apache.ignite.tcignited.buildlog.BuildLogCheckResultDao;
 import org.apache.ignite.tcignited.buildlog.ILogProductSpecific;
 import org.apache.ignite.tcignited.buildlog.LogIgniteSpecific;
@@ -70,6 +71,7 @@ public class TeamcityIgnitedModule extends AbstractModule {
         bind(SuiteInvocationHistoryDao.class).in(new SingletonScope());
         bind(HistoryCollector.class).in(new SingletonScope());
         bind(ILogProductSpecific.class).to(LogIgniteSpecific.class).in(new SingletonScope());
+        bind(UpdateCountersStorage.class).in(new SingletonScope());
 
         TcRealConnectionModule module = new TcRealConnectionModule();
         if (conn != null)

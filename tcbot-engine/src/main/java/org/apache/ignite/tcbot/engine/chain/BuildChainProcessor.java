@@ -51,7 +51,9 @@ import org.apache.ignite.tcbot.engine.ui.LrTestsSuiteSummaryUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcignited.build.UpdateCountersStorage;
 import org.apache.ignite.tcignited.buildlog.IBuildLogProcessor;
+import org.apache.ignite.tcignited.buildlog.ILogCheckResult;
 import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
@@ -71,6 +73,12 @@ public class BuildChainProcessor {
 
     /** Compactor. */
     @Inject private IStringCompactor compactor;
+
+    /** Build logs processor. */
+    @Inject private IBuildLogProcessor buildLogProcessor;
+
+    @Inject private UpdateCountersStorage counters;
+
 
     /**
      * Collects data about all long-running tests (run time more than one minute) across all suites in RunAll chain in
@@ -436,8 +444,6 @@ public class BuildChainProcessor {
         }
     }
 
-    @Inject IBuildLogProcessor buildLogProcessor;
-
     @SuppressWarnings("WeakerAccess")
     @AutoProfiling
     protected void analyzeTests(MultBuildRunCtx outCtx, ITeamcityIgnited teamcity,
@@ -448,10 +454,18 @@ public class BuildChainProcessor {
                     || procLog == ProcessLogsMode.ALL)
                 ctx.setLogCheckResFut(
                         CompletableFuture.supplyAsync(
-                                () -> buildLogProcessor.analyzeBuildLog(teamcity,
-                                        ctx.buildId(),
-                                    incompleteFailure),
-                                tcUpdatePool.getService()));
+                            () -> {
+                                ILogCheckResult res = buildLogProcessor.analyzeBuildLog(teamcity,
+                                    ctx.buildId(),
+                                    incompleteFailure);
+                                int branchName = ctx.branchName();
+
+                                //build log result is ready for branch.
+                                counters.increment(branchName);
+
+                                return res;
+                            },
+                            tcUpdatePool.getService()));
         }
     }
 

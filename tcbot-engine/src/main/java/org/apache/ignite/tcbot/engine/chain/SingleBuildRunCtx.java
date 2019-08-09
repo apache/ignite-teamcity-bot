@@ -348,4 +348,8 @@ public class SingleBuildRunCtx implements ISuiteResults {
     public void addTags(Set<String> strings) {
         this.tags.addAll(strings);
     }
+
+    public int branchName() {
+        return buildCompacted.branchName();
+    }
 }
