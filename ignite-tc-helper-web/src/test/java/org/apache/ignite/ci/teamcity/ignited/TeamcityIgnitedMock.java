@@ -20,7 +20,7 @@ package org.apache.ignite.ci.teamcity.ignited;
 import com.google.common.base.Preconditions;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
-import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
+import org.apache.ignite.tcignited.history.RunHistCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
 import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;

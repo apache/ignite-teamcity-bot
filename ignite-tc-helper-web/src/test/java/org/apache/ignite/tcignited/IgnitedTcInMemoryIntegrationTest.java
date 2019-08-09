@@ -29,11 +29,14 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -50,6 +53,7 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest;
+import org.apache.ignite.ci.tcbot.issue.IssueDetectorTest;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
@@ -62,8 +66,10 @@ import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.GuavaCachedModule;
 import org.apache.ignite.tcbot.common.util.FutureUtil;
+import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.TcBotJsonConfig;
+import org.apache.ignite.tcbot.engine.issue.EventTemplates;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.IgniteStringCompactor;
 import org.apache.ignite.tcbot.persistence.TcBotPersistenceModule;
@@ -71,11 +77,14 @@ import org.apache.ignite.tcbot.persistence.scheduler.DirectExecNoWaitScheduler;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.build.ProactiveFatBuildSync;
+import org.apache.ignite.tcignited.build.TestCompactedV2;
 import org.apache.ignite.tcignited.buildlog.ILogProductSpecific;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.tcignited.history.BuildStartTimeStorage;
+import org.apache.ignite.tcignited.history.HistoryCollector;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.ISuiteRunHistory;
+import org.apache.ignite.tcignited.history.SuiteInvocationHistoryDao;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcservice.TeamcityServiceConnection;
 import org.apache.ignite.tcservice.http.ITeamcityHttpConnection;
@@ -108,6 +117,7 @@ import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertNull;
 import static junit.framework.TestCase.assertTrue;
+import static org.apache.ignite.ci.tcbot.issue.IssueDetectorTest.SRV_ID;
 import static org.apache.ignite.tcbot.common.conf.TcBotWorkDir.ensureDirExist;
 import static org.apache.ignite.tcbot.persistence.IgniteStringCompactor.STRINGS_CACHE;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -161,6 +171,10 @@ public class IgnitedTcInMemoryIntegrationTest {
     public void clearIgniteCaches() {
         clearCache(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
         clearCache(FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME);
+
+        BuildRefCompacted.resetCached();
+        TestCompactedV2.resetCached();
+        TestCompactedMult.resetCached();
     }
 
     /**
@@ -810,7 +824,76 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         FutureUtil.getResults(futures);
         svc.shutdown();
+    }
 
+    @Test
+    public void testTestHistoryPropagation() {
+        TeamcityIgnitedModule module = new TeamcityIgnitedModule();
+
+        Injector injector = Guice.createInjector(module, new GuavaCachedModule(), new IgniteAndSchedulerTestModule());
+
+        String chainId = TeamcityIgnitedImpl.DEFAULT_PROJECT_ID;
+        IStringCompactor c = injector.getInstance(IStringCompactor.class);
+
+        String testUnmuted = "testUnmuted";
+        Map<String, String> pds1Hist = new TreeMap<String, String>() {
+            {
+                put(testUnmuted, "66666611111");
+                put("testOk", "      0000");
+            }
+        };
+        String testFlakyStableFailure = "testFlakyStableFailure";
+
+        Map<String, String> pds2Hist = new TreeMap<String, String>() {
+            {
+                put("testFailedShoudlBeConsideredAsFlaky", "0000011111");
+                put(testFlakyStableFailure, "0000011111111111");
+            }
+        };
+
+        Map<Integer, FatBuildCompacted> builds = new HashMap<>();
+        String suite1 = IssueDetectorTest.PDS_1;
+        String suite2 = IssueDetectorTest.PDS_2;
+        IssueDetectorTest.emulateHistory(builds, chainId, c, suite1, pds1Hist, suite2, pds2Hist);
+
+        BuildRefDao buildRefDao = injector.getInstance(BuildRefDao.class).init();
+
+        FatBuildDao fatBuildDao = injector.getInstance(FatBuildDao.class).init();
+
+        injector.getInstance(SuiteInvocationHistoryDao.class).init();
+        injector.getInstance(BuildStartTimeStorage.class).init();
+
+        int srvId = ITeamcityIgnited.serverIdToInt(IssueDetectorTest.SRV_ID);
+        builds.forEach((k, v) -> {
+            buildRefDao.save(srvId, new BuildRefCompacted(v));
+            fatBuildDao.putFatBuild(srvId, k, v);
+        });
+
+        HistoryCollector histCollector = injector.getInstance(HistoryCollector.class);
+
+        IRunHistory hist = histCollector.getTestRunHist(SRV_ID,
+            c.getStringId(testUnmuted),
+            c.getStringId(suite1),
+            c.getStringId(ITeamcity.DEFAULT));
+
+        assertNotNull(hist);
+
+        assertEquals(Arrays.asList(4, 4, 4, 4, 4, 6, 6, 6, 6, 6, 6, 1, 1, 1, 1, 1), hist.getLatestRunResults());
+
+        assertEquals(0, hist.getCriticalFailuresCount());
+
+        assertFalse(hist.isFlaky());
+        assertEquals(1.0, hist.getFailRate(), 0.05);
+
+        IRunHistory histFailedFlaky = histCollector.getTestRunHist(SRV_ID,
+            c.getStringId(testFlakyStableFailure),
+            c.getStringId(suite2),
+            c.getStringId(ITeamcity.DEFAULT));
+
+        assertTrue(histFailedFlaky.isFlaky());
+
+        Integer integer = histFailedFlaky.detectTemplate(EventTemplates.newFailureForFlakyTest);
+        assertNotNull(integer);
     }
 
     /**

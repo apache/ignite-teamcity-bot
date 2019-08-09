@@ -15,19 +15,21 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.teamcity.ignited.runhist;
+package org.apache.ignite.tcignited.history;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
-import org.apache.ignite.tcignited.history.RunStatus;
+import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 
 /**
  *
@@ -63,42 +65,9 @@ public class InvocationData {
     /**
      *
      */
-    public int notMutedAndNonMissingRunsCount() {
-        return (int)
-            invocations(true)
-                .filter(invocation -> {
-                    byte s = invocation.status();
-                    return s != MUTED && s != FAILURE_MUTED && s != OK_MUTED && s != IGNORED;
-                })
-                .count();
-    }
-
-    /**
-     *
-     */
     @Nonnull
     Stream<Invocation> invocations() {
-        return invocations(false);
-    }
-
-
-    /**
-     * @param skipMissing Skip missing (absent) invocations.
-     */
-    @Nonnull Stream<Invocation> invocations(boolean skipMissing) {
-        Stream<Invocation> stream = invocationList.stream();
-
-        if (skipMissing)
-            stream = stream.filter(invocation -> invocation.status() != MISSING);
-
-        return stream;
-    }
-
-    /**
-     *
-     */
-    int failuresCount() {
-        return (int)invocations().filter(inv -> inv.status() == FAILURE || inv.status() == CRITICAL_FAILURE).count();
+        return invocationList.stream();
     }
 
     /** {@inheritDoc} */
@@ -133,28 +102,33 @@ public class InvocationData {
             .collect(Collectors.toList());
     }
 
-    /**
-     *
-     */
-    public int criticalFailuresCount() {
-        return (int)invocations().filter(inv -> inv.status() == CRITICAL_FAILURE).count();
-    }
-
     public void sort() {
         invocationList.sort(Comparator.comparing(Invocation::buildId));
     }
 
-    public Set<Integer> buildIds() {
-        return invocationList.stream().map(Invocation::buildId).collect(Collectors.toSet());
+    /**
+     * Build ID - index mapping should be always called after sort.
+     */
+    public Map<Integer, Integer> buildIdsMapping() {
+        Map<Integer, Integer> buildIdToIdx = new HashMap<>();
+        int idx = 0;
+
+        for (Invocation next : invocationList) {
+            buildIdToIdx.put(next.buildId(), idx);
+            idx++;
+        }
+
+        return buildIdToIdx;
     }
 
-    public void registerMissing(Integer testId, Set<Integer> suiteBuildIds) {
-        Set<Integer> idsPresent = buildIds();
-        HashSet<Integer> toAdd = new HashSet<>(suiteBuildIds);
-        toAdd.removeAll(idsPresent);
+    public Iterable<Invocation> invocationsIterable() {
+        return Collections.unmodifiableList(invocationList);
+    }
 
-        toAdd.forEach(id -> {
-            add(new Invocation(id).withStatus(MISSING));
-        });
+    public Invocation getInvocationAt(int idx) {
+        int size = invocationList.size();
+        Preconditions.checkState(idx < size,
+            "Requested invocation outside suite history [" + idx + "] size [" + size + "]");
+        return invocationList.get(idx);
     }
 }

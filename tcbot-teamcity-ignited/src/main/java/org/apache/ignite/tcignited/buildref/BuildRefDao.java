@@ -305,7 +305,6 @@ public class BuildRefDao {
         }
 
         if (!list.isEmpty()) {
-
             System.err.println(" Branch " + compactor.getStringFromId(branchNameId)
                 + " builds " + list.size() + " (Overall) ");
         }

@@ -28,9 +28,7 @@ import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.build.ITest;
-import org.apache.ignite.tcignited.history.IRunHistSummary;
 import org.apache.ignite.tcignited.history.IRunHistory;
-import org.apache.ignite.tcignited.history.IRunStat;
 import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 
@@ -44,15 +42,19 @@ public class TestCompactedMult {
     private long avgDuration = -1;
 
     /** Status success. */
-    private static volatile int STATUS_SUCCESS = -1;
+    private static volatile int STATUS_SUCCESS_CID = -1;
 
     public TestCompactedMult(IStringCompactor compactor, MultBuildRunCtx ctx) {
         this.compactor = compactor;
         this.ctx = ctx;
 
         //Each time compactor should give same result
-        if (STATUS_SUCCESS == -1)
-            STATUS_SUCCESS = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
+        if (STATUS_SUCCESS_CID == -1)
+            STATUS_SUCCESS_CID = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
+    }
+
+    public static void resetCached() {
+        STATUS_SUCCESS_CID = -1;
     }
 
     @Nullable public Integer testName() {
@@ -71,7 +73,7 @@ public class TestCompactedMult {
     private int getFailedButNotMutedCount() {
         return (int)occurrences.stream()
             .filter(Objects::nonNull)
-            .filter(t -> t.isFailedButNotMuted(STATUS_SUCCESS)).count();
+            .filter(t -> t.isFailedButNotMuted(STATUS_SUCCESS_CID)).count();
     }
 
     public int failuresCount() {
@@ -102,7 +104,7 @@ public class TestCompactedMult {
       * @param baseBranchStat Base branch statistics.
       * @return non null comment in case test failure is a blocker for merge into base branch.
       */
-     public String getPossibleBlockerComment(IRunHistSummary baseBranchStat) {
+     public String getPossibleBlockerComment(IRunHistory baseBranchStat) {
          if (failuresCount() == 0) {
              if (baseBranchStat == null) {
                  long durationMs = getAvgDurationMs();
@@ -124,7 +126,7 @@ public class TestCompactedMult {
          boolean lowFailureRate = failRate * 100.0f < TcBotConst.NON_FLAKY_TEST_FAIL_RATE_BLOCKER_BORDER_PERCENTS;
 
          if (lowFailureRate && !flaky) {
-             String runStatPrintable = IRunStat.getPercentPrintable(failRate * 100.0f);
+             String runStatPrintable = IRunHistory.getPercentPrintable(failRate * 100.0f);
 
              return "Test has low fail rate in base branch "
                  + runStatPrintable
@@ -142,9 +144,9 @@ public class TestCompactedMult {
          return history(ignited, baseBranchId, null);
     }
 
-    public IRunHistory history(ITeamcityIgnited ignited,
-                               @Nullable Integer baseBranchId,
-                               @Nullable Map<Integer, Integer> requireParameters) {
+    @Nullable public IRunHistory history(ITeamcityIgnited ignited,
+        @Nullable Integer baseBranchId,
+        @Nullable Map<Integer, Integer> requireParameters) {
         Integer name = testName();
         if (name == null || baseBranchId == null)
             return null;
@@ -160,7 +162,7 @@ public class TestCompactedMult {
     /**
      */
     public boolean isFailedButNotMuted() {
-        return occurrences.stream().anyMatch(o -> o.isFailedButNotMuted(STATUS_SUCCESS));
+        return occurrences.stream().anyMatch(o -> o.isFailedButNotMuted(STATUS_SUCCESS_CID));
     }
 
     /**
