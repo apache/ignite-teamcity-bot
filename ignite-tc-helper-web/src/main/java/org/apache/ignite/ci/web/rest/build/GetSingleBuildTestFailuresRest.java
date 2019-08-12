@@ -20,8 +20,6 @@ package org.apache.ignite.ci.web.rest.build;
 import com.google.common.collect.BiMap;
 import com.google.inject.Injector;
 import java.text.ParseException;
-import java.util.Collections;
-import java.util.concurrent.atomic.AtomicInteger;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -30,34 +28,28 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
-import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
-import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
-import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
-import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.tcbot.engine.ui.DsChainUi;
-import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
-import org.apache.ignite.tcbot.engine.ui.UpdateInfo;
 import org.apache.ignite.ci.web.model.trends.BuildStatisticsSummary;
 import org.apache.ignite.ci.web.model.trends.BuildsHistory;
 import org.apache.ignite.tcbot.common.exeption.ServiceUnauthorizedException;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcbot.engine.build.SingleBuildResultsService;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
+import org.apache.ignite.tcbot.engine.ui.UpdateInfo;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
-import org.apache.ignite.tcservice.ITeamcity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
-@Path(GetBuildTestFailures.BUILD)
+@Path(GetSingleBuildTestFailuresRest.BUILD)
 @Produces(MediaType.APPLICATION_JSON)
-public class GetBuildTestFailures {
+public class GetSingleBuildTestFailuresRest {
     public static final String BUILD = "build";
 
     /** Context. */
@@ -68,23 +60,29 @@ public class GetBuildTestFailures {
     @Context
     private HttpServletRequest req;
 
+
     @GET
     @Path("failures/updates")
     public UpdateInfo getTestFailsUpdates(
-        @QueryParam("serverId") String srvId,
+        @QueryParam("serverId") String srvCodeOrAlias,
         @QueryParam("buildId") Integer buildId,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) throws ServiceUnauthorizedException {
-        return new UpdateInfo().copyFrom(getBuildTestFailsNoSync(srvId, buildId, checkAllLogs));
+        UpdateInfo res = new UpdateInfo();
+        res.initCounters(CtxListener.getInjector(ctx)
+            .getInstance(SingleBuildResultsService.class)
+            .getBranchCntrs(srvCodeOrAlias, buildId, ITcBotUserCreds.get(req)));
+
+        return res;
     }
 
     @GET
     @Path("failures/txt")
     @Produces(MediaType.TEXT_PLAIN)
     public String getTestFailsText(
-        @QueryParam("serverId") String srvId,
+        @QueryParam("serverId") String srvCodeOrAlias,
         @QueryParam("buildId") Integer buildId,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) throws ServiceUnauthorizedException {
-        return getBuildTestFails(srvId, buildId, checkAllLogs).toString();
+        return getBuildTestFails(srvCodeOrAlias, buildId, checkAllLogs).toString();
     }
 
     @GET
@@ -105,50 +103,17 @@ public class GetBuildTestFailures {
         return collectBuildCtxById(srvId, buildId, checkAllLogs, SyncMode.RELOAD_QUEUED);
     }
 
-    @NotNull public DsSummaryUi collectBuildCtxById(@QueryParam("serverId") String srvCode,
-                                                    @QueryParam("buildId") Integer buildId,
-                                                    @QueryParam("checkAllLogs") @Nullable Boolean checkAllLogs, SyncMode syncMode) {
-        final ITcBotUserCreds prov = ITcBotUserCreds.get(req);
-        final Injector injector = CtxListener.getInjector(ctx);
-        ITeamcityIgnitedProvider tcIgnitedProv = injector.getInstance(ITeamcityIgnitedProvider.class);
-        final BuildChainProcessor buildChainProcessor = injector.getInstance(BuildChainProcessor.class);
-
-        final DsSummaryUi res = new DsSummaryUi();
-        final AtomicInteger runningUpdates = new AtomicInteger();
-
-        tcIgnitedProv.checkAccess(srvCode, prov);
-
-        ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCode, prov);
-
-        String failRateBranch = ITeamcity.DEFAULT;
-
-        ProcessLogsMode procLogs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
-
-        FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
-            tcIgnited,
-            Collections.singletonList(buildId),
-            LatestRebuildMode.NONE,
-            procLogs,
-            false,
-            failRateBranch,
-            syncMode,
-            null,
-            null);
-
-        DsChainUi chainStatus = new DsChainUi(srvCode, tcIgnited.serverCode(), ctx.branchName());
-
-        int cnt = (int)ctx.getRunningUpdates().count();
-        if (cnt > 0)
-            runningUpdates.addAndGet(cnt);
-
-        chainStatus.initFromContext(tcIgnited, ctx, failRateBranch, injector.getInstance(IStringCompactor.class), false, null, null, -1, null, false, false);
-
-        res.addChainOnServer(chainStatus);
-
-        res.postProcess(runningUpdates.get());
-
-        return res;
+    @NotNull public DsSummaryUi collectBuildCtxById(String srvCodeOrAlias,
+        Integer buildId,
+        @Nullable Boolean checkAllLogs,
+        SyncMode syncMode) {
+        return CtxListener.getInjector(ctx)
+            .getInstance(SingleBuildResultsService.class)
+            .getSingleBuildResults(srvCodeOrAlias, buildId, checkAllLogs, syncMode,
+                ITcBotUserCreds.get(req));
     }
+
+
 
     /**
      * Mark builds as "valid" or "invalid".

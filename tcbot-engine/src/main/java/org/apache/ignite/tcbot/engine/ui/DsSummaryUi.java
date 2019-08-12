@@ -63,13 +63,6 @@ public class DsSummaryUi extends UpdateInfo {
         return this;
     }
 
-    @Deprecated
-    public void postProcess(int running) {
-        runningUpdates = running;
-
-        hashCodeHex = Integer.toHexString(U.safeAbs(hashCode()));
-    }
-
     /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)

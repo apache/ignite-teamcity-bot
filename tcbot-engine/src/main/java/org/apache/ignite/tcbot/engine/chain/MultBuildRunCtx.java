@@ -481,10 +481,6 @@ public class MultBuildRunCtx implements ISuiteResults {
             });
     }
 
-    Stream<? extends Future<?>> getFutures() {
-        return buildsStream().flatMap(SingleBuildRunCtx::getFutures);
-    }
-
     /**
      * @return true if all builds are composite
      */

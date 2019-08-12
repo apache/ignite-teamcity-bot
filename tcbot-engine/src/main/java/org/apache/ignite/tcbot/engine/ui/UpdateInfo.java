@@ -45,15 +45,8 @@ import org.apache.ignite.tcignited.build.UpdateCountersStorage;
     /** Hash code hexadecimal, protects from redraw and minimizing mode info in case data not changed */
     public String hashCodeHex;
 
+    /** Update Counters for all related TC Branches. */
     public Map<Integer, Integer> counters;
-
-    public UpdateInfo copyFrom(UpdateInfo info) {
-        //todo there is no chance to update running futures if info is cached
-        this.runningUpdates = info.runningUpdates;
-        this.hashCodeHex = info.hashCodeHex;
-
-        return this;
-    }
 
     /**
      * @param gitHubCfg
