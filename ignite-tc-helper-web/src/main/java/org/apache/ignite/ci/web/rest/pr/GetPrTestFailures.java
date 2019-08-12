@@ -30,15 +30,15 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.github.PullRequest;
-import org.apache.ignite.githubignited.IGitHubConnIgnited;
-import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
-import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
-import org.apache.ignite.githubservice.IGitHubConnection;
-import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.githubignited.IGitHubConnIgnited;
+import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
+import org.apache.ignite.githubservice.IGitHubConnection;
+import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.UpdateInfo;
+import org.apache.ignite.tcignited.SyncMode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -58,15 +58,12 @@ public class GetPrTestFailures {
     @GET
     @Path("updates")
     public UpdateInfo getPrFailuresUpdates(
-        @Nullable @QueryParam("serverId") String srvId,
-        @Nonnull @QueryParam("suiteId") String suiteId,
+        @Nullable @QueryParam("serverId") String srvCodeOrAlias,
         @Nonnull @QueryParam("branchForTc") String branchForTc,
-        @Nonnull @QueryParam("action") String act,
-        @Nullable @QueryParam("count") Integer cnt,
-        @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
-        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-
-        return new UpdateInfo().copyFrom(getPrFailuresResultsNoSync(srvId, suiteId, branchForTc, act, cnt, baseBranchForTc, checkAllLogs));
+        @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc) {
+        return new UpdateInfo().initCounters(
+            CtxListener.getInjector(ctx).getInstance(PrChainsProcessor.class)
+                .getPrUpdateCounters(srvCodeOrAlias, branchForTc, baseBranchForTc, ITcBotUserCreds.get(req)));
     }
 
     @GET

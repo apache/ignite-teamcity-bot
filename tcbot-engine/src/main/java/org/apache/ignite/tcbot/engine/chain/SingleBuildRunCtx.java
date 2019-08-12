@@ -175,10 +175,6 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return Collections.unmodifiableList(changes);
     }
 
-    @Nonnull Stream<? extends Future<?>> getFutures() {
-        return logCheckResFut == null ? Stream.empty() : Stream.of((Future<?>)logCheckResFut);
-    }
-
     public boolean isComposite() {
         return buildCompacted.isComposite();
     }
@@ -347,5 +343,9 @@ public class SingleBuildRunCtx implements ISuiteResults {
 
     public void addTags(Set<String> strings) {
         this.tags.addAll(strings);
+    }
+
+    public int branchName() {
+        return buildCompacted.branchName();
     }
 }

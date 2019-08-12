@@ -15,7 +15,8 @@
 </head>
 <body>
 <script>
-var g_shownDataHashCodeHex = "";
+let g_shownDataHashCodeHex = "";
+let g_checkForUpdateSched = false;
 
 $(document).ready(function() {
     $.getScript("js/testfails-2.2.js", function(data, textStatus, jqxhr){ });
@@ -23,7 +24,7 @@ $(document).ready(function() {
     $( document ).tooltip();
     loadData();
 
-    $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
+    $.ajax({ url: "/rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
 });
 
 
@@ -46,17 +47,19 @@ function parmsForRest() {
 }
 
 function checkForUpdate() {
-    var curFailuresUrl = "rest/build/failures/updates" + parmsForRest();
+    var curFailuresUrl = "/rest/build/failures/updates" + parmsForRest();
 
+    g_checkForUpdateSched = false;
     $.ajax({
         url: curFailuresUrl,
         success: function (result) {
             if (g_shownDataHashCodeHex !== "" && isDefinedAndFilled(result.hashCodeHex)) {
                 if (g_shownDataHashCodeHex === result.hashCodeHex) {
-                    var fastCheckNeeded = isDefinedAndFilled(result.runningUpdates) && result.runningUpdates > 0;
-                    var ms = fastCheckNeeded ? 3000 : 30000;
+                    if (!g_checkForUpdateSched) {
+                        g_checkForUpdateSched = true;
 
-                    setTimeout(checkForUpdate, ms);
+                        setTimeout(checkForUpdate, 10000);
+                    }
 
                     $("#loadStatus").html("");
                 } else {
@@ -71,29 +74,29 @@ function checkForUpdate() {
 }
 
 function loadData() {
-    var curFailuresUrl = "rest/build/failures" + parmsForRest();
+    var curFailuresUrl = "/rest/build/failures" + parmsForRest();
     
     $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
     setTimeout(loadPartialData, 3000);
+
     $.ajax({
         url: curFailuresUrl,
         success: function (result) {
-            if (isDefinedAndFilled(result.runningUpdates) && result.runningUpdates > 0) {
-                setTimeout(checkForUpdate, 3000);
-
-                $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Updating");
-            } else {
-                $("#loadStatus").html("");
-            }
             showData(result);
             g_shownDataHashCodeHex = isDefinedAndFilled(result.hashCodeHex) ? result.hashCodeHex : "";
+
+            if (!g_checkForUpdateSched) {
+                g_checkForUpdateSched = true;
+
+                setTimeout(checkForUpdate, 10000);
+            }
         },
         error: showErrInLoadStatus
     });
 }
 
 function loadPartialData() {
-    var curFailuresUrl = "rest/build/failuresNoSync" + parmsForRest();
+    var curFailuresUrl = "/rest/build/failuresNoSync" + parmsForRest();
 
     if (g_shownDataHashCodeHex !== "") {
         return;

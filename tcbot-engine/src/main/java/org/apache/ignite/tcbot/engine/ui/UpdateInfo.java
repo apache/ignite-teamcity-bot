@@ -17,8 +17,10 @@
 
 package org.apache.ignite.tcbot.engine.ui;
 
+import java.util.Map;
 import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
 import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
+import org.apache.ignite.tcignited.build.UpdateCountersStorage;
 
 /**
  * General update information for JS data updating requests. UI model, so it contains public fields.
@@ -36,32 +38,35 @@ import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
     /** Flags to use in javascript. */
     public Integer javaFlags = 0;
 
-    /** Running updates is in progress, summary is ready, but it is subject to change */
+    /** Running updates is in progress, not used since it should be updated using counters */
+    @Deprecated
     public int runningUpdates = 0;
 
     /** Hash code hexadecimal, protects from redraw and minimizing mode info in case data not changed */
     public String hashCodeHex;
 
-    public UpdateInfo copyFrom(UpdateInfo info) {
-        //todo there is no chance to update running futures if info is cached
-        this.runningUpdates = info.runningUpdates;
-        this.hashCodeHex = info.hashCodeHex;
-
-        return this;
-    }
+    /** Update Counters for all related TC Branches. */
+    public Map<Integer, Integer> counters;
 
     /**
-     * @param gitHubConfig
+     * @param gitHubCfg
      * @param jiraCfg
      */
-    public void setJavaFlags(IGitHubConfig gitHubConfig, IJiraServerConfig jiraCfg) {
+    public void setJavaFlags(IGitHubConfig gitHubCfg, IJiraServerConfig jiraCfg) {
         //since user has logged in, TC flag should be set
         javaFlags |= TEAMCITY_FLAG;
 
-        if (gitHubConfig.isGitTokenAvailable())
+        if (gitHubCfg.isGitTokenAvailable())
             javaFlags |= GITHUB_FLAG;
 
         if (jiraCfg.isJiraTokenAvailable())
             javaFlags |= JIRA_FLAG;
+    }
+
+    public UpdateInfo initCounters(Map<Integer, Integer> counters) {
+        this.counters = counters;
+        hashCodeHex = UpdateCountersStorage.getCountersHash(counters);
+
+        return this;
     }
 }

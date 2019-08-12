@@ -24,7 +24,6 @@
         $(document).tooltip();
 
         loadData();
-        //todo fix setInterval( function() { checkForUpdate(); }, 60000);
 
         $.ajax({url: "rest/branches/version", success: showVersionInfo, error: showErrInLoadStatus});
 
@@ -68,10 +67,7 @@
             success: function (result) {
                 if (g_shownDataHashCodeHex !== "" && isDefinedAndFilled(result.hashCodeHex)) {
                     if (g_shownDataHashCodeHex === result.hashCodeHex) {
-                        var fastCheckNeeded = isDefinedAndFilled(result.runningUpdates) && result.runningUpdates > 0;
-                        var ms = fastCheckNeeded ? 6000 : 60000;
-
-                        setTimeout(checkForUpdate, ms);
+                        setTimeout(checkForUpdate, 10000);
 
                         $("#loadStatus").html("");
                     } else {
@@ -93,13 +89,6 @@
         $.ajax({
             url: curFailuresUrl,
             success: function (result) {
-                if ((isDefinedAndFilled(result.runningUpdates) && result.runningUpdates > 0)) {
-                    setTimeout(checkForUpdate, 3000);
-
-                    $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Updating");
-                } else {
-                    $("#loadStatus").html("");
-                }
                 showData(result);
 
                 g_shownDataHashCodeHex = isDefinedAndFilled(result.hashCodeHex) ? result.hashCodeHex : "";
@@ -177,6 +166,14 @@
     }
 
 </script>
+
+
+<script>
+   window.location='current.html' + parmsForRest() + "&count=10";
+</script>
+
+<a href="current.html?count=10">This repors functionality was moved here</a>
+
 
 <div id="loadStatus"></div>
 <div><a href=".">Home</a> <select id="tagSelect" style="float:right"></select></div>

@@ -19,6 +19,7 @@ package org.apache.ignite.ci.web.rest.tracked;
 
 import com.google.inject.Injector;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -67,20 +68,14 @@ public class GetTrackedBranchTestResults {
 
     @GET
     @Path("updates")
-    public UpdateInfo getTestFailsUpdates(@Nullable @QueryParam("branch") String branchOrNull,
-        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
-        @Nullable @QueryParam("trustedTests") Boolean trustedTests,
-        @Nullable @QueryParam("tagSelected") String tagSelected,
-        @Nullable @QueryParam("tagForHistSelected") String tagForHistSelected,
-        @Nullable @QueryParam("displayMode") String displayMode,
-        @Nullable @QueryParam("sortOption") String sortOption,
-        @Nullable @QueryParam("count") Integer mergeCnt,
-        @Nullable @QueryParam("showTestLongerThan") Integer showTestLongerThan,
-        @Nullable @QueryParam("muted") Boolean showMuted,
-        @Nullable @QueryParam("ignored") Boolean showIgnored) {
-        return new UpdateInfo().copyFrom(
-            getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected, tagForHistSelected,
-                displayMode, sortOption, mergeCnt, showTestLongerThan, showMuted, showIgnored));
+    public UpdateInfo getTestFailsUpdates(@Nullable @QueryParam("branch") String branchOrNull) {
+        UpdateInfo info = new UpdateInfo();
+
+        Map<Integer, Integer> counters = CtxListener.getInjector(ctx).getInstance(IDetailedStatusForTrackedBranch.class)
+            .getTrackedBranchUpdateCounters(branchOrNull, ITcBotUserCreds.get(req));
+        info.initCounters(counters);
+
+        return info;
     }
 
     @GET
@@ -177,10 +172,11 @@ public class GetTrackedBranchTestResults {
 
     @GET
     @Path("mergedUpdates")
-    public UpdateInfo getAllTestFailsUpdates(@Nullable @QueryParam("branch") String branch,
-        @Nullable @QueryParam("count") Integer cnt,
-        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        return new UpdateInfo().copyFrom(getAllTestFailsNoSync(branch, cnt, checkAllLogs));
+    public UpdateInfo getAllTestFailsUpdates(@Nullable @QueryParam("branch") String branchOrNull) {
+        return new UpdateInfo().initCounters(
+            CtxListener.getInjector(ctx)
+                .getInstance(IDetailedStatusForTrackedBranch.class)
+                .getTrackedBranchUpdateCounters(branchOrNull, ITcBotUserCreds.get(req)));
     }
 
     @GET

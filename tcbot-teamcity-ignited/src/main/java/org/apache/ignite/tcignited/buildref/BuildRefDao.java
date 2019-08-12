@@ -52,6 +52,7 @@ import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.build.UpdateCountersStorage;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 
 /**
@@ -69,6 +70,9 @@ public class BuildRefDao {
 
     /** Compactor. */
     @Inject private IStringCompactor compactor;
+
+    /** Update Counters for branch-related changes storage. */
+    @Inject private UpdateCountersStorage countersStorage;
 
     /** Non persistence cache for all BuildRefsCompacted for particular branch.
      * RunHistKey(ServerId||BranchId||suiteId)-> Build reference
@@ -180,6 +184,11 @@ public class BuildRefDao {
 
         buildRefsInMemCacheForAllBranch.invalidateAll(cacheForAllBranch);
         buildRefsInMemCache.invalidateAll(setOfHistToClear);
+
+        setOfHistToClear.forEach(b -> {
+            int branch = b.branch();
+            countersStorage.increment(branch);
+        });
     }
 
     /**

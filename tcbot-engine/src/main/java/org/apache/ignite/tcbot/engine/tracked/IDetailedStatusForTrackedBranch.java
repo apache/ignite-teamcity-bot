@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.tcbot.engine.tracked;
 
+import java.util.Map;
 import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.engine.chain.SortOption;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
@@ -62,6 +63,8 @@ public interface IDetailedStatusForTrackedBranch {
      * @param prov Prov.
      */
     public GuardBranchStatusUi getBranchSummary(String name, ICredentialsProv prov);
+
+    public Map<Integer, Integer> getTrackedBranchUpdateCounters(@Nullable String branch, ICredentialsProv creds);
 
     //  * @param baseTrackedBranch Branch tracked branch in Bot, has a priority if both TC & Bot branches (baseBranchForTcParm) present.
 }
