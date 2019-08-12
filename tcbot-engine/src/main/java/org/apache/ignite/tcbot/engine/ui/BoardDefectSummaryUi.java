@@ -90,8 +90,7 @@ public class BoardDefectSummaryUi {
         List<BlameCandidate> blameCandidates = defect.blameCandidates();
 
         if (blameCandidates.isEmpty())
-            return "No Commits";
-
+            return "";
 
         return limitedListPrint(blameCandidates, next -> next.vcsUsername(compactor));
     }
