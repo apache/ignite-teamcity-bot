@@ -18,13 +18,13 @@ package org.apache.ignite.tcbot.engine.board;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.inject.Inject;
@@ -117,12 +117,14 @@ public class BoardService {
                                 defectUi.addFixedIssue();
                             else
                                 defectUi.addNotFixedIssue();
-                        }
+                        } else
+                            defectUi.addUnclearIssue();
 
                         String testOrBuildName = compactor.getStringFromId(issue.testNameCid());
                         defectUi.addIssue(testOrBuildName, "");
                     }
-                }
+                } else
+                    defectUi.addUnclearIssue();
             }
 
             defectUi.branch =  next.tcBranch(compactor);
@@ -138,15 +140,18 @@ public class BoardService {
     }
 
     @MonitoredTask(name = "Convert issues to defect")
-    protected void issuesToDefects() {
+    protected String issuesToDefects() {
         Stream<Issue> stream = issuesStorage.allIssues();
 
-        long minIssueTs = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(3);
+        //todo make property how old issues can be considered as configuration parameter
+        long minIssueTs = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(5);
 
         //todo not so good to to call init() twice
         fatBuildDao.init();
         changeDao.init();
 
+        AtomicInteger cntIssues = new AtomicInteger();
+        AtomicInteger cntDefects = new AtomicInteger();
         stream
             .filter(issue -> {
                 long detected = issue.detectedTs == null ? 0 : issue.detectedTs;
@@ -158,6 +163,8 @@ public class BoardService {
                 return !IssueType.newContributedTestFailure.code().equals(type);
             })
             .forEach(issue -> {
+                cntIssues.incrementAndGet();
+
                 IssueKey key = issue.issueKey;
                 String srvCode = key.getServer();
                 //just for init call
@@ -177,11 +184,16 @@ public class BoardService {
                 int tcSrvCodeCid = compactor.getStringId(srvCode);
                 defectStorage.merge(tcSrvCodeCid, srvId, fatBuild,
                     (k, defect) -> {
+                        cntDefects.incrementAndGet();
+
                         defect.trackedBranchCidSetIfEmpty(trackedBranchCid);
 
                         defect.computeIfAbsent(fatBuild).addIssue(issueTypeCid, testNameCid);
 
                         if(defect.blameCandidates().isEmpty()) {
+                            //save changes because it can be missed in older DB versions
+                            defect.changeMap(changeDao.getAll(srvId, fatBuild.changes()));
+
                             Map<Integer, ChangeCompacted> map = defect.changeMap();
 
                             Collection<ChangeCompacted> values = map.values();
@@ -197,5 +209,6 @@ public class BoardService {
 
             });
 
+        return cntDefects.get() + " defects processed for " + cntIssues.get() + " issues checked";
     }
 }

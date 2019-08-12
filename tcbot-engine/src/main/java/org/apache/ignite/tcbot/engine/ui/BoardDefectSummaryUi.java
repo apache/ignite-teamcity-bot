@@ -20,7 +20,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.ignite.tcbot.engine.defect.BlameCandidate;
 import org.apache.ignite.tcbot.engine.defect.DefectCompacted;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 
@@ -33,9 +35,10 @@ public class BoardDefectSummaryUi {
     public Integer cntIssues;
     public Integer fixedIssues;
     public Integer notFixedIssues;
+    public Integer unclearIssues;
 
     public List<String> testOrSuitesAffected = new ArrayList<>();
-    public Set<String> tags = new HashSet<>();
+    private Set<String> tags = new HashSet<>();
 
     public BoardDefectSummaryUi(DefectCompacted defect, IStringCompactor compactor) {
         this.defect = defect;
@@ -43,7 +46,8 @@ public class BoardDefectSummaryUi {
     }
 
     public Set<String> getTags() {
-        return tags;
+        //todo bad code, make tag filter configurable.
+        return tags.stream().filter(t -> t.length() <= 2).collect(Collectors.toSet());
     }
 
     public List<String> getSuites() {
@@ -52,8 +56,44 @@ public class BoardDefectSummaryUi {
         ).distinct().map(compactor::getStringFromId).collect(Collectors.toList());
     }
 
+    public String getSuitesSummary() {
+        List<String> suites = getSuites();
+
+        return limitedListPrint(suites, t -> t);
+    }
+
+    public <X> String limitedListPrint(List<X> suites, Function<X, String> elemToStr) {
+        StringBuilder res = new StringBuilder();
+        int i = 0;
+        for (X next : suites) {
+            if (i >= 3) {
+                int rest = suites.size() - i;
+
+                res.append(" ... and ").append(rest).append(" more");
+                break;
+            }
+            if (res.length() > 0)
+                res.append(", ");
+
+            res.append(elemToStr.apply(next));
+            i++;
+        }
+
+        return res.toString();
+    }
+
     public List<String> getBlameCandidates() {
         return defect.blameCandidates().stream().map(c -> c.vcsUsername(compactor)).collect(Collectors.toList());
+    }
+
+    public String getBlameCandidateSummary() {
+        List<BlameCandidate> blameCandidates = defect.blameCandidates();
+
+        if (blameCandidates.isEmpty())
+            return "No Commits";
+
+
+        return limitedListPrint(blameCandidates, next -> next.vcsUsername(compactor));
     }
 
     public String getTrackedBranch() {
@@ -90,5 +130,12 @@ public class BoardDefectSummaryUi {
 
     public void addTags(Set<String> parameters) {
         this.tags.addAll(parameters);
+    }
+
+    public void addUnclearIssue() {
+        if (unclearIssues == null)
+            unclearIssues = 0;
+
+        unclearIssues++;
     }
 }

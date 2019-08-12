@@ -50,10 +50,12 @@
                 headers: [
                     {text: "Branch", value: 'branch'},
                     {text: 'Tags', value: 'tags'},
-                    {text: 'Suites', value: 'suites'},
+                    {text: 'Suites', value: 'suitesSummary'},
+                    {text: "Commits", value: 'blameCandidateSummary'},
                     {text: "Issues", value: 'cntissues'},
                     {text: "Fixed", value: 'fixedissues'},
-                    {text: "Not Fixed", value: 'notfixedissues'}
+                    {text: "Not Fixed", value: 'notfixedissues'},
+                    {text: "Unclear", value: 'unclearissues'}
                 ]
             },
             methods: {
@@ -151,7 +153,7 @@
                 :items="defects"
                 itrackedBranchtem-key="id"
                 class="elevation-1"
-                group-by="branch"
+                sort-by="branch"
                 :expanded.sync="expanded"
                 show-expand
                 dense
@@ -187,10 +189,14 @@
                 {{ item.cntIssues }}
             </template>
             <template v-slot:item.fixedIssues="{ item }">
-                <span class='visaStage' style="background: #12AD5E">  {{ item.fixedIssues }} </span>
+                <span class='visaStage' style="background: #12AD5E" v-if="item.fixedIssues!=null" >  {{ item.fixedIssues }} </span>
             </template>
-            <template v-slot:item.notFixedIssues="{ item }">
-                <span class='visaStage' style="background: red">  {{ item.notFixedIssues }} </span>
+            <template v-slot:item.notFixedIssues="{ item }" >
+                <span class='visaStage' style="background: red"  v-if="item.notFixedIssues!=null" >  {{ item.notFixedIssues }} </span>
+            </template>
+
+            <template v-slot:item.unclearIssues="{ item }" >
+                <span class='visaStage' style="background: grey"  v-if="item.unclearIssues!=null" >  {{ item.unclearIssues }} </span>
             </template>
 
         </v-data-table>
