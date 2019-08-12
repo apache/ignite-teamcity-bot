@@ -21,8 +21,10 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
@@ -49,6 +51,8 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcignited.build.UpdateCountersStorage;
+import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -69,6 +73,11 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
     /** Compactor. */
     @Inject private IStringCompactor compactor;
 
+    @Inject private BranchEquivalence branchEquivalence;
+
+    /** Update Counters for branch-related changes storage. */
+    @Inject private UpdateCountersStorage countersStorage;
+
     /** {@inheritDoc} */
     @AutoProfiling
     @Nonnull
@@ -87,7 +96,6 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         boolean showMuted,
         boolean showIgnored) {
         final DsSummaryUi res = new DsSummaryUi();
-        final AtomicInteger runningUpdates = new AtomicInteger();
 
         final String branchNn = isNullOrEmpty(branch) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
         res.setTrackedBranch(branchNn);
@@ -145,10 +153,6 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
                     requireParamVal
                 );
 
-                int cnt = (int)ctx.getRunningUpdates().count();
-                if (cnt > 0)
-                    runningUpdates.addAndGet(cnt);
-
                 chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor, calcTrustedTests, tagSelected,
                     displayMode, maxDurationSec, requireParamVal,
                     showMuted, showIgnored);
@@ -159,7 +163,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
 
         res.servers.sort(Comparator.comparing(DsChainUi::serverName));
 
-        res.postProcess(runningUpdates.get());
+        res.initCounters(getTrackedBranchUpdateCounters(branch, creds));
 
         return res;
     }
@@ -240,6 +244,30 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         }
 
         return statusUi;
+    }
+
+    @Override public Map<Integer, Integer> getTrackedBranchUpdateCounters(@Nullable String branch,
+        @Nonnull ICredentialsProv creds) {
+
+        final String branchNn = isNullOrEmpty(branch) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
+        final ITrackedBranch tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);
+
+        Set<Integer> allBranches = new HashSet<>();
+        tracked.chainsStream()
+            .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverCode(), creds))
+            .forEach(chainTracked -> {
+                String tcBranch = chainTracked.tcBranch();
+
+                Set<Integer> allBranchIds = new HashSet<>(branchEquivalence.branchIdsForQuery(tcBranch, compactor));
+
+                chainTracked.tcBaseBranch().ifPresent(base -> {
+                    allBranchIds.addAll(branchEquivalence.branchIdsForQuery(base, compactor));
+                });
+
+                allBranches.addAll(allBranchIds);
+            });
+
+        return countersStorage.getCounters(allBranches);
     }
 
     /**

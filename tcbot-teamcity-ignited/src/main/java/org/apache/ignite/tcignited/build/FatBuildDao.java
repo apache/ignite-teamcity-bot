@@ -85,6 +85,9 @@ public class FatBuildDao {
     /** History collector. */
     @Inject private HistoryCollector histCollector;
 
+    /** Update Counters for branch-related changes storage. */
+    @Inject private UpdateCountersStorage countersStorage;
+
     /**
      *
      */
@@ -144,6 +147,8 @@ public class FatBuildDao {
         buildsCache.put(buildIdToCacheKey(srvIdMaskHigh, buildId), newBuild);
 
         histCollector.invalidateHistoryInMem(srvIdMaskHigh, newBuild);
+
+        countersStorage.increment(newBuild.branchName());
     }
 
     public static int[] extractChangeIds(@Nonnull ChangesList changesList) {

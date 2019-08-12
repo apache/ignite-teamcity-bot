@@ -481,10 +481,6 @@ public class MultBuildRunCtx implements ISuiteResults {
             });
     }
 
-    Stream<? extends Future<?>> getFutures() {
-        return buildsStream().flatMap(SingleBuildRunCtx::getFutures);
-    }
-
     /**
      * @return true if all builds are composite
      */
@@ -697,14 +693,14 @@ public class MultBuildRunCtx implements ISuiteResults {
             return null;
 
         try {
-            ISuiteRunHistory suiteRunHistory = histCacheMap.get(baseBranchId,
+            ISuiteRunHistory suiteRunHist = histCacheMap.get(baseBranchId,
                 () -> Optional.ofNullable(tcIgn.getSuiteRunHist(buildTypeIdId, baseBranchId)))
                 .orElse(null);
 
-            if (suiteRunHistory != null && requireParameters != null && !requireParameters.isEmpty())
-                return suiteRunHistory.filter(requireParameters);
+            if (suiteRunHist != null && requireParameters != null && !requireParameters.isEmpty())
+                return suiteRunHist.filter(requireParameters);
 
-            return suiteRunHistory;
+            return suiteRunHist;
         }
         catch (ExecutionException e) {
             throw ExceptionUtil.propagateException(e);

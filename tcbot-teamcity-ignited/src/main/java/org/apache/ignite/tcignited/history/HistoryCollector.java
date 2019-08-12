@@ -34,8 +34,6 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.cache.Cache;
 import javax.inject.Inject;
-import javax.inject.Provider;
-import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.query.QueryCursor;
@@ -54,7 +52,6 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.build.ITest;
-import org.apache.ignite.tcignited.build.SuiteHistory;
 import org.apache.ignite.tcignited.build.TestCompactedV2;
 import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
@@ -81,9 +78,6 @@ public class HistoryCollector {
 
     /** Compactor. */
     @Inject private IStringCompactor compactor;
-
-    /** Ignite provider. */
-    @Inject private Provider<Ignite> igniteProvider;
 
     /** Branch equivalence. */
     @Inject private BranchEquivalence branchEquivalence;
@@ -113,7 +107,6 @@ public class HistoryCollector {
      */
     public IRunHistory getTestRunHist(String srvCode, int testName, int buildTypeId,
                                       int normalizedBaseBranch) {
-
         SuiteHistory hist = getSuiteHist(srvCode, buildTypeId, normalizedBaseBranch);
 
         return hist.getTestRunHist(testName);
@@ -248,8 +241,7 @@ public class HistoryCollector {
         if (logger.isDebugEnabled()) {
             logger.debug("***** History for suite "
                 + compactor.getStringFromId(buildTypeId)
-                + " branch" + compactor.getStringFromId(normalizedBaseBranch) + " requires " +
-                summary.size(igniteProvider.get()) + " bytes");
+                + " branch" + compactor.getStringFromId(normalizedBaseBranch) + "   ");
         }
 
         return summary;

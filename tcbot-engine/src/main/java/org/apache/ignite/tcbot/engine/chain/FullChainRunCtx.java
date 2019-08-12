@@ -108,14 +108,6 @@ public class FullChainRunCtx {
         this.buildCfgsResults.addAll(suites);
     }
 
-    public Stream<Future<?>> getFutures() {
-        return buildCfgsResults.stream().flatMap(MultBuildRunCtx::getFutures);
-    }
-
-    public Stream<Future<?>> getRunningUpdates() {
-        return getFutures().filter(Objects::nonNull).filter(future -> !future.isDone() && !future.isCancelled());
-    }
-
     public boolean isFakeStub() {
         return fakeStub;
     }

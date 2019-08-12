@@ -26,7 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.tcbot.engine.chain.*;
+import org.apache.ignite.tcignited.build.TestCompactedV2;
 import org.apache.ignite.tcignited.buildlog.IBuildLogProcessor;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
@@ -39,6 +41,7 @@ import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedMock;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -69,6 +72,12 @@ public class BuildChainProcessorTest {
         }
     });
 
+    @Before
+    public void resetCaches() {
+        BuildRefCompacted.resetCached();
+        TestCompactedV2.resetCached();
+        TestCompactedMult.resetCached();
+    }
     /**
      *
      */

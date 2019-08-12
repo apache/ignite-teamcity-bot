@@ -20,16 +20,19 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.tcbot.common.TcBotConst;
+import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
 import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
 import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi;
 import org.apache.ignite.tcbot.engine.ui.ShortTestFailureUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcignited.build.TestCompactedV2;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcservice.model.conf.BuildType;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
@@ -99,8 +102,16 @@ public class PrChainsProcessorTest {
     /** */
     @Before
     public void initBuilds() {
+        resetCaches();
+
         final TeamcityIgnitedProviderMock instance = (TeamcityIgnitedProviderMock)injector.getInstance(ITeamcityIgnitedProvider.class);
         instance.addServer(SRV_ID, apacheBuilds);
+    }
+
+    public void resetCaches() {
+        BuildRefCompacted.resetCached();
+        TestCompactedV2.resetCached();
+        TestCompactedMult.resetCached();
     }
 
     //todo flaky test

@@ -24,7 +24,7 @@ import javax.annotation.Nullable;
 import org.apache.ignite.ci.tcbot.common.StringFieldCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
-import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
+import org.apache.ignite.tcignited.history.InvocationData;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcignited.buildlog.ILogProductSpecific;
@@ -49,7 +49,7 @@ public class TestCompactedV2 implements ITest {
     public static final int IGNORED_F = 6;
 
     /** Status success. */
-    private static volatile int STATUS_SUCCESS = -1;
+    private static volatile int STATUS_SUCCESS_CID = -1;
 
     /** Id in this build only. Does not identify test for its history */
     private int idInBuild = -1;
@@ -326,10 +326,14 @@ public class TestCompactedV2 implements ITest {
 
     public int statusSuccess(IStringCompactor compactor) {
         //Each time compactor should give same result, so no locking applied
-        if (STATUS_SUCCESS == -1)
-            STATUS_SUCCESS = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
+        if (STATUS_SUCCESS_CID == -1)
+            STATUS_SUCCESS_CID = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
 
-        return STATUS_SUCCESS;
+        return STATUS_SUCCESS_CID;
+    }
+
+    public static void resetCached() {
+        STATUS_SUCCESS_CID = -1;
     }
 
     public String testName(IStringCompactor compactor) {

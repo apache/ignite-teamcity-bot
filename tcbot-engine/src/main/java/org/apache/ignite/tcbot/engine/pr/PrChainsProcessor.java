@@ -17,10 +17,12 @@
 package org.apache.ignite.tcbot.engine.pr;
 
 import com.google.common.base.Strings;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -49,6 +51,7 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcignited.build.UpdateCountersStorage;
 import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 import org.apache.ignite.tcignited.history.IRunHistory;
@@ -80,7 +83,11 @@ public class PrChainsProcessor {
 
     @Inject private IStringCompactor compactor;
 
+    /** Config. */
     @Inject private ITcBotConfig cfg;
+
+    @Inject private BranchEquivalence branchEquivalence;
+    @Inject private UpdateCountersStorage countersStorage;
 
     /**
      * @param creds Credentials.
@@ -106,8 +113,6 @@ public class PrChainsProcessor {
         @Nullable Boolean checkAllLogs,
         SyncMode mode) {
         final DsSummaryUi res = new DsSummaryUi();
-        final AtomicInteger runningUpdates = new AtomicInteger();
-
         ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvCodeOrAlias, creds);
 
         IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
@@ -159,11 +164,6 @@ public class PrChainsProcessor {
         if (ctx.isFakeStub())
             chainStatus.setBuildNotFound(true);
         else {
-            int cnt0 = (int)ctx.getRunningUpdates().count();
-
-            if (cnt0 > 0)
-                runningUpdates.addAndGet(cnt0);
-
             //fail rate reference is always default (master)
             chainStatus.initFromContext(tcIgnited, ctx, baseBranchForTc, compactor, false,
                     null, null, -1, null, false, false); // don't need for PR
@@ -173,7 +173,7 @@ public class PrChainsProcessor {
 
         res.addChainOnServer(chainStatus);
 
-        res.postProcess(runningUpdates.get());
+        res.initCounters(getPrUpdateCounters(srvCodeOrAlias, branchForTc, baseBranchForTc, creds));
 
         return res;
     }
@@ -329,4 +329,14 @@ public class PrChainsProcessor {
             .collect(Collectors.toList());
     }
 
+    public Map<Integer, Integer> getPrUpdateCounters(String srvCodeOrAlias, String branchForTc, String tcBaseBranchParm,
+        ICredentialsProv creds) {
+        String baseBranchForTc = Strings.isNullOrEmpty(tcBaseBranchParm) ? dfltBaseTcBranch(srvCodeOrAlias) : tcBaseBranchParm;
+
+        Set<Integer> allRelatedBranchCodes = new HashSet<>();
+        allRelatedBranchCodes.addAll(branchEquivalence.branchIdsForQuery(branchForTc, compactor));
+        allRelatedBranchCodes.addAll(branchEquivalence.branchIdsForQuery(baseBranchForTc, compactor));
+
+        return countersStorage.getCounters(allRelatedBranchCodes);
+    }
 }
