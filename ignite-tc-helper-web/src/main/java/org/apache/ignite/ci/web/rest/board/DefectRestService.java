@@ -17,23 +17,21 @@
 package org.apache.ignite.ci.web.rest.board;
 
 import com.google.inject.Injector;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.tcbot.engine.board.BoardService;
 import org.apache.ignite.tcbot.engine.ui.BoardSummaryUi;
 
-@Path(BoardRestService.BOARD)
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+
+@Path(DefectRestService.BOARD)
 @Produces(MediaType.APPLICATION_JSON)
-public class BoardRestService {
-    static final String BOARD = "board";
+public class DefectRestService {
+    static final String BOARD = "defect";
 
     /** Servlet Context. */
     @Context
@@ -43,11 +41,15 @@ public class BoardRestService {
     @Context
     private HttpServletRequest req;
 
-    @GET
-    @Path("summary")
-    public BoardSummaryUi getSummary() {
+
+    @POST
+    @Path("resolve")
+    public void resolveDefect(@FormParam("id") Integer defectId) {
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
 
-        return CtxListener.getInjector(ctx).getInstance(BoardService.class).summary(creds);
+        CtxListener.getInjector(ctx)
+                .getInstance(BoardService.class)
+                .resolveDefect(defectId, creds);
     }
+
 }

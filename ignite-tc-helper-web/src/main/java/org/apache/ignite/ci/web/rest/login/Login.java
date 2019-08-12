@@ -20,7 +20,7 @@ package org.apache.ignite.ci.web.rest.login;
 import com.google.common.base.Preconditions;
 import com.google.inject.Injector;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
-import org.apache.ignite.ci.tcbot.user.IUserStorage;
+import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.apache.ignite.tcservice.model.user.User;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcservice.login.ITcLogin;

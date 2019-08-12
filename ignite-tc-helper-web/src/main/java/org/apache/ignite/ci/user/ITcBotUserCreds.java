@@ -30,8 +30,7 @@ public interface ITcBotUserCreds extends ICredentialsProv {
     public static ITcBotUserCreds get(HttpServletRequest req) {
         return (ITcBotUserCreds) req.getAttribute(_KEY);
     }
-  
-    String getPrincipalId();
+
 
     byte[] getUserKey();
 }

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcbot.user;
+package org.apache.ignite.tcbot.engine.user;
 
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;

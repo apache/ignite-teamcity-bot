@@ -40,7 +40,7 @@ import org.apache.ignite.tcbot.engine.conf.ITrackedBranchesConfig;
 import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
 import org.apache.ignite.tcbot.engine.conf.TcServerConfig;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
-import org.apache.ignite.ci.tcbot.user.IUserStorage;
+import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.apache.ignite.tcbot.notify.IEmailSender;
 import org.apache.ignite.tcbot.notify.ISlackSender;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;

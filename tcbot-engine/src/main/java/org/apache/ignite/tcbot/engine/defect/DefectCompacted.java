@@ -26,7 +26,7 @@ import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 
 public class DefectCompacted {
-    /** Syntetic Defect Id. */
+    /** Synthetic Defect Id. */
     private int id;
 
     private int tcBranch = -1;
@@ -40,8 +40,9 @@ public class DefectCompacted {
     /** Tracked branch Compactor string ID. */
     private int trackedBranchCid = -1;
 
-    /** Resolved by username id. */
+    /** Resolved by username id : Compactor ID of user login (principal ID). */
     private int resolvedByUsernameId = -1;
+
     /** Commits hashes involved. */
     private List<CommitCompacted> commits = new ArrayList<>();
 
@@ -160,5 +161,9 @@ public class DefectCompacted {
 
     public int trackedBranchCid() {
         return trackedBranchCid;
+    }
+
+    public void resolvedByUsernameId(int stringId) {
+        this.resolvedByUsernameId = stringId;
     }
 }

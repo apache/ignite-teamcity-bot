@@ -28,11 +28,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.inject.Inject;
+
+import com.google.common.base.Preconditions;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.common.util.FutureUtil;
@@ -47,6 +50,7 @@ import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
 import org.apache.ignite.tcbot.engine.issue.IssueType;
 import org.apache.ignite.tcbot.engine.ui.BoardDefectSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.BoardSummaryUi;
+import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
@@ -63,8 +67,8 @@ public class BoardService {
     @Inject DefectsStorage defectStorage;
     @Inject IScheduler scheduler;
     @Inject IStringCompactor compactor;
-
     @Inject BuildChainProcessor buildChainProcessor;
+    @Inject IUserStorage userStorage;
 
     /**
      * @param creds Credentials.
@@ -210,5 +214,18 @@ public class BoardService {
             });
 
         return cntDefects.get() + " defects processed for " + cntIssues.get() + " issues checked";
+    }
+
+    public void resolveDefect(Integer defectId, ICredentialsProv creds) {
+        DefectCompacted defect = defectStorage.load(defectId);
+        Preconditions.checkState(defect!=null, "Can't find defect by ID");
+
+        String principalId = creds.getPrincipalId();
+        TcHelperUser user = userStorage.getUser(principalId);
+
+        int stringId = compactor.getStringId(principalId);
+        defect.resolvedByUsernameId(stringId);
+
+        defectStorage.save(defect);
     }
 }

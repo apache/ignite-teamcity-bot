@@ -34,7 +34,7 @@ import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
-import org.apache.ignite.ci.tcbot.user.IUserStorage;
+import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcservice.model.user.User;

@@ -38,7 +38,7 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 import org.apache.ignite.Ignite;
-import org.apache.ignite.ci.tcbot.user.IUserStorage;
+import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.user.UserSession;

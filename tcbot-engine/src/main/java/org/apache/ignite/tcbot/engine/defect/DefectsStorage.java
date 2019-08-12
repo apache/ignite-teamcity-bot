@@ -16,16 +16,7 @@
  */
 package org.apache.ignite.tcbot.engine.defect;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.function.BiFunction;
-import java.util.stream.Collectors;
-import javax.annotation.concurrent.NotThreadSafe;
-import javax.cache.Cache;
-import javax.inject.Inject;
-import javax.inject.Provider;
+import com.google.common.base.Preconditions;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteAtomicSequence;
 import org.apache.ignite.IgniteCache;
@@ -38,11 +29,26 @@ import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 
+import javax.annotation.concurrent.NotThreadSafe;
+import javax.cache.Cache;
+import javax.inject.Inject;
+import javax.inject.Provider;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+
 @NotThreadSafe
 public class DefectsStorage {
-    /** Bot detected defects. */
+    /**
+     * Bot detected defects.
+     */
     public static final String BOT_DETECTED_DEFECTS = "botDetectedDefects";
-    /** Bot detected defects sequence. */
+    /**
+     * Bot detected defects sequence.
+     */
     public static final String BOT_DETECTED_DEFECTS_SEQ = "botDetectedDefectsSeq";
 
     @Inject
@@ -75,15 +81,15 @@ public class DefectsStorage {
     }
 
     public DefectCompacted merge(
-        int tcSrvCodeCid,
-        final int srvId,
-        FatBuildCompacted fatBuild,
-        BiFunction<Integer, DefectCompacted, DefectCompacted> function) {
+            int tcSrvCodeCid,
+            final int srvId,
+            FatBuildCompacted fatBuild,
+            BiFunction<Integer, DefectCompacted, DefectCompacted> function) {
 
         IgniteCache<Integer, DefectCompacted> cache = cache();
 
         try (QueryCursor<Cache.Entry<Integer, DefectCompacted>> qry = cache.query(new ScanQuery<Integer, DefectCompacted>()
-            .setFilter((k, v) -> v.resolvedByUsernameId() < 1 && v.tcSrvId() == srvId))) {
+                .setFilter((k, v) -> v.resolvedByUsernameId() < 1 && v.tcSrvId() == srvId))) {
             for (Cache.Entry<Integer, DefectCompacted> next : qry) {
                 DefectCompacted openDefect = next.getValue();
 
@@ -96,15 +102,15 @@ public class DefectsStorage {
         Map<Integer, ChangeCompacted> changeList = changeDao.getAll(srvId, changes);
 
         List<CommitCompacted> commitsToUse = changeList
-            .values()
-            .stream()
-            .map(ChangeCompacted::commitVersion)
-            .map(CommitCompacted::new)
-            .sorted(CommitCompacted::compareTo)
-            .collect(Collectors.toList());
+                .values()
+                .stream()
+                .map(ChangeCompacted::commitVersion)
+                .map(CommitCompacted::new)
+                .sorted(CommitCompacted::compareTo)
+                .collect(Collectors.toList());
 
         try (QueryCursor<Cache.Entry<Integer, DefectCompacted>> qry = cache.query(new ScanQuery<Integer, DefectCompacted>()
-            .setFilter((k, v) -> v.resolvedByUsernameId() < 1 && v.tcSrvId() == srvId))) {
+                .setFilter((k, v) -> v.resolvedByUsernameId() < 1 && v.tcSrvId() == srvId))) {
             for (Cache.Entry<Integer, DefectCompacted> next : qry) {
                 DefectCompacted openDefect = next.getValue();
 
@@ -113,14 +119,17 @@ public class DefectsStorage {
             }
         }
 
-        int id = (int)sequence().incrementAndGet();
+        int id = (int) sequence().incrementAndGet();
+        if (id == 0)
+            id = (int) sequence().incrementAndGet();
+
 
         DefectCompacted defect = new DefectCompacted(id)
-            .commits(commitsToUse)
-            .changeMap(changeList)
-            .tcBranch(fatBuild.branchName())
-            .tcSrvId(srvId)
-            .tcSrvCodeCid(tcSrvCodeCid);
+                .commits(commitsToUse)
+                .changeMap(changeList)
+                .tcBranch(fatBuild.branchName())
+                .tcSrvId(srvId)
+                .tcSrvCodeCid(tcSrvCodeCid);
 
         DefectCompacted defectT = function.apply(id, defect);
 
@@ -130,7 +139,7 @@ public class DefectsStorage {
     }
 
     public DefectCompacted processExisting(BiFunction<Integer, DefectCompacted, DefectCompacted> function,
-        IgniteCache<Integer, DefectCompacted> cache, Integer id, DefectCompacted openDefect) {
+                                           IgniteCache<Integer, DefectCompacted> cache, Integer id, DefectCompacted openDefect) {
         DefectCompacted defect = function.apply(id, openDefect);
 
         defect.id(id);
@@ -143,7 +152,7 @@ public class DefectsStorage {
     public List<DefectCompacted> loadAllDefects() {
         List<DefectCompacted> res = new ArrayList<>();
         try (QueryCursor<Cache.Entry<Integer, DefectCompacted>> qry = cache().query(new ScanQuery<Integer, DefectCompacted>()
-            .setFilter((k, v) -> v.resolvedByUsernameId() < 1))) {
+                .setFilter((k, v) -> v.resolvedByUsernameId() < 1))) {
             for (Cache.Entry<Integer, DefectCompacted> next : qry) {
                 DefectCompacted openDefect = next.getValue();
                 openDefect.id(next.getKey());
@@ -151,5 +160,18 @@ public class DefectsStorage {
             }
         }
         return res;
+    }
+
+    public DefectCompacted load(Integer defectId) {
+        DefectCompacted defectCompacted = cache().get(defectId);
+        if (defectCompacted != null && defectCompacted.id() == 0)
+            defectCompacted.id(defectId);
+
+        return defectCompacted;
+    }
+
+    public void save(DefectCompacted defect) {
+        Preconditions.checkState(defect.id() != 0);
+        cache().put(defect.id(), defect);
     }
 }

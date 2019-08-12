@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.ws.rs.container.ContainerRequestContext;
-import org.apache.ignite.ci.tcbot.user.UserAndSessionsStorage;
+import org.apache.ignite.tcbot.engine.user.UserAndSessionsStorage;
 import org.apache.ignite.tcservice.model.user.User;
 import org.apache.ignite.tcservice.login.ITcLogin;
 import org.apache.ignite.tcbot.common.util.Base64Util;
