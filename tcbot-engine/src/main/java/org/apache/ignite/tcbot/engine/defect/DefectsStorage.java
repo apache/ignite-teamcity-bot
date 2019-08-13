@@ -84,7 +84,9 @@ public class DefectsStorage {
         IgniteCache<Integer, DefectCompacted> cache = cache();
 
         try (QueryCursor<Cache.Entry<Integer, DefectCompacted>> qry = cache.query(new ScanQuery<Integer, DefectCompacted>()
-            .setFilter((k, v) -> v.resolvedByUsernameId() < 1 && v.tcSrvId() == srvId))) {
+            .setFilter((k, v) -> v.tcSrvId() == srvId))) {
+            //here we ignore if issue was resolved or not because defect can be already resolved,
+            // and if this(resolved) defect contains same build ID, as we've used earlier, no reason to open new defect for it.
             for (Cache.Entry<Integer, DefectCompacted> next : qry) {
                 DefectCompacted openDefect = next.getValue();
 
@@ -138,6 +140,7 @@ public class DefectsStorage {
 
         defect.id(id);
 
+        //todo check equals/hashcode before saving
         cache.put(id, defect);
 
         return defect;

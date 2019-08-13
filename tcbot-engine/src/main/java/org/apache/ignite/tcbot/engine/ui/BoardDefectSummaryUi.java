@@ -103,7 +103,7 @@ public class BoardDefectSummaryUi {
         return defect.id();
     }
 
-    public void addIssue(String testOrBuildName, String trackedBranchName) {
+    public void addIssue(String testOrBuildName) {
         if (cntIssues == null)
             cntIssues = 0;
 

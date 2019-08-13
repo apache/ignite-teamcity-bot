@@ -48,4 +48,8 @@ public class DefectIssue {
     public int testNameCid() {
         return testOrSuiteName;
     }
+
+    public int issueTypeCode() {
+        return issueTypeCode;
+    }
 }

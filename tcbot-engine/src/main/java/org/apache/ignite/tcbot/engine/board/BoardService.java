@@ -121,11 +121,16 @@ public class BoardService {
                                 defectUi.addFixedIssue();
                             else
                                 defectUi.addNotFixedIssue();
-                        } else
-                            defectUi.addUnclearIssue();
+                        } else {
+                            //exception for new test. removal of test means test is fixed
+                            if(IssueType.newContributedTestFailure.code().equals(compactor.getStringFromId(issue.issueTypeCode())))
+                                defectUi.addFixedIssue();
+                            else
+                                defectUi.addUnclearIssue();
+                        }
 
                         String testOrBuildName = compactor.getStringFromId(issue.testNameCid());
-                        defectUi.addIssue(testOrBuildName, "");
+                        defectUi.addIssue(testOrBuildName);
                     }
                 } else
                     defectUi.addUnclearIssue();
@@ -148,7 +153,7 @@ public class BoardService {
         Stream<Issue> stream = issuesStorage.allIssues();
 
         //todo make property how old issues can be considered as configuration parameter
-        long minIssueTs = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(5);
+        long minIssueTs = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7);
 
         //todo not so good to to call init() twice
         fatBuildDao.init();
@@ -163,8 +168,10 @@ public class BoardService {
                 return detected >= minIssueTs;
             })
             .filter(issue -> {
-                String type = issue.type;
-                return !IssueType.newContributedTestFailure.code().equals(type);
+                //String type = issue.type;
+                //return !IssueType.newContributedTestFailure.code().equals(type);
+
+                return true;
             })
             .forEach(issue -> {
                 cntIssues.incrementAndGet();
