@@ -19,6 +19,7 @@ package org.apache.ignite.tcbot.engine.user;
 
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import javax.annotation.Nullable;
 import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -27,7 +28,6 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.user.UserSession;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
-import org.jetbrains.annotations.Nullable;
 
 public class UserAndSessionsStorage implements IUserStorage {
     public static final String USERS = "users";
