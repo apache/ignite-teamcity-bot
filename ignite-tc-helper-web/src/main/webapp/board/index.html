@@ -60,6 +60,20 @@
             },
             methods: {
                 formChanged: function () {
+                },
+
+                onResolve: function (id) {
+                    $.ajax({
+                        url: "/rest/defect/resolve",
+                        type: 'POST',
+                        data: { id: id } ,
+                        success: function (res) {
+                            window.alert("Resolved defect [" + id + "]");
+
+                            loadData();
+                        },
+                        error: showErrInLoadStatus
+                    });
                 }
             }
         });
@@ -162,14 +176,18 @@
             <template v-slot:expanded-item="{ headers, item }">
                 <td :colspan="headers.length">
                     Branch: <a :href="'/current.html?branch=' + item.trackedBranch">{{item.trackedBranch}}</a>
+
                     Commits from:
                     <div v-for="(candidate) in item.blameCandidates">
                         {{ candidate }}
                     </div>
 
+                    Tests affected:
                     <div v-for="(test) in item.testOrSuitesAffected">
                         {{ test }}
                     </div>
+
+                    <button v-on:click="onResolve(item.id)">Resolve</button>
                 </td>
             </template>
 

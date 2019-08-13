@@ -26,28 +26,24 @@ import java.util.concurrent.TimeoutException;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.db.Ignite1Init;
-import org.apache.ignite.ci.tcbot.conf.LocalFilesBasedConfig;
-import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
-import org.apache.ignite.ci.tcbot.user.IUserStorage;
-import org.apache.ignite.ci.tcbot.user.UserAndSessionsStorage;
-import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
-import org.apache.ignite.tcbot.engine.TcBotEngineModule;
-import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
-import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
-import org.apache.ignite.tcbot.engine.issue.IssuesStorage;
-import org.apache.ignite.tcbot.notify.TcBotNotificationsModule;
-import org.apache.ignite.tcbot.persistence.scheduler.SchedulerModule;
-import org.apache.ignite.githubignited.GitHubIgnitedModule;
-import org.apache.ignite.jiraignited.JiraIgnitedModule;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
+import org.apache.ignite.ci.tcbot.conf.LocalFilesBasedConfig;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
-import org.apache.ignite.tcbot.common.exeption.ServicesStartingException;
-import org.apache.ignite.tcbot.persistence.TcBotPersistenceModule;
-import org.apache.ignite.tcignited.TeamcityIgnitedModule;
-import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
-import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
+import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
+import org.apache.ignite.githubignited.GitHubIgnitedModule;
+import org.apache.ignite.jiraignited.JiraIgnitedModule;
+import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
+import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
+import org.apache.ignite.tcbot.common.exeption.ServicesStartingException;
+import org.apache.ignite.tcbot.engine.TcBotEngineModule;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
+import org.apache.ignite.tcbot.notify.TcBotNotificationsModule;
+import org.apache.ignite.tcbot.persistence.TcBotPersistenceModule;
+import org.apache.ignite.tcbot.persistence.scheduler.SchedulerModule;
+import org.apache.ignite.tcignited.TeamcityIgnitedModule;
 
 /**
  *
@@ -92,7 +88,6 @@ public class TcBotWebAppModule extends AbstractModule {
         bind(ITcBotConfig.class).to(LocalFilesBasedConfig.class).in(new SingletonScope());
         //todo remove duplication of instances for base and for overriden class
         bind(IDataSourcesConfigSupplier.class).to(LocalFilesBasedConfig.class).in(new SingletonScope());
-        bind(IUserStorage.class).to(UserAndSessionsStorage.class).in(new SingletonScope());
         bind(MasterTrendsService.class).in(new SingletonScope());
         bind(ITcBotBgAuth.class).to(TcBotBgAuthImpl.class).in(new SingletonScope());
     }

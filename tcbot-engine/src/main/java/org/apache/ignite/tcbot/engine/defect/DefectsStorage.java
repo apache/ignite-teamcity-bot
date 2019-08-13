@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.tcbot.engine.defect;
 
+import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -114,6 +115,8 @@ public class DefectsStorage {
         }
 
         int id = (int)sequence().incrementAndGet();
+        if (id == 0)
+            id = (int)sequence().incrementAndGet();
 
         DefectCompacted defect = new DefectCompacted(id)
             .commits(commitsToUse)
@@ -130,7 +133,7 @@ public class DefectsStorage {
     }
 
     public DefectCompacted processExisting(BiFunction<Integer, DefectCompacted, DefectCompacted> function,
-        IgniteCache<Integer, DefectCompacted> cache, Integer id, DefectCompacted openDefect) {
+                                           IgniteCache<Integer, DefectCompacted> cache, Integer id, DefectCompacted openDefect) {
         DefectCompacted defect = function.apply(id, openDefect);
 
         defect.id(id);
@@ -143,7 +146,7 @@ public class DefectsStorage {
     public List<DefectCompacted> loadAllDefects() {
         List<DefectCompacted> res = new ArrayList<>();
         try (QueryCursor<Cache.Entry<Integer, DefectCompacted>> qry = cache().query(new ScanQuery<Integer, DefectCompacted>()
-            .setFilter((k, v) -> v.resolvedByUsernameId() < 1))) {
+                .setFilter((k, v) -> v.resolvedByUsernameId() < 1))) {
             for (Cache.Entry<Integer, DefectCompacted> next : qry) {
                 DefectCompacted openDefect = next.getValue();
                 openDefect.id(next.getKey());
@@ -151,5 +154,18 @@ public class DefectsStorage {
             }
         }
         return res;
+    }
+
+    public DefectCompacted load(Integer defectId) {
+        DefectCompacted defectCompacted = cache().get(defectId);
+        if (defectCompacted != null && defectCompacted.id() == 0)
+            defectCompacted.id(defectId);
+
+        return defectCompacted;
+    }
+
+    public void save(DefectCompacted defect) {
+        Preconditions.checkState(defect.id() != 0);
+        cache().put(defect.id(), defect);
     }
 }

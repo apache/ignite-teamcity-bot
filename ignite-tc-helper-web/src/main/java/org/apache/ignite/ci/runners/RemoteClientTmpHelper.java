@@ -37,7 +37,7 @@ import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
 import org.apache.ignite.tcbot.engine.issue.IssueType;
 import org.apache.ignite.tcbot.engine.issue.IssuesStorage;
-import org.apache.ignite.ci.tcbot.user.UserAndSessionsStorage;
+import org.apache.ignite.tcbot.engine.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.TcHelperUser;

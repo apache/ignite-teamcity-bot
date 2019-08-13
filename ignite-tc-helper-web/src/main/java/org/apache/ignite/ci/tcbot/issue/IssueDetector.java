@@ -40,7 +40,7 @@ import org.apache.ignite.tcbot.engine.issue.IssueType;
 import org.apache.ignite.ci.jobs.CheckQueueJob;
 import org.apache.ignite.tcbot.engine.tracked.DisplayMode;
 import org.apache.ignite.tcbot.notify.ISlackSender;
-import org.apache.ignite.ci.tcbot.user.IUserStorage;
+import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ITcBotUserCreds;

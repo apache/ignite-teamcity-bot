@@ -17,10 +17,8 @@
 
 package org.apache.ignite.ci.user;
 
-import com.google.common.base.Strings;
-import org.apache.ignite.tcignited.creds.ICredentialsProv;
-
 import javax.servlet.http.HttpServletRequest;
+import org.apache.ignite.tcignited.creds.ICredentialsProv;
 
 public interface ITcBotUserCreds extends ICredentialsProv {
     /** Key for context attribute. */
@@ -30,8 +28,6 @@ public interface ITcBotUserCreds extends ICredentialsProv {
     public static ITcBotUserCreds get(HttpServletRequest req) {
         return (ITcBotUserCreds) req.getAttribute(_KEY);
     }
-  
-    String getPrincipalId();
 
     byte[] getUserKey();
 }

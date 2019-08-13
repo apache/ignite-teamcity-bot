@@ -19,6 +19,8 @@ package org.apache.ignite.tcignited.creds;
 import com.google.common.base.Strings;
 
 public interface ICredentialsProv {
+    String getPrincipalId();
+
     /**
      * Gets username for particular service
      * @param srvCode Server Id.
