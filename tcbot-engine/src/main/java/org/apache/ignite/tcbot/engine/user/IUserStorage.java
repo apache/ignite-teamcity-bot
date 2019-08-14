@@ -43,4 +43,6 @@ public interface IUserStorage {
     @Nullable public UserSession getSession(String id);
 
     public void putSession(String sessId, UserSession userSes);
+
+    @Nullable public TcHelperUser findUserByEmail(String email);
 }

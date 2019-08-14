@@ -68,7 +68,8 @@ public class RemoteClientTmpHelper {
      * @param args Args.
      */
     public static void main(String[] args) {
-        mainExport(args);
+        mainDumpAllUsers(args);
+        // mainExport(args);
         // mainDropInvalidIssues(args);
         System.err.println("Please insert option of main");
     }
@@ -213,8 +214,8 @@ public class RemoteClientTmpHelper {
      */
     public static void mainResetUser(String[] args) {
         try (Ignite ignite = tcbotServerConnectedClient()) {
-            IgniteCache<Object, Object> users = ignite.cache(UserAndSessionsStorage.USERS);
-            TcHelperUser user = (TcHelperUser)users.get("user");
+            IgniteCache<String, TcHelperUser> users = ignite.cache(UserAndSessionsStorage.USERS);
+            TcHelperUser user = users.get("user");
             user.resetCredentials();
             users.put(user.username, user);
         }
@@ -395,6 +396,28 @@ public class RemoteClientTmpHelper {
 
         try (FileWriter writer = new FileWriter(new File(dumps, "BuildRef " + id + ".txt"))) {
             writer.write(compacted.toString());
+        }
+        catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+
+    public static void mainDumpAllUsers(String[] args) {
+        try (Ignite ignite = tcbotServerConnectedClient()) {
+            IgniteCache<String, TcHelperUser>users = ignite.cache(UserAndSessionsStorage.USERS);
+
+            Iterator<Cache.Entry<String, TcHelperUser>> iterator = users.iterator();
+            while (iterator.hasNext()) {
+                Cache.Entry<String, TcHelperUser> next = iterator.next();
+                dumpUser(next.getValue());
+            }
+        }
+    }
+
+    private static void dumpUser(TcHelperUser value) {
+        try (FileWriter writer = new FileWriter(new File(dumpsDir(), "Build " + value.username() + ".txt"))) {
+            writer.write(value.toString());
         }
         catch (IOException e) {
             throw new UncheckedIOException(e);

@@ -17,11 +17,37 @@
 package org.apache.ignite.tcbot.engine.defect;
 
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcbot.persistence.IVersionedEntity;
 import org.apache.ignite.tcbot.persistence.Persisted;
 
 @Persisted
-public class BlameCandidate {
-    private int vcsUsername = -1;
+public class BlameCandidate  implements IVersionedEntity {
+    /** Latest version. */
+    private static final int LATEST_VERSION = 2;
+
+    /** Entity fields version. */
+    @SuppressWarnings("FieldCanBeLocal")
+    private short _ver = LATEST_VERSION;
+
+    private int vcsUsername = IStringCompactor.STRING_NULL;
+    /**
+     * Tc helper username/login, optional - it may be missed because TC user is not detected/user not present in TC
+     * Bot.
+     */
+    private int tcHelperUsername = IStringCompactor.STRING_NULL;
+    /** Full display name for user, may be taken from Teamcity change, or prefferred from the TC Bot user. */
+    private int fullDisplayName = IStringCompactor.STRING_NULL;
+
+
+    /** {@inheritDoc} */
+    @Override public int version() {
+        return _ver;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int latestVersion() {
+        return LATEST_VERSION;
+    }
 
     public void vcsUsername(int username) {
         vcsUsername = username;
@@ -29,5 +55,17 @@ public class BlameCandidate {
 
     public String vcsUsername(IStringCompactor compactor) {
         return compactor.getStringFromId(vcsUsername);
+    }
+
+    public String fullDisplayName(IStringCompactor compactor) {
+        return compactor.getStringFromId(fullDisplayName);
+    }
+
+    public void tcHelperUserUsername(int tcHelperUsername) {
+        this.tcHelperUsername = tcHelperUsername;
+    }
+
+    public void fullDisplayName(int fullDisplayName) {
+        this.fullDisplayName = fullDisplayName;
     }
 }

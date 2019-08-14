@@ -21,13 +21,11 @@ import java.util.Arrays;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.xml.bind.DatatypeConverter;
-
-
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.IVersionedEntity;
 import org.apache.ignite.tcbot.persistence.Persisted;
-import org.apache.ignite.tcservice.model.changes.Change;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.build.FatBuildDao;
+import org.apache.ignite.tcservice.model.changes.Change;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -164,5 +162,9 @@ public class ChangeCompacted implements IVersionedEntity {
 
     public int vcsUsername() {
         return vcsUsername;
+    }
+
+    public int tcUserUsername() {
+        return tcUserUsername;
     }
 }

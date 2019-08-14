@@ -24,13 +24,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
-
 import javax.annotation.Nullable;
+import org.apache.ignite.tcbot.common.util.CryptUtil;
+import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.persistence.IVersionedEntity;
 import org.apache.ignite.tcbot.persistence.Persisted;
-import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcservice.model.user.User;
-import org.apache.ignite.tcbot.common.util.CryptUtil;
 
 import static javax.xml.bind.DatatypeConverter.printHexBinary;
 
@@ -181,6 +180,22 @@ public class TcHelperUser implements IVersionedEntity, INotificationChannel {
 
     public boolean hasEmail() {
         return !Strings.isNullOrEmpty(email);
+    }
+
+    public String fullName() {
+        return fullName;
+    }
+
+    public String username() {
+        return username;
+    }
+
+    public boolean containsEmail(String email) {
+        if (Strings.isNullOrEmpty(email))
+            return false;
+
+        return (this.email != null && this.email.equals(email))
+            || (additionalEmails != null && additionalEmails.contains(email));
     }
 
     public static class Credentials {

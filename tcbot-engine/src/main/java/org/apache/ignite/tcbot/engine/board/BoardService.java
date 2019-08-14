@@ -16,6 +16,8 @@
  */
 package org.apache.ignite.tcbot.engine.board;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -27,9 +29,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
-
-import com.google.common.base.Preconditions;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
@@ -109,8 +110,7 @@ public class BoardService {
                 if(!freshRebuild.isEmpty()) {
                     FatBuildCompacted buildCompacted = freshRebuild.get(0);
 
-                    Set<DefectIssue> issues = cause.issues();
-                    for (DefectIssue issue : issues) {
+                    for (DefectIssue issue : cause.issues()) {
                         Optional<ITest> any = buildCompacted.getAllTests()
                             .filter(t -> t.testName() == issue.testNameCid())
                             .findAny();
@@ -129,11 +129,15 @@ public class BoardService {
                                 defectUi.addUnclearIssue();
                         }
 
-                        String testOrBuildName = compactor.getStringFromId(issue.testNameCid());
-                        defectUi.addIssue(testOrBuildName);
+                        defectUi.addIssue(compactor.getStringFromId(issue.testNameCid()));
                     }
-                } else
-                    defectUi.addUnclearIssue();
+                } else {
+                    for (DefectIssue issue : cause.issues()) {
+                        defectUi.addUnclearIssue();
+
+                        defectUi.addIssue(compactor.getStringFromId(issue.testNameCid()));
+                    }
+                }
             }
 
             defectUi.branch =  next.tcBranch(compactor);
@@ -201,6 +205,8 @@ public class BoardService {
 
                         defect.computeIfAbsent(fatBuild).addIssue(issueTypeCid, testNameCid);
 
+                        defect.removeOldVerBlameCandidates();
+
                         if(defect.blameCandidates().isEmpty()) {
                             //save changes because it can be missed in older DB versions
                             defect.changeMap(changeDao.getAll(srvId, fatBuild.changes()));
@@ -208,9 +214,36 @@ public class BoardService {
                             Map<Integer, ChangeCompacted> map = defect.changeMap();
 
                             Collection<ChangeCompacted> values = map.values();
-                            for (ChangeCompacted next : values) {
+                            for (ChangeCompacted change : values) {
                                 BlameCandidate candidate = new BlameCandidate();
-                                candidate.vcsUsername(next.vcsUsername());
+                                int vcsUsernameCid = change.vcsUsername();
+                                candidate.vcsUsername(vcsUsernameCid);
+
+                                int tcUserUsername = change.tcUserUsername();
+                                @Nullable TcHelperUser tcHelperUser = null;
+                                if (tcUserUsername != -1)
+                                    tcHelperUser = userStorage.getUser(compactor.getStringFromId(tcUserUsername));
+                                else {
+                                    String strVcsUsername = compactor.getStringFromId(vcsUsernameCid);
+
+                                    if(!Strings.isNullOrEmpty(strVcsUsername) &&
+                                        strVcsUsername.contains("<") && strVcsUsername.contains(">")) {
+                                        int emailStartIdx = strVcsUsername.indexOf('<');
+                                        int emailEndIdx = strVcsUsername.indexOf('>');
+                                        String email = strVcsUsername.substring(emailStartIdx + 1, emailEndIdx);
+                                        tcHelperUser = userStorage.findUserByEmail(email);
+                                    }
+                                }
+
+
+                                if (tcHelperUser != null) {
+                                    String username = tcHelperUser.username();
+
+                                    String fullName = tcHelperUser.fullName();
+                                    candidate.fullDisplayName(compactor.getStringId(fullName));
+                                    candidate.tcHelperUserUsername(compactor.getStringId(username));
+                                }
+
                                 defect.addBlameCandidate(candidate);
                             }
                         }
