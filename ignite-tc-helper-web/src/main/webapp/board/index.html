@@ -102,7 +102,7 @@
         $.ajax({
             url: curFailuresUrl,
             success: function (result) {
-                if (!silent) $("#loadStatus").html("");
+                $("#loadStatus").html("");
 
                 showData(result);
                 g_shownDataHashCodeHex = isDefinedAndFilled(result.hashCodeHex) ? result.hashCodeHex : "";

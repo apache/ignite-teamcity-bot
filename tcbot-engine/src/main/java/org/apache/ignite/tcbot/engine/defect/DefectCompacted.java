@@ -43,6 +43,9 @@ public class DefectCompacted {
     /** Resolved by username id : Compactor ID of user login (principal ID). */
     private int resolvedByUsernameId = -1;
 
+    /** Resolved timestamp. */
+    private long resolvedTs = -1;
+
     /** Commits hashes involved. */
     private List<CommitCompacted> commits = new ArrayList<>();
 
@@ -165,5 +168,6 @@ public class DefectCompacted {
 
     public void resolvedByUsernameId(int stringId) {
         this.resolvedByUsernameId = stringId;
+        this.resolvedTs = System.currentTimeMillis();
     }
 }
