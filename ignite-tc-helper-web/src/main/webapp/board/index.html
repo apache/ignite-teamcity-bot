@@ -183,9 +183,11 @@
                     </div>
 
                     Tests affected:
-                    <div v-for="(test) in item.testOrSuitesAffected">
-                        {{ test }}
-                    </div>
+                    <table>
+                    <tr v-for="(issue) in item.allIssues">
+                        <td>{{ issue.issueType }}</td><td>{{ issue.name }}</td><td>{{ issue.status }}</td>
+                    </tr>
+                    </table>
 
                     <button v-on:click="onResolve(item.id)">Resolve</button>
                 </td>

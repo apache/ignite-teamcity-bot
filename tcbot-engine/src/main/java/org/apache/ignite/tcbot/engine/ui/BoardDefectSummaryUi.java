@@ -17,6 +17,7 @@
 package org.apache.ignite.tcbot.engine.ui;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -37,8 +38,11 @@ public class BoardDefectSummaryUi {
     public Integer notFixedIssues;
     public Integer unclearIssues;
 
+    @Deprecated
     public List<String> testOrSuitesAffected = new ArrayList<>();
     private Set<String> tags = new HashSet<>();
+
+    private List<BoardDefectIssueUi> issuesList = new ArrayList<>();
 
     public BoardDefectSummaryUi(DefectCompacted defect, IStringCompactor compactor) {
         this.defect = defect;
@@ -110,14 +114,20 @@ public class BoardDefectSummaryUi {
         return defect.id();
     }
 
-    public void addIssue(String testOrBuildName) {
+    public void addIssue(String testOrBuildName, BoardDefectIssueUi issue) {
         if (cntIssues == null)
             cntIssues = 0;
 
         cntIssues++;
 
         testOrSuitesAffected.add(testOrBuildName);
+        issuesList.add(issue);
     }
+
+    public List<BoardDefectIssueUi> getAllIssues() {
+        return Collections.unmodifiableList(issuesList);
+    }
+
 
     public void addFixedIssue() {
         if (fixedIssues == null)
@@ -137,6 +147,7 @@ public class BoardDefectSummaryUi {
         this.tags.addAll(parameters);
     }
 
+    @Deprecated
     public void addUnclearIssue() {
         if (unclearIssues == null)
             unclearIssues = 0;
