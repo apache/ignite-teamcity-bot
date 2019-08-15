@@ -102,7 +102,7 @@ public class BoardDefectSummaryUi {
             if (!Strings.isNullOrEmpty(strVcsUsername) &&
                     strVcsUsername.contains("<") && strVcsUsername.contains(">")) {
                 int emailStartIdx = strVcsUsername.indexOf('<');
-                return strVcsUsername.substring(0, emailStartIdx);
+                return strVcsUsername.substring(0, emailStartIdx).trim();
             }
 
             return strVcsUsername;
