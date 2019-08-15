@@ -65,6 +65,11 @@ public class UserAndSessionsStorage implements IUserStorage {
     }
 
     /** {@inheritDoc} */
+    @Nullable @Override public TcHelperUser findUserByEmail(String email) {
+        return allUsers().filter(u -> u.containsEmail(email)).findAny().orElse(null);
+    }
+
+    /** {@inheritDoc} */
     @Override @Nullable public TcHelperUser getUser(String username) {
         return users().get(username);
     }

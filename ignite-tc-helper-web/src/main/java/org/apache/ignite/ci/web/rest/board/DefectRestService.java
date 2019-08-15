@@ -16,17 +16,17 @@
  */
 package org.apache.ignite.ci.web.rest.board;
 
-import com.google.inject.Injector;
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.tcbot.engine.board.BoardService;
-import org.apache.ignite.tcbot.engine.ui.BoardSummaryUi;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
 
 @Path(DefectRestService.BOARD)
 @Produces(MediaType.APPLICATION_JSON)

@@ -20,6 +20,8 @@ package org.apache.ignite.tcbot.persistence;
  *
  */
 public interface IStringCompactor {
+    int STRING_NULL = -1;
+
     /**
      * @param val Value to be identified as integer.
      */

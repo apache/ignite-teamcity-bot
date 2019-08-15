@@ -24,6 +24,7 @@ import java.util.Map;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcbot.persistence.IVersionedEntity;
 
 public class DefectCompacted {
     /** Synthetic Defect Id. */
@@ -42,6 +43,9 @@ public class DefectCompacted {
 
     /** Resolved by username id : Compactor ID of user login (principal ID). */
     private int resolvedByUsernameId = -1;
+
+    /** Resolved timestamp. */
+    private long resolvedTs = -1;
 
     /** Commits hashes involved. */
     private List<CommitCompacted> commits = new ArrayList<>();
@@ -165,5 +169,10 @@ public class DefectCompacted {
 
     public void resolvedByUsernameId(int stringId) {
         this.resolvedByUsernameId = stringId;
+        this.resolvedTs = System.currentTimeMillis();
+    }
+
+    public void removeOldVerBlameCandidates() {
+        blameCandidates.removeIf(IVersionedEntity::isOutdatedEntityVersion);
     }
 }

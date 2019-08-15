@@ -223,7 +223,7 @@ function checkForUpdate() {
                     if (!g_checkForUpdateSched) {
                         g_checkForUpdateSched = true;
 
-                        setTimeout(checkForUpdate, 10000);
+                        setTimeout(checkForUpdate, 60000);
                     }
 
                     $("#loadStatus").html("");
@@ -253,7 +253,7 @@ function loadData() {
             if (!g_checkForUpdateSched) {
                 g_checkForUpdateSched = true;
 
-                setTimeout(checkForUpdate, 10000);
+                setTimeout(checkForUpdate, 20000);
             }
         },
         error: showErrInLoadStatus

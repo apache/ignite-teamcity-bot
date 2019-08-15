@@ -92,7 +92,14 @@ public class BoardDefectSummaryUi {
         if (blameCandidates.isEmpty())
             return "";
 
-        return limitedListPrint(blameCandidates, next -> next.vcsUsername(compactor));
+        return limitedListPrint(blameCandidates, next -> {
+            String fullName = next.fullDisplayName(compactor);
+            if (fullName != null)
+                return fullName;
+
+            // default, returing VCS usename used
+            return next.vcsUsername(compactor);
+        });
     }
 
     public String getTrackedBranch() {
@@ -103,14 +110,13 @@ public class BoardDefectSummaryUi {
         return defect.id();
     }
 
-    public void addIssue(String testOrBuildName, String trackedBranchName) {
+    public void addIssue(String testOrBuildName) {
         if (cntIssues == null)
             cntIssues = 0;
 
         cntIssues++;
 
         testOrSuitesAffected.add(testOrBuildName);
-
     }
 
     public void addFixedIssue() {

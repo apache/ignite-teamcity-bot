@@ -132,6 +132,8 @@ public class Login {
 
             user.getOrCreateCreds(primarySrvId).setLogin(username).setPassword(pwd, userKeyCandidate);
 
+            user.enrichUserData(tcUser);
+
             for (String addSrvId : srvIds) {
                 if (!addSrvId.equals(primarySrvId)) {
                     final User tcAddUser = tcLogin.checkServiceUserAndPassword(addSrvId, username, pwd);
@@ -150,6 +152,7 @@ public class Login {
                 return loginRes; //password validation failed
         }
 
+        //todo may be enrich user data here as well.
         userSes.userKeyUnderToken = CryptUtil.aesEncrypt(tokBytes, userKeyCandidate);
 
         users.putSession(sessId, userSes);

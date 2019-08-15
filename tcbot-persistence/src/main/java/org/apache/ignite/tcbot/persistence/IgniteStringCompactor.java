@@ -94,7 +94,7 @@ public class IgniteStringCompactor implements IStringCompactor {
     @GuavaCached(cacheNegativeNumbersRval = false)
     @Override public int getStringId(String val) {
         if (val == null)
-            return -1;
+            return STRING_NULL;
 
         initIfNeeded();
 
