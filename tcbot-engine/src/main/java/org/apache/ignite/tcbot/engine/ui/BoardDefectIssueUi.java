@@ -27,19 +27,22 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 public class BoardDefectIssueUi {
     private transient IStringCompactor compactor;
     private transient DefectIssue issue;
+    private boolean suiteProblem;
     private IssueResolveStatus status;
 
     public BoardDefectIssueUi(IssueResolveStatus status, IStringCompactor compactor,
-        DefectIssue issue, int testNameCid, int code) {
+                              DefectIssue issue, boolean suiteProblem) {
         this.status = status;
         this.compactor = compactor;
         this.issue = issue;
+        this.suiteProblem = suiteProblem;
     }
 
     public String getName() {
         String name = compactor.getStringFromId(issue.testNameCid());
 
-        //todo check if it is a suite name
+        if(suiteProblem)
+            return name;
 
         String suiteName = null, testName = null;
 

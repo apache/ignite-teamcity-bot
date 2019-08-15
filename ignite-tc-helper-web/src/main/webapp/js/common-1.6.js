@@ -198,7 +198,7 @@ function showMenu(menuData) {
 function authorizeServer() {
     $.ajax({
         type: "POST",
-        url: "rest/user/authorize",
+        url: "/rest/user/authorize",
         success: resetMenu,
         error:   showErrInLoadStatus
     });
