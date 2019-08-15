@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.ignite.tcbot.engine.board.IssueResolveStatus;
 import org.apache.ignite.tcbot.engine.defect.BlameCandidate;
 import org.apache.ignite.tcbot.engine.defect.DefectCompacted;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -126,6 +127,31 @@ public class BoardDefectSummaryUi {
 
     public List<BoardDefectIssueUi> getAllIssues() {
         return Collections.unmodifiableList(issuesList);
+    }
+
+    public List<BoardDefectIssueUi> getIgnoredIssues() {
+        return issuesList.stream().filter(iss -> iss.status() == IssueResolveStatus.IGNORED).collect(Collectors.toList());
+    }
+
+    public String getSummaryIgnoredIssues() {
+        return limitedListPrint(getIgnoredIssues(), BoardDefectIssueUi::getName);
+    }
+
+    public Integer getCntIgnoredIssues() {
+        return getIgnoredIssues().size();
+    }
+
+
+    public List<BoardDefectIssueUi> getFailingIssues() {
+        return issuesList.stream().filter(iss -> iss.status() == IssueResolveStatus.FAILING).collect(Collectors.toList());
+    }
+
+    public String getSummaryFailingIssues() {
+        return limitedListPrint(getFailingIssues(), BoardDefectIssueUi::getName);
+    }
+
+    public Integer getCntFailingIssues() {
+        return getFailingIssues().size();
     }
 
 

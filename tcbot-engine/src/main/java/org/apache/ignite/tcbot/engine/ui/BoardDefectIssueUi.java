@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.tcbot.engine.ui;
 
+import com.google.common.base.Strings;
 import org.apache.ignite.tcbot.engine.board.IssueResolveStatus;
 import org.apache.ignite.tcbot.engine.defect.DefectIssue;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -36,7 +37,23 @@ public class BoardDefectIssueUi {
     }
 
     public String getName() {
-        return compactor.getStringFromId(issue.testNameCid());
+        String name = compactor.getStringFromId(issue.testNameCid());
+
+        //todo check if it is a suite name
+
+        String suiteName = null, testName = null;
+
+        String[] split = Strings.nullToEmpty(name).split("\\:");
+        if (split.length >= 2) {
+            suiteName = ShortTestFailureUi.extractSuite(split[0]);
+            testName = ShortTestFailureUi.extractTest(split[1]);
+        }
+
+        if (testName != null && suiteName != null)
+            return suiteName + ":" + testName;
+
+        return name;
+
     }
 
     public String getIssueType() {
@@ -45,5 +62,9 @@ public class BoardDefectIssueUi {
 
     public String getStatus() {
         return status.toString();
+    }
+
+    public IssueResolveStatus status() {
+        return status;
     }
 }
