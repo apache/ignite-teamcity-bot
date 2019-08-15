@@ -54,7 +54,8 @@
                     {text: "Commits", value: 'blameCandidateSummary'},
                     {text: "Issues", value: 'cntissues'},
                     {text: "Fixed", value: 'fixedissues'},
-                    {text: "Not Fixed", value: 'notfixedissues'},
+                    {text: "Ignored", value: 'cntignoredissues'},
+                    {text: "Not Fixed", value: 'cntfailingissues'},
                     {text: "Unclear", value: 'unclearissues'}
                 ]
             },
@@ -183,11 +184,24 @@
                     </div>
 
                     Tests affected:
-                    <div v-for="(test) in item.testOrSuitesAffected">
-                        {{ test }}
-                    </div>
+                    <table>
+                        <tr v-for="(issue) in item.allIssues">
+                            <td v-if="issue.status === 'FIXED'">
+                                Fixed
+                            </td>
+                            <td v-else-if="issue.status === 'FAILING'">
+                                Still Failing
+                            </td>
+                            <td v-else>
+                                {{ issue.status }}
+                            </td>
 
-                    <button v-on:click="onResolve(item.id)">Resolve</button>
+                            <td>{{ issue.issueType }}</td>
+                            <td>{{ issue.name }}</td>
+                        </tr>
+                    </table>
+
+                    <button v-if="item.cntFailingIssues === 0" v-on:click="onResolve(item.id)">Resolve</button>
                 </td>
             </template>
 
@@ -209,8 +223,13 @@
             <template v-slot:item.fixedIssues="{ item }">
                 <span class='visaStage' style="background: #12AD5E" v-if="item.fixedIssues!=null" >  {{ item.fixedIssues }} </span>
             </template>
-            <template v-slot:item.notFixedIssues="{ item }" >
-                <span class='visaStage' style="background: red"  v-if="item.notFixedIssues!=null" >  {{ item.notFixedIssues }} </span>
+            <template v-slot:item.cntIgnoredIssues="{ item }">
+                <span class='visaStage' style="background: darkorange"
+                      v-if="item.cntIgnoredIssues!=0"
+                      :title="item.summaryIgnoredIssues"> {{ item.cntIgnoredIssues }} </span>
+            </template>
+            <template v-slot:item.cntFailingIssues="{ item }" >
+                <span class='visaStage' style="background: red" v-if="item.cntFailingIssues!=0" :title="item.summaryFailingIssues">  {{ item.cntFailingIssues }} </span>
             </template>
 
             <template v-slot:item.unclearIssues="{ item }" >

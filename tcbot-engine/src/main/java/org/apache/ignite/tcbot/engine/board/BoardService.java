@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -31,6 +30,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+
+import com.google.common.base.Preconditions;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
@@ -49,6 +50,7 @@ import org.apache.ignite.tcbot.engine.defect.DefectIssue;
 import org.apache.ignite.tcbot.engine.defect.DefectsStorage;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
 import org.apache.ignite.tcbot.engine.issue.IssueType;
+import org.apache.ignite.tcbot.engine.ui.BoardDefectIssueUi;
 import org.apache.ignite.tcbot.engine.ui.BoardDefectSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.BoardSummaryUi;
 import org.apache.ignite.tcbot.engine.user.IUserStorage;
@@ -87,7 +89,7 @@ public class BoardService {
 
             String srvCode = next.tcSrvCode(compactor);
 
-            if(!creds.hasAccess(srvCode))
+            if (!creds.hasAccess(srvCode))
                 continue;
 
             ITeamcityIgnited tcIgn = tcProv.server(srvCode, creds);
@@ -95,7 +97,6 @@ public class BoardService {
             ITcServerConfig cfg = tcIgn.config();
 
             List<BlameCandidate> candidates = next.blameCandidates();
-
 
             Map<Integer, DefectFirstBuild> build = next.buildsInvolved();
             for (DefectFirstBuild cause : build.values()) {
@@ -107,45 +108,75 @@ public class BoardService {
 
                 Stream<FatBuildCompacted> results = FutureUtil.getResults(futures);
                 List<FatBuildCompacted> freshRebuild = results.collect(Collectors.toList());
-                if(!freshRebuild.isEmpty()) {
-                    FatBuildCompacted buildCompacted = freshRebuild.get(0);
 
-                    for (DefectIssue issue : cause.issues()) {
-                        Optional<ITest> any = buildCompacted.getAllTests()
-                            .filter(t -> t.testName() == issue.testNameCid())
-                            .findAny();
+                Optional<FatBuildCompacted> rebuild;
 
-                        if(any.isPresent()) {
-                            boolean failed = any.get().isFailedTest(compactor);
-                            if(!failed)
-                                defectUi.addFixedIssue();
-                            else
-                                defectUi.addNotFixedIssue();
-                        } else {
-                            //exception for new test. removal of test means test is fixed
-                            if(IssueType.newContributedTestFailure.code().equals(compactor.getStringFromId(issue.issueTypeCode())))
-                                defectUi.addFixedIssue();
-                            else
-                                defectUi.addUnclearIssue();
-                        }
+                rebuild = !freshRebuild.isEmpty() ? freshRebuild.stream().findFirst() : Optional.empty();
 
-                        defectUi.addIssue(compactor.getStringFromId(issue.testNameCid()));
-                    }
-                } else {
-                    for (DefectIssue issue : cause.issues()) {
-                        defectUi.addUnclearIssue();
+                for (DefectIssue issue : cause.issues()) {
+                    BoardDefectIssueUi issueUi = processIssue(defectUi, rebuild, issue);
 
-                        defectUi.addIssue(compactor.getStringFromId(issue.testNameCid()));
-                    }
+                    defectUi.addIssue(compactor.getStringFromId(issue.testNameCid()), issueUi);
                 }
             }
 
-            defectUi.branch =  next.tcBranch(compactor);
+            defectUi.branch = next.tcBranch(compactor);
 
             res.addDefect(defectUi);
         }
 
         return res;
+    }
+
+    public BoardDefectIssueUi processIssue(BoardDefectSummaryUi defectUi, Optional<FatBuildCompacted> rebuild,
+        DefectIssue issue) {
+        Optional<ITest> testResult;
+
+        if (rebuild.isPresent()) {
+            testResult = rebuild.get().getAllTests()
+                .filter(t -> t.testName() == issue.testNameCid())
+                .findAny();
+        }
+        else
+            testResult = Optional.empty();
+
+        IssueResolveStatus status;
+        if (testResult.isPresent()) {
+            ITest test = testResult.get();
+
+            if (test.isIgnoredTest() || test.isMutedTest())
+                status = IssueResolveStatus.IGNORED;
+            else {
+                boolean failed = test.isFailedTest(compactor);
+                if (!failed) {
+                    defectUi.addFixedIssue();
+
+                    status = IssueResolveStatus.FIXED;
+                }
+                else {
+                    defectUi.addNotFixedIssue();
+
+                    status = IssueResolveStatus.FAILING;
+
+                }
+            }
+        } else{
+            //exception for new test. removal of test means test is fixed
+            if (IssueType.newContributedTestFailure.code().equals(compactor.getStringFromId(issue.issueTypeCode()))) {
+                defectUi.addFixedIssue();
+
+                status = IssueResolveStatus.FIXED;
+            }
+            else {
+                defectUi.addUnclearIssue();
+                status = IssueResolveStatus.UNKNOWN;
+            }
+        }
+
+        return new BoardDefectIssueUi(status,
+            compactor, issue,
+            issue.testNameCid(),
+            issue.issueTypeCode());
     }
 
     public void issuesToDefectsLater() {
@@ -207,46 +238,8 @@ public class BoardService {
 
                         defect.removeOldVerBlameCandidates();
 
-                        if(defect.blameCandidates().isEmpty()) {
-                            //save changes because it can be missed in older DB versions
-                            defect.changeMap(changeDao.getAll(srvId, fatBuild.changes()));
-
-                            Map<Integer, ChangeCompacted> map = defect.changeMap();
-
-                            Collection<ChangeCompacted> values = map.values();
-                            for (ChangeCompacted change : values) {
-                                BlameCandidate candidate = new BlameCandidate();
-                                int vcsUsernameCid = change.vcsUsername();
-                                candidate.vcsUsername(vcsUsernameCid);
-
-                                int tcUserUsername = change.tcUserUsername();
-                                @Nullable TcHelperUser tcHelperUser = null;
-                                if (tcUserUsername != -1)
-                                    tcHelperUser = userStorage.getUser(compactor.getStringFromId(tcUserUsername));
-                                else {
-                                    String strVcsUsername = compactor.getStringFromId(vcsUsernameCid);
-
-                                    if(!Strings.isNullOrEmpty(strVcsUsername) &&
-                                        strVcsUsername.contains("<") && strVcsUsername.contains(">")) {
-                                        int emailStartIdx = strVcsUsername.indexOf('<');
-                                        int emailEndIdx = strVcsUsername.indexOf('>');
-                                        String email = strVcsUsername.substring(emailStartIdx + 1, emailEndIdx);
-                                        tcHelperUser = userStorage.findUserByEmail(email);
-                                    }
-                                }
-
-
-                                if (tcHelperUser != null) {
-                                    String username = tcHelperUser.username();
-
-                                    String fullName = tcHelperUser.fullName();
-                                    candidate.fullDisplayName(compactor.getStringId(fullName));
-                                    candidate.tcHelperUserUsername(compactor.getStringId(username));
-                                }
-
-                                defect.addBlameCandidate(candidate);
-                            }
-                        }
+                        if(defect.blameCandidates().isEmpty())
+                            fillBlameCandidates(srvId, fatBuild, defect);
 
                         return defect;
                     });
@@ -254,6 +247,47 @@ public class BoardService {
             });
 
         return cntDefects.get() + " defects processed for " + cntIssues.get() + " issues checked";
+    }
+
+    private void fillBlameCandidates(int srvId, FatBuildCompacted fatBuild, DefectCompacted defect) {
+        //save changes because it can be missed in older DB versions
+        defect.changeMap(changeDao.getAll(srvId, fatBuild.changes()));
+
+        Map<Integer, ChangeCompacted> map = defect.changeMap();
+
+        Collection<ChangeCompacted> values = map.values();
+        for (ChangeCompacted change : values) {
+            BlameCandidate candidate = new BlameCandidate();
+            int vcsUsernameCid = change.vcsUsername();
+            candidate.vcsUsername(vcsUsernameCid);
+
+            int tcUserUsername = change.tcUserUsername();
+            @Nullable TcHelperUser tcHelperUser = null;
+            if (tcUserUsername != -1)
+                tcHelperUser = userStorage.getUser(compactor.getStringFromId(tcUserUsername));
+            else {
+                String strVcsUsername = compactor.getStringFromId(vcsUsernameCid);
+
+                if(!Strings.isNullOrEmpty(strVcsUsername) &&
+                    strVcsUsername.contains("<") && strVcsUsername.contains(">")) {
+                    int emailStartIdx = strVcsUsername.indexOf('<');
+                    int emailEndIdx = strVcsUsername.indexOf('>');
+                    String email = strVcsUsername.substring(emailStartIdx + 1, emailEndIdx);
+                    tcHelperUser = userStorage.findUserByEmail(email);
+                }
+            }
+
+
+            if (tcHelperUser != null) {
+                String username = tcHelperUser.username();
+
+                String fullName = tcHelperUser.fullName();
+                candidate.fullDisplayName(compactor.getStringId(fullName));
+                candidate.tcHelperUserUsername(compactor.getStringId(username));
+            }
+
+            defect.addBlameCandidate(candidate);
+        }
     }
 
     public void resolveDefect(Integer defectId, ICredentialsProv creds) {

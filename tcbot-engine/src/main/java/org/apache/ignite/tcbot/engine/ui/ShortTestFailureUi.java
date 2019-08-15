@@ -50,20 +50,29 @@ public class ShortTestFailureUi {
 
         String[] split = Strings.nullToEmpty(name).split("\\:");
         if (split.length >= 2) {
-            String suiteShort = split[0].trim();
-            String[] suiteComps = suiteShort.split("\\.");
-            if (suiteComps.length > 1)
-                suiteName = suiteComps[suiteComps.length - 1];
-
-            String testShort = split[1].trim();
-            String[] testComps = testShort.split("\\.");
-            if (testComps.length > 2)
-                testName = testComps[testComps.length - 2] + "." + testComps[testComps.length - 1];
+            this.suiteName = extractSuite(split[0]);
+            this.testName = extractTest(split[1]);
         }
 
         final IRunHistory stat = failure.history(tcIgn, baseBranchId);
         blockerComment = failure.getPossibleBlockerComment(stat);
 
         return this;
+    }
+
+    public static String extractTest(String s) {
+        String testShort = s.trim();
+        String[] testComps = testShort.split("\\.");
+        if (testComps.length > 2)
+            return testComps[testComps.length - 2] + "." + testComps[testComps.length - 1];
+        return null;
+    }
+
+    public static   String extractSuite(String s) {
+        String suiteShort = s.trim();
+        String[] suiteComps = suiteShort.split("\\.");
+        if (suiteComps.length > 1)
+            return suiteComps[suiteComps.length - 1];
+        return null;
     }
 }

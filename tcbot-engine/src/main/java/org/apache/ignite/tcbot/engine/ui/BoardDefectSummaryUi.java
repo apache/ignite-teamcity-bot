@@ -17,11 +17,13 @@
 package org.apache.ignite.tcbot.engine.ui;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.ignite.tcbot.engine.board.IssueResolveStatus;
 import org.apache.ignite.tcbot.engine.defect.BlameCandidate;
 import org.apache.ignite.tcbot.engine.defect.DefectCompacted;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -37,8 +39,11 @@ public class BoardDefectSummaryUi {
     public Integer notFixedIssues;
     public Integer unclearIssues;
 
+    @Deprecated
     public List<String> testOrSuitesAffected = new ArrayList<>();
     private Set<String> tags = new HashSet<>();
+
+    private List<BoardDefectIssueUi> issuesList = new ArrayList<>();
 
     public BoardDefectSummaryUi(DefectCompacted defect, IStringCompactor compactor) {
         this.defect = defect;
@@ -110,14 +115,45 @@ public class BoardDefectSummaryUi {
         return defect.id();
     }
 
-    public void addIssue(String testOrBuildName) {
+    public void addIssue(String testOrBuildName, BoardDefectIssueUi issue) {
         if (cntIssues == null)
             cntIssues = 0;
 
         cntIssues++;
 
         testOrSuitesAffected.add(testOrBuildName);
+        issuesList.add(issue);
     }
+
+    public List<BoardDefectIssueUi> getAllIssues() {
+        return Collections.unmodifiableList(issuesList);
+    }
+
+    public List<BoardDefectIssueUi> getIgnoredIssues() {
+        return issuesList.stream().filter(iss -> iss.status() == IssueResolveStatus.IGNORED).collect(Collectors.toList());
+    }
+
+    public String getSummaryIgnoredIssues() {
+        return limitedListPrint(getIgnoredIssues(), BoardDefectIssueUi::getName);
+    }
+
+    public Integer getCntIgnoredIssues() {
+        return getIgnoredIssues().size();
+    }
+
+
+    public List<BoardDefectIssueUi> getFailingIssues() {
+        return issuesList.stream().filter(iss -> iss.status() == IssueResolveStatus.FAILING).collect(Collectors.toList());
+    }
+
+    public String getSummaryFailingIssues() {
+        return limitedListPrint(getFailingIssues(), BoardDefectIssueUi::getName);
+    }
+
+    public Integer getCntFailingIssues() {
+        return getFailingIssues().size();
+    }
+
 
     public void addFixedIssue() {
         if (fixedIssues == null)
@@ -137,6 +173,7 @@ public class BoardDefectSummaryUi {
         this.tags.addAll(parameters);
     }
 
+    @Deprecated
     public void addUnclearIssue() {
         if (unclearIssues == null)
             unclearIssues = 0;
