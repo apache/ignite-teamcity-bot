@@ -71,6 +71,8 @@ public class DsChainUi {
     /** Web Href. to suite runs history. */
     public String webToHist = "";
 
+    public String suiteId;
+
     /** Web Href. to suite particular run */
     public String webToBuild = "";
 
@@ -232,7 +234,11 @@ public class DsChainUi {
         artifcactPublishingDurationPrintable = ctx.artifcactPublishingDurationPrintable(suiteFilter);
         dependeciesResolvingDurationPrintable = ctx.dependeciesResolvingDurationPrintable(suiteFilter);
         lostInTimeouts = ctx.getLostInTimeoutsPrintable(suiteFilter);
-        webToHist = DsSuiteUi.buildWebLinkToHist(tcIgnited, ctx.suiteId(), ctx.branchName());
+
+        String suiteId = ctx.suiteId();
+        this.suiteId  = suiteId;
+        chainName = ctx.suiteName();
+        webToHist = DsSuiteUi.buildWebLinkToHist(tcIgnited, suiteId, ctx.branchName());
         webToBuild = buildWebLinkToBuild(tcIgnited, ctx);
 
         Stream<T2<MultBuildRunCtx, TestCompactedMult>> allLongRunning = ctx.suites()

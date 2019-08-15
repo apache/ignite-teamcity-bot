@@ -131,12 +131,21 @@ function showChainCurrentStatusData(chain, settings) {
 
     if (isDefinedAndFilled(findGetParameter("suiteId")))
         parentSuitId = findGetParameter("suiteId");
-    else if (isDefinedAndFilled(chain))
-        parentSuitId = findGetParameter("buildTypeId", chain.webToHist);
+    else if (isDefinedAndFilled(chain.suiteId))
+        parentSuitId = chain.suiteId;
 
-    if (isDefinedAndFilled(parentSuitId)) {
-        res += "<tr><td><b> Suite: </b></td><td>[" + parentSuitId + "] ";
-        res += " <a href='" + chain.webToHist + "'>[TC history]</a>";
+    if (isDefinedAndFilled(parentSuitId) || isDefinedAndFilled(chain.webToHist)) {
+        res += "<tr><td>";
+        if (isDefinedAndFilled(parentSuitId)) {
+            res += "<b> Suite: </b></td>" +
+                "<td>[" + parentSuitId + "] ";
+        }
+        if (isDefinedAndFilled(chain.webToHist)) {
+            res += " <a href='" + chain.webToHist + "' title='Chain history'>[TC history]</a>";
+        }
+        if (isDefinedAndFilled(chain.webToBuild)) {
+            res += " <a href='" + chain.webToBuild + "' title='Build without applying re-runs'>[Build]</a>";
+        }
         res += "</td></tr>";
     }
 
@@ -155,9 +164,6 @@ function showChainCurrentStatusData(chain, settings) {
         res += "empty";
 
     res += " ";
-    res += "<a href='longRunningTestsReport.html'>";
-    res += "Long running tests report";
-    res += "</a>";
 
     var moreInfoTxt = "";
 
