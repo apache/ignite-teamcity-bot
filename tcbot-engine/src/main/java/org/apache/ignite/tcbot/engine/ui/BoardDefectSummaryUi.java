@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.tcbot.engine.ui;
 
+import com.google.common.base.Strings;
 import org.apache.ignite.tcbot.engine.board.IssueResolveStatus;
 import org.apache.ignite.tcbot.engine.defect.BlameCandidate;
 import org.apache.ignite.tcbot.engine.defect.DefectCompacted;
@@ -96,7 +97,15 @@ public class BoardDefectSummaryUi {
                 return fullName;
 
             // default, returning VCS username used
-            return next.vcsUsername(compactor);
+            String strVcsUsername = next.vcsUsername(compactor);
+
+            if (!Strings.isNullOrEmpty(strVcsUsername) &&
+                    strVcsUsername.contains("<") && strVcsUsername.contains(">")) {
+                int emailStartIdx = strVcsUsername.indexOf('<');
+                return strVcsUsername.substring(0, emailStartIdx);
+            }
+
+            return strVcsUsername;
         });
     }
 
