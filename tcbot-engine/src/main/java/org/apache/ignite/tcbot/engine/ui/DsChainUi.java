@@ -28,7 +28,6 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.apache.ignite.internal.util.typedef.T2;
 import org.apache.ignite.tcbot.common.util.CollectionUtil;
-import org.apache.ignite.tcbot.common.util.UrlUtil;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
 import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
@@ -233,7 +232,7 @@ public class DsChainUi {
         artifcactPublishingDurationPrintable = ctx.artifcactPublishingDurationPrintable(suiteFilter);
         dependeciesResolvingDurationPrintable = ctx.dependeciesResolvingDurationPrintable(suiteFilter);
         lostInTimeouts = ctx.getLostInTimeoutsPrintable(suiteFilter);
-        webToHist = buildWebLink(tcIgnited, ctx);
+        webToHist = DsSuiteUi.buildWebLinkToHist(tcIgnited, ctx.suiteId(), ctx.branchName());
         webToBuild = buildWebLinkToBuild(tcIgnited, ctx);
 
         Stream<T2<MultBuildRunCtx, TestCompactedMult>> allLongRunning = ctx.suites()
@@ -282,13 +281,6 @@ public class DsChainUi {
 
     private static String buildWebLinkToBuild(ITeamcityIgnited teamcity, FullChainRunCtx chain) {
         return teamcity.host() + "viewLog.html?buildId=" + chain.getSuiteBuildId();
-    }
-
-    private static String buildWebLink(ITeamcityIgnited teamcity, FullChainRunCtx suite) {
-        final String branch = normalizeBranch(suite.branchName());
-        return teamcity.host() + "viewType.html?buildTypeId=" + suite.suiteId()
-            + "&branch=" + UrlUtil.escape(branch)
-            + "&tab=buildTypeStatusDiv";
     }
 
     /**

@@ -175,7 +175,7 @@ public class DsSuiteUi extends ShortSuiteUi {
         artifcactPublishingDurationPrintable = millisToDurationPrintable(suite.artifcactPublishingDuration());
         dependeciesResolvingDurationPrintable = millisToDurationPrintable(suite.dependeciesResolvingDuration());
         testsDurationPrintable = millisToDurationPrintable(suite.getAvgTestsDuration());
-        webToHist = buildWebLinkToHist(tcIgnited, suite);
+        webToHist = buildWebLinkToHist(tcIgnited, suite, suite.branchName());
         webToHistBaseBranch = buildWebLinkToHist(tcIgnited, suite, baseBranch);
 
         if (true) {
@@ -343,23 +343,13 @@ public class DsSuiteUi extends ShortSuiteUi {
         return teamcity.host() + "viewLog.html?buildId=" + suite.getBuildId();
     }
 
-    private static String buildWebLinkToHist(ITeamcityIgnited teamcity, MultBuildRunCtx suite) {
-        String branchName = suite.branchName();
-
-        return buildWebLinkToHist(teamcity, suite, branchName);
-    }
-
     @Nonnull private static String buildWebLinkToHist(ITeamcityIgnited teamcity, MultBuildRunCtx suite, String branchName) {
-        final String branch = normalizeBranch(branchName);
-        return teamcity.host() + "buildConfiguration/" + suite.suiteId()
-            + "?branch=" + UrlUtil.escape(branch);
+        return buildWebLinkToHist(teamcity, suite.suiteId(), branchName);
     }
 
-    @Nonnull private static String buildWebLinkToHistOldUi(ITeamcityIgnited teamcity, MultBuildRunCtx suite, String branchName) {
+    public static String buildWebLinkToHist(ITeamcityIgnited teamcity, String suiteId, String branchName) {
         final String branch = normalizeBranch(branchName);
-        return teamcity.host() + "viewType.html?buildTypeId=" + suite.suiteId()
-            + "&branch=" + UrlUtil.escape(branch)
-            + "&tab=buildTypeStatusDiv";
+        return teamcity.host() + "buildConfiguration/" + suiteId  + "?branch=" + UrlUtil.escape(branch);
     }
 
     /** {@inheritDoc} */

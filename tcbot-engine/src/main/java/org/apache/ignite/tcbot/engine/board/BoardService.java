@@ -33,9 +33,7 @@ import org.apache.ignite.tcbot.engine.chain.SingleBuildRunCtx;
 import org.apache.ignite.tcbot.engine.defect.*;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
 import org.apache.ignite.tcbot.engine.issue.IssueType;
-import org.apache.ignite.tcbot.engine.ui.BoardDefectIssueUi;
-import org.apache.ignite.tcbot.engine.ui.BoardDefectSummaryUi;
-import org.apache.ignite.tcbot.engine.ui.BoardSummaryUi;
+import org.apache.ignite.tcbot.engine.ui.*;
 import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
@@ -106,7 +104,7 @@ public class BoardService {
                 rebuild = !freshRebuild.isEmpty() ? freshRebuild.stream().findFirst() : Optional.empty();
 
                 for (DefectIssue issue : cause.issues()) {
-                    BoardDefectIssueUi issueUi = processIssue(defectUi, rebuild, issue);
+                    BoardDefectIssueUi issueUi = processIssue(tcIgn, rebuild, issue);
 
                     defectUi.addIssue(issueUi);
                 }
@@ -120,8 +118,9 @@ public class BoardService {
         return res;
     }
 
-    public BoardDefectIssueUi processIssue(BoardDefectSummaryUi defectUi, Optional<FatBuildCompacted> rebuild,
-        DefectIssue issue) {
+    public BoardDefectIssueUi processIssue(ITeamcityIgnited tcIgn,
+                                           Optional<FatBuildCompacted> rebuild,
+                                           DefectIssue issue) {
         Optional<ITest> testResult;
 
         String issueType = compactor.getStringFromId(issue.issueTypeCode());
@@ -129,6 +128,7 @@ public class BoardService {
         boolean suiteProblem = IssueType.newCriticalFailure.code().equals(issueType)
                 || IssueType.newTrustedSuiteFailure.code().equals(issueType);
 
+        String webUrl = null;
         IssueResolveStatus status;
         if (suiteProblem) {
             if (rebuild.isPresent()) {
@@ -142,6 +142,11 @@ public class BoardService {
                     boolean hasBuildProblem = problems.stream().anyMatch(p -> !p.isFailedTests(compactor) && !p.isSnapshotDepProblem(compactor));
                     status = hasBuildProblem ? IssueResolveStatus.FAILING : IssueResolveStatus.FIXED;
                 }
+
+                webUrl = DsSuiteUi.buildWebLinkToHist(tcIgn,
+                        fatBuildCompacted.buildTypeId(compactor),
+                        fatBuildCompacted.branchName(compactor)
+                );
             } else {
                 status = IssueResolveStatus.UNKNOWN;
             }
@@ -166,6 +171,13 @@ public class BoardService {
                         status = IssueResolveStatus.FAILING;
                     }
                 }
+
+                FatBuildCompacted fatBuildCompacted = rebuild.get();
+                Long testNameId = test.getTestId();
+                String projectId = fatBuildCompacted.projectId(compactor);
+                String branchName = fatBuildCompacted.branchName(compactor);
+
+                webUrl = DsTestFailureUi.buildWebLink(tcIgn, testNameId, projectId, branchName);
             } else {
                 //exception for new test. removal of test means test is fixed
                 if (IssueType.newContributedTestFailure.code().equals(issueType)) {
@@ -176,7 +188,7 @@ public class BoardService {
             }
         }
 
-        return new BoardDefectIssueUi(status, compactor, issue, suiteProblem);
+        return new BoardDefectIssueUi(status, compactor, issue, suiteProblem, webUrl);
     }
 
     public void issuesToDefectsLater() {

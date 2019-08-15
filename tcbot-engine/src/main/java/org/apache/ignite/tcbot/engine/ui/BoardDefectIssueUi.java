@@ -21,21 +21,28 @@ import org.apache.ignite.tcbot.engine.board.IssueResolveStatus;
 import org.apache.ignite.tcbot.engine.defect.DefectIssue;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 
+import javax.annotation.Nullable;
+
 /**
  * UI version for displaying org.apache.ignite.tcbot.engine.defect.DefectIssue and its current status
  */
+@SuppressWarnings("unused")
 public class BoardDefectIssueUi {
     private transient IStringCompactor compactor;
     private transient DefectIssue issue;
     private boolean suiteProblem;
+    @Nullable
+    private String webUrl;
     private IssueResolveStatus status;
 
     public BoardDefectIssueUi(IssueResolveStatus status, IStringCompactor compactor,
-                              DefectIssue issue, boolean suiteProblem) {
+                              DefectIssue issue, boolean suiteProblem,
+                              @Nullable String webUrl) {
         this.status = status;
         this.compactor = compactor;
         this.issue = issue;
         this.suiteProblem = suiteProblem;
+        this.webUrl = webUrl;
     }
 
     public String getName() {
@@ -69,5 +76,10 @@ public class BoardDefectIssueUi {
 
     public IssueResolveStatus status() {
         return status;
+    }
+
+    @Nullable
+    public String getWebUrl() {
+        return webUrl;
     }
 }

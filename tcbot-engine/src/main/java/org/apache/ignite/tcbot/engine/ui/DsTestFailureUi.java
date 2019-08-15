@@ -17,14 +17,6 @@
 
 package org.apache.ignite.tcbot.engine.ui;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.common.util.UrlUtil;
 import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
 import org.apache.ignite.tcbot.engine.issue.EventTemplates;
@@ -32,6 +24,15 @@ import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.build.ITest;
 import org.apache.ignite.tcignited.buildlog.LogMsgToWarn;
 import org.apache.ignite.tcignited.history.IRunHistory;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.apache.ignite.tcbot.common.util.TimeUtil.millisToDurationPrintable;
 import static org.apache.ignite.tcignited.buildref.BranchEquivalence.normalizeBranch;
@@ -168,9 +169,9 @@ public class DsTestFailureUi extends ShortTestFailureUi {
         }
     }
 
-    private static String buildWebLink(ITeamcityIgnited tcIgn, Long testNameId,
+    public static String buildWebLink(ITeamcityIgnited tcIgn, Long testNameId,
         @Nullable String projectId, @Nullable String branchName) {
-        if (projectId == null)
+        if (projectId == null || testNameId == null)
             return null;
 
         final String branch = normalizeBranch(branchName);

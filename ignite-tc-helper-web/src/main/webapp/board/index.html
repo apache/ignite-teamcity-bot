@@ -197,7 +197,14 @@
                             </td>
 
                             <td>{{ issue.issueType }}</td>
-                            <td>{{ issue.name }}</td>
+                            <td>
+                                <a v-if="issue.webUrl != null" :href="issue.webUrl">
+                                    {{ issue.name }}
+                                </a>
+                                <span v-else>
+                                {{ issue.name }}
+                                </span>
+                            </td>
                         </tr>
                     </table>
 
