@@ -53,10 +53,10 @@
                     {text: 'Suites', value: 'suitesSummary'},
                     {text: "Commits", value: 'blameCandidateSummary'},
                     {text: "Issues", value: 'cntissues'},
-                    {text: "Fixed", value: 'fixedissues'},
+                    {text: "Fixed", value: 'cntfixedissues'},
                     {text: "Ignored", value: 'cntignoredissues'},
                     {text: "Not Fixed", value: 'cntfailingissues'},
-                    {text: "Unclear", value: 'unclearissues'}
+                    {text: "Unclear", value: 'cntunclearissues'}
                 ]
             },
             methods: {
@@ -197,7 +197,14 @@
                             </td>
 
                             <td>{{ issue.issueType }}</td>
-                            <td>{{ issue.name }}</td>
+                            <td>
+                                <a v-if="issue.webUrl != null" :href="issue.webUrl">
+                                    {{ issue.name }}
+                                </a>
+                                <span v-else>
+                                {{ issue.name }}
+                                </span>
+                            </td>
                         </tr>
                     </table>
 
@@ -220,8 +227,10 @@
             <template v-slot:item.cntIssues="{ item }">
                 {{ item.cntIssues }}
             </template>
-            <template v-slot:item.fixedIssues="{ item }">
-                <span class='visaStage' style="background: #12AD5E" v-if="item.fixedIssues!=null" >  {{ item.fixedIssues }} </span>
+            <template v-slot:item.cntFixedIssues="{ item }">
+                <span class='visaStage' style="background: #12AD5E"
+                      v-if="item.cntFixedIssues!=0"
+                      :title="item.summaryFixedIssues">  {{ item.cntFixedIssues }} </span>
             </template>
             <template v-slot:item.cntIgnoredIssues="{ item }">
                 <span class='visaStage' style="background: darkorange"
@@ -229,11 +238,15 @@
                       :title="item.summaryIgnoredIssues"> {{ item.cntIgnoredIssues }} </span>
             </template>
             <template v-slot:item.cntFailingIssues="{ item }" >
-                <span class='visaStage' style="background: red" v-if="item.cntFailingIssues!=0" :title="item.summaryFailingIssues">  {{ item.cntFailingIssues }} </span>
+                <span class='visaStage' style="background: red"
+                      v-if="item.cntFailingIssues!=0"
+                      :title="item.summaryFailingIssues">  {{ item.cntFailingIssues }} </span>
             </template>
 
-            <template v-slot:item.unclearIssues="{ item }" >
-                <span class='visaStage' style="background: grey"  v-if="item.unclearIssues!=null" >  {{ item.unclearIssues }} </span>
+            <template v-slot:item.cntUnclearIssues="{ item }" >
+                <span class='visaStage' style="background: grey"
+                      v-if="item.cntUnclearIssues!=0"
+                      :title="item.summaryUnclearIssues" >  {{ item.cntUnclearIssues }} </span>
             </template>
 
         </v-data-table>

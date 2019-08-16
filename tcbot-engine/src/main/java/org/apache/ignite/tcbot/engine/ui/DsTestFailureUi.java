@@ -168,9 +168,9 @@ public class DsTestFailureUi extends ShortTestFailureUi {
         }
     }
 
-    private static String buildWebLink(ITeamcityIgnited tcIgn, Long testNameId,
+    public static String buildWebLink(ITeamcityIgnited tcIgn, Long testNameId,
         @Nullable String projectId, @Nullable String branchName) {
-        if (projectId == null)
+        if (projectId == null || testNameId == null)
             return null;
 
         final String branch = normalizeBranch(branchName);

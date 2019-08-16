@@ -30,13 +30,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
-
-import com.google.common.base.Preconditions;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
@@ -53,6 +52,8 @@ import org.apache.ignite.tcbot.engine.issue.IssueType;
 import org.apache.ignite.tcbot.engine.ui.BoardDefectIssueUi;
 import org.apache.ignite.tcbot.engine.ui.BoardDefectSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.BoardSummaryUi;
+import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
+import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
 import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
@@ -114,9 +115,9 @@ public class BoardService {
                 rebuild = !freshRebuild.isEmpty() ? freshRebuild.stream().findFirst() : Optional.empty();
 
                 for (DefectIssue issue : cause.issues()) {
-                    BoardDefectIssueUi issueUi = processIssue(defectUi, rebuild, issue);
+                    BoardDefectIssueUi issueUi = processIssue(tcIgn, rebuild, issue);
 
-                    defectUi.addIssue(compactor.getStringFromId(issue.testNameCid()), issueUi);
+                    defectUi.addIssue(issueUi);
                 }
             }
 
@@ -128,55 +129,70 @@ public class BoardService {
         return res;
     }
 
-    public BoardDefectIssueUi processIssue(BoardDefectSummaryUi defectUi, Optional<FatBuildCompacted> rebuild,
-        DefectIssue issue) {
+    public BoardDefectIssueUi processIssue(ITeamcityIgnited tcIgn,
+                                           Optional<FatBuildCompacted> rebuild,
+                                           DefectIssue issue) {
         Optional<ITest> testResult;
 
-        if (rebuild.isPresent()) {
-            testResult = rebuild.get().getAllTests()
-                .filter(t -> t.testName() == issue.testNameCid())
-                .findAny();
-        }
-        else
-            testResult = Optional.empty();
+        String issueType = compactor.getStringFromId(issue.issueTypeCode());
 
+        boolean suiteProblem = IssueType.newCriticalFailure.code().equals(issueType)
+                || IssueType.newTrustedSuiteFailure.code().equals(issueType);
+
+        String webUrl = null;
         IssueResolveStatus status;
-        if (testResult.isPresent()) {
-            ITest test = testResult.get();
+        if (suiteProblem) {
+            if (rebuild.isPresent()) {
+                FatBuildCompacted fatBuildCompacted = rebuild.get();
+                List<ProblemCompacted> problems = fatBuildCompacted.problems();
 
-            if (test.isIgnoredTest() || test.isMutedTest())
-                status = IssueResolveStatus.IGNORED;
-            else {
-                boolean failed = test.isFailedTest(compactor);
-                if (!failed) {
-                    defectUi.addFixedIssue();
-
-                    status = IssueResolveStatus.FIXED;
+                if (IssueType.newCriticalFailure.code().equals(issueType)) {
+                    boolean hasCriticalProblem = problems.stream().anyMatch(occurrence -> occurrence.isCriticalProblem(compactor));
+                    status = hasCriticalProblem ? IssueResolveStatus.FAILING : IssueResolveStatus.FIXED;
+                } else {
+                    boolean hasBuildProblem = problems.stream().anyMatch(p -> !p.isFailedTests(compactor) && !p.isSnapshotDepProblem(compactor));
+                    status = hasBuildProblem ? IssueResolveStatus.FAILING : IssueResolveStatus.FIXED;
                 }
-                else {
-                    defectUi.addNotFixedIssue();
 
-                    status = IssueResolveStatus.FAILING;
-
-                }
-            }
-        } else{
-            //exception for new test. removal of test means test is fixed
-            if (IssueType.newContributedTestFailure.code().equals(compactor.getStringFromId(issue.issueTypeCode()))) {
-                defectUi.addFixedIssue();
-
-                status = IssueResolveStatus.FIXED;
-            }
-            else {
-                defectUi.addUnclearIssue();
+                webUrl = DsSuiteUi.buildWebLinkToHist(tcIgn,
+                        fatBuildCompacted.buildTypeId(compactor),
+                        fatBuildCompacted.branchName(compactor)
+                );
+            } else {
                 status = IssueResolveStatus.UNKNOWN;
             }
+        } else {
+            if (rebuild.isPresent()) {
+                testResult = rebuild.get().getAllTests()
+                        .filter(t -> t.testName() == issue.testNameCid())
+                        .findAny();
+            } else
+                testResult = Optional.empty();
+
+            if (testResult.isPresent()) {
+                ITest test = testResult.get();
+
+                if (test.isIgnoredTest() || test.isMutedTest())
+                    status = IssueResolveStatus.IGNORED;
+                else
+                    status = test.isFailedTest(compactor) ? IssueResolveStatus.FAILING : IssueResolveStatus.FIXED;
+
+                FatBuildCompacted fatBuildCompacted = rebuild.get();
+                Long testNameId = test.getTestId();
+                String projectId = fatBuildCompacted.projectId(compactor);
+                String branchName = fatBuildCompacted.branchName(compactor);
+
+                webUrl = DsTestFailureUi.buildWebLink(tcIgn, testNameId, projectId, branchName);
+            }
+            else {
+                //exception for new test. removal of test means test is fixed
+                status = IssueType.newContributedTestFailure.code().equals(issueType)
+                    ? IssueResolveStatus.FIXED
+                    : IssueResolveStatus.UNKNOWN;
+            }
         }
 
-        return new BoardDefectIssueUi(status,
-            compactor, issue,
-            issue.testNameCid(),
-            issue.issueTypeCode());
+        return new BoardDefectIssueUi(status, compactor, issue, suiteProblem, webUrl);
     }
 
     public void issuesToDefectsLater() {
@@ -188,7 +204,7 @@ public class BoardService {
         Stream<Issue> stream = issuesStorage.allIssues();
 
         //todo make property how old issues can be considered as configuration parameter
-        long minIssueTs = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7);
+        long minIssueTs = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(9);
 
         //todo not so good to to call init() twice
         fatBuildDao.init();
@@ -297,8 +313,8 @@ public class BoardService {
         String principalId = creds.getPrincipalId();
         TcHelperUser user = userStorage.getUser(principalId);
 
-        int stringId = compactor.getStringId(principalId);
-        defect.resolvedByUsernameId(stringId);
+        int strId = compactor.getStringId(principalId);
+        defect.resolvedByUsernameId(strId);
 
         defectStorage.save(defect);
     }

@@ -55,7 +55,7 @@ public class CheckQueueJob implements Runnable {
 
     /** Percentage of free agents required to trigger build. */
     private static final int CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT =
-        Integer.getInteger("CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT", 20);
+        Integer.getInteger("CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT", 15);
 
     /** */
     private ITcBotUserCreds creds;
@@ -94,7 +94,7 @@ public class CheckQueueJob implements Runnable {
     /**   */
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @AutoProfiling
-    @MonitoredTask(name = "Check Queue")
+    @MonitoredTask(name = "Check Servers Queue")
     protected String runEx() {
         if (Boolean.valueOf(System.getProperty(AUTO_TRIGGERING_BUILD_DISABLED))) {
             final String msg = "Automatic build triggering was disabled.";
@@ -145,8 +145,8 @@ public class CheckQueueJob implements Runnable {
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @AutoProfiling
     @MonitoredTask(name = "Check Server Queue", nameExtArgIndex = 0)
-    protected String checkQueue(String srvId, List<ITrackedChain> chains) {
-        ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvId, creds);
+    protected String checkQueue(String srvCode, List<ITrackedChain> chains) {
+        ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvCode, creds);
 
         List<Agent> agents = tcIgn.agents(true, true);
 
@@ -170,96 +170,97 @@ public class CheckQueueJob implements Runnable {
         logger.info("There are more than {}% free agents (total={}, free={}).", CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT,
             total, total - running);
 
-        String selfLogin = creds.getUser(srvId);
+        String selfLogin = creds.getUser(srvCode);
 
         tcIgn.actualizeRecentBuildRefs();
 
         StringBuilder res = new StringBuilder();
 
         for (ITrackedChain chain : chains) {
-            if(!Objects.equals(chain.serverCode(), srvId))
+            if (!Objects.equals(chain.serverCode(), srvCode))
                 continue;
 
-            boolean trigger = true;
+            String result = checkIfChainTriggerable(chain.serverCode(), chain.tcSuiteId(), chain.tcBranch(), tcIgn, selfLogin, chain);
 
-            List<BuildRefCompacted> buildsForBr = tcIgn.getQueuedBuildsCompacted(chain.tcBranch());
-
-            for (BuildRefCompacted refComp : buildsForBr) {
-                Integer buildId = refComp.getId();
-                if (buildId == null)
-                    continue; // should not occur;
-
-                final FatBuildCompacted fatBuild = tcIgn.getFatBuild(buildId);
-                final Build build = fatBuild.toBuild(compactor);
-                final Triggered triggered = build.getTriggered();
-
-                if (triggered == null) {
-                    logger.info("Unable to get triggering info for queued build {} (type={}).", buildId, build.buildTypeId);
-
-                    continue;
-                }
-
-                User user = build.getTriggered().getUser();
-
-                if (user == null) {
-                    logger.info("Unable to get username for queued build {} (type={}).", buildId, build.buildTypeId);
-
-                    continue;
-                }
-
-                String login = user.username;
-
-                if (selfLogin.equalsIgnoreCase(login)) {
-                    final String msg
-                            = MessageFormat.format("Queued build {0} was early triggered " +
-                            "(user {1}, branch {2}, suite {3})." +
-                            " Will not start Ignite build.", buildId, login, chain.tcBranch(), build.buildTypeId);
-
-                    logger.info(msg);
-
-                    res.append(msg).append("; ");
-
-                    trigger = false;
-
-                    break;
-                }
-            }
-
-            if (!trigger)
-                continue;
-
-            long curr = System.currentTimeMillis();
-            long delay = chain.triggerBuildQuietPeriod();
-
-            if (delay > 0) {
-                Long lastStart = startTimes.get(chain);
-
-                long minsPassed;
-
-                if (lastStart != null &&
-                    (minsPassed = TimeUnit.MILLISECONDS.toMinutes(curr - lastStart)) < delay) {
-
-                    final String msg = MessageFormat.format("Skip triggering build, timeout has not expired " +
-                                    "(server={0}, suite={1}, branch={2}, delay={3} mins, passed={4} mins)",
-                            chain.serverCode(), chain.tcSuiteId(), chain.tcBranch(),
-                            chain.triggerBuildQuietPeriod(), minsPassed);
-                    logger.info(msg);
-
-                    res.append(msg).append("; ");
-
-                    continue;
-                }
-            }
-
-            startTimes.put(chain, curr);
-
-            tcIgn.triggerBuild(chain.tcSuiteId(), chain.tcBranch(), true, false,
-                    chain.generateBuildParameters());
-
-            res.append(chain.tcBranch()).append(" ").append(chain.tcBranch()).append(" triggered; ");
+            res.append(result).append("; ");
         }
 
         return res.toString();
+    }
+
+    @SuppressWarnings("WeakerAccess")
+    @MonitoredTask(name = "Check Server Queue", nameExtArgsIndexes = {0, 1, 2})
+    protected String checkIfChainTriggerable(String serverCode,
+                                             String buildTypeId,
+                                             String tcBranch,
+                                             ITeamcityIgnited tcIgn,
+                                             String selfLogin,
+                                             ITrackedChain chain) {
+        List<BuildRefCompacted> buildsForBr = tcIgn.getQueuedBuildsCompacted(tcBranch);
+
+        for (BuildRefCompacted refComp : buildsForBr) {
+            Integer buildId = refComp.getId();
+            if (buildId == null)
+                continue; // should not occur;
+
+            final FatBuildCompacted fatBuild = tcIgn.getFatBuild(buildId);
+            final Build build = fatBuild.toBuild(compactor);
+            final Triggered triggered = build.getTriggered();
+
+            if (triggered == null) {
+                logger.info("Unable to get triggering info for queued build {} (type={}).", buildId, build.buildTypeId);
+
+                continue;
+            }
+
+            User user = build.getTriggered().getUser();
+
+            if (user == null) {
+                logger.info("Unable to get username for queued build {} (type={}).", buildId, build.buildTypeId);
+
+                continue;
+            }
+
+            String login = user.username;
+
+            if (selfLogin.equalsIgnoreCase(login)) {
+                final String msg
+                        = MessageFormat.format("Queued build {0} was early triggered " +
+                        "(user {1}, branch {2}, suite {3})." +
+                        " Will not start new build.", buildId, login, tcBranch, build.buildTypeId);
+
+                logger.info(msg);
+
+                return msg;
+            }
+        }
+
+        long curr = System.currentTimeMillis();
+        long delay = chain.triggerBuildQuietPeriod();
+
+        if (delay > 0) {
+            Long lastStart = startTimes.get(chain);
+
+            long minsPassed;
+
+            if (lastStart != null &&
+                (minsPassed = TimeUnit.MILLISECONDS.toMinutes(curr - lastStart)) < delay) {
+
+                final String msg = MessageFormat.format("Skip triggering build, timeout has not expired " +
+                                "(server={0}, suite={1}, branch={2}, delay={3} mins, passed={4} mins)",
+                        serverCode, buildTypeId, tcBranch,
+                        chain.triggerBuildQuietPeriod(), minsPassed);
+                logger.info(msg);
+
+                return msg;
+            }
+        }
+
+        startTimes.put(chain, curr);
+
+        tcIgn.triggerBuild(buildTypeId, tcBranch, true, false, chain.generateBuildParameters());
+
+        return buildTypeId + " " +  tcBranch  + " triggered; ";
     }
 
     /**

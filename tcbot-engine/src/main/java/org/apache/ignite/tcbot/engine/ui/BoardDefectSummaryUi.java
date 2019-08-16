@@ -16,13 +16,16 @@
  */
 package org.apache.ignite.tcbot.engine.ui;
 
+import com.google.common.base.Strings;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.ignite.tcbot.engine.board.IssueResolveStatus;
 import org.apache.ignite.tcbot.engine.defect.BlameCandidate;
 import org.apache.ignite.tcbot.engine.defect.DefectCompacted;
@@ -34,13 +37,6 @@ public class BoardDefectSummaryUi {
 
     public String branch;
 
-    public Integer cntIssues;
-    public Integer fixedIssues;
-    public Integer notFixedIssues;
-    public Integer unclearIssues;
-
-    @Deprecated
-    public List<String> testOrSuitesAffected = new ArrayList<>();
     private Set<String> tags = new HashSet<>();
 
     private List<BoardDefectIssueUi> issuesList = new ArrayList<>();
@@ -67,9 +63,10 @@ public class BoardDefectSummaryUi {
         return limitedListPrint(suites, t -> t);
     }
 
-    public <X> String limitedListPrint(List<X> suites, Function<X, String> elemToStr) {
+    private static <X> String limitedListPrint(Collection<X> suites, Function<X, String> elemToStr) {
         StringBuilder res = new StringBuilder();
         int i = 0;
+
         for (X next : suites) {
             if (i >= 3) {
                 int rest = suites.size() - i;
@@ -102,8 +99,16 @@ public class BoardDefectSummaryUi {
             if (fullName != null)
                 return fullName;
 
-            // default, returing VCS usename used
-            return next.vcsUsername(compactor);
+            // default, returning VCS username used
+            String strVcsUsername = next.vcsUsername(compactor);
+
+            if (!Strings.isNullOrEmpty(strVcsUsername) &&
+                    strVcsUsername.contains("<") && strVcsUsername.contains(">")) {
+                int emailStartIdx = strVcsUsername.indexOf('<');
+                return strVcsUsername.substring(0, emailStartIdx).trim();
+            }
+
+            return strVcsUsername;
         });
     }
 
@@ -115,13 +120,7 @@ public class BoardDefectSummaryUi {
         return defect.id();
     }
 
-    public void addIssue(String testOrBuildName, BoardDefectIssueUi issue) {
-        if (cntIssues == null)
-            cntIssues = 0;
-
-        cntIssues++;
-
-        testOrSuitesAffected.add(testOrBuildName);
+    public void addIssue(BoardDefectIssueUi issue) {
         issuesList.add(issue);
     }
 
@@ -129,8 +128,16 @@ public class BoardDefectSummaryUi {
         return Collections.unmodifiableList(issuesList);
     }
 
+    public int getCntIssues() {
+        return issuesList.size();
+    }
+
+    private Stream<BoardDefectIssueUi> issues(IssueResolveStatus type) {
+        return issuesList.stream().filter(iss -> iss.status() == type);
+    }
+
     public List<BoardDefectIssueUi> getIgnoredIssues() {
-        return issuesList.stream().filter(iss -> iss.status() == IssueResolveStatus.IGNORED).collect(Collectors.toList());
+        return issues(IssueResolveStatus.IGNORED).collect(Collectors.toList());
     }
 
     public String getSummaryIgnoredIssues() {
@@ -138,12 +145,11 @@ public class BoardDefectSummaryUi {
     }
 
     public Integer getCntIgnoredIssues() {
-        return getIgnoredIssues().size();
+        return (int) issues(IssueResolveStatus.IGNORED).count();
     }
 
-
     public List<BoardDefectIssueUi> getFailingIssues() {
-        return issuesList.stream().filter(iss -> iss.status() == IssueResolveStatus.FAILING).collect(Collectors.toList());
+        return issues(IssueResolveStatus.FAILING).collect(Collectors.toList());
     }
 
     public String getSummaryFailingIssues() {
@@ -151,33 +157,34 @@ public class BoardDefectSummaryUi {
     }
 
     public Integer getCntFailingIssues() {
-        return getFailingIssues().size();
+        return (int) issues(IssueResolveStatus.FAILING).count();
     }
 
-
-    public void addFixedIssue() {
-        if (fixedIssues == null)
-            fixedIssues = 0;
-
-        fixedIssues++;
+    public List<BoardDefectIssueUi> getFixedIssues() {
+        return issues(IssueResolveStatus.FIXED).collect(Collectors.toList());
     }
 
-    public void addNotFixedIssue() {
-        if (notFixedIssues == null)
-            notFixedIssues = 0;
+    public String getSummaryFixedIssues() {
+        return limitedListPrint(getFixedIssues(), BoardDefectIssueUi::getName);
+    }
 
-        notFixedIssues++;
+    public Integer getCntFixedIssues() {
+        return (int) issues(IssueResolveStatus.FIXED).count();
+    }
+
+    public List<BoardDefectIssueUi> getUnclearIssues() {
+        return issues(IssueResolveStatus.UNKNOWN).collect(Collectors.toList());
+    }
+
+    public String getSummaryUnclearIssues() {
+        return limitedListPrint(getUnclearIssues(), BoardDefectIssueUi::getName);
+    }
+
+    public Integer getCntUnclearIssues() {
+        return (int) issues(IssueResolveStatus.UNKNOWN).count();
     }
 
     public void addTags(Set<String> parameters) {
         this.tags.addAll(parameters);
-    }
-
-    @Deprecated
-    public void addUnclearIssue() {
-        if (unclearIssues == null)
-            unclearIssues = 0;
-
-        unclearIssues++;
     }
 }
