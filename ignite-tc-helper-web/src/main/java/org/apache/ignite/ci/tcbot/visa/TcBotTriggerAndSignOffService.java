@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
@@ -56,6 +57,7 @@ import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.apache.ignite.githubignited.IGitHubConnIgnited;
 import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.internal.util.typedef.F;
+import org.apache.ignite.internal.util.typedef.T2;
 import org.apache.ignite.jiraignited.IJiraIgnited;
 import org.apache.ignite.jiraignited.IJiraIgnitedProvider;
 import org.apache.ignite.jiraservice.Ticket;
@@ -65,8 +67,6 @@ import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.pr.BranchTicketMatcher;
 import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
-import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
-import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
 import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi;
 import org.apache.ignite.tcbot.engine.ui.ShortTestFailureUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -291,9 +291,16 @@ public class TcBotTriggerAndSignOffService {
 
         //todo consult if there are change differences here https://ci.ignite.apache.org/app/rest/changes?locator=buildType:(id:IgniteTests24Java8_Cache7),pending:true,branch:pull%2F6224%2Fhead
         Build[] builds = new Build[suiteIds.length];
+        Set<Integer> buildidsToSync = new HashSet<>();
 
-        for (int i = 0; i < suiteIds.length; i++)
-            builds[i] = teamcity.triggerBuild(suiteIds[i], branchForTc, false, top != null && top, new HashMap<String, Object>());
+        for (int i = 0; i < suiteIds.length; i++) {
+            T2<Build, Set<Integer>> objects = teamcity.triggerBuild(suiteIds[i], branchForTc, false, top != null && top, new HashMap<>(),
+                false, "");
+            buildidsToSync.addAll(objects.get2());
+            builds[i] = objects.get1();
+        }
+
+        teamcity.fastBuildsSync(buildidsToSync);
 
         if (observe != null && observe)
             jiraRes += observeJira(srvCodeOrAlias, branchForTc, ticketId, prov, parentSuiteId, baseBranchForTc, builds);

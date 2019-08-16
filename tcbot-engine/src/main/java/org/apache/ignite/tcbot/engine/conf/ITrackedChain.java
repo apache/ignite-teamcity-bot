@@ -24,6 +24,9 @@ import java.util.Optional;
  *
  */
 public interface ITrackedChain {
+    /**
+     * @return Server Code to access configs within IDataSourceCfgSupplier.
+     */
     public String serverCode();
 
     public String tcBranch();
@@ -31,7 +34,7 @@ public interface ITrackedChain {
     @Nonnull public Optional<String> tcBaseBranch();
 
     /**
-     * @return trigger build quiet period, milliseconds.
+     * @return Quiet period in minutes between triggering builds or zero if period is not set and should be ignored.
      */
     public int triggerBuildQuietPeriod();
 
@@ -40,5 +43,8 @@ public interface ITrackedChain {
 
     public String tcSuiteId();
 
+    /**
+     * @return {@code True} If automatic build triggering enabled.
+     */
     public boolean triggerBuild();
 }

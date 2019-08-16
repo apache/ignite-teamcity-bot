@@ -18,8 +18,25 @@
 package org.apache.ignite.tcservice;
 
 import com.google.common.base.Strings;
-import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.io.UncheckedIOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.SortedSet;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.xml.bind.JAXBException;
 import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.exeption.ServiceConflictException;
@@ -47,17 +64,6 @@ import org.apache.ignite.tcservice.model.user.Users;
 import org.apache.ignite.tcservice.util.XmlUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.xml.bind.JAXBException;
-import java.io.*;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-
-import static java.util.concurrent.CompletableFuture.supplyAsync;
 
 /**
  * Class for access to Teamcity REST API without any caching.
@@ -154,8 +160,8 @@ public class TeamcityServiceConnection implements ITeamcity {
         @Nonnull String branchName,
         boolean cleanRebuild,
         boolean queueAtTop,
-        @Nullable Map<String, Object> buildParms
-    ) {
+        @Nullable Map<String, Object> buildParms,
+        String freeTextComments) {
         String triggeringOptions =
             " <triggeringOptions" +
                 " cleanSources=\"" + cleanRebuild + "\"" +
@@ -163,8 +169,11 @@ public class TeamcityServiceConnection implements ITeamcity {
                 " queueAtTop=\"" + queueAtTop + "\"" +
                 "/>\n";
 
-        String comments = " <comment><text>Build triggered from Ignite TC Bot" +
-            " [cleanRebuild=" + cleanRebuild + ", top=" + queueAtTop + "]</text></comment>\n";
+        String comments = " <comment><text>" +
+            Strings.nullToEmpty(freeTextComments) + ", " +
+            "Build triggered from Ignite TC Bot" +
+            " [cleanRebuild=" + cleanRebuild + ", top=" + queueAtTop + "]" +
+            "</text></comment>\n";
 
         Map<String, Object> props = new HashMap<>();
 
@@ -194,7 +203,12 @@ public class TeamcityServiceConnection implements ITeamcity {
             logger.info("Triggering build: buildTypeId={}, branchName={}, cleanRebuild={}, queueAtTop={}, buildParms={}",
                 buildTypeId, branchName, cleanRebuild, queueAtTop, props);
 
-            try (StringReader reader = new StringReader(HttpUtil.sendPostAsString(basicAuthTok, url, sb.toString()))) {
+            String body = sb.toString();
+
+            if (logger.isDebugEnabled())
+                logger.debug("(TRIGGER REQUEST):\n" + body);
+
+            try (StringReader reader = new StringReader(HttpUtil.sendPostAsString(basicAuthTok, url, body))) {
                 return XmlUtil.load(Build.class, reader);
             }
             catch (JAXBException e) {

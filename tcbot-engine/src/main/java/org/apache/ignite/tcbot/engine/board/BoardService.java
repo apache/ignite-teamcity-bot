@@ -204,7 +204,7 @@ public class BoardService {
         Stream<Issue> stream = issuesStorage.allIssues();
 
         //todo make property how old issues can be considered as configuration parameter
-        long minIssueTs = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(9);
+        long minIssueTs = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(11);
 
         //todo not so good to to call init() twice
         fatBuildDao.init();

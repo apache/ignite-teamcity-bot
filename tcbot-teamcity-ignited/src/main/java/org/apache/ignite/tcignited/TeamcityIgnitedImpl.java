@@ -23,7 +23,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +48,7 @@ import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.internal.util.typedef.T2;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
@@ -509,18 +509,26 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
-    @Override public Build triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop,
-        Map<String, Object> buildParms) {
-        Build build = conn.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop, buildParms);
+    @Override public T2<Build, Set<Integer>> triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop,
+        Map<String, Object> buildParms, boolean actualizeReferences, @Nullable String freeTextComments) {
+        Build build = conn.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop, buildParms, freeTextComments);
 
         List<BuildRef> deps = build.getSnapshotDependenciesNonNull();
 
         Stream<Integer> allIds = Stream.concat(Stream.of(build.getId()), deps.stream().map(BuildRef::getId));
 
-        //todo may addBuild additional parameter: load builds into DB in sync/async fashion
-        buildRefSync.runActualizeBuildRefs(srvCode, BuildRefSync.SyncMode.ULTRAFAST, allIds.collect(Collectors.toSet()), conn);
+        Set<Integer> collect = allIds.collect(Collectors.toSet());
+        if (!actualizeReferences)
+            return new T2<>(build, collect);
 
-        return build;
+        fastBuildsSync(collect);
+
+        return new T2<>(build, Collections.emptySet());
+    }
+
+    /** {@inheritDoc} */
+    @Override public void fastBuildsSync(Set<Integer> collect) {
+        buildRefSync.runActualizeBuildRefs(srvCode, BuildRefSync.SyncMode.ULTRAFAST, collect, conn);
     }
 
     /** {@inheritDoc} */

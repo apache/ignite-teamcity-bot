@@ -69,7 +69,7 @@ public class ChainAtServerTracked extends ChainAtServer implements ITrackedChain
     /**
      * @return base (etalon) branch in TC identification t builds
      */
-    @Nonnull public Optional<String> tcBaseBranch() {
+    @Override @Nonnull public Optional<String> tcBaseBranch() {
         if (Strings.isNullOrEmpty(baseBranchForTc))
             return Optional.empty();
 
@@ -97,29 +97,25 @@ public class ChainAtServerTracked extends ChainAtServer implements ITrackedChain
         return Objects.hash(super.hashCode(), branchForRest, baseBranchForTc, triggerBuild, triggerBuildQuietPeriod, triggerParameters);
     }
 
-    /**
-     * @return {@code True} If automatic build triggering enabled.
-     */
-    public boolean triggerBuild() {
+    /** {@inheritDoc} */
+    @Override public boolean triggerBuild() {
         return triggerBuild == null ? false : triggerBuild;
     }
 
-    /**
-     * @return Quiet period in minutes between triggering builds or zero if period is not set and should be ignored.
-     */
-    public int triggerBuildQuietPeriod() {
+    /** {@inheritDoc} */
+    @Override public int triggerBuildQuietPeriod() {
         return triggerBuildQuietPeriod == null ? 0 : triggerBuildQuietPeriod;
     }
 
-    @Override
-    public String tcSuiteId() {
+    /** {@inheritDoc} */
+    @Override  public String tcSuiteId() {
         return suiteId;
     }
 
     /**
      * @return Map with parameter values for current run.
      */
-    @Nonnull public Map<String, Object> generateBuildParameters() {
+    @Override @Nonnull public Map<String, Object> generateBuildParameters() {
         if (triggerParameters == null || triggerParameters.isEmpty())
             return Collections.emptyMap();
 
@@ -145,17 +141,13 @@ public class ChainAtServerTracked extends ChainAtServer implements ITrackedChain
         return triggerParameters.stream().map(BuildParameterSpec::name);
     }
 
-    @Override
-    public String tcBranch() {
+    /** {@inheritDoc} */
+    @Override  public String tcBranch() {
         return branchForRest;
     }
 
-    /**
-     * @return Server ID to access configs within IDataSourceCfgSupplier.
-     */
-    @Override
-    public String serverCode() {
+    /** {@inheritDoc} */
+    @Override public String serverCode() {
         return serverId;
     }
-
 }

@@ -62,7 +62,7 @@ public class IgniteTeamcityHelperRunnerExample {
             String buildTypeIdAllP = "id8xIgniteGridGainTestsJava8_RunAll";
             //  buildTypeIdAll="IgniteTests24Java8_Queries1";
 
-            helper.triggerBuild(buildTypeIdAll, branchName, true, false, Collections.emptyMap());
+            helper.triggerBuild(buildTypeIdAll, branchName, true, false, Collections.emptyMap(), null);
         }
     }
 

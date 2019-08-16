@@ -33,6 +33,7 @@ import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.RevisionCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.internal.util.typedef.T2;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.ISuiteRunHistory;
@@ -101,17 +102,23 @@ public interface ITeamcityIgnited {
 
     /**
      * Trigger build. Enforces TC Bot to load all builds related to this triggered one.
-     *
      * @param buildTypeId Build type identifier.
      * @param branchName Branch name.
      * @param cleanRebuild Rebuild all dependencies.
      * @param queueAtTop Put at the top of the build queue.
      * @param buildParms addtitional build parameters, for example Java home or test suite. Use
-     *      * <code>put("testSuite", "org.apache.ignite.spi.discovery.tcp.ipfinder.elb.TcpDiscoveryElbIpFinderSelfTest");</code>
-     *      * to specify test suite to run.
+*      * <code>put("testSuite", "org.apache.ignite.spi.discovery.tcp.ipfinder.elb.TcpDiscoveryElbIpFinderSelfTest");</code>
+     * @param actualizeReferences enforce loading of triggered builds from TC now. Otherwise, return these IDS.
+     * @param freeTextComments some additional comments to be added to build (chain).
      */
-    public Build triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop,
-        Map<String, Object> buildParms);
+    public T2<Build, Set<Integer>> triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop,
+        Map<String, Object> buildParms, boolean actualizeReferences, @Nullable  String freeTextComments);
+
+    /**
+     * Runs synchronization of provided builds.
+     * @param collect Collect.
+     */
+    public void fastBuildsSync(Set<Integer> collect);
 
     /**
      * @param srvId Server id.

@@ -19,7 +19,6 @@ package org.apache.ignite.tcservice;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +27,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcservice.model.agent.Agent;
 import org.apache.ignite.tcservice.model.changes.Change;
 import org.apache.ignite.tcservice.model.changes.ChangesList;
@@ -110,11 +108,11 @@ public interface ITeamcityConn {
      * @param cleanRebuild Rebuild all dependencies.
      * @param queueAtTop Put at the top of the build queue.
      * @param buildParms addtitional build parameters, for example Java home or test suite. Use
-     * <code>put("testSuite", "org.apache.ignite.spi.discovery.tcp.ipfinder.elb.TcpDiscoveryElbIpFinderSelfTest");</code>
-     * to specify test suite to run.
+* <code>put("testSuite", "org.apache.ignite.spi.discovery.tcp.ipfinder.elb.TcpDiscoveryElbIpFinderSelfTest");</code>
+     * @param freeTextComments
      */
     public Build triggerBuild(String buildTypeId, @Nonnull String branchName, boolean cleanRebuild, boolean queueAtTop,
-        @Nullable Map<String, Object> buildParms);
+        @Nullable Map<String, Object> buildParms, @Nullable String freeTextComments);
 
     /**
      * @param buildId Build id.
