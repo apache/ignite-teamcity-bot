@@ -20,10 +20,12 @@ package org.apache.ignite.ci.runners;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.githubignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.tcbot.engine.issue.IssuesStorage;
 import org.apache.ignite.jiraignited.JiraTicketDao;
+import org.apache.ignite.tcbot.engine.user.UserAndSessionsStorage;
 
 /**
  * Utility class for local connection to TC helper DB (server) and any manipulations with data needed.
@@ -31,8 +33,23 @@ import org.apache.ignite.jiraignited.JiraTicketDao;
 public class ClientTmpHelper {
     public static void main(String[] args) {
         //select some main option here.
-        mainDropIssHist(args);
+        //mainDropIssHist(args);
+
+        mainSetUserAsAdmin(args);
     }
+
+    /**
+     * @param args Args.
+     */
+    public static void mainSetUserAsAdmin(String[] args) {
+        try (Ignite ignite = TcHelperDb.startClient()) {
+            IgniteCache<String, TcHelperUser> users = ignite.cache(UserAndSessionsStorage.USERS);
+            TcHelperUser user = users.get("dpavlov");
+            user.setAdmin(true);
+            users.put(user.username, user);
+        }
+    }
+
 
     /**
      * @param args Args.

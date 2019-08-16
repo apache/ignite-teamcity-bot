@@ -40,6 +40,7 @@ public class BoardDefectSummaryUi {
     private Set<String> tags = new HashSet<>();
 
     private List<BoardDefectIssueUi> issuesList = new ArrayList<>();
+    private boolean forceResolveAllowed;
 
     public BoardDefectSummaryUi(DefectCompacted defect, IStringCompactor compactor) {
         this.defect = defect;
@@ -160,6 +161,11 @@ public class BoardDefectSummaryUi {
         return (int) issues(IssueResolveStatus.FAILING).count();
     }
 
+    public boolean getForceResolveAllowed() {
+        return forceResolveAllowed;
+    }
+
+
     public List<BoardDefectIssueUi> getFixedIssues() {
         return issues(IssueResolveStatus.FIXED).collect(Collectors.toList());
     }
@@ -186,5 +192,9 @@ public class BoardDefectSummaryUi {
 
     public void addTags(Set<String> parameters) {
         this.tags.addAll(parameters);
+    }
+
+    public void setForceResolveAllowed(boolean admin) {
+        this.forceResolveAllowed = admin;
     }
 }

@@ -33,6 +33,7 @@ import javax.xml.bind.JAXBException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
 import org.apache.ignite.tcbot.engine.issue.IssueType;
@@ -68,11 +69,27 @@ public class RemoteClientTmpHelper {
      * @param args Args.
      */
     public static void main(String[] args) {
-        mainDumpAllUsers(args);
+        mainSetUserAsAdmin(args);
+
+        //mainDumpAllUsers(args);
         // mainExport(args);
         // mainDropInvalidIssues(args);
         System.err.println("Please insert option of main");
     }
+
+
+    /**
+     * @param args Args.
+     */
+    public static void mainSetUserAsAdmin(String[] args) {
+        try (Ignite ignite = tcbotServerConnectedClient()) {
+            IgniteCache<String, TcHelperUser> users = ignite.cache(UserAndSessionsStorage.USERS);
+            TcHelperUser user = users.get("dpavlov");
+            user.setAdmin(true);
+            users.put(user.username, user);
+        }
+    }
+
 
     public static void mainDropInvalidIssues(String[] args) {
         try (Ignite ignite = tcbotServerConnectedClient()) {

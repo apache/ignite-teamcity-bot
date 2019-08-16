@@ -28,10 +28,10 @@ import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.tcbot.engine.board.BoardService;
 
-@Path(DefectRestService.BOARD)
+@Path(DefectRestService.DEFECT)
 @Produces(MediaType.APPLICATION_JSON)
 public class DefectRestService {
-    static final String BOARD = "defect";
+    static final String DEFECT = "defect";
 
     /** Servlet Context. */
     @Context
@@ -44,12 +44,12 @@ public class DefectRestService {
 
     @POST
     @Path("resolve")
-    public void resolveDefect(@FormParam("id") Integer defectId) {
+    public void resolveDefect(@FormParam("id") Integer defectId, @FormParam("forceResolve") Boolean forceResolve) {
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
 
         CtxListener.getInjector(ctx)
                 .getInstance(BoardService.class)
-                .resolveDefect(defectId, creds);
+                .resolveDefect(defectId, creds, forceResolve);
     }
 
 }

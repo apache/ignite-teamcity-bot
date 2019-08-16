@@ -59,6 +59,8 @@ public class TcHelperUser implements IVersionedEntity, INotificationChannel {
 
     public Set<String> additionalEmails = new LinkedHashSet<>();
 
+    private Boolean admin;
+
     /** Subscribed to all failures in following tracked branches. */
     @Nullable private Set<String> subscribedToAllFailures;
 
@@ -196,6 +198,20 @@ public class TcHelperUser implements IVersionedEntity, INotificationChannel {
 
         return (this.email != null && this.email.equals(email))
             || (additionalEmails != null && additionalEmails.contains(email));
+    }
+
+    /**
+     * @param admin Administration.
+     */
+    public void setAdmin(Boolean admin) {
+        this.admin = admin;
+    }
+
+    /**
+     *
+     */
+    public boolean isAdmin() {
+        return Boolean.TRUE.equals(admin);
     }
 
     public static class Credentials {

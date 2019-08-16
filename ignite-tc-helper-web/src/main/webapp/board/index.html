@@ -63,11 +63,11 @@
                 formChanged: function () {
                 },
 
-                onResolve: function (id) {
+                onResolve: function (id, force) {
                     $.ajax({
                         url: "/rest/defect/resolve",
                         type: 'POST',
-                        data: { id: id } ,
+                        data: { id: id, forceResolve: force } ,
                         success: function (res) {
                             window.alert("Resolved defect [" + id + "]");
 
@@ -208,7 +208,8 @@
                         </tr>
                     </table>
 
-                    <button v-if="item.cntFailingIssues === 0" v-on:click="onResolve(item.id)">Resolve</button>
+                    <button v-if="item.cntFailingIssues === 0" v-on:click="onResolve(item.id, false)">Resolve</button>
+                    <button v-if="item.forceResolveAllowed === true" v-on:click="onResolve(item.id, true)" class='disabledbtn'>Force resolve</button>
                 </td>
             </template>
 
