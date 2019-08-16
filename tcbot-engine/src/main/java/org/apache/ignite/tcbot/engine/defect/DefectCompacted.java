@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -174,5 +175,31 @@ public class DefectCompacted {
 
     public void removeOldVerBlameCandidates() {
         blameCandidates.removeIf(IVersionedEntity::isOutdatedEntityVersion);
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        DefectCompacted compacted = (DefectCompacted)o;
+        return id == compacted.id &&
+            tcBranch == compacted.tcBranch &&
+            tcSrvId == compacted.tcSrvId &&
+            tcSrvCodeCid == compacted.tcSrvCodeCid &&
+            trackedBranchCid == compacted.trackedBranchCid &&
+            resolvedByUsernameId == compacted.resolvedByUsernameId &&
+            resolvedTs == compacted.resolvedTs &&
+            Objects.equals(commits, compacted.commits) &&
+            Objects.equals(blameCandidates, compacted.blameCandidates) &&
+            Objects.equals(buildsInvolved, compacted.buildsInvolved) &&
+            Objects.equals(changes, compacted.changes);
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hash(id, tcBranch, tcSrvId, tcSrvCodeCid, trackedBranchCid, resolvedByUsernameId, resolvedTs,
+            commits, blameCandidates, buildsInvolved, changes);
     }
 }

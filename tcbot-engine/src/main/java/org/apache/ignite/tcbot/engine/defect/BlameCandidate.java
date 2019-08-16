@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.tcbot.engine.defect;
 
+import java.util.Objects;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.IVersionedEntity;
 import org.apache.ignite.tcbot.persistence.Persisted;
@@ -67,5 +68,23 @@ public class BlameCandidate  implements IVersionedEntity {
 
     public void fullDisplayName(int fullDisplayName) {
         this.fullDisplayName = fullDisplayName;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        BlameCandidate candidate = (BlameCandidate)o;
+        return _ver == candidate._ver &&
+            vcsUsername == candidate.vcsUsername &&
+            tcHelperUsername == candidate.tcHelperUsername &&
+            fullDisplayName == candidate.fullDisplayName;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hash(_ver, vcsUsername, tcHelperUsername, fullDisplayName);
     }
 }

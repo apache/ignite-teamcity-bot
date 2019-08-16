@@ -140,8 +140,10 @@ public class DefectsStorage {
 
         defect.id(id);
 
-        //todo check equals/hashcode before saving
-        cache.put(id, defect);
+        DefectCompacted existingDefect = load(id);
+
+        if (existingDefect == null || !existingDefect.equals(defect))
+            save(defect);
 
         return defect;
     }
