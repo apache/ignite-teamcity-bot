@@ -86,26 +86,24 @@ public class BranchTicketMatcher {
 
     /**
      * @param tickets Tickets.
-     * @param pr Pr.
      * @param jiraCfg Jira config.
+     * @param prTitle
      */
-    @Nullable public Ticket resolveTicketIdForPrBasedContrib(Collection<Ticket> tickets, PullRequest pr,
-                                                             IJiraServerConfig jiraCfg) {
+    @Nullable public Ticket resolveTicketIdForPrBasedContrib(Collection<Ticket> tickets,
+        IJiraServerConfig jiraCfg, String prTitle) {
         String branchNumPrefix = jiraCfg.branchNumPrefix();
 
         if (Strings.isNullOrEmpty(branchNumPrefix)) {
             //an easy way, no special branch and ticket mappings specified, use project code.
             String jiraPrefix = jiraCfg.projectCodeForVisa() + Ticket.PROJECT_DELIM;
 
-            final String ticketKey = findFixPrefixedNumber(pr.getTitle(), jiraPrefix);
+            final String ticketKey = findFixPrefixedNumber(prTitle, jiraPrefix);
 
             return tickets.stream()
-                    .filter(t -> Objects.equals(t.key, ticketKey))
-                    .findFirst()
-                    .orElseGet(()->new Ticket(ticketKey));
+                .filter(t -> Objects.equals(t.key, ticketKey))
+                .findFirst()
+                .orElseGet(() -> new Ticket(ticketKey));
         }
-
-        String prTitle = pr.getTitle();
 
         String branchNum = findFixPrefixedNumber(prTitle, branchNumPrefix);
 
@@ -200,7 +198,7 @@ public class BranchTicketMatcher {
         while (endIdx < val.length() && Character.isDigit(val.charAt(endIdx)))
             endIdx++;
 
-        if (endIdx == beginIdx)
+        if (endIdx == beginIdx || endIdx - beginIdx <= 1) // protection from one digit resolution to IGNITE-2
             return null;
 
         return prefix + val.substring(beginIdx, endIdx);
@@ -263,9 +261,9 @@ public class BranchTicketMatcher {
                     ticketFromPr = jiraPrefixInPr;
                 }
                 else {
-                    if (Strings.isNullOrEmpty(jiraPrefixInPr)) {
+                    if (Strings.isNullOrEmpty(jiraPrefixInPr))
                         ticketFromPr = null;
-                    } else {
+                    else {
                         Ticket ticketMentions = findTicketMentions(srvCode, jiraPrefixInPr);
 
                         ticketFromPr = ticketMentions == null ? null : ticketMentions.key;

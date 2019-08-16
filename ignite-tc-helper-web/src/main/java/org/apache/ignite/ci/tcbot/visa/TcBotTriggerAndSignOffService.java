@@ -430,12 +430,18 @@ public class TcBotTriggerAndSignOffService {
                 if (user != null) {
                     c.prAuthor = user.login();
                     c.prAuthorAvatarUrl = user.avatarUrl();
-                } else {
+                }
+                else {
                     c.prAuthor = "";
                     c.prAuthorAvatarUrl = "";
                 }
 
-                Ticket ticket = ticketMatcher.resolveTicketIdForPrBasedContrib(tickets, pr, jiraCfg);
+                Ticket ticket = ticketMatcher.resolveTicketIdForPrBasedContrib(tickets, jiraCfg, pr.getTitle());
+
+                if (ticket == null || ticket.id == 0) {
+                    if (pr.head() != null && pr.head().ref() != null)
+                        ticket = ticketMatcher.resolveTicketIdForPrBasedContrib(tickets, jiraCfg, pr.head().ref());
+                }
 
                 c.jiraIssueId = ticket == null ? null : ticket.key;
                 c.jiraStatusName = ticket == null ? null : ticket.status();
