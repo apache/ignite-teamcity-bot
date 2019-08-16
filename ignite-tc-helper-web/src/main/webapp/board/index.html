@@ -34,7 +34,7 @@
 
         loadData();
 
-        setInterval(loadDataSilent, 3000);
+        setInterval(loadDataSilent, 7000);
 
         $.ajax({ url: "/rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
     });

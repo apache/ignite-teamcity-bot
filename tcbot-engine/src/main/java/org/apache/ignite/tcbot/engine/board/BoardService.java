@@ -20,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -212,7 +213,7 @@ public class BoardService {
         changeDao.init();
 
         AtomicInteger cntIssues = new AtomicInteger();
-        AtomicInteger cntDefects = new AtomicInteger();
+        HashSet<Integer> processedDefects = new HashSet<>();
         stream
             .filter(issue -> {
                 long detected = issue.detectedTs == null ? 0 : issue.detectedTs;
@@ -247,7 +248,7 @@ public class BoardService {
                 int tcSrvCodeCid = compactor.getStringId(srvCode);
                 defectStorage.merge(tcSrvCodeCid, srvId, fatBuild,
                     (k, defect) -> {
-                        cntDefects.incrementAndGet();
+                        processedDefects.add(defect.id());
 
                         defect.trackedBranchCidSetIfEmpty(trackedBranchCid);
 
@@ -263,7 +264,7 @@ public class BoardService {
 
             });
 
-        return cntDefects.get() + " defects processed for " + cntIssues.get() + " issues checked";
+        return processedDefects.size() + " defects processed for " + cntIssues.get() + " issues checked";
     }
 
     private void fillBlameCandidates(int srvId, FatBuildCompacted fatBuild, DefectCompacted defect) {
