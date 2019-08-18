@@ -47,7 +47,7 @@ allprojects {
         jettyVer = '9.4.12.v20180830'
 
         // ignVer = '2.7.0'
-        ignVer = '2.7.5'
+        ignVer = '2.7.6'
         //  ignVer = '2.7.0-SNAPSHOT'
 
         guavaVer = '26.0-jre'
@@ -66,9 +66,9 @@ allprojects {
 
     repositories {
         //uncomment for RC testing
-        // maven {
-        //     url "https://repository.apache.org/content/repositories/orgapacheignite-1463/"
-        // }
+        maven {
+            url "https://repository.apache.org/content/repositories/orgapacheignite-1464/"
+        }
 
         mavenCentral()
         mavenLocal()
