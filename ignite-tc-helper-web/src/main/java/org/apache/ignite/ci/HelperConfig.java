@@ -48,8 +48,7 @@ public class HelperConfig {
         File file = new File(workDir, cfgFileName);
 
         Preconditions.checkState(file.exists(),
-            "Please setup parameters for service in config file [branches.json]. " +
-                "See conf directory for examples");
+            String.format("Config file %s is not found in work directory %s", cfgFileName, workDir.getAbsolutePath()));
 
         return loadProps(file);
     }

@@ -101,7 +101,7 @@ public class MockBasedTcBotModule extends AbstractModule {
 
             /** {@inheritDoc} */
             @Override public ITcServerConfig getTeamcityConfig(String srvCode) {
-                return new TcServerConfig().code(srvCode).properties(loadOldProps(srvCode));
+                return new TcServerConfig().code(srvCode);
             }
 
             @Override public IJiraServerConfig getJiraConfig(String srvCode) {
@@ -114,14 +114,6 @@ public class MockBasedTcBotModule extends AbstractModule {
 
             @Override public NotificationsConfig notifications() {
                 return new NotificationsConfig();
-            }
-
-            private Properties loadOldProps(String srvCode) {
-                File workDir = TcBotWorkDir.resolveWorkDir();
-
-                String cfgName = HelperConfig.prepareConfigName(srvCode);
-
-                return HelperConfig.loadAuthProperties(workDir, cfgName);
             }
         };
         bind(ITcBotConfig.class).toInstance(cfg);
