@@ -58,6 +58,20 @@ public class TriggerBuilds {
     @Context
     private HttpServletRequest req;
 
+    /**
+     * Triggers re-running possible blocker suites.
+     *
+     * @param srvCodeOrAlias Server code or alias (e.g. Apache Ignite, GridGain, GGPrivate).
+     * @param branchForTc Branch name for TeamCity triggering.
+     * @param parentSuiteId Parent suite id for suite need to be re-run.
+     * @param suiteIdList Suite ids need to be re-run (possible blockers).
+     * @param top If {@code true} re-running suites will be placed at the top of TC queue.
+     * @param observe If {@code true} JIRA will be commented with current state of possible blockers.
+     * @param ticketId JIRA ticket id.
+     * @param prNum Pull request number in appropriate project (@code srvCodeOrAlias).
+     * @param baseBranchForTc Base branch for possible blockers comparison (e.g. master, 8.8-master)
+     * @return Result of triggering suites re-run.
+     */
     @GET
     @Path("trigger")
     public TriggerResult triggerBuilds(

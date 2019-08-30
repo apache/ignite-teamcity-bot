@@ -291,12 +291,12 @@ function showChainCurrentStatusData(chain, settings) {
             "\"" + parentSuitId + "\", " +
             "\"" + blockersList + "\", " +
             "\"" + chain.branchName + "\", " +
-            "false, " + //top
-            "true, " + //observe
+            "true, " + //top
+            "false, " + //observe
             "null, " + // ticketId
             "\"" + chain.prNum + "\", " + //prNum
             "\"" + baseBranchForTc + "\")'> " +
-            "Re-run possible blockers & Comment JIRA</button><br>";
+            "Re-run possible blockers (top queue)</button><br>";
     }
 
     if (isDefinedAndFilled(baseBranchForTc)) {
