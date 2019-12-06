@@ -16,26 +16,34 @@
  */
 package org.apache.ignite.ci.web.rest.monitoring;
 
-import javax.ws.rs.POST;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.CacheMetrics;
 import org.apache.ignite.cache.affinity.Affinity;
+import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfilingInterceptor;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTaskInterceptor;
-import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
+import org.apache.ignite.tcbot.notify.ISlackSender;
 
 import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import java.util.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.ignite.ci.web.model.SimpleResult;
 
 @Path("monitoring")
 @Produces(MediaType.APPLICATION_JSON)
@@ -92,6 +100,29 @@ public class MonitoringService {
         AutoProfilingInterceptor instance = CtxListener.getInjector(ctx).getInstance(AutoProfilingInterceptor.class);
 
         instance.reset();
+
+        return new SimpleResult("Ok");
+    }
+
+    @POST
+    @PermitAll
+    @Path("testSlackNotification")
+    public SimpleResult testSlackNotification() {
+        ISlackSender slackSender = CtxListener.getInjector(ctx).getInstance(ISlackSender.class);
+
+        ITcBotConfig tcBotConfig = CtxListener.getInjector(ctx).getInstance(ITcBotConfig.class);
+
+        try {
+            NotificationsConfig notifications = tcBotConfig.notifications();
+
+            for (INotificationChannel channel : notifications.channels()) {
+                if (channel.slack() != null)
+                    slackSender.sendMessage(channel.slack(), "Test Slack notification message!", notifications);
+            }
+        }
+        catch (IOException e) {
+            return new SimpleResult("Failed to send test Slack message: " + e.getMessage());
+        }
 
         return new SimpleResult("Ok");
     }
