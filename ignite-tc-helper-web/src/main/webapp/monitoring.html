@@ -146,6 +146,19 @@
         });
     }
 
+    function testSlackNotification() {
+        $.ajax({
+            url: "rest/monitoring/testSlackNotification",
+            method: "post",
+            success: function(result) {
+                alert(JSON.stringify(result));
+            },
+            error: function(result) {
+                alert(JSON.stringify(result));
+            }
+        });
+    }
+
 </script>
 
 Tasks Monitoring Data:
@@ -162,6 +175,11 @@ Tasks Monitoring Data:
 <div id="caches" style="font-family: monospace"></div>
 
 <br>
+
+<hr>
+<b>Test Slack notification:</b> <button onclick="testSlackNotification()">Send</button>
+<br>
+
 <div id="loadStatus"></div>
 <div id="version"></div>
 
