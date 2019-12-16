@@ -60,6 +60,7 @@ import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.internal.util.typedef.T2;
 import org.apache.ignite.jiraignited.IJiraIgnited;
 import org.apache.ignite.jiraignited.IJiraIgnitedProvider;
+import org.apache.ignite.jiraservice.JiraTicketStatusCode;
 import org.apache.ignite.jiraservice.Ticket;
 import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
 import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
@@ -246,7 +247,7 @@ public class TcBotTriggerAndSignOffService {
                 String muteTicket = mute.assignment.text.substring(pos + browseUrl.length());
 
                 if (ticket.key.equals(muteTicket)) {
-                    mute.ticketStatus = ticket.status();
+                    mute.ticketStatus = JiraTicketStatusCode.text(ticket.status());
 
                     break;
                 }
@@ -444,7 +445,7 @@ public class TcBotTriggerAndSignOffService {
                 }
 
                 c.jiraIssueId = ticket == null ? null : ticket.key;
-                c.jiraStatusName = ticket == null ? null : ticket.status();
+                c.jiraStatusName = ticket == null ? null : JiraTicketStatusCode.text(ticket.status());
 
                 if (!Strings.isNullOrEmpty(c.jiraIssueId)
                         && jiraCfg.getUrl() != null)
@@ -462,7 +463,9 @@ public class TcBotTriggerAndSignOffService {
 
         List<String> branches = gitHubConnIgnited.getBranches();
 
-        List<Ticket> activeTickets = tickets.stream().filter(Ticket::isActiveContribution).collect(Collectors.toList());
+        List<Ticket> activeTickets = tickets.stream()
+            .filter(ticket -> JiraTicketStatusCode.isActiveContribution(ticket.status()))
+            .collect(Collectors.toList());
 
         activeTickets.forEach(ticket -> {
             String branch = ticketMatcher.resolveTcBranchForPrLess(ticket,
@@ -480,7 +483,7 @@ public class TcBotTriggerAndSignOffService {
             ContributionToCheck contribution = new ContributionToCheck();
 
             contribution.jiraIssueId = ticket.key;
-            contribution.jiraStatusName = ticket.status();
+            contribution.jiraStatusName = JiraTicketStatusCode.text(ticket.status());
             contribution.jiraIssueUrl = jiraIntegration.generateTicketUrl(ticket.key);
             contribution.tcBranchName = branch;
 

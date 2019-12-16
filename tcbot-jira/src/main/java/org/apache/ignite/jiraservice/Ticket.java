@@ -56,11 +56,11 @@ public class Ticket {
      * @return Ticket status (open, resolved, etc);
      */
     @Nullable
-    public String status() {
+    public JiraTicketStatusCode status() {
         if (fields == null || fields.status == null)
             return null;
 
-        return fields.status.name;
+        return fields.status.statusCode;
     }
 
     /** {@inheritDoc} */
@@ -70,18 +70,5 @@ public class Ticket {
             .add("key", key)
             .add("fields", fields)
             .toString();
-    }
-
-    /**
-     * Checks if ticket relates to some Active (In progress/Patch Available) Contribution.
-     */
-    public boolean isActiveContribution() {
-        String status = status();
-
-        return Status.PA_NAME.equals(status)
-            || Status.IP_NAME.equals(status)
-            || Status.OPEN_NAME.equals(status)
-            || Status.BACKLOG_NAME.equals(status)
-            || Status.REOPENED_NAME.equals(status);
     }
 }

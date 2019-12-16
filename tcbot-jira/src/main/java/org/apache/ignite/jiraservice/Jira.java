@@ -19,6 +19,7 @@ package org.apache.ignite.jiraservice;
 
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
@@ -53,7 +54,9 @@ class Jira implements IJiraIntegration {
     /** {@inheritDoc} */
     @Override public Tickets getTicketsPage(String url) {
         try {
-            return new Gson().fromJson(sendGetToJira(url), Tickets.class);
+            Gson gson = new GsonBuilder().registerTypeAdapterFactory(new ReadResolveFactory()).create();
+
+            return gson.fromJson(sendGetToJira(url), Tickets.class);
         }
         catch (Exception e) {
             String errMsg = "Exception happened during receiving JIRA tickets " +
