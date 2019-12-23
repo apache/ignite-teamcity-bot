@@ -19,7 +19,10 @@ package org.apache.ignite.ci.jobs;
 
 import com.google.common.base.Strings;
 import java.text.MessageFormat;
+import java.time.DayOfWeek;
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -122,6 +125,13 @@ public class CheckQueueJob implements Runnable {
         }
         for (Map.Entry<String, List<ITrackedChain>> entry : chainsBySrv.entrySet()) {
             String srvCode = entry.getKey();
+
+            if (autoTriggerDisabledForWorkingHours(srvCode)) {
+                final String msg = "Automatic build triggering was disabled during working hours.";
+                logger.info(msg);
+
+                return msg;
+            }
 
             List<ITrackedChain> chainsAll = entry.getValue();
             List<ITrackedChain> chains = chainsAll.stream()
@@ -326,5 +336,31 @@ public class CheckQueueJob implements Runnable {
                 });
 
         return chainsBySrv;
+    }
+
+    /**
+     * @param srvCode Server code.
+     * @return {@code true} if auto-triggering disabled for working hours.
+     */
+    private boolean autoTriggerDisabledForWorkingHours(String srvCode) {
+
+        DayOfWeek curDayOfWeek = LocalDate.now().getDayOfWeek();
+
+        if (curDayOfWeek == DayOfWeek.SATURDAY || curDayOfWeek == DayOfWeek.SUNDAY)
+            return false;
+
+        String startTime = cfg.getTeamcityConfig(srvCode).autoTriggeringBuildDisabledStartTime();
+
+        String endTime = cfg.getTeamcityConfig(srvCode).autoTriggeringBuildDisabledEndTime();
+
+        if (startTime == null || endTime == null)
+            return false;
+
+        LocalTime now = LocalTime.now();
+
+        if (now.isAfter(LocalTime.parse(startTime)) && now.isBefore(LocalTime.parse(endTime)))
+            return true;
+
+        return false;
     }
 }

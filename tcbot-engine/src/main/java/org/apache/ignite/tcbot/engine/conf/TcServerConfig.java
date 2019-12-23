@@ -17,6 +17,7 @@
 package org.apache.ignite.tcbot.engine.conf;
 
 import com.google.common.base.Strings;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -68,6 +69,12 @@ public class TcServerConfig implements ITcServerConfig {
 
     /** Additional service code to check access before allowing accessing this service. */
     private String additionalServiceToCheckAccess;
+
+    /** Time as auto-triggering build is disabled. {@link DateTimeFormatter.ISO_LOCAL_TIME} must be used. */
+    @Nullable private String autoTriggeringBuildDisabledStartTime;
+
+    /** Time as auto-triggering build is enabled. {@link DateTimeFormatter.ISO_LOCAL_TIME} must be used. */
+    @Nullable private String autoTriggeringBuildDisabledEndTime;
 
     public TcServerConfig() {
 
@@ -163,5 +170,15 @@ public class TcServerConfig implements ITcServerConfig {
         this.code = srvCode;
 
         return this;
+    }
+
+    /** {@inheritDoc} */
+    public String autoTriggeringBuildDisabledStartTime() {
+        return autoTriggeringBuildDisabledStartTime;
+    }
+
+    /** {@inheritDoc} */
+    public String autoTriggeringBuildDisabledEndTime() {
+        return autoTriggeringBuildDisabledEndTime;
     }
 }
