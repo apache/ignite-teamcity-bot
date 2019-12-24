@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.tcbot.common.conf;
 
+import java.time.format.DateTimeFormatter;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 import javax.annotation.Nullable;
@@ -72,4 +73,14 @@ public interface ITcServerConfig {
      * @return set of suite codes (build type IDs), failures in which should be threated as critical and notified.
      */
     @NonNull public Collection<String> trustedSuites();
+
+    /**
+     * @return Time as auto-triggering build is disabled. {@link DateTimeFormatter.ISO_LOCAL_TIME} must be used.
+     */
+    @Nullable String autoTriggeringBuildDisabledStartTime();
+
+    /**
+     * @return Time as auto-triggering build is enabled. {@link DateTimeFormatter.ISO_LOCAL_TIME} must be used.
+     */
+    @Nullable String autoTriggeringBuildDisabledEndTime();
 }
