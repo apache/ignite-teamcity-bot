@@ -17,15 +17,15 @@
 
 package org.apache.ignite.ci.jira.ignited;
 
-import java.util.Objects;
+import org.apache.ignite.ci.tcbot.common.StringFieldCompacted;
 import org.apache.ignite.jiraservice.Fields;
 import org.apache.ignite.jiraservice.Status;
 import org.apache.ignite.jiraservice.Ticket;
-import org.apache.ignite.ci.tcbot.common.StringFieldCompacted;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.Persisted;
 
 import javax.annotation.Nullable;
+import java.util.Objects;
 
 /**
  *
@@ -38,8 +38,12 @@ public class TicketCompacted {
     /** Ticket number, integer value like 123 from name like "IGNITE-123". */
     public int igniteId;
 
-    /** Id of string: Fields/status/name, value compacted. */
-    public int status;
+    /**
+     * Id of string: Fields/status/name, value compacted.
+     * @deprecated {@link #statusCodeId} is used for storing status now,
+     * field is kept to prevent accidental binary schema compatibility breaking in the future.
+     */
+    @Deprecated public int status;
 
     /** Summary, nullable because of older entries. */
     @Nullable private StringFieldCompacted summary = new StringFieldCompacted();
@@ -50,6 +54,9 @@ public class TicketCompacted {
     /** Full description, nullable because of older entry versions. */
     @Nullable private StringFieldCompacted description = new StringFieldCompacted();
 
+    /** Internal JIRA id of ticket status, see {@link org.apache.ignite.jiraservice.JiraTicketStatusCode}. */
+    public int statusCodeId;
+
     /**
      * @param ticket Jira ticket.
      * @param comp Compactor.
@@ -58,7 +65,7 @@ public class TicketCompacted {
     public TicketCompacted(Ticket ticket, IStringCompactor comp, String projectCode) {
         id = ticket.id;
         igniteId = ticket.keyWithoutProject(projectCode);
-        status = comp.getStringId(ticket.fields.status.name);
+        statusCodeId = ticket.fields.status.id;
         summary.setValue(ticket.fields.summary);
         customfield_11050.setValue(ticket.fields.customfield_11050);
         description.setValue(ticket.fields.description);
@@ -74,7 +81,7 @@ public class TicketCompacted {
         ticket.id = id;
         ticket.key = projectCode + Ticket.PROJECT_DELIM + igniteId;
         ticket.fields = new Fields();
-        ticket.fields.status = new Status(comp.getStringFromId(status));
+        ticket.fields.status = new Status(statusCodeId);
         ticket.fields.summary = summary != null ? summary.getValue() : null;
         ticket.fields.customfield_11050 = customfield_11050 != null ? customfield_11050.getValue() : null;
         ticket.fields.description = description != null ? description.getValue() : null;
@@ -94,7 +101,7 @@ public class TicketCompacted {
 
         return id == compacted.id &&
             igniteId == compacted.igniteId &&
-            status == compacted.status &&
+            statusCodeId == compacted.statusCodeId &&
             Objects.equals(summary, compacted.summary) &&
             Objects.equals(customfield_11050, compacted.customfield_11050) &&
             Objects.equals(description, compacted.description);
@@ -102,6 +109,6 @@ public class TicketCompacted {
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(id, igniteId, status, summary, customfield_11050, description);
+        return Objects.hash(id, igniteId, statusCodeId, summary, customfield_11050, description);
     }
 }

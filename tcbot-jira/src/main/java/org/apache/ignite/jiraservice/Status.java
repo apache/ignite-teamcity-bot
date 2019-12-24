@@ -17,39 +17,44 @@
 
 package org.apache.ignite.jiraservice;
 
+import java.io.ObjectStreamException;
+
 /**
  * Status for Jira ticket.
- *
- * "Closed" "Open" "Backlog" "Resolved" "In Progress" "Pending" "Patch Available" "Reopened" "Patch Reviewed"
  */
 public class Status {
-    /** Open status name. */
-    public static final String OPEN_NAME = "Open";
-
-    /** Reopened status name. */
-    public static final String REOPENED_NAME = "Reopened";
-
-    /** Backlog status name. */
-    public static final String BACKLOG_NAME = "Backlog";
-
-    /** Patch Available status name. */
-    public static final String PA_NAME = "Patch Available";
-
-    /** In Progress status name. */
-    public static final String IP_NAME = "In Progress";
-
     /** Status text (open, resolved, etc). */
     public String name;
 
+    /** Internal JIRA status ID. */
+    public int id;
+
+    /** Resolved well-known status code. */
+    public JiraTicketStatusCode statusCode;
+
     /**
-     * @param name Name.
+     * @param id JIRA status ID.
      */
-    public Status(String name) {
-        this.name = name;
+    public Status(int id) {
+        this.id = id;
+
+        try {
+            readResolve();
+        } catch (ObjectStreamException e) {
+            // Should be never thrown.
+        }
     }
 
-    /** {@inheritDoc} */
-    @Override public String toString() {
-        return name;
+    /**
+     * Reconstructs object on unmarshalling.
+     *
+     * @return Reconstructed object.
+     * @throws ObjectStreamException Thrown in case of unmarshalling error.
+     */
+    protected Object readResolve() throws ObjectStreamException {
+        statusCode = JiraTicketStatusCode.fromId(id);
+        name = JiraTicketStatusCode.text(statusCode);
+
+        return this;
     }
 }
