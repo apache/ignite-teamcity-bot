@@ -17,6 +17,7 @@
 package org.apache.ignite.tcbot.engine.pr;
 
 import com.google.common.base.Strings;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -40,17 +41,21 @@ import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
 import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
 import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
+import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi;
+import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi1;
 import org.apache.ignite.tcbot.engine.ui.ShortTestFailureUi;
+import org.apache.ignite.tcbot.engine.ui.ShortTestUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcignited.build.TestCompactedV2;
 import org.apache.ignite.tcignited.build.UpdateCountersStorage;
 import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
@@ -285,6 +290,45 @@ public class PrChainsProcessor {
     }
 
     /**
+     * @param buildTypeId  Build type ID, for which visa was ordered.
+     * @param branchForTc Branch for TeamCity.
+     * @param srvCodeOrAlias Server id.
+     * @param prov Credentials.
+     * @param syncMode
+     * @param baseBranchForTc
+     * @return List of suites with possible blockers.
+     */
+    @Nullable
+    public List<ShortSuiteUi1> getBlockersAndNewTestsSuitesStatuses(
+        String buildTypeId,
+        String branchForTc,
+        String srvCodeOrAlias,
+        ICredentialsProv prov,
+        SyncMode syncMode,
+        @Nullable String baseBranchForTc) {
+        ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvCodeOrAlias, prov);
+
+        List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(buildTypeId, branchForTc, 1);
+
+        String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? dfltBaseTcBranch(srvCodeOrAlias) : baseBranchForTc;
+
+        FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
+            tcIgnited,
+            hist,
+            LatestRebuildMode.LATEST,
+            ProcessLogsMode.SUITE_NOT_COMPLETE,
+            false,
+            baseBranch,
+            syncMode,
+            null, null);
+
+        if (ctx.isFakeStub())
+            return null;
+
+        return findNewTests(ctx, tcIgnited, baseBranch);
+    }
+
+    /**
      * @return Blocker failures for given server.
      * @param fullChainRunCtx
      * @param tcIgnited
@@ -322,6 +366,60 @@ public class PrChainsProcessor {
                         .testShortFailures(failures)
                         .initFrom(ctx, tcIgnited, compactor, statInBaseBranch);
                 }
+
+                return null;
+            })
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * @return Blocker failures for given server.
+     * @param fullChainRunCtx
+     * @param tcIgnited
+     * @param baseBranch
+     */
+    //todo may avoid creation of UI model for simple comment.
+    private List<ShortSuiteUi1> findNewTests(FullChainRunCtx fullChainRunCtx,
+        ITeamcityIgnited tcIgnited,
+        String baseBranch) {
+        String normalizedBaseBranch = BranchEquivalence.normalizeBranch(baseBranch);
+        Integer baseBranchId = compactor.getStringIdIfPresent(normalizedBaseBranch);
+
+        Predicate<MultBuildRunCtx> filter = suite ->
+            suite.isFailed() || suite.hasTestToReport(tcIgnited, baseBranchId, false, false);
+
+        return fullChainRunCtx
+            .suites()
+            .map((ctx) -> {
+                IRunHistory statInBaseBranch = ctx.history(tcIgnited, baseBranchId, null);
+
+//                String suiteComment = ctx.getPossibleBlockerComment(compactor, statInBaseBranch, tcIgnited.config());
+
+//                List<TestCompactedMult> missingTests = ctx.getFilteredTests(test -> test.history(tcIgnited, baseBranchId, null) == null);
+
+                List<TestCompactedMult> tests1 = new ArrayList<>();
+                List<ShortTestUi> missingTests = ctx.getFilteredTests(test -> {
+                    IRunHistory history = test.history(tcIgnited, baseBranchId, null);
+                    if (history == null) {
+                        tests1.add(test);
+                    }
+                    return history == null;
+                })
+                    .stream()
+                    .map(occurrence -> {
+                        ShortTestUi tst = new ShortTestUi().initFrom(occurrence, occurrence.isPassed());
+
+                        return tst;
+                    }).filter(Objects::nonNull).collect(Collectors.toList());
+
+                // test failure based blockers and/or blocker found by suite results
+                if (!missingTests.isEmpty()) {
+                    return new ShortSuiteUi1()
+                        .tests(missingTests)
+                        .initFrom(ctx);
+                }
+//                ((TestCompactedV2)tests1.get(0).occurrences.get(tests1.get(0).occurrences.size()-1)).status == TestCompactedV2.STATUS_SUCCESS_CID
 
                 return null;
             })

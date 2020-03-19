@@ -69,7 +69,9 @@ import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.pr.BranchTicketMatcher;
 import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
 import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi;
+import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi1;
 import org.apache.ignite.tcbot.engine.ui.ShortTestFailureUi;
+import org.apache.ignite.tcbot.engine.ui.ShortTestUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
@@ -828,13 +830,17 @@ public class TcBotTriggerAndSignOffService {
                 SyncMode.RELOAD_QUEUED,
                 baseBranch);
 
+            List<ShortSuiteUi1> newTestsStatuses = prChainsProcessor.getBlockersAndNewTestsSuitesStatuses(buildTypeId, build.branchName, srvCodeOrAlias, prov,
+                SyncMode.RELOAD_QUEUED,
+                baseBranch);
+
             if (suitesStatuses == null)
                 return new Visa("JIRA wasn't commented - no finished builds to analyze." +
                     " Check builds availabiliy for branch: " + build.branchName + "/" + baseBranch);
 
             blockers = suitesStatuses.stream().mapToInt(ShortSuiteUi::totalBlockers).sum();
 
-            String comment = generateJiraComment(suitesStatuses, build.webUrl, buildTypeId, tcIgnited, blockers, build.branchName, baseBranch);
+            String comment = generateJiraComment(suitesStatuses, newTestsStatuses, build.webUrl, buildTypeId, tcIgnited, blockers, build.branchName, baseBranch);
 
 
             res = objMapper.readValue(jira.postJiraComment(ticket, comment), JiraCommentResponse.class);
@@ -861,7 +867,7 @@ public class TcBotTriggerAndSignOffService {
      * @param baseBranch TC Base branch used for comment
      * @return Comment, which should be sent to the JIRA ticket.
      */
-    private String generateJiraComment(List<ShortSuiteUi> suites, String webUrl, String buildTypeId,
+    private String generateJiraComment(List<ShortSuiteUi> suites, List<ShortSuiteUi1> newTestsStatuses, String webUrl, String buildTypeId,
         ITeamcityIgnited tcIgnited, int blockers, String branchName, String baseBranch) {
         BuildTypeRefCompacted bt = tcIgnited.getBuildTypeRef(buildTypeId);
 
@@ -904,6 +910,18 @@ public class TcBotTriggerAndSignOffService {
 
                     break;
                 }
+            }
+
+            res.append("\\n");
+        }
+
+        for (ShortSuiteUi1 suite : newTestsStatuses) {
+
+            for (ShortTestUi test : suite.tests()) {
+                res.append("* ");
+                res.append(test.testName);
+                res.append(" ");
+                res.append(test.status);
             }
 
             res.append("\\n");
