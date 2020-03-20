@@ -915,16 +915,45 @@ public class TcBotTriggerAndSignOffService {
             res.append("\\n");
         }
 
+        StringBuilder newTests = new StringBuilder();
+
+        int newTestsCount = 0;
+
         for (ShortSuiteUi1 suite : newTestsStatuses) {
+            newTests.append("{color:#d04437}");
+
+            newTests.append(jiraEscText(suite.name)).append("{color}");
+
+            int totalNewTests = suite.tests.size();
+            newTests.append(" [tests ").append(totalNewTests);
+
+            int cnt = 0;
+
+            newTestsCount += suite.tests().size();
+
+            newTests.append("]\\n");
 
             for (ShortTestUi test : suite.tests()) {
-                res.append("* ");
-                res.append(test.testName);
-                res.append(" ");
-                res.append(test.status);
+                newTests.append("* ");
+
+                if (test.suiteName != null && test.testName != null)
+                    newTests.append(jiraEscText(test.suiteName)).append(": ").append(jiraEscText(test.testName));
+                else
+                    newTests.append(jiraEscText(test.name));
+
+                newTests.append(" - ").append(jiraEscText(test.status ? "OK" : "FAIL"));
+
+                newTests.append("\\n");
+
+                cnt++;
+                if (cnt > 10) {
+                    newTests.append("... and ").append(totalNewTests - cnt).append(" tests blockers\\n");
+
+                    break;
+                }
             }
 
-            res.append("\\n");
+            newTests.append("\\n");
         }
 
         String suiteNameForComment = jiraEscText(suiteNameUsedForVisa);
@@ -946,7 +975,19 @@ public class TcBotTriggerAndSignOffService {
                 .append("borderStyle=dashed|borderColor=#ccc|titleBGColor=#D6F7C1}{panel}");
         }
 
-        res.append("\\n").append("[TeamCity *").append(suiteNameForComment).append("* Results|").append(webUrl).append(']');
+        if (newTests.length() > 0) {
+            String hdrPanel = "{panel:title=" + branchVsBaseComment + ": New Tests (" + newTestsCount + ")|" +
+                "borderStyle=dashed|borderColor=#ccc|titleBGColor=#F7D6C1}\\n";
+
+            newTests.insert(0, hdrPanel)
+                .append("{panel}");
+        }
+        else {
+            newTests.append("{panel:title=").append(branchVsBaseComment).append(": No new tests found!|")
+                .append("borderStyle=dashed|borderColor=#ccc|titleBGColor=#D6F7C1}{panel}");
+        }
+
+        res.append("\\n").append(newTests).append("\\n").append("[TeamCity *").append(suiteNameForComment).append("* Results|").append(webUrl).append(']');
 
         return xmlEscapeText(res.toString());
     }

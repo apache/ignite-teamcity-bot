@@ -35,7 +35,7 @@ public class ShortTestUi {
 
 
     /** Test status */
-    @Nullable public String status;
+    @Nullable public boolean status;
 
     public ShortTestUi initFrom(@Nonnull TestCompactedMult failure, boolean status) {
         name = failure.getName();
@@ -46,7 +46,7 @@ public class ShortTestUi {
             this.testName = extractTest(split[1]);
         }
 
-        this.status = Boolean.toString(status);
+        this.status = status;
 
         return this;
     }
