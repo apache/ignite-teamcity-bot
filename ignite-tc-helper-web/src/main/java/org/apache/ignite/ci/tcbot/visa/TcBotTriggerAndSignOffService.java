@@ -69,7 +69,7 @@ import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.pr.BranchTicketMatcher;
 import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
 import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi;
-import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi1;
+import org.apache.ignite.tcbot.engine.ui.ShortSuiteNewTestsUi;
 import org.apache.ignite.tcbot.engine.ui.ShortTestFailureUi;
 import org.apache.ignite.tcbot.engine.ui.ShortTestUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -830,7 +830,7 @@ public class TcBotTriggerAndSignOffService {
                 SyncMode.RELOAD_QUEUED,
                 baseBranch);
 
-            List<ShortSuiteUi1> newTestsStatuses = prChainsProcessor.getBlockersAndNewTestsSuitesStatuses(buildTypeId, build.branchName, srvCodeOrAlias, prov,
+            List<ShortSuiteNewTestsUi> newTestsStatuses = prChainsProcessor.getBlockersAndNewTestsSuitesStatuses(buildTypeId, build.branchName, srvCodeOrAlias, prov,
                 SyncMode.RELOAD_QUEUED,
                 baseBranch);
 
@@ -867,7 +867,7 @@ public class TcBotTriggerAndSignOffService {
      * @param baseBranch TC Base branch used for comment
      * @return Comment, which should be sent to the JIRA ticket.
      */
-    private String generateJiraComment(List<ShortSuiteUi> suites, List<ShortSuiteUi1> newTestsStatuses, String webUrl, String buildTypeId,
+    private String generateJiraComment(List<ShortSuiteUi> suites, List<ShortSuiteNewTestsUi> newTestsStatuses, String webUrl, String buildTypeId,
         ITeamcityIgnited tcIgnited, int blockers, String branchName, String baseBranch) {
         BuildTypeRefCompacted bt = tcIgnited.getBuildTypeRef(buildTypeId);
 
@@ -919,7 +919,7 @@ public class TcBotTriggerAndSignOffService {
 
         int newTestsCount = 0;
 
-        for (ShortSuiteUi1 suite : newTestsStatuses) {
+        for (ShortSuiteNewTestsUi suite : newTestsStatuses) {
             newTests.append("{color:#d04437}");
 
             newTests.append(jiraEscText(suite.name)).append("{color}");

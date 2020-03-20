@@ -94,7 +94,7 @@ public class DsChainUi {
     public List<DsSuiteUi> suites = new ArrayList<>();
 
     /** Suites with new tests involved in chain. */
-    public List<ShortSuiteUi1> newTestsUi = new ArrayList<>();
+    public List<ShortSuiteNewTestsUi> newTestsUi = new ArrayList<>();
 
     /** Count of failed tests not muted tests. In case several runs are used, overall by all runs. */
     public Integer failedTests;
@@ -245,7 +245,7 @@ public class DsChainUi {
                         return tst;
                     }).filter(Objects::nonNull).collect(Collectors.toList());
                 if (!missingTests.isEmpty()) {
-                    return new ShortSuiteUi1()
+                    return new ShortSuiteNewTestsUi()
                         .tests(missingTests)
                         .initFrom(suite);
                 }

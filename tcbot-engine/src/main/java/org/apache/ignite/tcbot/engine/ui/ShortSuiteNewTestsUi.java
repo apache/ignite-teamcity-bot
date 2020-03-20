@@ -16,20 +16,13 @@
  */
 package org.apache.ignite.tcbot.engine.ui;
 
-import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.tcignited.ITeamcityIgnited;
-import org.apache.ignite.tcignited.history.IRunHistory;
 
-import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.buildWebLinkToBuild;
-
-public class ShortSuiteUi1 extends DsHistoryStatUi {
+public class ShortSuiteNewTestsUi extends DsHistoryStatUi {
     /** Suite Name */
     public String name;
 
@@ -39,13 +32,13 @@ public class ShortSuiteUi1 extends DsHistoryStatUi {
         return tests;
     }
 
-    public ShortSuiteUi1 tests(List<ShortTestUi> tests) {
+    public ShortSuiteNewTestsUi tests(List<ShortTestUi> tests) {
         this.tests = tests;
 
         return this;
     }
 
-    public ShortSuiteUi1 initFrom(@Nonnull MultBuildRunCtx suite) {
+    public ShortSuiteNewTestsUi initFrom(@Nonnull MultBuildRunCtx suite) {
         name = suite.suiteName();
 
         return this;

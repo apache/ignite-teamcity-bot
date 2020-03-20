@@ -48,14 +48,13 @@ import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi;
-import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi1;
+import org.apache.ignite.tcbot.engine.ui.ShortSuiteNewTestsUi;
 import org.apache.ignite.tcbot.engine.ui.ShortTestFailureUi;
 import org.apache.ignite.tcbot.engine.ui.ShortTestUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
-import org.apache.ignite.tcignited.build.TestCompactedV2;
 import org.apache.ignite.tcignited.build.UpdateCountersStorage;
 import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
@@ -299,7 +298,7 @@ public class PrChainsProcessor {
      * @return List of suites with possible blockers.
      */
     @Nullable
-    public List<ShortSuiteUi1> getBlockersAndNewTestsSuitesStatuses(
+    public List<ShortSuiteNewTestsUi> getBlockersAndNewTestsSuitesStatuses(
         String buildTypeId,
         String branchForTc,
         String srvCodeOrAlias,
@@ -380,7 +379,7 @@ public class PrChainsProcessor {
      * @param baseBranch
      */
     //todo may avoid creation of UI model for simple comment.
-    private List<ShortSuiteUi1> findNewTests(FullChainRunCtx fullChainRunCtx,
+    private List<ShortSuiteNewTestsUi> findNewTests(FullChainRunCtx fullChainRunCtx,
         ITeamcityIgnited tcIgnited,
         String baseBranch) {
         String normalizedBaseBranch = BranchEquivalence.normalizeBranch(baseBranch);
@@ -415,7 +414,7 @@ public class PrChainsProcessor {
 
                 // test failure based blockers and/or blocker found by suite results
                 if (!missingTests.isEmpty()) {
-                    return new ShortSuiteUi1()
+                    return new ShortSuiteNewTestsUi()
                         .tests(missingTests)
                         .initFrom(ctx);
                 }
