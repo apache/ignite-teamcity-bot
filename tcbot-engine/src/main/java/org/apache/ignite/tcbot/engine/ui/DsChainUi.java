@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.apache.ignite.internal.util.typedef.T2;
@@ -34,6 +35,7 @@ import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
 import org.apache.ignite.tcbot.engine.tracked.DisplayMode;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcservice.model.conf.BuildType;
 
 import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.createOccurForLogConsumer;
@@ -90,6 +92,9 @@ public class DsChainUi {
 
     /** Suites involved in chain. */
     public List<DsSuiteUi> suites = new ArrayList<>();
+
+    /** Suites with new tests involved in chain. */
+    public List<ShortSuiteUi1> newTestsUi = new ArrayList<>();
 
     /** Count of failed tests not muted tests. In case several runs are used, overall by all runs. */
     public Integer failedTests;
@@ -225,6 +230,29 @@ public class DsChainUi {
                     suites.add(suiteCurStatus);
                 }
             });
+
+        newTestsUi = ctx
+            .suites()
+            .map((suite) -> {
+                List<ShortTestUi> missingTests = suite.getFilteredTests(test -> {
+                    IRunHistory history = test.history(tcIgnited, baseBranchId, null);
+                    return history == null;
+                })
+                    .stream()
+                    .map(occurrence -> {
+                        ShortTestUi tst = new ShortTestUi().initFrom(occurrence, occurrence.isPassed());
+
+                        return tst;
+                    }).filter(Objects::nonNull).collect(Collectors.toList());
+                if (!missingTests.isEmpty()) {
+                    return new ShortSuiteUi1()
+                        .tests(missingTests)
+                        .initFrom(suite);
+                }
+                return null;
+            })
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
 
         totalBlockers = suites.stream().mapToInt(DsSuiteUi::totalBlockers).sum();
         durationPrintable = ctx.getDurationPrintable(suiteFilter);

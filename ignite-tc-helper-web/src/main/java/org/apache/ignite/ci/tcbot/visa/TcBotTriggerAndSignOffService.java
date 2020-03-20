@@ -941,7 +941,7 @@ public class TcBotTriggerAndSignOffService {
                 else
                     newTests.append(jiraEscText(test.name));
 
-                newTests.append(" - ").append(jiraEscText(test.status ? "OK" : "FAIL"));
+                newTests.append(" - ").append(jiraEscText(test.status ? "PASSED" : "FAILED"));
 
                 newTests.append("\\n");
 

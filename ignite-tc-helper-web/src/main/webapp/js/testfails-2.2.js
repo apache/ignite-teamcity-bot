@@ -83,11 +83,47 @@ function showChainResultsWithSettings(result, settings) {
         res += showChainCurrentStatusData(server, settings);
     }
 
+    res += "<tr bgcolor='#F5F5FF'><th colspan='4' class='table-title'><b>New Tests</b></th></tr>"
+
+    for (var i = 0; i < result.servers.length; i++) {
+        var newTests = result.servers[i].newTestsUi;
+        res += showNewTestsData(newTests, settings);
+    }
+
+    res += "<tr><td colspan='4'>&nbsp;</td></tr>";
+        res += "</table>";
+
     setTimeout(initMoreInfo, 100);
 
     return res;
 }
 
+/**
+ * @param chain - see org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus Java Class.
+ * @param settings - see Settings JavaScript class.
+ */
+function showNewTestsData(chain, settings) {
+    var res = "";
+    res += "<table style='width:100%'>";
+
+    for (var i = 0; i < chain.length; i++) {
+                var newTests = chain[i].tests;
+                for (var j = 0; j < newTests.length; j++) {
+                    var newTest = newTests[j];
+                    res += "<tr>";
+                    res += "<td colspan='2' width='10%'></td>";
+                    res += "<td width='60%'>" + newTest.testName + "</td>";
+                    res += "<td width='20%'>" + newTest.status + "</td>";
+                    res += "</tr>";
+                }
+
+     }
+
+    res += "</table>";
+
+    return res;
+
+}
 
 /**
  * @param chain - see org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus Java Class.
@@ -319,9 +355,6 @@ function showChainCurrentStatusData(chain, settings) {
 
         res += showSuiteData(subSuite, settings, chain.prNum);
     }
-
-    res += "<tr><td colspan='4'>&nbsp;</td></tr>";
-    res += "</table>";
 
     return res;
 }
