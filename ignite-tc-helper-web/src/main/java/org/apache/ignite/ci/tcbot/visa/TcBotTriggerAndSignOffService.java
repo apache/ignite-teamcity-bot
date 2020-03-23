@@ -830,7 +830,7 @@ public class TcBotTriggerAndSignOffService {
                 SyncMode.RELOAD_QUEUED,
                 baseBranch);
 
-            List<ShortSuiteNewTestsUi> newTestsStatuses = prChainsProcessor.getBlockersAndNewTestsSuitesStatuses(buildTypeId, build.branchName, srvCodeOrAlias, prov,
+            List<ShortSuiteNewTestsUi> newTestsStatuses = prChainsProcessor.getNewTestsSuitesStatuses(buildTypeId, build.branchName, srvCodeOrAlias, prov,
                 SyncMode.RELOAD_QUEUED,
                 baseBranch);
 

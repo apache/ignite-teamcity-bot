@@ -112,11 +112,10 @@ function showNewTestsData(chain, settings) {
                     var newTest = newTests[j];
                     res += "<tr>";
                     res += "<td colspan='2' width='10%'></td>";
-                    res += "<td width='60%'>" + newTest.testName + "</td>";
-                    res += "<td width='20%'>" + newTest.status + "</td>";
+                    res += "<td width='5%'>" + (newTest.status ? "PASSED" : "FAILED") + "</td>";
+                    res += "<td width='85%'>" + newTest.testName + "</td>";
                     res += "</tr>";
                 }
-
      }
 
     res += "</table>";

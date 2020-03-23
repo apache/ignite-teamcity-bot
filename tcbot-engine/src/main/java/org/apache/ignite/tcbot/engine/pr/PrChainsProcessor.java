@@ -298,7 +298,7 @@ public class PrChainsProcessor {
      * @return List of suites with possible blockers.
      */
     @Nullable
-    public List<ShortSuiteNewTestsUi> getBlockersAndNewTestsSuitesStatuses(
+    public List<ShortSuiteNewTestsUi> getNewTestsSuitesStatuses(
         String buildTypeId,
         String branchForTc,
         String srvCodeOrAlias,
@@ -392,34 +392,16 @@ public class PrChainsProcessor {
             .suites()
             .map((ctx) -> {
                 IRunHistory statInBaseBranch = ctx.history(tcIgnited, baseBranchId, null);
-
-//                String suiteComment = ctx.getPossibleBlockerComment(compactor, statInBaseBranch, tcIgnited.config());
-
-//                List<TestCompactedMult> missingTests = ctx.getFilteredTests(test -> test.history(tcIgnited, baseBranchId, null) == null);
-
-                List<TestCompactedMult> tests1 = new ArrayList<>();
-                List<ShortTestUi> missingTests = ctx.getFilteredTests(test -> {
-                    IRunHistory history = test.history(tcIgnited, baseBranchId, null);
-                    if (history == null) {
-                        tests1.add(test);
-                    }
-                    return history == null;
-                })
+                List<ShortTestUi> missingTests = ctx.getFilteredTests(test -> test.history(tcIgnited, baseBranchId, null) == null)
                     .stream()
-                    .map(occurrence -> {
-                        ShortTestUi tst = new ShortTestUi().initFrom(occurrence, occurrence.isPassed());
+                    .map(occurrence -> new ShortTestUi().initFrom(occurrence, occurrence.isPassed()))
+                    .filter(Objects::nonNull).collect(Collectors.toList());
 
-                        return tst;
-                    }).filter(Objects::nonNull).collect(Collectors.toList());
-
-                // test failure based blockers and/or blocker found by suite results
                 if (!missingTests.isEmpty()) {
                     return new ShortSuiteNewTestsUi()
                         .tests(missingTests)
                         .initFrom(ctx);
                 }
-//                ((TestCompactedV2)tests1.get(0).occurrences.get(tests1.get(0).occurrences.size()-1)).status == TestCompactedV2.STATUS_SUCCESS_CID
-
                 return null;
             })
             .filter(Objects::nonNull)
