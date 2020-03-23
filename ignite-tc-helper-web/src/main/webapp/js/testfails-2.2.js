@@ -91,7 +91,7 @@ function showChainResultsWithSettings(result, settings) {
     }
 
     res += "<tr><td colspan='4'>&nbsp;</td></tr>";
-        res += "</table>";
+    res += "</table>";
 
     setTimeout(initMoreInfo, 100);
 
@@ -104,19 +104,26 @@ function showChainResultsWithSettings(result, settings) {
  */
 function showNewTestsData(chain, settings) {
     var res = "";
+
+    newTestRows = "";
+
     res += "<table style='width:100%'>";
 
     for (var i = 0; i < chain.length; i++) {
-                var newTests = chain[i].tests;
-                for (var j = 0; j < newTests.length; j++) {
-                    var newTest = newTests[j];
-                    res += "<tr>";
-                    res += "<td colspan='2' width='10%'></td>";
-                    res += "<td width='5%'>" + (newTest.status ? "PASSED" : "FAILED") + "</td>";
-                    res += "<td width='85%'>" + newTest.testName + "</td>";
-                    res += "</tr>";
-                }
-     }
+        var newTests = chain[i].tests;
+        for (var j = 0; j < newTests.length; j++) {
+            newTestsFounded = true
+            var newTest = newTests[j];
+            newTestRows += "<tr>";
+            newTestRows += "<td colspan='2' width='10%'></td>";
+            newTestRows += "<td width='5%'>" + (newTest.status ? "PASSED" : "FAILED") + "</td>";
+            newTestRows += "<td width='75%'>" + newTest.testName + "</td>";
+            newTestRows += "<td colspan='2' width='10%'></td>";
+            newTestRows += "</tr>";
+        }
+    }
+
+    res += newTestRows !== "" ? newTestRows : "<tr><td colspan='2' width='10%'></td><td width='90%'>No new tests</td></tr>"
 
     res += "</table>";
 
