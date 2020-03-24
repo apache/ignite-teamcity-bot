@@ -920,7 +920,7 @@ public class TcBotTriggerAndSignOffService {
         int newTestsCount = 0;
 
         for (ShortSuiteNewTestsUi suite : newTestsStatuses) {
-            newTests.append("{color:#d04437}");
+            newTests.append("{color:#00008b}");
 
             newTests.append(jiraEscText(suite.name)).append("{color}");
 
@@ -934,7 +934,11 @@ public class TcBotTriggerAndSignOffService {
             newTests.append("]\\n");
 
             for (ShortTestUi test : suite.tests()) {
+                String testColor = test.status ? "#013220" : "#8b0000";
+
                 newTests.append("* ");
+
+                newTests.append(String.format("{color:%s}", testColor));
 
                 if (test.suiteName != null && test.testName != null)
                     newTests.append(jiraEscText(test.suiteName)).append(": ").append(jiraEscText(test.testName));
@@ -942,6 +946,8 @@ public class TcBotTriggerAndSignOffService {
                     newTests.append(jiraEscText(test.name));
 
                 newTests.append(" - ").append(jiraEscText(test.status ? "PASSED" : "FAILED"));
+
+                newTests.append("{color}");
 
                 newTests.append("\\n");
 

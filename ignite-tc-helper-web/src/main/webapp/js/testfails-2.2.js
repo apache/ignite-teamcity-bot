@@ -114,7 +114,8 @@ function showNewTestsData(chain, settings) {
         for (var j = 0; j < newTests.length; j++) {
             newTestsFounded = true
             var newTest = newTests[j];
-            newTestRows += "<tr>";
+            testColor = newTest.status ? "#013220" : "#8b0000";
+            newTestRows += "<tr style='color:" + testColor + "'>";
             newTestRows += "<td colspan='2' width='10%'></td>";
             newTestRows += "<td width='5%'>" + (newTest.status ? "PASSED" : "FAILED") + "</td>";
             newTestRows += "<td width='75%'>" + newTest.testName + "</td>";
