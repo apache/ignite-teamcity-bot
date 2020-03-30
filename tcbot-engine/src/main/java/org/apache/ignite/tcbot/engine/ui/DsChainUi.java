@@ -36,6 +36,7 @@ import org.apache.ignite.tcbot.engine.tracked.DisplayMode;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.history.IRunHistory;
+import org.apache.ignite.tcservice.ITeamcityConn;
 import org.apache.ignite.tcservice.model.conf.BuildType;
 
 import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.createOccurForLogConsumer;
@@ -231,29 +232,6 @@ public class DsChainUi {
                 }
             });
 
-        newTestsUi = ctx
-            .suites()
-            .map((suite) -> {
-                List<ShortTestUi> missingTests = suite.getFilteredTests(test -> {
-                    IRunHistory history = test.history(tcIgnited, baseBranchId, null);
-                    return history == null;
-                })
-                    .stream()
-                    .map(occurrence -> {
-                        ShortTestUi tst = new ShortTestUi().initFrom(occurrence, occurrence.isPassed());
-
-                        return tst;
-                    }).filter(Objects::nonNull).collect(Collectors.toList());
-                if (!missingTests.isEmpty()) {
-                    return new ShortSuiteNewTestsUi()
-                        .tests(missingTests)
-                        .initFrom(suite);
-                }
-                return null;
-            })
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
-
         totalBlockers = suites.stream().mapToInt(DsSuiteUi::totalBlockers).sum();
         durationPrintable = ctx.getDurationPrintable(suiteFilter);
         testsDurationPrintable = ctx.getTestsDurationPrintable(suiteFilter);
@@ -311,6 +289,43 @@ public class DsChainUi {
                 logConsumers.add(failure);
             }
         );
+    }
+
+    public void findNewTests(FullChainRunCtx ctx,
+        ITeamcityIgnited tcIgnited,
+        String baseBranchTc,
+        IStringCompactor compactor,
+        ITeamcityConn teamcityConn){
+        String failRateNormalizedBranch = normalizeBranch(baseBranchTc);
+        Integer baseBranchId = compactor.getStringIdIfPresent(failRateNormalizedBranch);
+        newTestsUi = ctx
+            .suites()
+            .map((suite) -> {
+                List<ShortTestUi> missingTests = suite.getFilteredTests(test -> {
+                    IRunHistory history = test.history(tcIgnited, baseBranchId, null);
+                    if (history == null) {
+                        Long testId = test.getId();
+                        return !teamcityConn.isTestOccurrencesInOtherBranches(testId, branchName);
+                    }
+                    else
+                        return false;
+                })
+                    .stream()
+                    .map(occurrence -> {
+                        ShortTestUi tst = new ShortTestUi().initFrom(occurrence, occurrence.isPassed());
+                        return tst;
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+                if (!missingTests.isEmpty()) {
+                    return new ShortSuiteNewTestsUi()
+                        .tests(missingTests)
+                        .initFrom(suite);
+                }
+                return null;
+            })
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
     }
 
     private static String buildWebLinkToBuild(ITeamcityIgnited teamcity, FullChainRunCtx chain) {
