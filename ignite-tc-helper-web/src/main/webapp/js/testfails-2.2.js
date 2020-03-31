@@ -118,7 +118,10 @@ function showNewTestsData(chain, settings) {
             newTestRows += "<tr style='color:" + testColor + "'>";
             newTestRows += "<td colspan='2' width='10%'></td>";
             newTestRows += "<td width='5%'>" + (newTest.status ? "PASSED" : "FAILED") + "</td>";
-            newTestRows += "<td width='75%'>" + newTest.testName + "</td>";
+            if (isDefinedAndFilled(newTest.suiteName) && isDefinedAndFilled(newTest.testName))
+                newTestRows += "<td width='75%'>" + newTest.suiteName + ": " + newTest.testName + "</td>";
+            else
+                newTestRows += "<td width='75%'>" + newTest.name + "</td>";
             newTestRows += "<td colspan='2' width='10%'></td>";
             newTestRows += "</tr>";
         }

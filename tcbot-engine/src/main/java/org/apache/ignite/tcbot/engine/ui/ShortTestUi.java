@@ -37,8 +37,8 @@ public class ShortTestUi {
     /** Test status */
     @Nullable public boolean status;
 
-    public ShortTestUi initFrom(@Nonnull TestCompactedMult failure, boolean status) {
-        name = failure.getName();
+    public ShortTestUi initFrom(@Nonnull TestCompactedMult testCompactedMult, boolean status) {
+        name = testCompactedMult.getName();
 
         String[] split = Strings.nullToEmpty(name).split("\\:");
         if (split.length >= 2) {
