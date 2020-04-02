@@ -919,6 +919,8 @@ public class TcBotTriggerAndSignOffService {
 
         int newTestsCount = 0;
 
+        int failedNewTestsCount = 0;
+
         for (ShortSuiteNewTestsUi suite : newTestsStatuses) {
             newTests.append("{color:#00008b}");
 
@@ -934,7 +936,13 @@ public class TcBotTriggerAndSignOffService {
             newTests.append("]\\n");
 
             for (ShortTestUi test : suite.tests()) {
-                String testColor = test.status ? "#013220" : "#8b0000";
+                String testColor;
+                if (test.status)
+                    testColor = "#013220";
+                else {
+                    testColor = "#8b0000";
+                    failedNewTestsCount++;
+                }
 
                 newTests.append("* ");
 
@@ -982,15 +990,20 @@ public class TcBotTriggerAndSignOffService {
         }
 
         if (newTests.length() > 0) {
+            String bgColor;
+            if (failedNewTestsCount > 0)
+                bgColor = "#F7D6C1";
+            else
+                bgColor = "#D6F7C1";
             String hdrPanel = "{panel:title=" + branchVsBaseComment + ": New Tests (" + newTestsCount + ")|" +
-                "borderStyle=dashed|borderColor=#ccc|titleBGColor=#F7D6C1}\\n";
+                "borderStyle=dashed|borderColor=#ccc|titleBGColor=" + bgColor + "}\\n";
 
             newTests.insert(0, hdrPanel)
                 .append("{panel}");
         }
         else {
             newTests.append("{panel:title=").append(branchVsBaseComment).append(": No new tests found!|")
-                .append("borderStyle=dashed|borderColor=#ccc|titleBGColor=#D6F7C1}{panel}");
+                .append("borderStyle=dashed|borderColor=#ccc|titleBGColor=#F7D6C1}{panel}");
         }
 
         res.append("\\n").append(newTests).append("\\n").append("[TeamCity *").append(suiteNameForComment).append("* Results|").append(webUrl).append(']');
