@@ -96,7 +96,7 @@ public class PrChainsProcessor {
     @Inject private UpdateCountersStorage countersStorage;
 
     /** Teamcity connection non-caching factory. */
-    @Inject private Provider<TeamcityServiceConnection> tcFactory;
+    @Inject private Provider<ITeamcityConn> tcFactory;
 
     /**
      * @param creds Credentials.
@@ -437,7 +437,7 @@ public class PrChainsProcessor {
     }
 
     public ITeamcityConn getTeamCityConnection(String srvCode, ICredentialsProv prov) {
-        TeamcityServiceConnection conn = tcFactory.get();
+        TeamcityServiceConnection conn = (TeamcityServiceConnection) tcFactory.get();
         ITcServerConfig cfg = this.cfg.getTeamcityConfig(srvCode);
         String ref = cfg.reference();
         String realSrvCode = !Strings.isNullOrEmpty(ref) && !srvCode.equals(ref) ? ref : srvCode;
