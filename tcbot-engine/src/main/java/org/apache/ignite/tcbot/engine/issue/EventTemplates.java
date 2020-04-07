@@ -30,6 +30,8 @@ public class EventTemplates {
     private static final int OK = RES_OK.getCode();
     private static final int FAIL = RES_FAILURE.getCode();
     private static final int MISSING = RES_MISSING.getCode();
+    private static final int OK_OR_FAILURE = RES_OK_OR_FAILURE.getCode();
+    private static final int CRITICAL_FAILURE = RES_CRITICAL_FAILURE.getCode();
 
     public static final EventTemplate newFailure = new EventTemplate(
             new int[]{OK, OK, OK, OK, OK},
@@ -37,8 +39,8 @@ public class EventTemplates {
     );
 
     public static final EventTemplate newCriticalFailure = new EventTemplate(
-            new int[]{RES_OK_OR_FAILURE.getCode(), RES_OK_OR_FAILURE.getCode(), RES_OK_OR_FAILURE.getCode(), RES_OK_OR_FAILURE.getCode(), RES_OK_OR_FAILURE.getCode()},
-            new int[]{RES_CRITICAL_FAILURE.getCode(), RES_CRITICAL_FAILURE.getCode(), RES_CRITICAL_FAILURE.getCode(), RES_CRITICAL_FAILURE.getCode()}
+            new int[]{OK_OR_FAILURE, OK_OR_FAILURE, OK_OR_FAILURE, OK_OR_FAILURE, OK_OR_FAILURE},
+            new int[]{CRITICAL_FAILURE, CRITICAL_FAILURE, CRITICAL_FAILURE, CRITICAL_FAILURE}
     );
 
     public static final EventTemplate newContributedTestFailure = new EventTemplate(
@@ -51,6 +53,12 @@ public class EventTemplates {
             new int[]{FAIL, FAIL, FAIL,
                     FAIL, FAIL, FAIL,
                     FAIL, FAIL}
+    );
+
+    public static final EventTemplate stablePassedTest = new EventTemplate(
+        new int[]{OK_OR_FAILURE},
+        new int[]{OK, OK, OK, OK, OK, OK, OK, OK, OK, OK}
+//        new int[]{OK_OR_FAILURE}
     );
 
     public static ArrayList<EventTemplate> templates;

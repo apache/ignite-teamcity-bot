@@ -74,10 +74,15 @@ public abstract class AbstractRunHist implements IRunHistory {
             "changed its status [" + statusChange + "/" + getInvocations().count() + "] without code modifications";
     }
 
+    /** */
+    @Override public float getFlakyRate() {
+        return (float) getStatusChangesWithoutCodeModification() / getRunsCount() * 100;
+    }
+
     /**
      * @return number of status change without code modifications for test to be considered as flaky
      */
-    public int getStatusChangesWithoutCodeModification() {
+    public int getStatusChangesWithoutCodeModification(/*int countLastInvocations*/) {
         int statusChange = 0;
 
         Invocation prev = null;

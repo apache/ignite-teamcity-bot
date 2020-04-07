@@ -469,10 +469,16 @@ public class IssueDetector {
 
             if (firstFailedBuildId != null) {
                 type = IssueType.newFailure;
+
                 final String flakyComments = runStat.getFlakyComments();
 
                 if (!Strings.isNullOrEmpty(flakyComments)) {
-                    if (runStat.detectTemplate(EventTemplates.newFailureForFlakyTest) == null) {
+                    if (runStat.getFlakyRate() > 5 &&
+                        runStat.detectTemplate(EventTemplates.stablePassedTest) == null) {
+//                        firstFailedBuildId = runStat.getRunsCount();
+                        type = IssueType.newTestWithHighFlakyRate;
+                    }
+                    else if (runStat.detectTemplate(EventTemplates.newFailureForFlakyTest) == null) {
                         logger.info("Skipping registering new issue for test fail:" +
                             " Test seems to be flaky " + name + ": " + flakyComments);
 
@@ -527,7 +533,7 @@ public class IssueDetector {
 
                 executorService = Executors.newScheduledThreadPool(3);
 
-                executorService.scheduleAtFixedRate(this::checkFailures, 0, 15, TimeUnit.MINUTES);
+                executorService.scheduleAtFixedRate(this::checkFailures, 0, 4, TimeUnit.MINUTES);
 
                 final CheckQueueJob checkQueueJob = checkQueueJobProv.get();
 

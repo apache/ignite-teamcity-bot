@@ -33,6 +33,8 @@ public interface IRunHistory {
 
     @Nullable String getFlakyComments();
 
+    public float getFlakyRate();
+
     @Nullable
     public Integer detectTemplate(IEventTemplate t);
 
