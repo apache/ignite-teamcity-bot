@@ -30,8 +30,14 @@ public interface ITcBotConfig extends IDataSourcesConfigSupplier {
     /** Default server code. */
     public String DEFAULT_SERVER_CODE = "apache";
 
+    /** Default flaky rate. */
+    public Integer DEFAULT_FLAKY_RATE = 20;
+
     /** */
     public String primaryServerCode();
+
+    /** */
+    public Integer flakyRate();
 
     /**
      * @return Tracked branches configuration for TC Bot.

@@ -38,6 +38,9 @@ public class TcBotJsonConfig implements ITrackedBranchesConfig {
     /** Primary server ID. */
     @Nullable private String primaryServerCode;
 
+    /** Flaky rate to consider test as a flaky test. */
+    @Nullable private Integer flakyRate;
+
     /** Additional list Servers to be used for validation of PRs, but not for tracking any branches. */
     private List<TcServerConfig> tcServers = new ArrayList<>();
 
@@ -81,6 +84,13 @@ public class TcBotJsonConfig implements ITrackedBranchesConfig {
      */
     @Nullable public String primaryServerCode() {
         return primaryServerCode;
+    }
+
+    /**
+     * @return Flaky rate to consider test as a flaky test.
+     */
+    @Nullable public Integer flakyRate() {
+        return flakyRate;
     }
 
     public Optional<TcServerConfig> getTcConfig(String code) {

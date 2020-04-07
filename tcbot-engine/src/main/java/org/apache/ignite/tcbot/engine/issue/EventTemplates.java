@@ -57,8 +57,7 @@ public class EventTemplates {
 
     public static final EventTemplate stablePassedTest = new EventTemplate(
         new int[]{OK_OR_FAILURE},
-        new int[]{OK, OK, OK, OK, OK, OK, OK, OK, OK, OK}
-//        new int[]{OK_OR_FAILURE}
+        new int[]{OK, OK, OK, OK, OK, OK, OK, OK, OK, OK, OK, OK, OK}
     );
 
     public static ArrayList<EventTemplate> templates;

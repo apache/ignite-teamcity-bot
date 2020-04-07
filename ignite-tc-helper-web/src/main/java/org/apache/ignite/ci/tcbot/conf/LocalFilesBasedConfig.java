@@ -114,6 +114,13 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
         return Strings.isNullOrEmpty(srvCode) ? ITcBotConfig.DEFAULT_SERVER_CODE : srvCode;
     }
 
+    /** {@inheritDoc} */
+    @Override public Integer flakyRate() {
+        Integer flakyRate = getConfig().flakyRate();
+
+        return flakyRate == null || flakyRate < 0 || flakyRate > 100 ? ITcBotConfig.DEFAULT_FLAKY_RATE : flakyRate;
+    }
+
     @Override
     public ITrackedBranchesConfig getTrackedBranches() {
         return getConfig();

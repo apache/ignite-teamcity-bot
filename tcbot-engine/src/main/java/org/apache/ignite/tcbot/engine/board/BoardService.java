@@ -89,59 +89,42 @@ public class BoardService {
 
         List<DefectCompacted> defects = defectStorage.loadAllDefects();
 
-//        for (DefectCompacted next : defects) {
-//
-//            String srvCode = next.tcSrvCode(compactor);
-//
-//            ITeamcityIgnited tcIgnited = tcProv.server(srvCode, creds);
-//
-//            if (!creds.hasAccess(srvCode))
-//                continue;
-//
-//            ITeamcityIgnited tcIgn = tcProv.server(srvCode, creds);
-//
-//            Map<Integer, DefectFirstBuild> build = next.buildsInvolved();
-//            for (DefectFirstBuild cause : build.values()) {
-//                FatBuildCompacted firstBuild = cause.build();
-//
-//                int projectId = firstBuild.buildTypeId();
-//                int branchName = firstBuild.branchName();
-//
-//                for (DefectIssue issue : cause.issues()) {
-//                    int fullSuiteNameAndFullTestName = issue.testNameCid();
-//
-//                    IRunHistory runStat = tcIgnited.getTestRunHist(fullSuiteNameAndFullTestName, projectId, branchName);
-//
-//                    if (runStat == null)
-//                        continue;
-//                    // compactor.getStringFromId()
-//                    Integer firstFailedBuildId = runStat.detectTemplate(EventTemplates.stablePassedTest);
-//
-//                    boolean isNewTestWithHighFlakyRate = IssueType.newTestWithHighFlakyRate.code().equals(compactor.getStringFromId(issue.issueTypeCode()));
-//
-//                    if (isNewTestWithHighFlakyRate && firstFailedBuildId != null) {
-//                        resolveDefect(next.id(), creds, false);
-//                    }
-//
-//
-//                }
-//            }
-//// возможно firstBuild.name и fatBuild.name содержат название сьюты
-//        }
+        for (DefectCompacted next : defects) {
 
+            String srvCode = next.tcSrvCode(compactor);
 
+            ITeamcityIgnited tcIgnited = tcProv.server(srvCode, creds);
 
-//        ITeamcityIgnited tcIgnited = tcProv.server(srvCode, creds);
-//
-//        defects.forEach(defect -> {
-//            IRunHistory runStat = tcIgnited.getTestRunHist(defect.id, btId, brNormId);
-//            defect.
-//        });
+            if (!creds.hasAccess(srvCode))
+                continue;
 
-//        defectUi defect buildsInvolved
-//        projectId testOrSuiteName branchName
+            Map<Integer, DefectFirstBuild> build = next.buildsInvolved();
+            for (DefectFirstBuild cause : build.values()) {
+                FatBuildCompacted firstBuild = cause.build();
 
-//        defects = defectStorage.loadAllDefects();
+                int projectId = firstBuild.buildTypeId();
+                int branchName = firstBuild.branchName();
+
+                for (DefectIssue issue : cause.issues()) {
+                    int fullSuiteNameAndFullTestName = issue.testNameCid();
+
+                    IRunHistory runStat = tcIgnited.getTestRunHist(fullSuiteNameAndFullTestName, projectId, branchName);
+
+                    if (runStat == null)
+                        continue;
+
+                    Integer firstFailedBuildId = runStat.detectTemplate(EventTemplates.stablePassedTest);
+
+                    boolean isNewTestWithHighFlakyRate = IssueType.newTestWithHighFlakyRate.code().equals(compactor.getStringFromId(issue.issueTypeCode()));
+
+                    if (isNewTestWithHighFlakyRate && firstFailedBuildId != null)
+                        resolveDefect(next.id(), creds, true);
+
+                }
+            }
+        }
+
+        defects = defectStorage.loadAllDefects();
 
         BoardSummaryUi res = new BoardSummaryUi();
         boolean admin = userStorage.getUser(creds.getPrincipalId()).isAdmin();
@@ -322,69 +305,6 @@ public class BoardService {
 
             });
 
-//        List<DefectCompacted> defects = defectStorage.loadAllDefects();
-
-// srvCode можно получить из DefectCompacted.tcSrvId
-
-//        ITeamcityIgnited tcIgnited = tcProv.server(srvCode, creds);
-//
-//        defects.forEach(defect -> {
-//            IRunHistory runStat = tcIgnited.getTestRunHist(defect.id, btId, brNormId);
-//            defect.
-//        });
-
-//        defectUi defect buildsInvolved
-//        projectId testOrSuiteName branchName
-
-//        private boolean registerTestFailIssues(ITeamcityIgnited tcIgnited,
-//            String srvCode,
-//            String suiteId,
-//            String normalizeBranch,
-//            DsTestFailureUi testFailure,
-//            String trackedBranch,
-//            @Nonnull Set<String> suiteTags) {
-//            String name = testFailure.name;
-//            int tname = compactor.getStringId(name); 122993 Apache.Ignite.Core.Tests.exe: Apache.Ignite.Core.Tests.Client.ClientServerCompatibilityTest("org.apache.ignite","2.5.0",1)
-//            Integer btId = compactor.getStringIdIfPresent(suiteId); 342 IgniteTests24Java8_PlatformNetLongRunning
-//            Integer brNormId = compactor.getStringIdIfPresent(normalizeBranch); 485 <default>
-
-// другие варианты name suiteId normalizeBranch
-
-//        normalizedBaseBranch = Cannot find local variable 'normalizedBaseBranch'
-//        tname = 20905
-//        this = {IssueDetector$$EnhancerByGuice$$e396bb08@10718}
-//        tcIgnited = {TeamcityIgnitedImpl$$EnhancerByGuice$$83306fbf@10708}
-//        srvCode = "private"
-//        suiteId = "Tests_GridGainCeEeUe_Latest_EE_UE_DataCenterReplication2"
-//        normalizeBranch = "<default>"
-//        testFailure = {DsTestFailureUi@10711} "\torg.gridgain.testsuites.GridDrBinaryMarshallerTestSuite2: org.gridgain.internal.processors.dr.handler.DrHandlerFullStateTransferFailoverSelfTest.testFullStateTransferCancellationIfDrFailed[syncMode=false]\n"
-//        trackedBranch = "master-gg-rsync"
-//        suiteTags = {HashSet@10713}  size = 1
-//        name = "org.gridgain.testsuites.GridDrBinaryMarshallerTestSuite2: org.gridgain.internal.processors.dr.handler.DrHandlerFullStateTransferFailoverSelfTest.testFullStateTransferCancellationIfDrFailed[syncMode=false]"
-//        tname = 20905
-//        btId = {Integer@10715} 14
-//        brNormId = {Integer@9418} 485
-//        compactor = {IgniteStringCompactor$$EnhancerByGuice$$cfa11966@10719}
-
-//        в этом случае runStat будет равен null
-//        normalizedBaseBranch = Cannot find local variable 'normalizedBaseBranch'
-//        tname = 139384
-//        this = {IssueDetector$$EnhancerByGuice$$e396bb08@10718}
-//        tcIgnited = {TeamcityIgnitedImpl$$EnhancerByGuice$$83306fbf@10708}
-//        srvCode = "private"
-//        suiteId = "Tests_GridGainCeEeUe_Latest_EE_UE_TxDrBasic"
-//        normalizeBranch = "<default>"
-//        testFailure = {DsTestFailureUi@10739} "\tTxDrTopologyTrackerTest.testDeactivateClusterBeforeRebalancingCompleted (last started)\n"
-//        trackedBranch = "master-gg-rsync"
-//        suiteTags = {HashSet@10740}  size = 2
-//        name = "TxDrTopologyTrackerTest.testDeactivateClusterBeforeRebalancingCompleted (last started)"
-//        tname = 139384
-//        btId = {Integer@10742} 156
-//        brNormId = {Integer@9418} 485
-//        compactor = {IgniteStringCompactor$$EnhancerByGuice$$cfa11966@10719}
-
-//
-//            IRunHistory runStat = tcIgnited.getTestRunHist(tname, btId, brNormId);
 
         return processedDefects.size() + " defects processed for " + cntIssues.get() + " issues checked";
     }

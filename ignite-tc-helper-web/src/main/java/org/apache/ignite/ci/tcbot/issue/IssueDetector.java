@@ -473,9 +473,8 @@ public class IssueDetector {
                 final String flakyComments = runStat.getFlakyComments();
 
                 if (!Strings.isNullOrEmpty(flakyComments)) {
-                    if (runStat.getFlakyRate() > 5 &&
+                    if (runStat.getFlakyRate() > cfg.flakyRate() &&
                         runStat.detectTemplate(EventTemplates.stablePassedTest) == null) {
-//                        firstFailedBuildId = runStat.getRunsCount();
                         type = IssueType.newTestWithHighFlakyRate;
                     }
                     else if (runStat.detectTemplate(EventTemplates.newFailureForFlakyTest) == null) {
