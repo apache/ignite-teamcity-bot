@@ -118,7 +118,7 @@ public class BoardService {
                     boolean isNewTestWithHighFlakyRate = IssueType.newTestWithHighFlakyRate.code().equals(compactor.getStringFromId(issue.issueTypeCode()));
 
                     if (isNewTestWithHighFlakyRate && firstFailedBuildId != null)
-                        resolveDefect(next.id(), creds, true);
+                        resolveDefect(next.id(), creds, false);
 
                 }
             }
@@ -217,6 +217,8 @@ public class BoardService {
 
                 if (test.isIgnoredTest() || test.isMutedTest())
                     status = IssueResolveStatus.IGNORED;
+                else if (IssueType.newTestWithHighFlakyRate.code().equals(issueType))
+                    status = IssueResolveStatus.FAILING;
                 else
                     status = test.isFailedTest(compactor) ? IssueResolveStatus.FAILING : IssueResolveStatus.FIXED;
 
@@ -239,7 +241,7 @@ public class BoardService {
     }
 
     public void issuesToDefectsLater(ICredentialsProv creds) {
-        scheduler.sheduleNamed("issuesToDefects", () -> issuesToDefects(creds), 4, TimeUnit.MINUTES);
+        scheduler.sheduleNamed("issuesToDefects", () -> issuesToDefects(creds), 15, TimeUnit.MINUTES);
     }
 
     @MonitoredTask(name = "Convert issues to defect")
