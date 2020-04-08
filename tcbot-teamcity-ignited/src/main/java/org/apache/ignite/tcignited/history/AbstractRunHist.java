@@ -82,7 +82,7 @@ public abstract class AbstractRunHist implements IRunHistory {
     /**
      * @return number of status change without code modifications for test to be considered as flaky
      */
-    public int getStatusChangesWithoutCodeModification(/*int countLastInvocations*/) {
+    public int getStatusChangesWithoutCodeModification() {
         int statusChange = 0;
 
         Invocation prev = null;
