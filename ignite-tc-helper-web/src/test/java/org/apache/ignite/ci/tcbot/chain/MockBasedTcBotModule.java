@@ -95,6 +95,14 @@ public class MockBasedTcBotModule extends AbstractModule {
                 return ITcBotConfig.DEFAULT_SERVER_CODE;
             }
 
+            @Override public Integer flakyRate() {
+                return DEFAULT_FLAKY_RATE;
+            }
+
+            @Override public Double confidence() {
+                return DEFAULT_CONFIDENCE;
+            }
+
             @Override  public ITrackedBranchesConfig getTrackedBranches() {
                 return tracked;
             }
