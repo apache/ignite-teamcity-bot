@@ -16,17 +16,21 @@
  */
 package org.apache.ignite.tcignited.history;
 
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import java.util.List;
+import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 
 /**
  * Test or Build run statistics.
  */
 public interface IRunHistory {
-    /**
-     *
-     */
+
     public boolean isFlaky();
+
+    public Iterable<Invocation> invocations();
+
+    public Stream<Invocation> getInvocations();
 
     @Nullable
     List<Integer> getLatestRunResults();

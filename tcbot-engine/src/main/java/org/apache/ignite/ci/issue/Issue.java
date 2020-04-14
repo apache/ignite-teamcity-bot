@@ -47,6 +47,8 @@ public class Issue {
     /** Display type. for issue. Kept for backward compatibilty with older records without type code. */
     private String displayType;
 
+    public double flakyRate;
+
     @Nullable
     public String trackedBranchName;
 

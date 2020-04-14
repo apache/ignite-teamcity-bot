@@ -24,9 +24,12 @@ public class DefectIssue {
     private int issueTypeCode;
     private int testOrSuiteName;
 
-    public DefectIssue(int issueTypeCode, Integer testNameCid) {
+    private double flakyRate;
+
+    public DefectIssue(int issueTypeCode, Integer testNameCid, double flakyRate) {
         this.issueTypeCode = issueTypeCode;
         testOrSuiteName = testNameCid;
+        this.flakyRate = flakyRate;
     }
 
     /** {@inheritDoc} */
@@ -51,5 +54,9 @@ public class DefectIssue {
 
     public int issueTypeCode() {
         return issueTypeCode;
+    }
+
+    public double getFlakyRate() {
+        return flakyRate;
     }
 }

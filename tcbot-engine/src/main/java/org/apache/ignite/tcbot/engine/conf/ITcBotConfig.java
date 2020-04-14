@@ -33,11 +33,17 @@ public interface ITcBotConfig extends IDataSourcesConfigSupplier {
     /** Default flaky rate. */
     public Integer DEFAULT_FLAKY_RATE = 20;
 
+    /** Default confidence. */
+    public Double DEFAULT_CONFIDENCE = 0.95;
+
     /** */
     public String primaryServerCode();
 
     /** */
     public Integer flakyRate();
+
+    /** */
+    public Double confidence();
 
     /**
      * @return Tracked branches configuration for TC Bot.

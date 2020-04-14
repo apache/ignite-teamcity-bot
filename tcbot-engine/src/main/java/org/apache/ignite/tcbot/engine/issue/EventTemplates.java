@@ -27,11 +27,11 @@ import static org.apache.ignite.tcignited.history.RunStatus.RES_OK_OR_FAILURE;
 import static org.apache.ignite.tcignited.history.RunStatus.RES_MISSING;
 
 public class EventTemplates {
-    private static final int OK = RES_OK.getCode();
-    private static final int FAIL = RES_FAILURE.getCode();
-    private static final int MISSING = RES_MISSING.getCode();
-    private static final int OK_OR_FAILURE = RES_OK_OR_FAILURE.getCode();
-    private static final int CRITICAL_FAILURE = RES_CRITICAL_FAILURE.getCode();
+    public static final int OK = RES_OK.getCode();
+    public static final int FAIL = RES_FAILURE.getCode();
+    public static final int MISSING = RES_MISSING.getCode();
+    public static final int OK_OR_FAILURE = RES_OK_OR_FAILURE.getCode();
+    public static final int CRITICAL_FAILURE = RES_CRITICAL_FAILURE.getCode();
 
     public static final EventTemplate newFailure = new EventTemplate(
             new int[]{OK, OK, OK, OK, OK},

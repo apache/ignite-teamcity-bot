@@ -121,6 +121,13 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
         return flakyRate == null || flakyRate < 0 || flakyRate > 100 ? ITcBotConfig.DEFAULT_FLAKY_RATE : flakyRate;
     }
 
+    /** {@inheritDoc} */
+    @Override public Double confidence() {
+        Double confidence = getConfig().confidence();
+
+        return confidence == null || confidence < 0 || confidence > 1 ? ITcBotConfig.DEFAULT_CONFIDENCE : confidence;
+    }
+
     @Override
     public ITrackedBranchesConfig getTrackedBranches() {
         return getConfig();

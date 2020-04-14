@@ -28,6 +28,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -43,11 +44,13 @@ import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.common.util.FutureUtil;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.chain.SingleBuildRunCtx;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.defect.BlameCandidate;
 import org.apache.ignite.tcbot.engine.defect.DefectCompacted;
 import org.apache.ignite.tcbot.engine.defect.DefectFirstBuild;
 import org.apache.ignite.tcbot.engine.defect.DefectIssue;
 import org.apache.ignite.tcbot.engine.defect.DefectsStorage;
+import org.apache.ignite.tcbot.engine.issue.EventTemplate;
 import org.apache.ignite.tcbot.engine.issue.EventTemplates;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
 import org.apache.ignite.tcbot.engine.issue.IssueType;
@@ -66,6 +69,9 @@ import org.apache.ignite.tcignited.build.ITest;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 import org.apache.ignite.tcignited.history.IRunHistory;
 
+import static org.apache.ignite.tcbot.engine.issue.EventTemplates.OK;
+import static org.apache.ignite.tcbot.engine.issue.EventTemplates.OK_OR_FAILURE;
+
 public class BoardService {
     @Inject IIssuesStorage issuesStorage;
     @Inject FatBuildDao fatBuildDao;
@@ -76,6 +82,7 @@ public class BoardService {
     @Inject IStringCompactor compactor;
     @Inject BuildChainProcessor buildChainProcessor;
     @Inject IUserStorage userStorage;
+    @Inject ITcBotConfig cfg;
 
     /**
      * @param creds Credentials.
@@ -89,42 +96,42 @@ public class BoardService {
 
         List<DefectCompacted> defects = defectStorage.loadAllDefects();
 
-        for (DefectCompacted next : defects) {
-
-            String srvCode = next.tcSrvCode(compactor);
-
-            ITeamcityIgnited tcIgnited = tcProv.server(srvCode, creds);
-
-            if (!creds.hasAccess(srvCode))
-                continue;
-
-            Map<Integer, DefectFirstBuild> build = next.buildsInvolved();
-            for (DefectFirstBuild cause : build.values()) {
-                FatBuildCompacted firstBuild = cause.build();
-
-                int projectId = firstBuild.buildTypeId();
-                int branchName = firstBuild.branchName();
-
-                for (DefectIssue issue : cause.issues()) {
-                    int fullSuiteNameAndFullTestName = issue.testNameCid();
-
-                    IRunHistory runStat = tcIgnited.getTestRunHist(fullSuiteNameAndFullTestName, projectId, branchName);
-
-                    if (runStat == null)
-                        continue;
-
-                    Integer firstFailedBuildId = runStat.detectTemplate(EventTemplates.stablePassedTest);
-
-                    boolean isNewTestWithHighFlakyRate = IssueType.newTestWithHighFlakyRate.code().equals(compactor.getStringFromId(issue.issueTypeCode()));
-
-                    if (isNewTestWithHighFlakyRate && firstFailedBuildId != null)
-                        resolveDefect(next.id(), creds, false);
-
-                }
-            }
-        }
-
-        defects = defectStorage.loadAllDefects();
+//        for (DefectCompacted next : defects) {
+//
+//            String srvCode = next.tcSrvCode(compactor);
+//
+//            ITeamcityIgnited tcIgnited = tcProv.server(srvCode, creds);
+//
+//            if (!creds.hasAccess(srvCode))
+//                continue;
+//
+//            Map<Integer, DefectFirstBuild> build = next.buildsInvolved();
+//            for (DefectFirstBuild cause : build.values()) {
+//                FatBuildCompacted firstBuild = cause.build();
+//
+//                int projectId = firstBuild.buildTypeId();
+//                int branchName = firstBuild.branchName();
+//
+//                for (DefectIssue issue : cause.issues()) {
+//                    int fullSuiteNameAndFullTestName = issue.testNameCid();
+//
+//                    IRunHistory runStat = tcIgnited.getTestRunHist(fullSuiteNameAndFullTestName, projectId, branchName);
+//
+//                    if (runStat == null)
+//                        continue;
+//
+//                    Integer firstFailedBuildId = runStat.detectTemplate(EventTemplates.stablePassedTest);
+//
+//                    boolean isNewTestWithHighFlakyRate = IssueType.newTestWithHighFlakyRate.code().equals(compactor.getStringFromId(issue.issueTypeCode()));
+//
+//                    if (isNewTestWithHighFlakyRate && firstFailedBuildId != null)
+//                        resolveDefect(next.id(), creds, false);
+//
+//                }
+//            }
+//        }
+//
+//        defects = defectStorage.loadAllDefects();
 
         BoardSummaryUi res = new BoardSummaryUi();
         boolean admin = userStorage.getUser(creds.getPrincipalId()).isAdmin();
@@ -217,8 +224,26 @@ public class BoardService {
 
                 if (test.isIgnoredTest() || test.isMutedTest())
                     status = IssueResolveStatus.IGNORED;
-                else if (IssueType.newTestWithHighFlakyRate.code().equals(issueType))
-                    status = IssueResolveStatus.FAILING;
+                else if (IssueType.newTestWithHighFlakyRate.code().equals(issueType)) {
+                    int fullSuiteNameAndFullTestName = issue.testNameCid();
+
+                    int branchName = rebuild.get().branchName();
+                    int buildTypeName = rebuild.get().buildTypeName();
+
+                    IRunHistory runStat = tcIgn.getTestRunHist(fullSuiteNameAndFullTestName, buildTypeName, branchName);
+
+                    if (runStat == null)
+                        status = IssueResolveStatus.UNKNOWN;
+                    else {
+                        int okTestsRow = (int) Math.ceil(Math.log(1 - cfg.confidence()) / Math.log(1 - issue.getFlakyRate()));
+                        new EventTemplate(
+                            new int[]{OK_OR_FAILURE},
+                            IntStream.of(OK).limit(okTestsRow).toArray()
+                        );
+                        Integer firstFailedBuildId = runStat.detectTemplate(EventTemplates.stablePassedTest);
+                        status = firstFailedBuildId != null ? IssueResolveStatus.FIXED : IssueResolveStatus.FAILING;
+                    }
+                }
                 else
                     status = test.isFailedTest(compactor) ? IssueResolveStatus.FAILING : IssueResolveStatus.FIXED;
 
@@ -241,7 +266,7 @@ public class BoardService {
     }
 
     public void issuesToDefectsLater(ICredentialsProv creds) {
-        scheduler.sheduleNamed("issuesToDefects", () -> issuesToDefects(creds), 15, TimeUnit.MINUTES);
+        scheduler.sheduleNamed("issuesToDefects", () -> issuesToDefects(creds), 4, TimeUnit.MINUTES);
     }
 
     @MonitoredTask(name = "Convert issues to defect")
@@ -287,6 +312,7 @@ public class BoardService {
                 int issueTypeCid = compactor.getStringId(issue.type);
                 Integer testNameCid = compactor.getStringIdIfPresent(testName);
                 int trackedBranchCid = compactor.getStringId(issue.trackedBranchName);
+                double flakyRate = issue.flakyRate;
 
                 int tcSrvCodeCid = compactor.getStringId(srvCode);
                 defectStorage.merge(tcSrvCodeCid, srvId, fatBuild,
@@ -295,7 +321,7 @@ public class BoardService {
 
                         defect.trackedBranchCidSetIfEmpty(trackedBranchCid);
 
-                        defect.computeIfAbsent(fatBuild).addIssue(issueTypeCid, testNameCid);
+                        defect.computeIfAbsent(fatBuild).addIssue(issueTypeCid, testNameCid, flakyRate);
 
                         defect.removeOldVerBlameCandidates();
 

@@ -41,6 +41,9 @@ public class TcBotJsonConfig implements ITrackedBranchesConfig {
     /** Flaky rate to consider test as a flaky test. */
     @Nullable private Integer flakyRate;
 
+    /** Сonfidence (used with flaky tests). */
+    @Nullable private Double confidence;
+
     /** Additional list Servers to be used for validation of PRs, but not for tracking any branches. */
     private List<TcServerConfig> tcServers = new ArrayList<>();
 
@@ -91,6 +94,13 @@ public class TcBotJsonConfig implements ITrackedBranchesConfig {
      */
     @Nullable public Integer flakyRate() {
         return flakyRate;
+    }
+
+    /**
+     * @return Сonfidence.
+     */
+    @Nullable public Double confidence() {
+        return confidence;
     }
 
     public Optional<TcServerConfig> getTcConfig(String code) {

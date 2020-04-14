@@ -30,11 +30,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
+import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
 import org.apache.ignite.tcbot.engine.issue.IssueType;
 import org.apache.ignite.ci.jobs.CheckQueueJob;
@@ -64,6 +66,7 @@ import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.tcignited.history.IRunHistory;
+import org.apache.ignite.tcignited.history.InvocationData;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,6 +113,12 @@ public class IssueDetector {
 
     /** Send notification guard. */
     private final AtomicBoolean sndNotificationGuard = new AtomicBoolean();
+
+    private static final AtomicBoolean needPreloadData = new AtomicBoolean();
+
+    static {
+        needPreloadData.set(true);
+    }
 
     private String registerIssuesAndNotifyLater(DsSummaryUi res,
                                                 ITcBotUserCreds creds) {
@@ -469,14 +478,10 @@ public class IssueDetector {
 
             if (firstFailedBuildId != null) {
                 type = IssueType.newFailure;
-
                 final String flakyComments = runStat.getFlakyComments();
 
                 if (!Strings.isNullOrEmpty(flakyComments)) {
-                    if (runStat.getFlakyRate() > cfg.flakyRate() &&
-                        runStat.detectTemplate(EventTemplates.stablePassedTest) == null)
-                        type = IssueType.newTestWithHighFlakyRate;
-                    else if (runStat.detectTemplate(EventTemplates.newFailureForFlakyTest) == null) {
+                    if (runStat.detectTemplate(EventTemplates.newFailureForFlakyTest) == null) {
                         logger.info("Skipping registering new issue for test fail:" +
                             " Test seems to be flaky " + name + ": " + flakyComments);
 
@@ -487,6 +492,26 @@ public class IssueDetector {
                 }
             }
         }
+
+        List<Invocation> invocations = runStat.getInvocations().
+            filter(invocation -> invocation != null && invocation.status() != InvocationData.MISSING)
+            .collect(Collectors.toList());
+
+        double flakyRate = 0;
+
+        int okTestsRow = (int) Math.ceil(Math.log(1 - cfg.confidence()) / Math.log(1 - cfg.flakyRate()));
+
+        if (invocations.size() >= okTestsRow + 1) {
+            List<Invocation> lastInvocations = invocations.subList(invocations.size() - okTestsRow, invocations.size());
+            long failedTestsCount = lastInvocations.stream().filter(invocation -> invocation.status() == 1).count();
+            flakyRate = (double)failedTestsCount / okTestsRow;
+
+            if (flakyRate > cfg.flakyRate()) {
+                type = IssueType.newTestWithHighFlakyRate;
+                firstFailedBuildId = invocations.get(0).buildId();
+            }
+        }
+
 
         if (firstFailedBuildId == null)
             return false;
@@ -505,6 +530,7 @@ public class IssueDetector {
         issue.trackedBranchName = trackedBranch;
         issue.displayName = testFailure.testName;
         issue.webUrl = testFailure.webUrl;
+        issue.flakyRate = flakyRate;
 
         issue.buildTags.addAll(suiteTags);
 
@@ -531,7 +557,7 @@ public class IssueDetector {
 
                 executorService = Executors.newScheduledThreadPool(3);
 
-                executorService.scheduleAtFixedRate(this::checkFailures, 0, 15, TimeUnit.MINUTES);
+                executorService.scheduleAtFixedRate(this::checkFailures, 0, 4, TimeUnit.MINUTES);
 
                 final CheckQueueJob checkQueueJob = checkQueueJobProv.get();
 
@@ -571,7 +597,13 @@ public class IssueDetector {
     @MonitoredTask(name = "Detect Issues in tracked branch", nameExtArgIndex = 0)
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     protected String checkFailuresEx(String brachName) {
-        int buildsToQry = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
+        int buildsToQry;
+        if (!needPreloadData.get())
+            buildsToQry = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
+        else {
+            buildsToQry = 40;
+            needPreloadData.set(false);
+        }
 
         ITcBotUserCreds creds = Preconditions.checkNotNull(backgroundOpsCreds, "Server should be authorized");
 

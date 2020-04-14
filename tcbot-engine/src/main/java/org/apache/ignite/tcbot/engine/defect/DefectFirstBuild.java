@@ -33,8 +33,8 @@ public class DefectFirstBuild {
         this.build = build;
     }
 
-    public DefectFirstBuild addIssue(int typeCid, Integer testNameCid) {
-        issues.add(new DefectIssue(typeCid, testNameCid));
+    public DefectFirstBuild addIssue(int typeCid, Integer testNameCid, double flakyRate) {
+        issues.add(new DefectIssue(typeCid, testNameCid, flakyRate));
 
         return this;
     }
