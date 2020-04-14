@@ -19,6 +19,7 @@ package org.apache.ignite.tcbot.engine.board;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -124,9 +125,10 @@ public class BoardService {
 //
 //                    boolean isNewTestWithHighFlakyRate = IssueType.newTestWithHighFlakyRate.code().equals(compactor.getStringFromId(issue.issueTypeCode()));
 //
-//                    if (isNewTestWithHighFlakyRate && firstFailedBuildId != null)
+//                    if (isNewTestWithHighFlakyRate)
+//                        System.out.print("");
 //                        resolveDefect(next.id(), creds, false);
-//
+
 //                }
 //            }
 //        }
@@ -166,7 +168,7 @@ public class BoardService {
                 rebuild = !freshRebuild.isEmpty() ? freshRebuild.stream().findFirst() : Optional.empty();
 
                 for (DefectIssue issue : cause.issues()) {
-                    BoardDefectIssueUi issueUi = processIssue(tcIgn, rebuild, issue);
+                    BoardDefectIssueUi issueUi = processIssue(tcIgn, rebuild, issue, firstBuild.buildTypeId());
 
                     defectUi.addIssue(issueUi);
                 }
@@ -182,7 +184,7 @@ public class BoardService {
 
     public BoardDefectIssueUi processIssue(ITeamcityIgnited tcIgn,
                                            Optional<FatBuildCompacted> rebuild,
-                                           DefectIssue issue) {
+                                           DefectIssue issue, int projectId) {
         Optional<ITest> testResult;
 
         String issueType = compactor.getStringFromId(issue.issueTypeCode());
@@ -228,20 +230,25 @@ public class BoardService {
                     int fullSuiteNameAndFullTestName = issue.testNameCid();
 
                     int branchName = rebuild.get().branchName();
-                    int buildTypeName = rebuild.get().buildTypeName();
 
-                    IRunHistory runStat = tcIgn.getTestRunHist(fullSuiteNameAndFullTestName, buildTypeName, branchName);
+                    IRunHistory runStat = tcIgn.getTestRunHist(fullSuiteNameAndFullTestName, projectId, branchName);
 
                     if (runStat == null)
                         status = IssueResolveStatus.UNKNOWN;
                     else {
-                        int okTestsRow = (int) Math.ceil(Math.log(1 - cfg.confidence()) / Math.log(1 - issue.getFlakyRate()));
-                        new EventTemplate(
-                            new int[]{OK_OR_FAILURE},
-                            IntStream.of(OK).limit(okTestsRow).toArray()
-                        );
-                        Integer firstFailedBuildId = runStat.detectTemplate(EventTemplates.stablePassedTest);
-                        status = firstFailedBuildId != null ? IssueResolveStatus.FIXED : IssueResolveStatus.FAILING;
+                        int confidenceOkTestsRow = Math.max(1, (int) Math.ceil(Math.log(1 - cfg.confidence()) / Math.log(1 - issue.getFlakyRate() / 100.0)));
+                        List<Integer> runResults = runStat.getLatestRunResults();
+                        Collections.reverse(runResults);
+                        int okTestRow = 0;
+
+                        for (Integer run : runResults) {
+                            if (run != null && run == 0 && (okTestRow < confidenceOkTestsRow))
+                                okTestRow++;
+                            else
+                                break;
+                        }
+
+                        status = okTestRow >= confidenceOkTestsRow ? IssueResolveStatus.FIXED : IssueResolveStatus.FAILING;
                     }
                 }
                 else
@@ -249,10 +256,10 @@ public class BoardService {
 
                 FatBuildCompacted fatBuildCompacted = rebuild.get();
                 Long testNameId = test.getTestId();
-                String projectId = fatBuildCompacted.projectId(compactor);
+                String RebuildProjectId = fatBuildCompacted.projectId(compactor);
                 String branchName = fatBuildCompacted.branchName(compactor);
 
-                webUrl = DsTestFailureUi.buildWebLink(tcIgn, testNameId, projectId, branchName);
+                webUrl = DsTestFailureUi.buildWebLink(tcIgn, testNameId, RebuildProjectId, branchName);
             }
             else {
                 //exception for new test. removal of test means test is fixed

@@ -499,12 +499,12 @@ public class IssueDetector {
 
         double flakyRate = 0;
 
-        int okTestsRow = (int) Math.ceil(Math.log(1 - cfg.confidence()) / Math.log(1 - cfg.flakyRate()));
+        int okTestsRow = (int) Math.ceil(Math.log(1 - cfg.confidence()) / Math.log(1 - cfg.flakyRate() / 100.0));
 
         if (invocations.size() >= okTestsRow + 1) {
             List<Invocation> lastInvocations = invocations.subList(invocations.size() - okTestsRow, invocations.size());
             long failedTestsCount = lastInvocations.stream().filter(invocation -> invocation.status() == 1).count();
-            flakyRate = (double)failedTestsCount / okTestsRow;
+            flakyRate = (double)failedTestsCount / okTestsRow * 100;
 
             if (flakyRate > cfg.flakyRate()) {
                 type = IssueType.newTestWithHighFlakyRate;
