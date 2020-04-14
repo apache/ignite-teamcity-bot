@@ -97,44 +97,6 @@ public class BoardService {
 
         List<DefectCompacted> defects = defectStorage.loadAllDefects();
 
-//        for (DefectCompacted next : defects) {
-//
-//            String srvCode = next.tcSrvCode(compactor);
-//
-//            ITeamcityIgnited tcIgnited = tcProv.server(srvCode, creds);
-//
-//            if (!creds.hasAccess(srvCode))
-//                continue;
-//
-//            Map<Integer, DefectFirstBuild> build = next.buildsInvolved();
-//            for (DefectFirstBuild cause : build.values()) {
-//                FatBuildCompacted firstBuild = cause.build();
-//
-//                int projectId = firstBuild.buildTypeId();
-//                int branchName = firstBuild.branchName();
-//
-//                for (DefectIssue issue : cause.issues()) {
-//                    int fullSuiteNameAndFullTestName = issue.testNameCid();
-//
-//                    IRunHistory runStat = tcIgnited.getTestRunHist(fullSuiteNameAndFullTestName, projectId, branchName);
-//
-//                    if (runStat == null)
-//                        continue;
-//
-//                    Integer firstFailedBuildId = runStat.detectTemplate(EventTemplates.stablePassedTest);
-//
-//                    boolean isNewTestWithHighFlakyRate = IssueType.newTestWithHighFlakyRate.code().equals(compactor.getStringFromId(issue.issueTypeCode()));
-//
-//                    if (isNewTestWithHighFlakyRate)
-//                        System.out.print("");
-//                        resolveDefect(next.id(), creds, false);
-
-//                }
-//            }
-//        }
-//
-//        defects = defectStorage.loadAllDefects();
-
         BoardSummaryUi res = new BoardSummaryUi();
         boolean admin = userStorage.getUser(creds.getPrincipalId()).isAdmin();
         for (DefectCompacted next : defects) {
