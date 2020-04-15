@@ -493,22 +493,24 @@ public class IssueDetector {
             }
         }
 
-        List<Invocation> invocations = runStat.getInvocations().
-            filter(invocation -> invocation != null && invocation.status() != InvocationData.MISSING)
-            .collect(Collectors.toList());
-
         double flakyRate = 0;
 
-        int okTestsRow = (int) Math.ceil(Math.log(1 - cfg.confidence()) / Math.log(1 - cfg.flakyRate() / 100.0));
+        if (firstFailedBuildId == null || type == null) {
+            List<Invocation> invocations = runStat.getInvocations().
+                filter(invocation -> invocation != null && invocation.status() != InvocationData.MISSING)
+                .collect(Collectors.toList());
 
-        if (invocations.size() >= okTestsRow + 1) {
-            List<Invocation> lastInvocations = invocations.subList(invocations.size() - okTestsRow, invocations.size());
-            long failedTestsCount = lastInvocations.stream().filter(invocation -> invocation.status() == 1).count();
-            flakyRate = (double)failedTestsCount / okTestsRow * 100;
+            int okTestsRow = (int)Math.ceil(Math.log(1 - cfg.confidence()) / Math.log(1 - cfg.flakyRate() / 100.0));
 
-            if (flakyRate > cfg.flakyRate()) {
-                type = IssueType.newTestWithHighFlakyRate;
-                firstFailedBuildId = invocations.get(0).buildId();
+            if (invocations.size() >= okTestsRow) {
+                List<Invocation> lastInvocations = invocations.subList(invocations.size() - okTestsRow, invocations.size());
+                long failedTestsCount = lastInvocations.stream().filter(invocation -> invocation.status() == 1).count();
+                flakyRate = (double)failedTestsCount / okTestsRow * 100;
+
+                if (flakyRate > cfg.flakyRate()) {
+                    type = IssueType.newTestWithHighFlakyRate;
+                    firstFailedBuildId = lastInvocations.get(0).buildId();
+                }
             }
         }
 
