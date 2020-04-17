@@ -72,6 +72,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.ignite.tcignited.buildref.BranchEquivalence.normalizeBranch;
+import static org.apache.ignite.tcignited.history.RunStatus.RES_FAILURE;
+import static org.apache.ignite.tcignited.history.RunStatus.RES_OK;
 
 /**
  *
@@ -503,7 +505,7 @@ public class IssueDetector {
                 int stableTestRuns = 0;
 
                 for (int i = 0; i < confidenceOkTestsRow; i++) {
-                    if (lastInvocations.get(i).status() == 0)
+                    if (lastInvocations.get(i).status() == RES_OK.getCode())
                         stableTestRuns++;
                     else
                         break;
@@ -513,7 +515,7 @@ public class IssueDetector {
                     long failedTestRuns = 0;
 
                     for (int i = confidenceOkTestsRow; i < confidenceOkTestsRow * 2; i++) {
-                        if (lastInvocations.get(i).status() == 1)
+                        if (lastInvocations.get(i).status() == RES_FAILURE.getCode())
                             failedTestRuns++;
                     }
 
@@ -612,6 +614,7 @@ public class IssueDetector {
     @MonitoredTask(name = "Detect Issues in tracked branch", nameExtArgIndex = 0)
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     protected String checkFailuresEx(String brachName) {
+        // For test purpose. I will revert it.
         int buildsToQry;
         if (!needPreloadData.get())
             buildsToQry = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();

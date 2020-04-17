@@ -29,7 +29,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -51,8 +50,6 @@ import org.apache.ignite.tcbot.engine.defect.DefectCompacted;
 import org.apache.ignite.tcbot.engine.defect.DefectFirstBuild;
 import org.apache.ignite.tcbot.engine.defect.DefectIssue;
 import org.apache.ignite.tcbot.engine.defect.DefectsStorage;
-import org.apache.ignite.tcbot.engine.issue.EventTemplate;
-import org.apache.ignite.tcbot.engine.issue.EventTemplates;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
 import org.apache.ignite.tcbot.engine.issue.IssueType;
 import org.apache.ignite.tcbot.engine.ui.BoardDefectIssueUi;
@@ -70,8 +67,8 @@ import org.apache.ignite.tcignited.build.ITest;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 import org.apache.ignite.tcignited.history.IRunHistory;
 
-import static org.apache.ignite.tcbot.engine.issue.EventTemplates.OK;
-import static org.apache.ignite.tcbot.engine.issue.EventTemplates.OK_OR_FAILURE;
+import static org.apache.ignite.tcignited.history.RunStatus.RES_MISSING;
+import static org.apache.ignite.tcignited.history.RunStatus.RES_OK;
 
 public class BoardService {
     @Inject IIssuesStorage issuesStorage;
@@ -208,7 +205,9 @@ public class BoardService {
                             int okTestRow = 0;
 
                             for (Integer run : runResults) {
-                                if (run != null && run == 0 && (okTestRow < confidenceOkTestsRow))
+                                if (run == null || run == RES_MISSING.getCode())
+                                    continue;
+                                if (run == RES_OK.getCode() && (okTestRow < confidenceOkTestsRow))
                                     okTestRow++;
                                 else
                                     break;
@@ -226,7 +225,13 @@ public class BoardService {
                 String RebuildProjectId = fatBuildCompacted.projectId(compactor);
                 String branchName = fatBuildCompacted.branchName(compactor);
 
-                webUrl = DsTestFailureUi.buildWebLink(tcIgn, testNameId, RebuildProjectId, branchName);
+                if ("private".equals(tcIgn.serverCode())) {
+                    String strProjectId = compactor.getStringFromId(projectId);
+                    String[] buildTypeIds = {strProjectId, "branch_" + RebuildProjectId};
+                    webUrl = DsTestFailureUi.buildWebLink(tcIgn, testNameId, RebuildProjectId, branchName, buildTypeIds);
+                }
+                else
+                    webUrl = DsTestFailureUi.buildWebLink(tcIgn, testNameId, RebuildProjectId, branchName);
             }
             else {
                 //exception for new test. removal of test means test is fixed

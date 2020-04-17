@@ -182,6 +182,12 @@ public class DsTestFailureUi extends ShortTestFailureUi {
             + "&tab=testDetails";
     }
 
+    public static String buildWebLink(ITeamcityIgnited tcIgn, Long testNameId,
+        @Nullable String projectId, @Nullable String branchName, String[] buildTypeIds) {
+        return buildWebLink(tcIgn, testNameId, projectId, branchName)
+            + "&buildTypeId=" + String.join("&", buildTypeIds);
+    }
+
     /**
      * @param occurrence
      * @param tcIgnited TC service as Run stat supplier.
