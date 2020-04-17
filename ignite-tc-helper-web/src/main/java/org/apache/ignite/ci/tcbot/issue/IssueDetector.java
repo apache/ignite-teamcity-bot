@@ -480,16 +480,9 @@ public class IssueDetector {
                 type = IssueType.newFailure;
                 final String flakyComments = runStat.getFlakyComments();
 
-                if (!Strings.isNullOrEmpty(flakyComments)) {
-                    if (runStat.detectTemplate(EventTemplates.newFailureForFlakyTest) == null) {
-                        logger.info("Skipping registering new issue for test fail:" +
-                            " Test seems to be flaky " + name + ": " + flakyComments);
-
-                        firstFailedBuildId = null;
-                    }
-                    else
+                if (!Strings.isNullOrEmpty(flakyComments) &&
+                    runStat.detectTemplate(EventTemplates.newFailureForFlakyTest) != null)
                         type = IssueType.newFailureForFlakyTest;
-                }
             }
         }
 
@@ -500,16 +493,36 @@ public class IssueDetector {
                 filter(invocation -> invocation != null && invocation.status() != InvocationData.MISSING)
                 .collect(Collectors.toList());
 
-            int okTestsRow = (int)Math.ceil(Math.log(1 - cfg.confidence()) / Math.log(1 - cfg.flakyRate() / 100.0));
+            int confidenceOkTestsRow = Math.max(1,
+                (int) Math.ceil(Math.log(1 - cfg.confidence()) / Math.log(1 - cfg.flakyRate() / 100.0)));
 
-            if (invocations.size() >= okTestsRow) {
-                List<Invocation> lastInvocations = invocations.subList(invocations.size() - okTestsRow, invocations.size());
-                long failedTestsCount = lastInvocations.stream().filter(invocation -> invocation.status() == 1).count();
-                flakyRate = (double)failedTestsCount / okTestsRow * 100;
+            if (invocations.size() >= confidenceOkTestsRow * 2) {
+                List<Invocation> lastInvocations =
+                    invocations.subList(invocations.size() - confidenceOkTestsRow * 2, invocations.size());
 
-                if (flakyRate > cfg.flakyRate()) {
-                    type = IssueType.newTestWithHighFlakyRate;
-                    firstFailedBuildId = lastInvocations.get(0).buildId();
+                int stableTestRuns = 0;
+
+                for (int i = 0; i < confidenceOkTestsRow; i++) {
+                    if (lastInvocations.get(i).status() == 0)
+                        stableTestRuns++;
+                    else
+                        break;
+                }
+
+                if (stableTestRuns == confidenceOkTestsRow) {
+                    long failedTestRuns = 0;
+
+                    for (int i = confidenceOkTestsRow; i < confidenceOkTestsRow * 2; i++) {
+                        if (lastInvocations.get(i).status() == 1)
+                            failedTestRuns++;
+                    }
+
+                    flakyRate = (double) failedTestRuns / confidenceOkTestsRow * 100;
+
+                    if (flakyRate > cfg.flakyRate()) {
+                        type = IssueType.newTestWithHighFlakyRate;
+                        firstFailedBuildId = lastInvocations.get(confidenceOkTestsRow).buildId();
+                    }
                 }
             }
         }

@@ -198,19 +198,24 @@ public class BoardService {
                     if (runStat == null)
                         status = IssueResolveStatus.UNKNOWN;
                     else {
-                        int confidenceOkTestsRow = Math.max(1, (int) Math.ceil(Math.log(1 - cfg.confidence()) / Math.log(1 - issue.getFlakyRate() / 100.0)));
                         List<Integer> runResults = runStat.getLatestRunResults();
-                        Collections.reverse(runResults);
-                        int okTestRow = 0;
+                        if (runResults == null)
+                            status = IssueResolveStatus.UNKNOWN;
+                        else {
+                            int confidenceOkTestsRow = Math.max(1,
+                                (int) Math.ceil(Math.log(1 - cfg.confidence()) / Math.log(1 - issue.getFlakyRate() / 100.0)));
+                            Collections.reverse(runResults);
+                            int okTestRow = 0;
 
-                        for (Integer run : runResults) {
-                            if (run != null && run == 0 && (okTestRow < confidenceOkTestsRow))
-                                okTestRow++;
-                            else
-                                break;
+                            for (Integer run : runResults) {
+                                if (run != null && run == 0 && (okTestRow < confidenceOkTestsRow))
+                                    okTestRow++;
+                                else
+                                    break;
+                            }
+
+                            status = okTestRow >= confidenceOkTestsRow ? IssueResolveStatus.FIXED : IssueResolveStatus.FAILING;
                         }
-
-                        status = okTestRow >= confidenceOkTestsRow ? IssueResolveStatus.FIXED : IssueResolveStatus.FAILING;
                     }
                 }
                 else
