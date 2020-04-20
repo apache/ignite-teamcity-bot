@@ -225,13 +225,7 @@ public class BoardService {
                 String RebuildProjectId = fatBuildCompacted.projectId(compactor);
                 String branchName = fatBuildCompacted.branchName(compactor);
 
-                if ("private".equals(tcIgn.serverCode())) {
-                    String strProjectId = compactor.getStringFromId(projectId);
-                    String[] buildTypeIds = {strProjectId, "branch_" + RebuildProjectId};
-                    webUrl = DsTestFailureUi.buildWebLink(tcIgn, testNameId, RebuildProjectId, branchName, buildTypeIds);
-                }
-                else
-                    webUrl = DsTestFailureUi.buildWebLink(tcIgn, testNameId, RebuildProjectId, branchName);
+                webUrl = DsTestFailureUi.buildWebLink(tcIgn, testNameId, RebuildProjectId, branchName);
             }
             else {
                 //exception for new test. removal of test means test is fixed

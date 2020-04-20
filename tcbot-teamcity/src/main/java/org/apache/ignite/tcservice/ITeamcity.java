@@ -39,7 +39,7 @@ public interface ITeamcity extends ITeamcityConn {
     public String REFS_HEADS_MASTER = "refs/heads/master";
 
     /** Branch synonym: Master. */
-    public String MASTER = "master";
+    public String MASTER = "8.7-master";
 
     /** Some fake property to avoid merging build in queue: Tcbot trigger time. */
     public String TCBOT_TRIGGER_TIME = "tcbot.triggerTime";

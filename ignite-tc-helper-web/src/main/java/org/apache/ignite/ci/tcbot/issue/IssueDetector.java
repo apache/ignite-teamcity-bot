@@ -614,14 +614,7 @@ public class IssueDetector {
     @MonitoredTask(name = "Detect Issues in tracked branch", nameExtArgIndex = 0)
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     protected String checkFailuresEx(String brachName) {
-        // For test purpose. I will revert it.
-        int buildsToQry;
-        if (!needPreloadData.get())
-            buildsToQry = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
-        else {
-            buildsToQry = 40;
-            needPreloadData.set(false);
-        }
+        int buildsToQry = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
 
         ITcBotUserCreds creds = Preconditions.checkNotNull(backgroundOpsCreds, "Server should be authorized");
 
