@@ -116,12 +116,6 @@ public class IssueDetector {
     /** Send notification guard. */
     private final AtomicBoolean sndNotificationGuard = new AtomicBoolean();
 
-    private static final AtomicBoolean needPreloadData = new AtomicBoolean();
-
-    static {
-        needPreloadData.set(true);
-    }
-
     private String registerIssuesAndNotifyLater(DsSummaryUi res,
                                                 ITcBotUserCreds creds) {
 
@@ -529,7 +523,6 @@ public class IssueDetector {
             }
         }
 
-
         if (firstFailedBuildId == null)
             return false;
 
@@ -574,7 +567,7 @@ public class IssueDetector {
 
                 executorService = Executors.newScheduledThreadPool(3);
 
-                executorService.scheduleAtFixedRate(this::checkFailures, 0, 4, TimeUnit.MINUTES);
+                executorService.scheduleAtFixedRate(this::checkFailures, 0, 15, TimeUnit.MINUTES);
 
                 final CheckQueueJob checkQueueJob = checkQueueJobProv.get();
 

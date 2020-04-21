@@ -86,11 +86,9 @@ public class BoardService {
      * @param creds Credentials.
      */
     public BoardSummaryUi summary(ICredentialsProv creds) {
-        issuesToDefectsLater(creds);
+        issuesToDefectsLater();
 
         Map<Integer, Future<FatBuildCompacted>> allBuildsMap = new HashMap<>();
-
-
 
         List<DefectCompacted> defects = defectStorage.loadAllDefects();
 
@@ -238,12 +236,12 @@ public class BoardService {
         return new BoardDefectIssueUi(status, compactor, issue, suiteProblem, webUrl);
     }
 
-    public void issuesToDefectsLater(ICredentialsProv creds) {
-        scheduler.sheduleNamed("issuesToDefects", () -> issuesToDefects(creds), 4, TimeUnit.MINUTES);
+    public void issuesToDefectsLater() {
+        scheduler.sheduleNamed("issuesToDefects", this::issuesToDefects, 4, TimeUnit.MINUTES);
     }
 
     @MonitoredTask(name = "Convert issues to defect")
-    protected String issuesToDefects(ICredentialsProv creds) {
+    protected String issuesToDefects() {
         Stream<Issue> stream = issuesStorage.allIssues();
 
         //todo make property how old issues can be considered as configuration parameter
@@ -305,7 +303,6 @@ public class BoardService {
                     });
 
             });
-
 
         return processedDefects.size() + " defects processed for " + cntIssues.get() + " issues checked";
     }
