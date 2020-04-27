@@ -19,6 +19,7 @@ package org.apache.ignite.tcbot.engine.board;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -43,6 +44,7 @@ import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.common.util.FutureUtil;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.chain.SingleBuildRunCtx;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.defect.BlameCandidate;
 import org.apache.ignite.tcbot.engine.defect.DefectCompacted;
 import org.apache.ignite.tcbot.engine.defect.DefectFirstBuild;
@@ -63,6 +65,10 @@ import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.build.ITest;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
+import org.apache.ignite.tcignited.history.IRunHistory;
+
+import static org.apache.ignite.tcignited.history.RunStatus.RES_MISSING;
+import static org.apache.ignite.tcignited.history.RunStatus.RES_OK;
 
 public class BoardService {
     @Inject IIssuesStorage issuesStorage;
@@ -74,6 +80,7 @@ public class BoardService {
     @Inject IStringCompactor compactor;
     @Inject BuildChainProcessor buildChainProcessor;
     @Inject IUserStorage userStorage;
+    @Inject ITcBotConfig cfg;
 
     /**
      * @param creds Credentials.
@@ -118,7 +125,7 @@ public class BoardService {
                 rebuild = !freshRebuild.isEmpty() ? freshRebuild.stream().findFirst() : Optional.empty();
 
                 for (DefectIssue issue : cause.issues()) {
-                    BoardDefectIssueUi issueUi = processIssue(tcIgn, rebuild, issue);
+                    BoardDefectIssueUi issueUi = processIssue(tcIgn, rebuild, issue, firstBuild.buildTypeId());
 
                     defectUi.addIssue(issueUi);
                 }
@@ -134,7 +141,7 @@ public class BoardService {
 
     public BoardDefectIssueUi processIssue(ITeamcityIgnited tcIgn,
                                            Optional<FatBuildCompacted> rebuild,
-                                           DefectIssue issue) {
+                                           DefectIssue issue, int projectId) {
         Optional<ITest> testResult;
 
         String issueType = compactor.getStringFromId(issue.issueTypeCode());
@@ -176,15 +183,47 @@ public class BoardService {
 
                 if (test.isIgnoredTest() || test.isMutedTest())
                     status = IssueResolveStatus.IGNORED;
+                else if (IssueType.newTestWithHighFlakyRate.code().equals(issueType)) {
+                    int fullSuiteNameAndFullTestName = issue.testNameCid();
+
+                    int branchName = rebuild.get().branchName();
+
+                    IRunHistory runStat = tcIgn.getTestRunHist(fullSuiteNameAndFullTestName, projectId, branchName);
+
+                    if (runStat == null)
+                        status = IssueResolveStatus.UNKNOWN;
+                    else {
+                        List<Integer> runResults = runStat.getLatestRunResults();
+                        if (runResults == null)
+                            status = IssueResolveStatus.UNKNOWN;
+                        else {
+                            int confidenceOkTestsRow = Math.max(1,
+                                (int) Math.ceil(Math.log(1 - cfg.confidence()) / Math.log(1 - issue.getFlakyRate() / 100.0)));
+                            Collections.reverse(runResults);
+                            int okTestRow = 0;
+
+                            for (Integer run : runResults) {
+                                if (run == null || run == RES_MISSING.getCode())
+                                    continue;
+                                if (run == RES_OK.getCode() && (okTestRow < confidenceOkTestsRow))
+                                    okTestRow++;
+                                else
+                                    break;
+                            }
+
+                            status = okTestRow >= confidenceOkTestsRow ? IssueResolveStatus.FIXED : IssueResolveStatus.FAILING;
+                        }
+                    }
+                }
                 else
                     status = test.isFailedTest(compactor) ? IssueResolveStatus.FAILING : IssueResolveStatus.FIXED;
 
                 FatBuildCompacted fatBuildCompacted = rebuild.get();
                 Long testNameId = test.getTestId();
-                String projectId = fatBuildCompacted.projectId(compactor);
+                String RebuildProjectId = fatBuildCompacted.projectId(compactor);
                 String branchName = fatBuildCompacted.branchName(compactor);
 
-                webUrl = DsTestFailureUi.buildWebLink(tcIgn, testNameId, projectId, branchName);
+                webUrl = DsTestFailureUi.buildWebLink(tcIgn, testNameId, RebuildProjectId, branchName);
             }
             else {
                 //exception for new test. removal of test means test is fixed
@@ -244,6 +283,7 @@ public class BoardService {
                 int issueTypeCid = compactor.getStringId(issue.type);
                 Integer testNameCid = compactor.getStringIdIfPresent(testName);
                 int trackedBranchCid = compactor.getStringId(issue.trackedBranchName);
+                double flakyRate = issue.flakyRate;
 
                 int tcSrvCodeCid = compactor.getStringId(srvCode);
                 defectStorage.merge(tcSrvCodeCid, srvId, fatBuild,
@@ -252,7 +292,7 @@ public class BoardService {
 
                         defect.trackedBranchCidSetIfEmpty(trackedBranchCid);
 
-                        defect.computeIfAbsent(fatBuild).addIssue(issueTypeCid, testNameCid);
+                        defect.computeIfAbsent(fatBuild).addIssue(issueTypeCid, testNameCid, flakyRate);
 
                         defect.removeOldVerBlameCandidates();
 

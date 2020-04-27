@@ -27,9 +27,11 @@ import static org.apache.ignite.tcignited.history.RunStatus.RES_OK_OR_FAILURE;
 import static org.apache.ignite.tcignited.history.RunStatus.RES_MISSING;
 
 public class EventTemplates {
-    private static final int OK = RES_OK.getCode();
-    private static final int FAIL = RES_FAILURE.getCode();
-    private static final int MISSING = RES_MISSING.getCode();
+    public static final int OK = RES_OK.getCode();
+    public static final int FAIL = RES_FAILURE.getCode();
+    public static final int MISSING = RES_MISSING.getCode();
+    public static final int OK_OR_FAILURE = RES_OK_OR_FAILURE.getCode();
+    public static final int CRITICAL_FAILURE = RES_CRITICAL_FAILURE.getCode();
 
     public static final EventTemplate newFailure = new EventTemplate(
             new int[]{OK, OK, OK, OK, OK},
@@ -37,8 +39,8 @@ public class EventTemplates {
     );
 
     public static final EventTemplate newCriticalFailure = new EventTemplate(
-            new int[]{RES_OK_OR_FAILURE.getCode(), RES_OK_OR_FAILURE.getCode(), RES_OK_OR_FAILURE.getCode(), RES_OK_OR_FAILURE.getCode(), RES_OK_OR_FAILURE.getCode()},
-            new int[]{RES_CRITICAL_FAILURE.getCode(), RES_CRITICAL_FAILURE.getCode(), RES_CRITICAL_FAILURE.getCode(), RES_CRITICAL_FAILURE.getCode()}
+            new int[]{OK_OR_FAILURE, OK_OR_FAILURE, OK_OR_FAILURE, OK_OR_FAILURE, OK_OR_FAILURE},
+            new int[]{CRITICAL_FAILURE, CRITICAL_FAILURE, CRITICAL_FAILURE, CRITICAL_FAILURE}
     );
 
     public static final EventTemplate newContributedTestFailure = new EventTemplate(

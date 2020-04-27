@@ -544,6 +544,10 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         return compactor.getStringFromId(projectId);
     }
 
+    public int projectId() {
+        return projectId;
+    }
+
     public List<ProblemOccurrence> problems(IStringCompactor compactor) {
         if (this.problems == null)
              return Collections.emptyList();

@@ -106,8 +106,8 @@ public class IssueDetectorTest {
 
         Map<String, String> buildWoChanges = new TreeMap<String, String>() {
             {
-                put("testFailedShoudlBeConsideredAsFlaky", "0000011111");
-                put("testFlakyStableFailure", "0000011111111111");
+                put("testFailedShouldBeConsideredAsFlaky", "0000011111");
+                put("testFlakyStableFailure", "0000010101100101");
             }
         };
 

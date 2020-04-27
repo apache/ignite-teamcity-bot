@@ -30,11 +30,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
+import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
 import org.apache.ignite.tcbot.engine.issue.IssueType;
 import org.apache.ignite.ci.jobs.CheckQueueJob;
@@ -64,11 +66,14 @@ import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.tcignited.history.IRunHistory;
+import org.apache.ignite.tcignited.history.InvocationData;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.ignite.tcignited.buildref.BranchEquivalence.normalizeBranch;
+import static org.apache.ignite.tcignited.history.RunStatus.RES_FAILURE;
+import static org.apache.ignite.tcignited.history.RunStatus.RES_OK;
 
 /**
  *
@@ -471,15 +476,49 @@ public class IssueDetector {
                 type = IssueType.newFailure;
                 final String flakyComments = runStat.getFlakyComments();
 
-                if (!Strings.isNullOrEmpty(flakyComments)) {
-                    if (runStat.detectTemplate(EventTemplates.newFailureForFlakyTest) == null) {
-                        logger.info("Skipping registering new issue for test fail:" +
-                            " Test seems to be flaky " + name + ": " + flakyComments);
-
-                        firstFailedBuildId = null;
-                    }
-                    else
+                if (!Strings.isNullOrEmpty(flakyComments) &&
+                    runStat.detectTemplate(EventTemplates.newFailureForFlakyTest) != null)
                         type = IssueType.newFailureForFlakyTest;
+            }
+        }
+
+        double flakyRate = 0;
+
+        if (firstFailedBuildId == null || type == null) {
+            List<Invocation> invocations = runStat.getInvocations().
+                filter(invocation -> invocation != null && invocation.status() != InvocationData.MISSING)
+                .collect(Collectors.toList());
+
+            int confidenceOkTestsRow = Math.max(1,
+                (int) Math.ceil(Math.log(1 - cfg.confidence()) / Math.log(1 - cfg.flakyRate() / 100.0)));
+
+            if (invocations.size() >= confidenceOkTestsRow * 2) {
+                List<Invocation> lastInvocations =
+                    invocations.subList(invocations.size() - confidenceOkTestsRow * 2, invocations.size());
+
+                int stableTestRuns = 0;
+
+                for (int i = 0; i < confidenceOkTestsRow; i++) {
+                    if (lastInvocations.get(i).status() == RES_OK.getCode())
+                        stableTestRuns++;
+                    else
+                        break;
+                }
+
+                if (stableTestRuns == confidenceOkTestsRow) {
+                    long failedTestRuns = 0;
+
+                    for (int i = confidenceOkTestsRow; i < confidenceOkTestsRow * 2; i++) {
+                        if (lastInvocations.get(i).status() == RES_FAILURE.getCode())
+                            failedTestRuns++;
+                    }
+
+                    flakyRate = (double) failedTestRuns / confidenceOkTestsRow * 100;
+
+                    if (flakyRate > cfg.flakyRate()) {
+                        type = IssueType.newTestWithHighFlakyRate;
+                        firstFailedBuildId = lastInvocations.get(confidenceOkTestsRow).buildId();
+                    }
                 }
             }
         }
@@ -501,6 +540,7 @@ public class IssueDetector {
         issue.trackedBranchName = trackedBranch;
         issue.displayName = testFailure.testName;
         issue.webUrl = testFailure.webUrl;
+        issue.flakyRate = flakyRate;
 
         issue.buildTags.addAll(suiteTags);
 

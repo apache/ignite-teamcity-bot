@@ -34,7 +34,10 @@ public enum IssueType {
     newCriticalFailure("newCriticalFailure", "New Critical Failure"),
 
     /** New trusted suite failure. */
-    newTrustedSuiteFailure("newTrustedSuiteFailure", "New Trusted Suite failure");
+    newTrustedSuiteFailure("newTrustedSuiteFailure", "New Trusted Suite failure"),
+
+    /** New failure for flaky test. */
+    newTestWithHighFlakyRate("newTestWithHighFlakyRate", "Test with high flaky rate");
 
     /** Code. */
     private final String code;
