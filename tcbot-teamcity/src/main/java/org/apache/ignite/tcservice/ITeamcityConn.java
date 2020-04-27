@@ -180,4 +180,11 @@ public interface ITeamcityConn {
      * @throws IllegalStateException if some unexpected HTTP error returned.
      */
     @Nullable public File downloadAndCacheBuildLog(int buildId);
+
+    /**
+     * @param testId test id
+     * @param branchName branch name
+     * @return is the test was run on other branches
+     */
+    public boolean isTestOccurrencesInOtherBranches(Long testId, String branchName);
 }
