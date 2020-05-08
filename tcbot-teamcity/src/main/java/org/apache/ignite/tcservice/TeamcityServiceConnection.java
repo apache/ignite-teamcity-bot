@@ -377,16 +377,6 @@ public class TeamcityServiceConnection implements ITeamcity {
         return sendGetXmlParseJaxb(url, TestOccurrencesFull.class);
     }
 
-    /** {@inheritDoc} */
-    @Override public boolean isTestOccurrencesInOtherBranches(Long testId, String branchName) {
-        String url = host() + "app/rest/latest/testOccurrences?locator=test:id:" + testId +
-            ",count:100&fields=testOccurrence(id,name,test,build)";
-        TestOccurrencesFull testOccurrencesFull = sendGetXmlParseJaxb(url, TestOccurrencesFull.class);
-        boolean testMatch = testOccurrencesFull.getTests().stream()
-            .anyMatch(test -> !test.build.branchName().contains(branchName));
-        return testMatch;
-    }
-
     /**
      * @param buildId Build id.
      * @param testDtls request test details string

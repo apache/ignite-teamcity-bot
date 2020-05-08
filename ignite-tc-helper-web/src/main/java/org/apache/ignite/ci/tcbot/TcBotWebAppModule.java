@@ -44,8 +44,6 @@ import org.apache.ignite.tcbot.notify.TcBotNotificationsModule;
 import org.apache.ignite.tcbot.persistence.TcBotPersistenceModule;
 import org.apache.ignite.tcbot.persistence.scheduler.SchedulerModule;
 import org.apache.ignite.tcignited.TeamcityIgnitedModule;
-import org.apache.ignite.tcservice.ITeamcityConn;
-import org.apache.ignite.tcservice.TeamcityServiceConnection;
 
 /**
  *
@@ -72,7 +70,6 @@ public class TcBotWebAppModule extends AbstractModule {
             }
         });
 
-        bind(ITeamcityConn.class).toInstance(new TeamcityServiceConnection());
         bind(TcUpdatePool.class).in(new SingletonScope());
         bind(IssueDetector.class).in(new SingletonScope());
         bind(ObserverTask.class).in(new SingletonScope());
