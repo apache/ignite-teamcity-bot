@@ -95,9 +95,6 @@ public class PrChainsProcessor {
 
     @Inject private UpdateCountersStorage countersStorage;
 
-    /** Teamcity connection non-caching factory. */
-    @Inject private Provider<ITeamcityConn> tcFactory;
-
     /**
      * @param creds Credentials.
      * @param srvCodeOrAlias Server code or alias.
@@ -122,8 +119,6 @@ public class PrChainsProcessor {
         @Nullable Boolean checkAllLogs,
         SyncMode mode) {
         final DsSummaryUi res = new DsSummaryUi();
-
-        ITeamcityConn teamcityConn = getTeamCityConnection(srvCodeOrAlias, creds);
 
         ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvCodeOrAlias, creds);
 
@@ -179,7 +174,7 @@ public class PrChainsProcessor {
             //fail rate reference is always default (master)
             chainStatus.initFromContext(tcIgnited, ctx, baseBranchForTc, compactor, false,
                     null, null, -1, null, false, false); // don't need for PR
-            chainStatus.findNewTests(ctx, tcIgnited, baseBranchForTc, compactor, teamcityConn);
+            chainStatus.findNewTests(ctx, tcIgnited, baseBranchForTc, compactor);
             initJiraAndGitInfo(chainStatus, jiraIntegration, gitHubConnIgnited);
         }
 
@@ -332,9 +327,7 @@ public class PrChainsProcessor {
         if (ctx.isFakeStub())
             return null;
 
-        ITeamcityConn teamcityConn = getTeamCityConnection(srvCodeOrAlias, prov);
-
-        return findNewTests(ctx, tcIgnited, teamcityConn, baseBranch, branchForTc);
+        return findNewTests(ctx, tcIgnited, baseBranch);
     }
 
     /**
@@ -391,9 +384,7 @@ public class PrChainsProcessor {
     //todo may avoid creation of UI model for simple comment.
     private List<ShortSuiteNewTestsUi> findNewTests(FullChainRunCtx fullChainRunCtx,
         ITeamcityIgnited tcIgnited,
-        ITeamcityConn teamcityConn,
-        String baseBranch,
-        String branchForTc) {
+        String baseBranch) {
         String normalizedBaseBranch = BranchEquivalence.normalizeBranch(baseBranch);
         Integer baseBranchId = compactor.getStringIdIfPresent(normalizedBaseBranch);
 
@@ -402,12 +393,7 @@ public class PrChainsProcessor {
             .map((ctx) -> {
                 List<ShortTestUi> missingTests = ctx.getFilteredTests(test -> {
                     IRunHistory history = test.history(tcIgnited, baseBranchId, null);
-                    if (history == null) {
-                        Long testId = test.getId();
-                        return !teamcityConn.isTestOccurrencesInOtherBranches(testId, branchForTc);
-                    }
-                    else
-                        return false;
+                    return history == null;
                 })
                     .stream()
                     .map(occurrence -> new ShortTestUi().initFrom(occurrence, occurrence.isPassed()))
@@ -434,16 +420,5 @@ public class PrChainsProcessor {
         allRelatedBranchCodes.addAll(branchEquivalence.branchIdsForQuery(baseBranchForTc, compactor));
 
         return countersStorage.getCounters(allRelatedBranchCodes);
-    }
-
-    public ITeamcityConn getTeamCityConnection(String srvCode, ICredentialsProv prov) {
-        TeamcityServiceConnection conn = (TeamcityServiceConnection) tcFactory.get();
-        ITcServerConfig cfg = this.cfg.getTeamcityConfig(srvCode);
-        String ref = cfg.reference();
-        String realSrvCode = !Strings.isNullOrEmpty(ref) && !srvCode.equals(ref) ? ref : srvCode;
-        conn.setAuthData(prov.getUser(realSrvCode), prov.getPassword(realSrvCode));
-        conn.init(realSrvCode);
-
-        return conn;
     }
 }

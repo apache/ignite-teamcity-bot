@@ -79,8 +79,6 @@ public class MockBasedTcBotModule extends AbstractModule {
 
         bind(IBuildLogProcessor.class).toInstance(Mockito.mock(IBuildLogProcessor.class));
 
-        bind(ITeamcityConn.class).toInstance(Mockito.mock(ITeamcityConn.class));
-
         final IGitHubConnectionProvider ghProv = Mockito.mock(IGitHubConnectionProvider.class);
         bind(IGitHubConnectionProvider.class).toInstance(ghProv);
         when(ghProv.server(anyString())).thenReturn(Mockito.mock(IGitHubConnection.class));
