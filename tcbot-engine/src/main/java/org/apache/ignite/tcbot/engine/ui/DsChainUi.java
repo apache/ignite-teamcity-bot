@@ -294,8 +294,7 @@ public class DsChainUi {
     public void findNewTests(FullChainRunCtx ctx,
         ITeamcityIgnited tcIgnited,
         String baseBranchTc,
-        IStringCompactor compactor,
-        ITeamcityConn teamcityConn){
+        IStringCompactor compactor){
         String failRateNormalizedBranch = normalizeBranch(baseBranchTc);
         Integer baseBranchId = compactor.getStringIdIfPresent(failRateNormalizedBranch);
         newTestsUi = ctx
@@ -303,12 +302,7 @@ public class DsChainUi {
             .map((suite) -> {
                 List<ShortTestUi> missingTests = suite.getFilteredTests(test -> {
                     IRunHistory history = test.history(tcIgnited, baseBranchId, null);
-                    if (history == null) {
-                        Long testId = test.getId();
-                        return !teamcityConn.isTestOccurrencesInOtherBranches(testId, branchName);
-                    }
-                    else
-                        return false;
+                    return history == null;
                 })
                     .stream()
                     .map(occurrence -> {
