@@ -183,7 +183,9 @@ public class ProblemCompacted {
         return isExecutionTimeout(compactor)
             || isJvmCrash(compactor)
             || isBuildFailureOnMetric(compactor)
-            || isCompilationError(compactor);
+            || isCompilationError(compactor)
+            || isExitCode(compactor)
+            || isOome(compactor);
     }
 
     public boolean isBuildFailureOnMessage(IStringCompactor compactor) {
