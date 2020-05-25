@@ -597,7 +597,9 @@ public class MultBuildRunCtx implements ISuiteResults {
         return hasJvmCrashProblem()
             || hasTimeoutProblem()
             || hasCompilationProblem()
-            || hasMetricProblem();
+            || hasMetricProblem()
+            || hasExitCodeProblem()
+            || hasOomeProblem();
     }
 
     public int totalTests() {
