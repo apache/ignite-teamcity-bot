@@ -83,7 +83,8 @@ public class TriggerBuilds {
         @Nullable @QueryParam("observe") Boolean observe,
         @Nullable @QueryParam("ticketId") String ticketId,
         @Nullable @QueryParam("prNum") String prNum,
-        @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc
+        @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
+        @Nonnull @QueryParam("cleanSources") Boolean cleanSources
     ) {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
         Injector injector = CtxListener.getInjector(ctx);
@@ -95,7 +96,7 @@ public class TriggerBuilds {
 
         String jiraRes = injector
             .getInstance(TcBotTriggerAndSignOffService.class)
-            .triggerBuildsAndObserve(srvCodeOrAlias, branchForTc, parentSuiteId, suiteIdList, top, observe, ticketId, prNum, baseBranchForTc, prov);
+            .triggerBuildsAndObserve(srvCodeOrAlias, branchForTc, parentSuiteId, suiteIdList, top, observe, ticketId, prNum, baseBranchForTc, cleanSources, prov);
 
         return new TriggerResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
