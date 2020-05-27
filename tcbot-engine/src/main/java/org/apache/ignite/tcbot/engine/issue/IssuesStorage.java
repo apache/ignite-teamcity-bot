@@ -26,8 +26,11 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
+import org.apache.ignite.lang.IgniteBiPredicate;
+import org.apache.ignite.tcbot.engine.defect.DefectCompacted;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 
 /**
@@ -124,5 +127,25 @@ public class IssuesStorage implements IIssuesStorage {
     /** {@inheritDoc} */
     @Override public Stream<Issue> allIssues() {
         return StreamSupport.stream(cache().spliterator(), false).map(Cache.Entry::getValue);
+    }
+
+    public void removeOldIssues(int buildId, String server, int limit) {//qwer(1546341842000L)
+
+        ScanQuery<IssueKey, Issue> scan = new ScanQuery<>(
+            new IgniteBiPredicate<IssueKey, Issue>() {
+                public boolean apply(IssueKey key, Issue issue) {
+                    return key.getBuildId() == buildId && key.getServer().equals(server);
+                }
+            }
+        );
+
+        for (Cache.Entry<IssueKey, Issue> entry : cache().query(scan)) {
+            if (limit > 0) {
+                limit--;
+                cache().remove(entry.getKey());
+            }
+            else
+                break;
+        }
     }
 }

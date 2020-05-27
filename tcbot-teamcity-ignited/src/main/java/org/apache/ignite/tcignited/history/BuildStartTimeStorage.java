@@ -19,6 +19,7 @@ package org.apache.ignite.tcignited.history;
 
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -28,10 +29,14 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.cache.query.ScanQuery;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.lang.IgniteBiPredicate;
 import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
@@ -69,6 +74,61 @@ public class BuildStartTimeStorage {
 
         buildStartTime = ignite.getOrCreateCache(CacheConfigs.getCacheV2Config(BUILD_START_TIME_CACHE_NAME));
     }
+
+    public void qwer() {
+        buildStartTime.forEach(x -> {System.out.println(x);});
+    }
+
+
+//    public void getOlderBuilds(long date, int limit) {//qwer(1546341842000L)
+//
+//        ScanQuery<Long, FatBuildCompacted> scan = new ScanQuery<>(
+//            new IgniteBiPredicate<Long, FatBuildCompacted>() {
+//                public boolean apply(Long key, FatBuildCompacted build) {
+//                    return build.getStartDate().before(new Date(date));
+//                }
+//            }
+//        );
+//
+//        for (Cache.Entry<Long, FatBuildCompacted> entry : buildsCache.query(scan)) {
+//            if (limit > 0) {
+//                limit--;
+//                buildsCache.remove(entry.getKey());
+//            }
+//            else
+//                break;
+//
+//        }
+//    }
+
+//    public void qwer(long date) {//qwer(1546341842000L)
+//        IgniteCache<BinaryObject, BinaryObject> cache = buildsCache.withKeepBinary();
+//
+//        ScanQuery<Long, FatBuildCompacted> scan = new ScanQuery<>(
+//            new IgniteBiPredicate<Long, FatBuildCompacted>() {
+//                public boolean apply(Long key, FatBuildCompacted build) {
+//                    return true;//build.getStartDate().before(new Date(date));
+//                }
+//            }
+//        );
+//        print("People with salaries between 0 and 1000 (queried with SCAN query): ", buildsCache.query(scan).getAll());
+//    }
+
+    private static void print(String msg, Iterable<?> col) {
+        print(msg);
+        print(col);
+    }
+
+    private static void print(String msg) {
+        System.out.println();
+        System.out.println(">>> " + msg);
+    }
+
+    private static void print(Iterable<?> col) {
+        for (Object next : col)
+            System.out.println(">>>     " + next);
+    }
+
 
     /**
      * @param srvId Server id mask high.
@@ -179,6 +239,10 @@ public class BuildStartTimeStorage {
         }
 
         return null;
+    }
+
+    public void remove(long key) {
+        buildStartTime.remove(key);
     }
 
 }

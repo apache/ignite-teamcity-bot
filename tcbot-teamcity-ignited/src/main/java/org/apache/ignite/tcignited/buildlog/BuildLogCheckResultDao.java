@@ -58,4 +58,8 @@ public class BuildLogCheckResultDao {
     public void put(String srvCode, int buildId, LogCheckResultCompacted logCheckResultCompacted) {
         logsCache.put(getCacheKey(srvCode, buildId), logCheckResultCompacted);
     }
+
+    public void remove(long key) {
+        logsCache.remove(key);
+    }
 }

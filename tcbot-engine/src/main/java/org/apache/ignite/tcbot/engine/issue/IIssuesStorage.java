@@ -45,4 +45,6 @@ public interface IIssuesStorage {
     public boolean getIsNewAndSetNotified(IssueKey key, String addr, @Nullable Exception e);
 
     public void saveIssueSubscribersStat(IssueKey key, int cntSrvAllowed, int cntSubscribed, int cntTagsFilterPassed);
+
+    public void removeOldIssues(int buildId, String server, int limit);
 }

@@ -91,4 +91,8 @@ public class SuiteInvocationHistoryDao {
 
         suiteHist.putAll(data);
     }
+
+    public void remove(long key) {
+        suiteHist.remove(key);
+    }
 }

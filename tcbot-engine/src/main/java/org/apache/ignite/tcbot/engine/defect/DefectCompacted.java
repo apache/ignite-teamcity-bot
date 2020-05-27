@@ -177,6 +177,10 @@ public class DefectCompacted {
         blameCandidates.removeIf(IVersionedEntity::isOutdatedEntityVersion);
     }
 
+    public long resolvedTs() {
+        return resolvedTs;
+    }
+
     /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)

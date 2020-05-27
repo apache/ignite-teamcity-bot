@@ -24,6 +24,7 @@ import org.apache.ignite.tcbot.engine.board.BoardService;
 import org.apache.ignite.tcbot.engine.build.SingleBuildResultsService;
 import org.apache.ignite.tcbot.engine.buildtime.BuildTimeService;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
+import org.apache.ignite.tcbot.engine.cleaner.Cleaner;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
 import org.apache.ignite.tcbot.engine.issue.IssuesStorage;
 import org.apache.ignite.tcbot.engine.tracked.IDetailedStatusForTrackedBranch;
@@ -48,6 +49,7 @@ public class TcBotEngineModule extends AbstractModule {
         bind(BoardService.class).in(new SingletonScope());
 
         bind(IUserStorage.class).to(UserAndSessionsStorage.class).in(new SingletonScope());
+        bind(Cleaner.class).in(new SingletonScope());
 
         install(new TcBotCommonModule());
     }

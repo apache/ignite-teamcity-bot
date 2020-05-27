@@ -19,6 +19,8 @@ package org.apache.ignite.tcbot.engine.defect;
 import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -37,6 +39,7 @@ import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.configuration.CacheConfiguration;
+import org.apache.ignite.lang.IgniteBiPredicate;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 
 @NotThreadSafe
@@ -172,5 +175,25 @@ public class DefectsStorage {
     public void save(DefectCompacted defect) {
         Preconditions.checkState(defect.id() != 0);
         cache().put(defect.id(), defect);
+    }
+
+    public void removeOldDefects(long date, int limit) {//qwer(1546341842000L)
+
+        ScanQuery<Integer, DefectCompacted> scan = new ScanQuery<>(
+            new IgniteBiPredicate<Integer, DefectCompacted>() {
+                public boolean apply(Integer key, DefectCompacted build) {
+                    return build.resolvedTs() < date;
+                }
+            }
+        );
+
+        for (Cache.Entry<Integer, DefectCompacted> entry : cache().query(scan)) {
+            if (limit > 0) {
+                limit--;
+                cache().remove(entry.getKey());
+            }
+            else
+                break;
+        }
     }
 }

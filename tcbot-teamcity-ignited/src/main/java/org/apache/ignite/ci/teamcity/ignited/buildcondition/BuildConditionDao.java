@@ -75,4 +75,8 @@ public class BuildConditionDao {
 
         return false;
     }
+
+    public void remove(long key) {
+        buildsCache.remove(key);
+    }
 }

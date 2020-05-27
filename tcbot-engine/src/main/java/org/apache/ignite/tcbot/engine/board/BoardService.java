@@ -44,6 +44,7 @@ import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.common.util.FutureUtil;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.chain.SingleBuildRunCtx;
+import org.apache.ignite.tcbot.engine.cleaner.Cleaner;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.defect.BlameCandidate;
 import org.apache.ignite.tcbot.engine.defect.DefectCompacted;
@@ -81,6 +82,7 @@ public class BoardService {
     @Inject BuildChainProcessor buildChainProcessor;
     @Inject IUserStorage userStorage;
     @Inject ITcBotConfig cfg;
+    @Inject Cleaner cleaner;
 
     /**
      * @param creds Credentials.
@@ -237,7 +239,8 @@ public class BoardService {
     }
 
     public void issuesToDefectsLater() {
-        scheduler.sheduleNamed("issuesToDefects", this::issuesToDefects, 15, TimeUnit.MINUTES);
+        scheduler.sheduleNamed("issuesToDefects", this::issuesToDefects, 5, TimeUnit.MINUTES);
+        scheduler.sheduleNamed("cleaner", cleaner::clean, 2, TimeUnit.MINUTES);
     }
 
     @MonitoredTask(name = "Convert issues to defect")

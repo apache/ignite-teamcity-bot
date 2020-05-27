@@ -19,7 +19,9 @@ package org.apache.ignite.tcignited.build;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -42,7 +44,9 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.CacheEntryProcessor;
 import org.apache.ignite.cache.affinity.Affinity;
+import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.lang.IgniteBiPredicate;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -140,6 +144,57 @@ public class FatBuildDao {
         }
 
         return null;
+    }
+
+    public Map<Long, FatBuildCompacted> getOldBuilds(long date, int limit) {//qwer(1546341842000L)
+
+        ScanQuery<Long, FatBuildCompacted> scan = new ScanQuery<>(
+            new IgniteBiPredicate<Long, FatBuildCompacted>() {
+                public boolean apply(Long key, FatBuildCompacted build) {
+                    return build.getStartDate().before(new Date(date));
+                }
+            }
+        );
+
+        Map<Long, FatBuildCompacted> oldBuilds = new HashMap<>();
+        for (Cache.Entry<Long, FatBuildCompacted> entry : buildsCache.query(scan)) {
+            if (limit > 0) {
+                limit--;
+                oldBuilds.put(entry.getKey(), entry.getValue());
+            }
+            else
+                break;
+
+        }
+        return oldBuilds;
+    }
+
+//    public void qwer(long date) {//qwer(1546341842000L)
+//        IgniteCache<BinaryObject, BinaryObject> cache = buildsCache.withKeepBinary();
+//
+//        ScanQuery<Long, FatBuildCompacted> scan = new ScanQuery<>(
+//            new IgniteBiPredicate<Long, FatBuildCompacted>() {
+//                public boolean apply(Long key, FatBuildCompacted build) {
+//                    return true;//build.getStartDate().before(new Date(date));
+//                }
+//            }
+//        );
+//        print("People with salaries between 0 and 1000 (queried with SCAN query): ", buildsCache.query(scan).getAll());
+//    }
+
+    private static void print(String msg, Iterable<?> col) {
+        print(msg);
+        print(col);
+    }
+
+    private static void print(String msg) {
+        System.out.println();
+        System.out.println(">>> " + msg);
+    }
+
+    private static void print(Iterable<?> col) {
+        for (Object next : col)
+            System.out.println(">>>     " + next);
     }
 
     @AutoProfiling
@@ -415,6 +470,10 @@ public class FatBuildDao {
 
             return entry.getValue() == null ? BuildRefDao.cacheKeyToBuildId(key) : null;
         }
+    }
+
+    public void remove(long key) {
+        buildsCache.remove(key);
     }
 
 }
