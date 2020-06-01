@@ -77,13 +77,20 @@ public class Cleaner {
 
         for (String srvId : cfg.getServerIds()) {
             File srvIdLogDir = new File(workDir, cfg.getTeamcityConfig(srvId).logsDirectory());
-            File[] logFiles = srvIdLogDir.listFiles();
-            if (logFiles != null)
-                for (File file : logFiles) {
-                    if (file.lastModified() < thresholdDate && numOfItemsToDel-- > 0)
-                        file.delete();
-                }
+            removeFiles(srvIdLogDir, thresholdDate, numOfItemsToDel);
         }
+
+        File tcBotLogDir = new File(workDir, "tcbot_logs");
+        removeFiles(tcBotLogDir, thresholdDate, numOfItemsToDel);
+    }
+
+    private void removeFiles(File dir, long thresholdDate, int numOfItemsToDel) {
+        File[] logFiles = dir.listFiles();
+        if (logFiles != null)
+            for (File file : logFiles) {
+                if (file.lastModified() < thresholdDate && numOfItemsToDel-- > 0)
+                    file.delete();
+            }
     }
 
     public void startBackgroundClean() {

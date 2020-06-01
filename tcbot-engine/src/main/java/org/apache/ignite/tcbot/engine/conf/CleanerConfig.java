@@ -5,7 +5,7 @@ public class CleanerConfig implements ICleanerConfig{
     public static final int DEFAULT_SAVE_DAYS = 30 * 6;
 
     /** */
-    public static final int DEFAULT_NUMBER_OF_ITEMS_TO_DELETE = 10;
+    public static final int DEFAULT_NUMBER_OF_ITEMS_TO_DELETE = 100;
 
     /** */
     private Integer safeDays;

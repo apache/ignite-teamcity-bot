@@ -148,7 +148,8 @@ public class FatBuildDao {
 
     public Map<Long, FatBuildCompacted> getOldBuilds(long thresholdDate, int numOfItemsToDel) {
         ScanQuery<Long, FatBuildCompacted> scan =
-            new ScanQuery<>((key, fatBuild) -> (fatBuild.getStartDate().before(new Date(thresholdDate))));
+            new ScanQuery<>((key, fatBuild) -> (fatBuild.getStartDate() != null
+                && fatBuild.getStartDate().before(new Date(thresholdDate))));
 
         Map<Long, FatBuildCompacted> oldBuilds = new HashMap<>();
         for (Cache.Entry<Long, FatBuildCompacted> entry : buildsCache.query(scan)) {

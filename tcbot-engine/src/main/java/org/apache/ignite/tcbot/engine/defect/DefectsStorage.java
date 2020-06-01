@@ -176,7 +176,7 @@ public class DefectsStorage {
 
     public void removeOldDefects(long thresholdDate, int numOfItemsToDel) {
         ScanQuery<Integer, DefectCompacted> scan =
-            new ScanQuery<>((key, defect) -> (defect.resolvedTs() > 0) && (defect.resolvedTs() < thresholdDate));
+            new ScanQuery<>((key, defect) -> defect.resolvedTs() > 0 && defect.resolvedTs() < thresholdDate);
 
         for (Cache.Entry<Integer, DefectCompacted> entry : cache().query(scan)) {
             if (numOfItemsToDel > 0) {

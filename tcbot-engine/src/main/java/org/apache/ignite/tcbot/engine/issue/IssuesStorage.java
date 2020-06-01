@@ -129,7 +129,7 @@ public class IssuesStorage implements IIssuesStorage {
 
     public void removeOldIssues(long thresholdDate, int numOfItemsToDel) {
         ScanQuery<IssueKey, Issue> scan =
-            new ScanQuery<>((issueKey, issue) -> (issue.detectedTs != null) && (issue.detectedTs < thresholdDate));
+            new ScanQuery<>((issueKey, issue) -> issue.detectedTs != null && issue.detectedTs < thresholdDate);
 
         for (Cache.Entry<IssueKey, Issue> entry : cache().query(scan)) {
             if (numOfItemsToDel > 0) {
