@@ -46,5 +46,5 @@ public interface IIssuesStorage {
 
     public void saveIssueSubscribersStat(IssueKey key, int cntSrvAllowed, int cntSubscribed, int cntTagsFilterPassed);
 
-    public void removeOldIssues(long date, int limit);
+    public void removeOldIssues(long thresholdDate, int numOfItemsToDel);
 }

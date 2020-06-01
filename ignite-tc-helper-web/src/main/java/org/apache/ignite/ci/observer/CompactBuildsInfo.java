@@ -75,11 +75,6 @@ public class CompactBuildsInfo {
     }
 
     /** */
-    public List<Integer> builds() {
-        return builds;
-    }
-
-    /** */
     public BuildsInfo toBuildInfo(IStringCompactor compactor) {
         return new BuildsInfo(this, compactor);
     }

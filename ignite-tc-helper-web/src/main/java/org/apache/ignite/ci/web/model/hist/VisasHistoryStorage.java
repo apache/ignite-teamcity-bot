@@ -27,12 +27,7 @@ import java.util.stream.Collectors;
 import javax.cache.Cache;
 import javax.inject.Inject;
 import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteCache;
-import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.issue.Issue;
-import org.apache.ignite.ci.issue.IssueKey;
-import org.apache.ignite.lang.IgniteBiPredicate;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.ci.web.model.CompactContributionKey;
 import org.apache.ignite.ci.web.model.CompactVisaRequest;
@@ -63,7 +58,7 @@ public class VisasHistoryStorage {
     /**
      * @return Instance of cache.
      */
-    public IgniteCache<CompactContributionKey, List<CompactVisaRequest>> visas() {
+    public Cache<CompactContributionKey, List<CompactVisaRequest>> visas() {
         return ignite.getOrCreateCache(TcHelperDb.getCacheV3TxConfig(VISAS_CACHE_NAME));
     }
 

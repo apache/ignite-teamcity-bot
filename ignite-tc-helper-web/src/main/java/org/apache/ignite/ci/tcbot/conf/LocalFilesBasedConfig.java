@@ -32,7 +32,9 @@ import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
+import org.apache.ignite.tcbot.engine.conf.CleanerConfig;
 import org.apache.ignite.tcbot.engine.conf.GitHubConfig;
+import org.apache.ignite.tcbot.engine.conf.ICleanerConfig;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranchesConfig;
 import org.apache.ignite.tcbot.engine.conf.JiraServerConfig;
@@ -140,6 +142,12 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
         String cfgName = HelperConfig.prepareConfigName(srvCode);
 
         return HelperConfig.loadAuthProperties(workDir, cfgName);
+    }
+
+    /** {@inheritDoc} */
+    @Override public ICleanerConfig getCleanerConfig() {
+        CleanerConfig cfg = getConfig().getCleanerConfig();
+        return cfg != null ? cfg : CleanerConfig.getDefaultCleanerConfig();
     }
 
 }

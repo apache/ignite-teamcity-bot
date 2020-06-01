@@ -29,8 +29,6 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
-import org.apache.ignite.lang.IgniteBiPredicate;
-import org.apache.ignite.tcbot.engine.defect.DefectCompacted;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 
 /**
@@ -129,19 +127,13 @@ public class IssuesStorage implements IIssuesStorage {
         return StreamSupport.stream(cache().spliterator(), false).map(Cache.Entry::getValue);
     }
 
-    public void removeOldIssues(long date, int limit) {//qwer(1546341842000L)
-
-        ScanQuery<IssueKey, Issue> scan = new ScanQuery<>(
-            new IgniteBiPredicate<IssueKey, Issue>() {
-                public boolean apply(IssueKey key, Issue issue) {
-                    return issue.detectedTs < date;
-                }
-            }
-        );
+    public void removeOldIssues(long thresholdDate, int numOfItemsToDel) {
+        ScanQuery<IssueKey, Issue> scan =
+            new ScanQuery<>((issueKey, issue) -> (issue.detectedTs != null) && (issue.detectedTs < thresholdDate));
 
         for (Cache.Entry<IssueKey, Issue> entry : cache().query(scan)) {
-            if (limit > 0) {
-                limit--;
+            if (numOfItemsToDel > 0) {
+                numOfItemsToDel--;
                 cache().remove(entry.getKey());
             }
             else

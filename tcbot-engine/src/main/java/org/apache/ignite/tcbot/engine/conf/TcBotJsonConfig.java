@@ -53,6 +53,8 @@ public class TcBotJsonConfig implements ITrackedBranchesConfig {
     /** JIRA config to be used . */
     private List<GitHubConfig> gitHubConfigs = new ArrayList<>();
 
+    private CleanerConfig cleanerConfig;
+
     /** Notifications settings & tokens. */
     private NotificationsConfig notifications = new NotificationsConfig();
 
@@ -113,6 +115,10 @@ public class TcBotJsonConfig implements ITrackedBranchesConfig {
 
     public Optional<GitHubConfig> getGitHubConfig(String code) {
         return gitHubConfigs.stream().filter(s -> Objects.equals(code, s.getCode())).findAny();
+    }
+
+    public CleanerConfig getCleanerConfig() {
+        return cleanerConfig;
     }
 
     @Nullable

@@ -67,4 +67,6 @@ public interface ITcBotConfig extends IDataSourcesConfigSupplier {
      * @return notification settings config.
      */
     public NotificationsConfig notifications();
+
+    public ICleanerConfig getCleanerConfig();
 }

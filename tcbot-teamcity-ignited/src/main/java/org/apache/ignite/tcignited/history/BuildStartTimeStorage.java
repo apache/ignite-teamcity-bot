@@ -75,61 +75,6 @@ public class BuildStartTimeStorage {
         buildStartTime = ignite.getOrCreateCache(CacheConfigs.getCacheV2Config(BUILD_START_TIME_CACHE_NAME));
     }
 
-    public void qwer() {
-        buildStartTime.forEach(x -> {System.out.println(x);});
-    }
-
-
-//    public void getOlderBuilds(long date, int limit) {//qwer(1546341842000L)
-//
-//        ScanQuery<Long, FatBuildCompacted> scan = new ScanQuery<>(
-//            new IgniteBiPredicate<Long, FatBuildCompacted>() {
-//                public boolean apply(Long key, FatBuildCompacted build) {
-//                    return build.getStartDate().before(new Date(date));
-//                }
-//            }
-//        );
-//
-//        for (Cache.Entry<Long, FatBuildCompacted> entry : buildsCache.query(scan)) {
-//            if (limit > 0) {
-//                limit--;
-//                buildsCache.remove(entry.getKey());
-//            }
-//            else
-//                break;
-//
-//        }
-//    }
-
-//    public void qwer(long date) {//qwer(1546341842000L)
-//        IgniteCache<BinaryObject, BinaryObject> cache = buildsCache.withKeepBinary();
-//
-//        ScanQuery<Long, FatBuildCompacted> scan = new ScanQuery<>(
-//            new IgniteBiPredicate<Long, FatBuildCompacted>() {
-//                public boolean apply(Long key, FatBuildCompacted build) {
-//                    return true;//build.getStartDate().before(new Date(date));
-//                }
-//            }
-//        );
-//        print("People with salaries between 0 and 1000 (queried with SCAN query): ", buildsCache.query(scan).getAll());
-//    }
-
-    private static void print(String msg, Iterable<?> col) {
-        print(msg);
-        print(col);
-    }
-
-    private static void print(String msg) {
-        System.out.println();
-        System.out.println(">>> " + msg);
-    }
-
-    private static void print(Iterable<?> col) {
-        for (Object next : col)
-            System.out.println(">>>     " + next);
-    }
-
-
     /**
      * @param srvId Server id mask high.
      * @param buildId Build id.

@@ -19,8 +19,6 @@ package org.apache.ignite.tcbot.engine.defect;
 import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -39,7 +37,6 @@ import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.configuration.CacheConfiguration;
-import org.apache.ignite.lang.IgniteBiPredicate;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 
 @NotThreadSafe
@@ -177,19 +174,13 @@ public class DefectsStorage {
         cache().put(defect.id(), defect);
     }
 
-    public void removeOldDefects(long date, int limit) {//qwer(1546341842000L)
-
-        ScanQuery<Integer, DefectCompacted> scan = new ScanQuery<>(
-            new IgniteBiPredicate<Integer, DefectCompacted>() {
-                public boolean apply(Integer key, DefectCompacted build) {
-                    return build.resolvedTs() < date;
-                }
-            }
-        );
+    public void removeOldDefects(long thresholdDate, int numOfItemsToDel) {
+        ScanQuery<Integer, DefectCompacted> scan =
+            new ScanQuery<>((key, defect) -> (defect.resolvedTs() > 0) && (defect.resolvedTs() < thresholdDate));
 
         for (Cache.Entry<Integer, DefectCompacted> entry : cache().query(scan)) {
-            if (limit > 0) {
-                limit--;
+            if (numOfItemsToDel > 0) {
+                numOfItemsToDel--;
                 cache().remove(entry.getKey());
             }
             else

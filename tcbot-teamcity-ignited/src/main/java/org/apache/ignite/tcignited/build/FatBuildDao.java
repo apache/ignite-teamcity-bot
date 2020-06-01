@@ -146,55 +146,20 @@ public class FatBuildDao {
         return null;
     }
 
-    public Map<Long, FatBuildCompacted> getOldBuilds(long date, int limit) {//qwer(1546341842000L)
-
-        ScanQuery<Long, FatBuildCompacted> scan = new ScanQuery<>(
-            new IgniteBiPredicate<Long, FatBuildCompacted>() {
-                public boolean apply(Long key, FatBuildCompacted build) {
-                    return build.getStartDate().before(new Date(date));
-                }
-            }
-        );
+    public Map<Long, FatBuildCompacted> getOldBuilds(long thresholdDate, int numOfItemsToDel) {
+        ScanQuery<Long, FatBuildCompacted> scan =
+            new ScanQuery<>((key, fatBuild) -> (fatBuild.getStartDate().before(new Date(thresholdDate))));
 
         Map<Long, FatBuildCompacted> oldBuilds = new HashMap<>();
         for (Cache.Entry<Long, FatBuildCompacted> entry : buildsCache.query(scan)) {
-            if (limit > 0) {
-                limit--;
+            if (numOfItemsToDel > 0) {
+                numOfItemsToDel--;
                 oldBuilds.put(entry.getKey(), entry.getValue());
             }
             else
                 break;
-
         }
         return oldBuilds;
-    }
-
-//    public void qwer(long date) {//qwer(1546341842000L)
-//        IgniteCache<BinaryObject, BinaryObject> cache = buildsCache.withKeepBinary();
-//
-//        ScanQuery<Long, FatBuildCompacted> scan = new ScanQuery<>(
-//            new IgniteBiPredicate<Long, FatBuildCompacted>() {
-//                public boolean apply(Long key, FatBuildCompacted build) {
-//                    return true;//build.getStartDate().before(new Date(date));
-//                }
-//            }
-//        );
-//        print("People with salaries between 0 and 1000 (queried with SCAN query): ", buildsCache.query(scan).getAll());
-//    }
-
-    private static void print(String msg, Iterable<?> col) {
-        print(msg);
-        print(col);
-    }
-
-    private static void print(String msg) {
-        System.out.println();
-        System.out.println(">>> " + msg);
-    }
-
-    private static void print(Iterable<?> col) {
-        for (Object next : col)
-            System.out.println(">>>     " + next);
     }
 
     @AutoProfiling

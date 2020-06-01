@@ -20,8 +20,6 @@ package org.apache.ignite.ci.web.rest.login;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.inject.Injector;
-import java.util.concurrent.TimeUnit;
-import javax.inject.Inject;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.FormParam;
@@ -40,7 +38,6 @@ import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
-import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcservice.model.user.User;
 import org.apache.ignite.tcservice.login.ITcLogin;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
@@ -66,8 +63,6 @@ public class UserService {
 
     @Context
     private HttpServletRequest req;
-
-//    @Inject IScheduler scheduler;
 
     @GET
     @Path("currentUserName")
@@ -109,10 +104,10 @@ public class UserService {
 
         issueDetector.startBackgroundCheck(prov);
 
+        CtxListener.getInjector(ctx).getInstance(TcBotTriggerAndSignOffService.class).startObserver();
+
         Cleaner cleaner = injector.getInstance(Cleaner.class);
         cleaner.startBackgroundClean();
-
-        CtxListener.getInjector(ctx).getInstance(TcBotTriggerAndSignOffService.class).startObserver();
 
         return userMenu(prov,
             injector.getInstance(IUserStorage.class),
