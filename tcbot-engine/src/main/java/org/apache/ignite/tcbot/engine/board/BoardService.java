@@ -240,7 +240,7 @@ public class BoardService {
 
     public void issuesToDefectsLater() {
         scheduler.sheduleNamed("issuesToDefects", this::issuesToDefects, 5, TimeUnit.MINUTES);
-        scheduler.sheduleNamed("cleaner", cleaner::clean, 2, TimeUnit.MINUTES);
+//        scheduler.sheduleNamed("cleaner", cleaner::clean, 2, TimeUnit.MINUTES);
     }
 
     @MonitoredTask(name = "Convert issues to defect")

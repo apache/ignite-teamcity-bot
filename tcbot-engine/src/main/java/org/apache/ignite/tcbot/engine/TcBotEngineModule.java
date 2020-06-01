@@ -49,7 +49,7 @@ public class TcBotEngineModule extends AbstractModule {
         bind(BoardService.class).in(new SingletonScope());
 
         bind(IUserStorage.class).to(UserAndSessionsStorage.class).in(new SingletonScope());
-        bind(Cleaner.class).in(new SingletonScope());
+
 
         install(new TcBotCommonModule());
     }

@@ -129,12 +129,12 @@ public class IssuesStorage implements IIssuesStorage {
         return StreamSupport.stream(cache().spliterator(), false).map(Cache.Entry::getValue);
     }
 
-    public void removeOldIssues(int buildId, String server, int limit) {//qwer(1546341842000L)
+    public void removeOldIssues(long date, int limit) {//qwer(1546341842000L)
 
         ScanQuery<IssueKey, Issue> scan = new ScanQuery<>(
             new IgniteBiPredicate<IssueKey, Issue>() {
                 public boolean apply(IssueKey key, Issue issue) {
-                    return key.getBuildId() == buildId && key.getServer().equals(server);
+                    return issue.detectedTs < date;
                 }
             }
         );
