@@ -2,14 +2,15 @@ package org.apache.ignite.tcbot.engine.cleaner;
 
 import java.io.File;
 import java.time.ZonedDateTime;
-import java.util.Map;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
+import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.defect.DefectsStorage;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
@@ -37,29 +38,33 @@ public class Cleaner {
 
     private ScheduledExecutorService executorService;
 
+    @AutoProfiling
+    @MonitoredTask(name = "Clean ignite cache data and logs")
     public void clean() {
-        try {
-            long safeDays = cfg.getCleanerConfig().getSafeDays();
-            int numOfItemsToDel = cfg.getCleanerConfig().getNumOfItemsToDel();
-            long thresholdDate = ZonedDateTime.now().minusDays(safeDays).toInstant().toEpochMilli();
+        if (cfg.getCleanerConfig().enabled()) {
+            try {
+                long safeDays = cfg.getCleanerConfig().safeDays();
+                int numOfItemsToDel = cfg.getCleanerConfig().numOfItemsToDel();
+                long thresholdDate = ZonedDateTime.now().minusDays(safeDays).toInstant().toEpochMilli();
 
-            removeCacheEntries(thresholdDate, numOfItemsToDel);
-            removeLogFiles(thresholdDate, numOfItemsToDel);
-        }
-        catch (Exception e) {
-            e.printStackTrace();
+                removeCacheEntries(thresholdDate, numOfItemsToDel);
+                removeLogFiles(thresholdDate, numOfItemsToDel);
+            }
+            catch (Exception e) {
+                e.printStackTrace();
 
-            logger.error("Periodic cache clean failed: " + e.getMessage(), e);
+                logger.error("Periodic cache clean failed: " + e.getMessage(), e);
+            }
         }
+        else
+            logger.info("Periodic cache clean disabled.");
 
     }
 
     private void removeCacheEntries(long thresholdDate, int numOfItemsToDel) {
-        Map<Long, FatBuildCompacted> oldBuilds = fatBuildDao.getOldBuilds(thresholdDate, numOfItemsToDel);
+        List<Long> oldBuildsKeys = fatBuildDao.getOldBuilds(thresholdDate, numOfItemsToDel);
 
-        for (Map.Entry<Long, FatBuildCompacted> buildEntry : oldBuilds.entrySet()) {
-            long buildCacheKey = buildEntry.getKey();
-
+        for (Long buildCacheKey : oldBuildsKeys) {
             suiteInvocationHistoryDao.remove(buildCacheKey);
             buildLogCheckResultDao.remove(buildCacheKey);
             buildRefDao.remove(buildCacheKey);
@@ -101,7 +106,7 @@ public class Cleaner {
         buildConditionDao.init();
         fatBuildDao.init();
 
-        executorService = Executors.newScheduledThreadPool(1);
+        executorService = Executors.newSingleThreadScheduledExecutor();
 
         executorService.scheduleAtFixedRate(this::clean, 30, 30, TimeUnit.MINUTES);
 //        executorService.scheduleAtFixedRate(this::clean, 0, 10, TimeUnit.SECONDS);

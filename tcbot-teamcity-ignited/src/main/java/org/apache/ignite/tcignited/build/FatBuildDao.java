@@ -146,23 +146,6 @@ public class FatBuildDao {
         return null;
     }
 
-    public Map<Long, FatBuildCompacted> getOldBuilds(long thresholdDate, int numOfItemsToDel) {
-        ScanQuery<Long, FatBuildCompacted> scan =
-            new ScanQuery<>((key, fatBuild) -> (fatBuild.getStartDate() != null
-                && fatBuild.getStartDate().before(new Date(thresholdDate))));
-
-        Map<Long, FatBuildCompacted> oldBuilds = new HashMap<>();
-        for (Cache.Entry<Long, FatBuildCompacted> entry : buildsCache.query(scan)) {
-            if (numOfItemsToDel > 0) {
-                numOfItemsToDel--;
-                oldBuilds.put(entry.getKey(), entry.getValue());
-            }
-            else
-                break;
-        }
-        return oldBuilds;
-    }
-
     @AutoProfiling
     public void putFatBuild(int srvIdMaskHigh, int buildId, FatBuildCompacted newBuild) {
         buildsCache.put(buildIdToCacheKey(srvIdMaskHigh, buildId), newBuild);
@@ -423,6 +406,31 @@ public class FatBuildDao {
         }
     }
 
+    public List<Long> getOldBuilds(long thresholdDate, int numOfItemsToDel) {
+        IgniteCache<Long, BinaryObject> cacheWithBinary = buildsCache.withKeepBinary();
+
+        ScanQuery<Long, BinaryObject> scan = new ScanQuery<>((key, fatBuild) -> {
+                long startDate = fatBuild.<Long>field("startDate");
+                return startDate > 0 && startDate < thresholdDate;
+            }
+        );
+
+        List<Long> oldBuildsKeys = new ArrayList<>(numOfItemsToDel);
+        for (Cache.Entry<Long, BinaryObject> entry : cacheWithBinary.query(scan)) {
+            if (numOfItemsToDel > 0) {
+                numOfItemsToDel--;
+                oldBuildsKeys.add(entry.getKey());
+            }
+            else
+                break;
+        }
+        return oldBuildsKeys;
+    }
+
+    public void remove(long key) {
+        buildsCache.remove(key);
+    }
+
     /**
      * Returns Build Id if current build is missing in the cache.
      */
@@ -436,10 +444,6 @@ public class FatBuildDao {
 
             return entry.getValue() == null ? BuildRefDao.cacheKeyToBuildId(key) : null;
         }
-    }
-
-    public void remove(long key) {
-        buildsCache.remove(key);
     }
 
 }

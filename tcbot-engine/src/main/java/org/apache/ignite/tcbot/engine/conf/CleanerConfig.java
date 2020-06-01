@@ -13,20 +13,29 @@ public class CleanerConfig implements ICleanerConfig{
     /** */
     private Integer numOfItemsToDel;
 
+    /** */
+    private Boolean enabled;
+
     public static CleanerConfig getDefaultCleanerConfig() {
         CleanerConfig cfg = new CleanerConfig();
         cfg.safeDays = DEFAULT_SAVE_DAYS;
         cfg.numOfItemsToDel = DEFAULT_NUMBER_OF_ITEMS_TO_DELETE;
+        cfg.enabled = true;
         return cfg;
     }
 
     /** */
-    public Integer getSafeDays() {
+    public int safeDays() {
         return safeDays == null || safeDays < 0 ? DEFAULT_SAVE_DAYS : safeDays;
     }
 
     /** */
-    public Integer getNumOfItemsToDel() {
+    public int numOfItemsToDel() {
         return numOfItemsToDel == null || numOfItemsToDel < 0 ? DEFAULT_NUMBER_OF_ITEMS_TO_DELETE : numOfItemsToDel;
+    }
+
+    /** */
+    public boolean enabled() {
+        return enabled == null ? true : enabled;
     }
 }

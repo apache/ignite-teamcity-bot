@@ -2,8 +2,11 @@ package org.apache.ignite.tcbot.engine.conf;
 
 public interface ICleanerConfig {
     /** */
-    Integer getSafeDays();
+    int safeDays();
 
     /** */
-    Integer getNumOfItemsToDel();
+    int numOfItemsToDel();
+
+    /** */
+    boolean enabled();
 }
