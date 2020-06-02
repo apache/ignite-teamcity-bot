@@ -26,7 +26,7 @@ import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.history.IRunHistory;
 
 public class ShortTestFailureUi {
-    private static final Pattern TEST_CLASS_AND_METHOD_PATTERN = Pattern.compile("([^\\.]+\\.[^\\.]+(\\[.+\\])?$)");
+    private static final Pattern TEST_CLASS_AND_METHOD_PATTERN = Pattern.compile("([^.]+[.][^.]+(\\[.+\\])?$)");
 
     /** Test full Name */
     public String name;
