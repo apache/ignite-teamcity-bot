@@ -29,6 +29,8 @@ import org.apache.ignite.jiraignited.IJiraIgnited;
 import org.apache.ignite.jiraignited.IJiraIgnitedProvider;
 import org.apache.ignite.jiraservice.IJiraIntegration;
 import org.apache.ignite.jiraservice.IJiraIntegrationProvider;
+import org.apache.ignite.tcbot.engine.conf.CleanerConfig;
+import org.apache.ignite.tcbot.engine.conf.ICleanerConfig;
 import org.apache.ignite.tcbot.engine.conf.TcBotJsonConfig;
 import org.apache.ignite.githubservice.IGitHubConnection;
 import org.apache.ignite.githubservice.IGitHubConnectionProvider;
@@ -122,6 +124,10 @@ public class MockBasedTcBotModule extends AbstractModule {
 
             @Override public NotificationsConfig notifications() {
                 return new NotificationsConfig();
+            }
+
+            @Override public ICleanerConfig getCleanerConfig() {
+                return CleanerConfig.getDefaultCleanerConfig();
             }
         };
         bind(ITcBotConfig.class).toInstance(cfg);

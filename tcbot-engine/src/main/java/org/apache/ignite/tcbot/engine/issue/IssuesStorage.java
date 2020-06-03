@@ -26,6 +26,8 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.binary.BinaryObject;
+import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
@@ -124,5 +126,24 @@ public class IssuesStorage implements IIssuesStorage {
     /** {@inheritDoc} */
     @Override public Stream<Issue> allIssues() {
         return StreamSupport.stream(cache().spliterator(), false).map(Cache.Entry::getValue);
+    }
+
+    public void removeOldIssues(long thresholdDate, int numOfItemsToDel) {
+        IgniteCache<BinaryObject, BinaryObject> cacheWithBinary = cache().withKeepBinary();
+
+        ScanQuery<BinaryObject, BinaryObject> scan =
+            new ScanQuery<>((issueKey, issue) -> {
+                Long detectedTs = issue.<Long>field("detectedTs");
+                return detectedTs != null && detectedTs < thresholdDate && detectedTs > 0;
+            });
+
+        for (Cache.Entry<BinaryObject, BinaryObject> entry : cacheWithBinary.query(scan)) {
+            if (numOfItemsToDel > 0) {
+                numOfItemsToDel--;
+                cacheWithBinary.remove(entry.getKey());
+            }
+            else
+                break;
+        }
     }
 }

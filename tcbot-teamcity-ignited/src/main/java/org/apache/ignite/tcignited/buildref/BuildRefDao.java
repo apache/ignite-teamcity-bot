@@ -364,4 +364,8 @@ public class BuildRefDao {
     public BuildRefCompacted get(int srvId, Integer buildId) {
         return buildRefsCache.get(buildIdToCacheKey(srvId, buildId));
     }
+
+    public void remove(long key) {
+        buildRefsCache.remove(key);
+    }
 }

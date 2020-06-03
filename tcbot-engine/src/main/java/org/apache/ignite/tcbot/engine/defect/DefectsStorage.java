@@ -30,6 +30,7 @@ import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteAtomicSequence;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.QueryEntity;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.ScanQuery;
@@ -172,5 +173,24 @@ public class DefectsStorage {
     public void save(DefectCompacted defect) {
         Preconditions.checkState(defect.id() != 0);
         cache().put(defect.id(), defect);
+    }
+
+    public void removeOldDefects(long thresholdDate, int numOfItemsToDel) {
+        IgniteCache<Integer, BinaryObject> cacheWithBinary = cache().withKeepBinary();
+
+        ScanQuery<Integer, BinaryObject> scan =
+            new ScanQuery<>((key, defect) -> {
+                long resolvedTs = defect.<Long>field("resolvedTs");
+                return resolvedTs > 0 && resolvedTs < thresholdDate;
+            });
+
+        for (Cache.Entry<Integer, BinaryObject> entry : cacheWithBinary.query(scan)) {
+            if (numOfItemsToDel > 0) {
+                numOfItemsToDel--;
+                cacheWithBinary.remove(entry.getKey());
+            }
+            else
+                break;
+        }
     }
 }

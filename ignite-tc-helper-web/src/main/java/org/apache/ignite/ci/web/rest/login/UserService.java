@@ -32,6 +32,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Form;
 import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
+import org.apache.ignite.tcbot.engine.cleaner.Cleaner;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.tcbot.engine.user.IUserStorage;
@@ -104,6 +105,9 @@ public class UserService {
         issueDetector.startBackgroundCheck(prov);
 
         CtxListener.getInjector(ctx).getInstance(TcBotTriggerAndSignOffService.class).startObserver();
+
+        Cleaner cleaner = injector.getInstance(Cleaner.class);
+        cleaner.startBackgroundClean();
 
         return userMenu(prov,
             injector.getInstance(IUserStorage.class),

@@ -19,6 +19,7 @@ package org.apache.ignite.tcignited.history;
 
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -28,10 +29,14 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.cache.query.ScanQuery;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.lang.IgniteBiPredicate;
 import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
@@ -179,6 +184,10 @@ public class BuildStartTimeStorage {
         }
 
         return null;
+    }
+
+    public void remove(long key) {
+        buildStartTime.remove(key);
     }
 
 }

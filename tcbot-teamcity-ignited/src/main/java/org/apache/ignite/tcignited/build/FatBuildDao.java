@@ -19,7 +19,9 @@ package org.apache.ignite.tcignited.build;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -42,7 +44,9 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.CacheEntryProcessor;
 import org.apache.ignite.cache.affinity.Affinity;
+import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.lang.IgniteBiPredicate;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -400,6 +404,31 @@ public class FatBuildDao {
 
             return startDate;
         }
+    }
+
+    public List<Long> getOldBuilds(long thresholdDate, int numOfItemsToDel) {
+        IgniteCache<Long, BinaryObject> cacheWithBinary = buildsCache.withKeepBinary();
+
+        ScanQuery<Long, BinaryObject> scan = new ScanQuery<>((key, fatBuild) -> {
+                long startDate = fatBuild.<Long>field("startDate");
+                return startDate > 0 && startDate < thresholdDate;
+            }
+        );
+
+        List<Long> oldBuildsKeys = new ArrayList<>(numOfItemsToDel);
+        for (Cache.Entry<Long, BinaryObject> entry : cacheWithBinary.query(scan)) {
+            if (numOfItemsToDel > 0) {
+                numOfItemsToDel--;
+                oldBuildsKeys.add(entry.getKey());
+            }
+            else
+                break;
+        }
+        return oldBuildsKeys;
+    }
+
+    public void remove(long key) {
+        buildsCache.remove(key);
     }
 
     /**
