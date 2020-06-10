@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -112,7 +113,6 @@ public class BoardService {
             Map<Integer, DefectFirstBuild> build = next.buildsInvolved();
             for (DefectFirstBuild cause : build.values()) {
                 FatBuildCompacted firstBuild = cause.build();
-                defectUi.addTags(SingleBuildRunCtx.getBuildTagsFromParameters(cfg, compactor, firstBuild));
                 FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(next.tcSrvId(), firstBuild.id());
 
                 List<Future<FatBuildCompacted>> futures = buildChainProcessor.replaceWithRecent(fatBuild, allBuildsMap, tcIgn);
@@ -124,9 +124,12 @@ public class BoardService {
 
                 rebuild = !freshRebuild.isEmpty() ? freshRebuild.stream().findFirst() : Optional.empty();
 
+                Set<String> tags = SingleBuildRunCtx.getBuildTagsFromParameters(cfg, compactor, firstBuild);
+
                 for (DefectIssue issue : cause.issues()) {
                     BoardDefectIssueUi issueUi = processIssue(tcIgn, rebuild, issue, firstBuild.buildTypeId());
-
+                    if (issueUi.status() != IssueResolveStatus.FIXED)
+                        defectUi.addTags(tags);
                     defectUi.addIssue(issueUi);
                 }
             }
