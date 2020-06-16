@@ -83,11 +83,57 @@ function showChainResultsWithSettings(result, settings) {
         res += showChainCurrentStatusData(server, settings);
     }
 
+    res += "<tr bgcolor='#F5F5FF'><th colspan='4' class='table-title'><b>New Tests</b></th></tr>"
+
+    for (var i = 0; i < result.servers.length; i++) {
+        var newTests = result.servers[i].newTestsUi;
+        res += showNewTestsData(newTests, settings);
+    }
+
+    res += "<tr><td colspan='4'>&nbsp;</td></tr>";
+    res += "</table>";
+
     setTimeout(initMoreInfo, 100);
 
     return res;
 }
 
+/**
+ * @param chain - see org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus Java Class.
+ * @param settings - see Settings JavaScript class.
+ */
+function showNewTestsData(chain, settings) {
+    var res = "";
+
+    newTestRows = "";
+
+    res += "<table style='width:100%'>";
+
+    for (var i = 0; i < chain.length; i++) {
+        var newTests = chain[i].tests;
+        for (var j = 0; j < newTests.length; j++) {
+            newTestsFounded = true
+            var newTest = newTests[j];
+            testColor = newTest.status ? "#013220" : "#8b0000";
+            newTestRows += "<tr style='color:" + testColor + "'>";
+            newTestRows += "<td colspan='2' width='10%'></td>";
+            newTestRows += "<td width='5%'>" + (newTest.status ? "PASSED" : "FAILED") + "</td>";
+            if (isDefinedAndFilled(newTest.suiteName) && isDefinedAndFilled(newTest.testName))
+                newTestRows += "<td width='75%'>" + newTest.suiteName + ": " + newTest.testName + "</td>";
+            else
+                newTestRows += "<td width='75%'>" + newTest.name + "</td>";
+            newTestRows += "<td colspan='2' width='10%'></td>";
+            newTestRows += "</tr>";
+        }
+    }
+
+    res += newTestRows !== "" ? newTestRows : "<tr><td colspan='2' width='10%'></td><td width='90%'>No new tests</td></tr>"
+
+    res += "</table>";
+
+    return res;
+
+}
 
 /**
  * @param chain - see org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus Java Class.
@@ -324,9 +370,6 @@ function showChainCurrentStatusData(chain, settings) {
 
         res += showSuiteData(subSuite, settings, chain.prNum);
     }
-
-    res += "<tr><td colspan='4'>&nbsp;</td></tr>";
-    res += "</table>";
 
     return res;
 }
