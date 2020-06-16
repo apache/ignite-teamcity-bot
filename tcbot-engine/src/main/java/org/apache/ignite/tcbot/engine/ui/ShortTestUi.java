@@ -17,12 +17,16 @@
 package org.apache.ignite.tcbot.engine.ui;
 
 import com.google.common.base.Strings;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class ShortTestUi {
+    private static final Pattern TEST_CLASS_AND_METHOD_PATTERN = Pattern.compile("([^.]+[.][^.]+(\\[.+\\])?$)");
+
     /** Test full Name */
     public String name;
 
@@ -52,13 +56,11 @@ public class ShortTestUi {
 
     public static String extractTest(String s) {
         String testShort = s.trim();
-        String[] testComps = testShort.split("\\.");
-        if (testComps.length > 2)
-            return testComps[testComps.length - 2] + "." + testComps[testComps.length - 1];
-        return null;
+        Matcher matcher = TEST_CLASS_AND_METHOD_PATTERN.matcher(testShort);
+        return matcher.find() ? matcher.group(0) : null;
     }
 
-    public static   String extractSuite(String s) {
+    public static String extractSuite(String s) {
         String suiteShort = s.trim();
         String[] suiteComps = suiteShort.split("\\.");
         if (suiteComps.length > 1)
