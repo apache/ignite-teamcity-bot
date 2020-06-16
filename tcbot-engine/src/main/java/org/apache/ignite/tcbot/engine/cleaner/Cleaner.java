@@ -108,8 +108,7 @@ public class Cleaner {
 
         executorService = Executors.newSingleThreadScheduledExecutor();
 
-        executorService.scheduleAtFixedRate(this::clean, 30, 30, TimeUnit.MINUTES);
-//        executorService.scheduleAtFixedRate(this::clean, 0, 10, TimeUnit.SECONDS);
+        executorService.scheduleAtFixedRate(this::clean, 10, 30, TimeUnit.MINUTES);
 
     }
 }
