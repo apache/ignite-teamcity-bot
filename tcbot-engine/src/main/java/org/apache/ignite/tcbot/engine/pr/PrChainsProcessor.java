@@ -27,6 +27,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import javax.inject.Provider;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.githubignited.IGitHubConnIgnited;
 import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
@@ -46,7 +47,9 @@ import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi;
+import org.apache.ignite.tcbot.engine.ui.ShortSuiteNewTestsUi;
 import org.apache.ignite.tcbot.engine.ui.ShortTestFailureUi;
+import org.apache.ignite.tcbot.engine.ui.ShortTestUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
@@ -56,6 +59,8 @@ import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcservice.ITeamcity;
+import org.apache.ignite.tcservice.ITeamcityConn;
+import org.apache.ignite.tcservice.TeamcityServiceConnection;
 
 /**
  * Process pull request/untracked branch chain at particular server.
@@ -87,6 +92,7 @@ public class PrChainsProcessor {
     @Inject private ITcBotConfig cfg;
 
     @Inject private BranchEquivalence branchEquivalence;
+
     @Inject private UpdateCountersStorage countersStorage;
 
     /**
@@ -113,6 +119,7 @@ public class PrChainsProcessor {
         @Nullable Boolean checkAllLogs,
         SyncMode mode) {
         final DsSummaryUi res = new DsSummaryUi();
+
         ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvCodeOrAlias, creds);
 
         IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
@@ -167,7 +174,7 @@ public class PrChainsProcessor {
             //fail rate reference is always default (master)
             chainStatus.initFromContext(tcIgnited, ctx, baseBranchForTc, compactor, false,
                     null, null, -1, null, false, false); // don't need for PR
-
+            chainStatus.findNewTests(ctx, tcIgnited, baseBranchForTc, compactor);
             initJiraAndGitInfo(chainStatus, jiraIntegration, gitHubConnIgnited);
         }
 
@@ -285,6 +292,45 @@ public class PrChainsProcessor {
     }
 
     /**
+     * @param buildTypeId  Build type ID, for which visa was ordered.
+     * @param branchForTc Branch for TeamCity.
+     * @param srvCodeOrAlias Server id.
+     * @param prov Credentials.
+     * @param syncMode
+     * @param baseBranchForTc
+     * @return List of suites with possible blockers.
+     */
+    @Nullable
+    public List<ShortSuiteNewTestsUi> getNewTestsSuitesStatuses(
+        String buildTypeId,
+        String branchForTc,
+        String srvCodeOrAlias,
+        ICredentialsProv prov,
+        SyncMode syncMode,
+        @Nullable String baseBranchForTc) {
+        ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvCodeOrAlias, prov);
+
+        List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(buildTypeId, branchForTc, 1);
+
+        String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? dfltBaseTcBranch(srvCodeOrAlias) : baseBranchForTc;
+
+        FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
+            tcIgnited,
+            hist,
+            LatestRebuildMode.LATEST,
+            ProcessLogsMode.SUITE_NOT_COMPLETE,
+            false,
+            baseBranch,
+            syncMode,
+            null, null);
+
+        if (ctx.isFakeStub())
+            return null;
+
+        return findNewTests(ctx, tcIgnited, baseBranch);
+    }
+
+    /**
      * @return Blocker failures for given server.
      * @param fullChainRunCtx
      * @param tcIgnited
@@ -323,6 +369,42 @@ public class PrChainsProcessor {
                         .initFrom(ctx, tcIgnited, compactor, statInBaseBranch);
                 }
 
+                return null;
+            })
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * @return New tests for given server.
+     * @param fullChainRunCtx
+     * @param tcIgnited
+     * @param baseBranch
+     */
+    //todo may avoid creation of UI model for simple comment.
+    private List<ShortSuiteNewTestsUi> findNewTests(FullChainRunCtx fullChainRunCtx,
+        ITeamcityIgnited tcIgnited,
+        String baseBranch) {
+        String normalizedBaseBranch = BranchEquivalence.normalizeBranch(baseBranch);
+        Integer baseBranchId = compactor.getStringIdIfPresent(normalizedBaseBranch);
+
+        return fullChainRunCtx
+            .suites()
+            .map((ctx) -> {
+                List<ShortTestUi> missingTests = ctx.getFilteredTests(test -> {
+                    IRunHistory history = test.history(tcIgnited, baseBranchId, null);
+                    return history == null;
+                })
+                    .stream()
+                    .map(occurrence -> new ShortTestUi().initFrom(occurrence, occurrence.isPassed()))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
+                if (!missingTests.isEmpty()) {
+                    return new ShortSuiteNewTestsUi()
+                        .tests(missingTests)
+                        .initFrom(ctx);
+                }
                 return null;
             })
             .filter(Objects::nonNull)

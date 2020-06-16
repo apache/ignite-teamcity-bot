@@ -52,6 +52,7 @@ import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.apache.ignite.tcignited.buildlog.IBuildLogProcessor;
+import org.apache.ignite.tcservice.ITeamcityConn;
 import org.mockito.Mockito;
 
 import static org.mockito.ArgumentMatchers.any;

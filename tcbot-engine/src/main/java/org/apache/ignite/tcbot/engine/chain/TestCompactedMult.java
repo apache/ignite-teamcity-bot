@@ -64,7 +64,15 @@ public class TestCompactedMult {
     public String getName() {
         return occurrences.isEmpty() ? "" : occurrences.iterator().next().testName(compactor);
     }
- 
+
+    public Long getId() {
+        return occurrences.isEmpty() ? 0 : occurrences.iterator().next().getTestId();
+    }
+
+    public boolean isPassed() {
+        return occurrences.get(occurrences.size()-1).status() == STATUS_SUCCESS_CID;
+    }
+
     public boolean isInvestigated() {
         return occurrences.stream().anyMatch(ITest::isInvestigated);
     }
