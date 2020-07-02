@@ -267,6 +267,7 @@ public class TcBotTriggerAndSignOffService {
         @Nullable String ticketId,
         @Nullable String prNum,
         @Nullable String baseBranchForTc,
+        @Nonnull Boolean cleanSources,
         @Nullable ITcBotUserCreds prov) {
         String jiraRes = "";
 
@@ -297,7 +298,7 @@ public class TcBotTriggerAndSignOffService {
         Set<Integer> buildidsToSync = new HashSet<>();
 
         for (int i = 0; i < suiteIds.length; i++) {
-            T2<Build, Set<Integer>> objects = teamcity.triggerBuild(suiteIds[i], branchForTc, false, top != null && top, new HashMap<>(),
+            T2<Build, Set<Integer>> objects = teamcity.triggerBuild(suiteIds[i], branchForTc, cleanSources, top != null && top, new HashMap<>(),
                 false, "");
             buildidsToSync.addAll(objects.get2());
             builds[i] = objects.get1();

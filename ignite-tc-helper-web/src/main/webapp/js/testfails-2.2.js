@@ -302,7 +302,7 @@ function showChainCurrentStatusData(chain, settings) {
             "\"" + chain.branchName + "\", " +
             "\"" + parentSuitId + "\", " +
             "\"\", " + // ticket id
-            "\"" + baseBranchForTc + "\")'>Comment JIRA</button>&nbsp;&nbsp;";
+            "\"" + baseBranchForTc + "\")'>Comment JIRA</button><br>";
 
         var blockersList = "";
 
@@ -319,6 +319,8 @@ function showChainCurrentStatusData(chain, settings) {
             }
         }
 
+        res += "<label for='cleanSources'><input id='cleanSources' type='checkbox'>Delete all files in checkout directory before each snapshot dependency build</label><br>"
+
         res += "<button onclick='triggerBuilds(" +
             "\"" + srvCodeForTriggering + "\", " +
             "\"" + parentSuitId + "\", " +
@@ -328,7 +330,8 @@ function showChainCurrentStatusData(chain, settings) {
             "false, " + //observe
             "null, " + // ticketId
             "\"" + + chain.prNum + "\", " +
-            "\"" + baseBranchForTc + "\" " +
+            "\"" + baseBranchForTc + "\", " +
+            "document.getElementById(\"cleanSources\").checked" +
             ")'> " +
             "Re-run possible blockers</button><br>";
 
@@ -341,7 +344,9 @@ function showChainCurrentStatusData(chain, settings) {
             "false, " + //observe
             "null, " + // ticketId
             "\"" + chain.prNum + "\", " + //prNum
-            "\"" + baseBranchForTc + "\")'> " +
+            "\"" + baseBranchForTc + "\", " +
+            "document.getElementById(\"cleanSources\").checked" +
+            ")'> " +
             "Re-run possible blockers (top queue)</button><br>";
     }
 
@@ -445,7 +450,7 @@ function filterPossibleBlocker(suite) {
     return null;
 }
 
-function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top, observe, ticketId, prNum, baseBranchForTc) {
+function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top, observe, ticketId, prNum, baseBranchForTc, cleanSources) {
     var queueAtTop = isDefinedAndFilled(top) && top;
     var observeJira = isDefinedAndFilled(observe) && observe;
     var suiteIdsNotExists = !isDefinedAndFilled(suiteIdList) || suiteIdList.length === 0;
@@ -510,7 +515,8 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
                 "observe": observeJira,
                 "ticketId": ticketId,
                 "prNum": prNum,
-                "baseBranchForTc": baseBranchForTc
+                "baseBranchForTc": baseBranchForTc,
+                "cleanSources": cleanSources
             },
             success: successDialog,
             error: showErrInLoadStatus
