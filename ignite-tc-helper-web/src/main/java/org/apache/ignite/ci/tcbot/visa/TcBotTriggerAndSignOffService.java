@@ -961,7 +961,7 @@ public class TcBotTriggerAndSignOffService {
 
                 cnt++;
                 if (cnt > 10) {
-                    newTests.append("... and ").append(totalNewTests - cnt).append(" tests blockers\\n");
+                    newTests.append("... and ").append(totalNewTests - cnt).append(" new tests\\n");
 
                     break;
                 }

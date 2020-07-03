@@ -18,6 +18,7 @@
 package org.apache.ignite.tcbot.engine.ui;
 
 import com.google.common.base.Strings;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -32,6 +33,7 @@ import org.apache.ignite.tcbot.common.util.CollectionUtil;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
 import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
+import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
 import org.apache.ignite.tcbot.engine.tracked.DisplayMode;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
@@ -297,12 +299,36 @@ public class DsChainUi {
         IStringCompactor compactor){
         String failRateNormalizedBranch = normalizeBranch(baseBranchTc);
         Integer baseBranchId = compactor.getStringIdIfPresent(failRateNormalizedBranch);
+
+        LocalDate currentDate = LocalDate.now();
+
         newTestsUi = ctx
             .suites()
             .map((suite) -> {
                 List<ShortTestUi> missingTests = suite.getFilteredTests(test -> {
-                    IRunHistory history = test.history(tcIgnited, baseBranchId, null);
-                    return history == null;
+                    IRunHistory hist = test.history(tcIgnited, baseBranchId, null);
+
+                    String globalTestId = ctx.branchName() + test.getId() + tcIgnited.serverCode();
+
+                    if (hist == null && !test.isMutedOrIgored()) {
+
+                        for (int day = 0; day < 5; day++) {
+                            List<String> dayList = PrChainsProcessor.newTests.getIfPresent(currentDate.minusDays(day));
+
+//                            if (dayList != null && dayList.contains(globalTestId))
+//                                return false;
+                            if (dayList != null) {
+                                boolean match = dayList.stream().anyMatch(testId -> {
+                                    return !testId.startsWith(ctx.branchName()) && testId.contains(test.getId() + tcIgnited.serverCode());
+                                });
+                                if (match)
+                                    return false;
+                            }
+                        }
+
+                        return true;
+                    }
+                    return false;
                 })
                     .stream()
                     .map(occurrence -> {
