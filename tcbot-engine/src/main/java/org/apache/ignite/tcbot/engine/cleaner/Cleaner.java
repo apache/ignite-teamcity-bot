@@ -58,7 +58,7 @@ public class Cleaner {
     private ScheduledExecutorService executorService;
 
     @AutoProfiling
-    @MonitoredTask(name = "Clean ignite cache data and logs")
+    @MonitoredTask(name = "Clean old cache data and log files")
     public void clean() {
         try {
             if (cfg.getCleanerConfig().enabled()) {
@@ -66,13 +66,15 @@ public class Cleaner {
 
                 int numOfItemsToDel = cfg.getCleanerConfig().numOfItemsToDel();
 
-                long thresholdDate = ZonedDateTime.now().minusDays(safeDays).toInstant().toEpochMilli();
+                ZonedDateTime thresholdDate = ZonedDateTime.now().minusDays(safeDays);
 
-                logger.info("Some data (" + numOfItemsToDel + " units) before " + thresholdDate + " will be removed.");
+                logger.info("Some data (numOfItemsToDel=" + numOfItemsToDel + ") older than " + thresholdDate + " will be removed.");
 
-                removeCacheEntries(thresholdDate, numOfItemsToDel);
+                long thresholdEpochMilli = thresholdDate.toInstant().toEpochMilli();
 
-                removeLogFiles(thresholdDate, numOfItemsToDel);
+                removeCacheEntries(thresholdEpochMilli, numOfItemsToDel);
+
+                removeLogFiles(thresholdEpochMilli, numOfItemsToDel);
             }
             else
                 logger.info("Periodic cache clean disabled.");
@@ -89,9 +91,9 @@ public class Cleaner {
         List<Long> oldBuildsKeys = fatBuildDao.getOldBuilds(thresholdDate, numOfItemsToDel);
 
         List<String> strOldBuildsKeys = oldBuildsKeys.stream().map(compositeId -> {
-            IgniteBiTuple<Integer, Integer> idTuple = FatBuildDao.cacheKeyToSrvIdAndBuildId(compositeId);
-            return "TeamCity id: " + idTuple.get1() + ", build id: " + idTuple.get2();
-        })
+                IgniteBiTuple<Integer, Integer> idTuple = FatBuildDao.cacheKeyToSrvIdAndBuildId(compositeId);
+                return "TeamCity id: " + idTuple.get1() + " build id: " + idTuple.get2();
+            })
             .collect(Collectors.toList());
 
         logger.info("Builds will be removed (" + strOldBuildsKeys.size() + "): " + strOldBuildsKeys);
@@ -120,28 +122,30 @@ public class Cleaner {
 
         for (String srvId : cfg.getServerIds()) {
             File srvIdLogDir = new File(workDir, cfg.getTeamcityConfig(srvId).logsDirectory());
+
             removeFiles(srvIdLogDir, thresholdDate, numOfItemsToDel);
         }
 
         File tcBotLogDir = new File(workDir, "tcbot_logs");
+
         removeFiles(tcBotLogDir, thresholdDate, numOfItemsToDel);
     }
 
     private void removeFiles(File dir, long thresholdDate, int numOfItemsToDel) {
         File[] logFiles = dir.listFiles();
 
-        List<File> filesToRemove = new ArrayList<>(numOfItemsToDel);
+        List<File> filesToRmv = new ArrayList<>(numOfItemsToDel);
 
         if (logFiles != null)
             for (File file : logFiles)
                 if (file.lastModified() < thresholdDate && numOfItemsToDel-- > 0)
-                    filesToRemove.add(file);
+                    filesToRmv.add(file);
 
         logger.info("In the directory " + dir + " files will be removed (" +
-            filesToRemove.size() + "): " + filesToRemove.stream().map(File::getName).collect(Collectors.toList())
+            filesToRmv.size() + "): " + filesToRmv.stream().map(File::getName).collect(Collectors.toList())
         );
 
-        for (File file : filesToRemove) {
+        for (File file : filesToRmv) {
             file.delete();
         }
 
@@ -149,16 +153,19 @@ public class Cleaner {
 
     public void startBackgroundClean() {
         suiteInvocationHistoryDao.init();
+
         buildLogCheckResultDao.init();
+
         buildRefDao.init();
+
         buildStartTimeStorage.init();
+
         buildConditionDao.init();
+
         fatBuildDao.init();
 
         executorService = Executors.newSingleThreadScheduledExecutor();
 
-        executorService.scheduleAtFixedRate(this::clean, 30, 30, TimeUnit.MINUTES);
-//        executorService.scheduleAtFixedRate(this::clean, 0, 10, TimeUnit.SECONDS);
-
+        executorService.scheduleAtFixedRate(this::clean, 5, 30, TimeUnit.MINUTES);
     }
 }
