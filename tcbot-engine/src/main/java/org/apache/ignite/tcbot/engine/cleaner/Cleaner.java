@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
@@ -42,6 +43,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Cleaner {
+    private final AtomicBoolean init = new AtomicBoolean();
+
     @Inject IIssuesStorage issuesStorage;
     @Inject FatBuildDao fatBuildDao;
     @Inject SuiteInvocationHistoryDao suiteInvocationHistoryDao;
@@ -152,20 +155,17 @@ public class Cleaner {
     }
 
     public void startBackgroundClean() {
-        suiteInvocationHistoryDao.init();
+        if (init.compareAndSet(false, true)) {
+            suiteInvocationHistoryDao.init();
+            buildLogCheckResultDao.init();
+            buildRefDao.init();
+            buildStartTimeStorage.init();
+            buildConditionDao.init();
+            fatBuildDao.init();
 
-        buildLogCheckResultDao.init();
+            executorService = Executors.newSingleThreadScheduledExecutor();
 
-        buildRefDao.init();
-
-        buildStartTimeStorage.init();
-
-        buildConditionDao.init();
-
-        fatBuildDao.init();
-
-        executorService = Executors.newSingleThreadScheduledExecutor();
-
-        executorService.scheduleAtFixedRate(this::clean, 5, 30, TimeUnit.MINUTES);
+            executorService.scheduleAtFixedRate(this::clean, 5, 30, TimeUnit.MINUTES);
+        }
     }
 }
