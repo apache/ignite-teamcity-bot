@@ -180,8 +180,13 @@ public class DefectsStorage {
 
         ScanQuery<Integer, BinaryObject> scan =
             new ScanQuery<>((key, defect) -> {
-                long resolvedTs = defect.<Long>field("resolvedTs");
-                return resolvedTs > 0 && resolvedTs < thresholdDate;
+                Long resolvedTs = (long) 0;
+
+                if (defect.hasField("resolvedTs"))
+                    resolvedTs = defect.<Long>field("resolvedTs");
+
+                return (resolvedTs > 0 && resolvedTs < thresholdDate) ||
+                    !defect.hasField("resolvedTs");
             });
 
         for (Cache.Entry<Integer, BinaryObject> entry : cacheWithBinary.query(scan)) {

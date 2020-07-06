@@ -18,12 +18,15 @@ package org.apache.ignite.tcbot.engine.cleaner;
 
 import java.io.File;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
+import org.apache.ignite.lang.IgniteBiTuple;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
@@ -57,39 +60,58 @@ public class Cleaner {
     @AutoProfiling
     @MonitoredTask(name = "Clean ignite cache data and logs")
     public void clean() {
-        if (cfg.getCleanerConfig().enabled()) {
-            try {
+        try {
+            if (cfg.getCleanerConfig().enabled()) {
                 long safeDays = cfg.getCleanerConfig().safeDays();
+
                 int numOfItemsToDel = cfg.getCleanerConfig().numOfItemsToDel();
+
                 long thresholdDate = ZonedDateTime.now().minusDays(safeDays).toInstant().toEpochMilli();
 
+                logger.info("Some data (" + numOfItemsToDel + " units) before " + thresholdDate + " will be removed.");
+
                 removeCacheEntries(thresholdDate, numOfItemsToDel);
+
                 removeLogFiles(thresholdDate, numOfItemsToDel);
             }
-            catch (Exception e) {
-                e.printStackTrace();
-
-                logger.error("Periodic cache clean failed: " + e.getMessage(), e);
-            }
+            else
+                logger.info("Periodic cache clean disabled.");
         }
-        else
-            logger.info("Periodic cache clean disabled.");
+        catch (Throwable e) {
+            logger.error("Periodic cache clean failed: " + e.getMessage(), e);
+
+            e.printStackTrace();
+        }
 
     }
 
     private void removeCacheEntries(long thresholdDate, int numOfItemsToDel) {
         List<Long> oldBuildsKeys = fatBuildDao.getOldBuilds(thresholdDate, numOfItemsToDel);
 
+        List<String> strOldBuildsKeys = oldBuildsKeys.stream().map(compositeId -> {
+            IgniteBiTuple<Integer, Integer> idTuple = FatBuildDao.cacheKeyToSrvIdAndBuildId(compositeId);
+            return "TeamCity id: " + idTuple.get1() + ", build id: " + idTuple.get2();
+        })
+            .collect(Collectors.toList());
+
+        logger.info("Builds will be removed (" + strOldBuildsKeys.size() + "): " + strOldBuildsKeys);
+
         for (Long buildCacheKey : oldBuildsKeys) {
             suiteInvocationHistoryDao.remove(buildCacheKey);
+
             buildLogCheckResultDao.remove(buildCacheKey);
+
             buildRefDao.remove(buildCacheKey);
+
             buildStartTimeStorage.remove(buildCacheKey);
+
             buildConditionDao.remove(buildCacheKey);
+
             fatBuildDao.remove(buildCacheKey);
         }
 
         defectsStorage.removeOldDefects(thresholdDate, numOfItemsToDel);
+
         issuesStorage.removeOldIssues(thresholdDate, numOfItemsToDel);
     }
 
@@ -107,11 +129,22 @@ public class Cleaner {
 
     private void removeFiles(File dir, long thresholdDate, int numOfItemsToDel) {
         File[] logFiles = dir.listFiles();
+
+        List<File> filesToRemove = new ArrayList<>(numOfItemsToDel);
+
         if (logFiles != null)
-            for (File file : logFiles) {
+            for (File file : logFiles)
                 if (file.lastModified() < thresholdDate && numOfItemsToDel-- > 0)
-                    file.delete();
-            }
+                    filesToRemove.add(file);
+
+        logger.info("In the directory " + dir + " files will be removed (" +
+            filesToRemove.size() + "): " + filesToRemove.stream().map(File::getName).collect(Collectors.toList())
+        );
+
+        for (File file : filesToRemove) {
+            file.delete();
+        }
+
     }
 
     public void startBackgroundClean() {

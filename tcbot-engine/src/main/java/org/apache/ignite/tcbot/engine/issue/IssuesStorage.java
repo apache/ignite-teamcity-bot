@@ -133,8 +133,13 @@ public class IssuesStorage implements IIssuesStorage {
 
         ScanQuery<BinaryObject, BinaryObject> scan =
             new ScanQuery<>((issueKey, issue) -> {
-                Long detectedTs = issue.<Long>field("detectedTs");
-                return detectedTs != null && detectedTs < thresholdDate && detectedTs > 0;
+                Long detectedTs = null;
+
+                if (issue.hasField("detectedTs"))
+                    detectedTs = issue.<Long>field("detectedTs");
+
+                return (detectedTs != null && detectedTs < thresholdDate && detectedTs > 0) ||
+                    !issue.hasField("detectedTs");
             });
 
         for (Cache.Entry<BinaryObject, BinaryObject> entry : cacheWithBinary.query(scan)) {

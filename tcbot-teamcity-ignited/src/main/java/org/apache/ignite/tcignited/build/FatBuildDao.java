@@ -19,6 +19,7 @@ package org.apache.ignite.tcignited.build;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -47,6 +48,7 @@ import org.apache.ignite.cache.affinity.Affinity;
 import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.lang.IgniteBiPredicate;
+import org.apache.ignite.lang.IgniteBiTuple;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -174,6 +176,17 @@ public class FatBuildDao {
      */
     public static long buildIdToCacheKey(int srvIdMaskHigh, int buildId) {
         return (long)buildId | (long)srvIdMaskHigh << 32;
+    }
+
+    /**
+     * @param cacheKey cache key.
+     */
+    public static IgniteBiTuple<Integer, Integer> cacheKeyToSrvIdAndBuildId(long cacheKey) {
+        IgniteBiTuple<Integer, Integer> srvIdAndBuildId = new IgniteBiTuple<>();
+
+        srvIdAndBuildId.set((int)(cacheKey >> 32), (int)cacheKey);
+
+        return srvIdAndBuildId;
     }
 
     /**
@@ -410,12 +423,18 @@ public class FatBuildDao {
         IgniteCache<Long, BinaryObject> cacheWithBinary = buildsCache.withKeepBinary();
 
         ScanQuery<Long, BinaryObject> scan = new ScanQuery<>((key, fatBuild) -> {
-                long startDate = fatBuild.<Long>field("startDate");
-                return startDate > 0 && startDate < thresholdDate;
+                Long startDate = (long) 0;
+
+                if (fatBuild.hasField("startDate"))
+                    startDate = fatBuild.<Long>field("startDate");
+
+                return (startDate > 0 && startDate < thresholdDate) ||
+                    !fatBuild.hasField("startDate");
             }
         );
 
         List<Long> oldBuildsKeys = new ArrayList<>(numOfItemsToDel);
+
         for (Cache.Entry<Long, BinaryObject> entry : cacheWithBinary.query(scan)) {
             if (numOfItemsToDel > 0) {
                 numOfItemsToDel--;
@@ -444,6 +463,20 @@ public class FatBuildDao {
 
             return entry.getValue() == null ? BuildRefDao.cacheKeyToBuildId(key) : null;
         }
+    }
+
+    public static void main(String[] args) {
+        int n = 1000000907;
+        int m = 2000000823;
+        long cacheKey = buildIdToCacheKey(n, m);
+        IgniteBiTuple<Integer, Integer> tuple = cacheKeyToSrvIdAndBuildId(cacheKey);
+        System.out.println(tuple.get1());
+        System.out.println(tuple.get2());
+        System.out.println(tuple);
+        List<IgniteBiTuple<Integer, Integer>> list = new ArrayList<>();
+        list.add(tuple);
+        System.out.println(list);
+        System.out.println(ZonedDateTime.now());
     }
 
 }
