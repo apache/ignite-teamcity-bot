@@ -423,7 +423,7 @@ public class FatBuildDao {
         IgniteCache<Long, BinaryObject> cacheWithBinary = buildsCache.withKeepBinary();
 
         ScanQuery<Long, BinaryObject> scan = new ScanQuery<>((key, fatBuild) -> {
-                Long startDate = (long) 0;
+                Long startDate = 0L;
 
                 if (fatBuild.hasField("startDate"))
                     startDate = fatBuild.<Long>field("startDate");
@@ -464,19 +464,4 @@ public class FatBuildDao {
             return entry.getValue() == null ? BuildRefDao.cacheKeyToBuildId(key) : null;
         }
     }
-
-    public static void main(String[] args) {
-        int n = 1000000907;
-        int m = 2000000823;
-        long cacheKey = buildIdToCacheKey(n, m);
-        IgniteBiTuple<Integer, Integer> tuple = cacheKeyToSrvIdAndBuildId(cacheKey);
-        System.out.println(tuple.get1());
-        System.out.println(tuple.get2());
-        System.out.println(tuple);
-        List<IgniteBiTuple<Integer, Integer>> list = new ArrayList<>();
-        list.add(tuple);
-        System.out.println(list);
-        System.out.println(ZonedDateTime.now());
-    }
-
 }

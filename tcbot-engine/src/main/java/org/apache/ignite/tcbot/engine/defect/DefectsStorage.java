@@ -180,7 +180,7 @@ public class DefectsStorage {
 
         ScanQuery<Integer, BinaryObject> scan =
             new ScanQuery<>((key, defect) -> {
-                Long resolvedTs = (long) 0;
+                Long resolvedTs = 0L;
 
                 if (defect.hasField("resolvedTs"))
                     resolvedTs = defect.<Long>field("resolvedTs");
