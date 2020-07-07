@@ -56,7 +56,7 @@ public class Ignite2Configurer {
         logFilePolicy.setContext(logCtx);
         logFilePolicy.setParent(rollingFa);
         logFilePolicy.setFileNamePattern(new File(logs, "logfile-%d{yyyy-MM-dd_HH}.log").getAbsolutePath());
-        logFilePolicy.setMaxHistory(7);
+        logFilePolicy.setMaxHistory(24*7*2);
         logFilePolicy.start();
 
         final String activeFileName = logFilePolicy.getActiveFileName();
