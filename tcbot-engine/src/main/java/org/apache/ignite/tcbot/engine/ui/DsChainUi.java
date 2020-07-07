@@ -33,12 +33,11 @@ import org.apache.ignite.tcbot.common.util.CollectionUtil;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
 import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
-import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
+import org.apache.ignite.tcbot.engine.newtests.NewTestsStorage;
 import org.apache.ignite.tcbot.engine.tracked.DisplayMode;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.history.IRunHistory;
-import org.apache.ignite.tcservice.ITeamcityConn;
 import org.apache.ignite.tcservice.model.conf.BuildType;
 
 import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.createOccurForLogConsumer;
@@ -296,7 +295,8 @@ public class DsChainUi {
     public void findNewTests(FullChainRunCtx ctx,
         ITeamcityIgnited tcIgnited,
         String baseBranchTc,
-        IStringCompactor compactor){
+        IStringCompactor compactor,
+        NewTestsStorage newTestsStorage){
         String failRateNormalizedBranch = normalizeBranch(baseBranchTc);
         Integer baseBranchId = compactor.getStringIdIfPresent(failRateNormalizedBranch);
 
@@ -308,27 +308,17 @@ public class DsChainUi {
                 List<ShortTestUi> missingTests = suite.getFilteredTests(test -> {
                     IRunHistory hist = test.history(tcIgnited, baseBranchId, null);
 
-                    String globalTestId = ctx.branchName() + test.getId() + tcIgnited.serverCode();
-
                     if (hist == null && !test.isMutedOrIgored()) {
 
-                        for (int day = 0; day < 5; day++) {
-                            List<String> dayList = PrChainsProcessor.newTests.getIfPresent(currentDate.minusDays(day));
-
-//                            if (dayList != null && dayList.contains(globalTestId))
-//                                return false;
-                            if (dayList != null) {
-                                boolean match = dayList.stream().anyMatch(testId -> {
-                                    return !testId.startsWith(ctx.branchName()) && testId.contains(test.getId() + tcIgnited.serverCode());
-                                });
-                                if (match)
-                                    return false;
-                            }
-                        }
-
-                        return true;
+                        if (test.getId() != null &&
+                            newTestsStorage.isNewTest(currentDate, ctx.branchName(),
+                            test.getId().toString(), tcIgnited.serverCode()))
+                            return false;
+                        else
+                            return true;
                     }
-                    return false;
+                    else
+                        return false;
                 })
                     .stream()
                     .map(occurrence -> {

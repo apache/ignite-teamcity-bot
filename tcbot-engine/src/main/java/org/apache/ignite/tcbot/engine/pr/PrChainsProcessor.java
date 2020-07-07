@@ -17,17 +17,13 @@
 package org.apache.ignite.tcbot.engine.pr;
 
 import com.google.common.base.Strings;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -48,6 +44,7 @@ import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
+import org.apache.ignite.tcbot.engine.newtests.NewTestsStorage;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi;
@@ -97,22 +94,7 @@ public class PrChainsProcessor {
 
     @Inject private UpdateCountersStorage countersStorage;
 
-//    private final Map<Long, List<Long>> newTests = new HashMap<>();
-    public static final Cache<LocalDate, List<String>> newTests = CacheBuilder.newBuilder()
-        .expireAfterWrite(60, TimeUnit.SECONDS).build();
-
-//    {
-//        CacheLoader<String, String> loader;
-//        loader = new CacheLoader<String, String>() {
-//            @Override
-//            public String load(String key) {
-//                return key.toUpperCase();
-//            }
-//        };
-
-//        LoadingCache<Long, String> newTests;
-//        Cache<LocalDate, String> newTests = CacheBuilder.newBuilder().build();
-//    }
+    @Inject private NewTestsStorage newTestsStorage;
 
     /**
      * @param creds Credentials.
@@ -193,7 +175,7 @@ public class PrChainsProcessor {
             //fail rate reference is always default (master)
             chainStatus.initFromContext(tcIgnited, ctx, baseBranchForTc, compactor, false,
                     null, null, -1, null, false, false); // don't need for PR
-            chainStatus.findNewTests(ctx, tcIgnited, baseBranchForTc, compactor);
+            chainStatus.findNewTests(ctx, tcIgnited, baseBranchForTc, compactor, newTestsStorage);
             initJiraAndGitInfo(chainStatus, jiraIntegration, gitHubConnIgnited);
         }
 
@@ -415,36 +397,19 @@ public class PrChainsProcessor {
                 List<ShortTestUi> missingTests = ctx.getFilteredTests(test -> {
                     IRunHistory hist = test.history(tcIgnited, baseBranchId, null);
                     String globalTestId = fullChainRunCtx.branchName() + test.getId() + tcIgnited.serverCode();
-                    //serverCode > branchName > (testId, date)
                     if (hist == null && !test.isMutedOrIgored()) {
 
-                        for (int day = 0; day < 5; day++) {
-                            List<String> dayList = newTests.getIfPresent(currentDate.minusDays(day));
-
-
-
-                            if (dayList != null) {
-                                boolean match = dayList.stream().anyMatch(testId -> {
-                                    return !testId.startsWith(fullChainRunCtx.branchName()) && testId.contains(test.getId() + tcIgnited.serverCode());
-                                });
-                                if (match)
-                                    return false;
-                            }
-
-                        }
-
-                        List<String> currDayList = newTests.getIfPresent(currentDate);
-                        if (currDayList != null)
-                            currDayList.add(globalTestId);
+                        if (test.getId() != null &&
+                            newTestsStorage.isNewTest(currentDate, ctx.branchName(),
+                                test.getId().toString(), tcIgnited.serverCode()))
+                            return false;
                         else {
-                            List<String> list = new ArrayList<>();
-                            list.add(globalTestId);
-                            newTests.put(currentDate, list);
+                            newTestsStorage.putNewTest(currentDate, globalTestId);
+                            return true;
                         }
-
-                        return true;
                     }
-                    return false;
+                    else
+                        return false;
                 })
                     .stream()
                     .map(occurrence -> new ShortTestUi().initFrom(occurrence, occurrence.isPassed()))
