@@ -927,13 +927,13 @@ public class TcBotTriggerAndSignOffService {
             newTests.append(jiraEscText(suite.name)).append("{color}");
 
             int totalNewTests = suite.tests.size();
-            newTests.append(" [tests ").append(totalNewTests);
+            newTests.append(" [[tests ").append(totalNewTests);
 
             int cnt = 0;
 
             newTestsCount += suite.tests().size();
 
-            newTests.append("]\\n");
+            newTests.append('|').append(suite.webToBuild).append("]]\\n");
 
             for (ShortTestUi test : suite.tests()) {
                 String testColor;

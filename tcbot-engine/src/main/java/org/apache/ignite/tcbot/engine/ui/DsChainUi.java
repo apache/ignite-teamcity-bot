@@ -314,7 +314,7 @@ public class DsChainUi {
                 if (!missingTests.isEmpty()) {
                     return new ShortSuiteNewTestsUi()
                         .tests(missingTests)
-                        .initFrom(suite);
+                        .initFrom(suite, tcIgnited);
                 }
                 return null;
             })

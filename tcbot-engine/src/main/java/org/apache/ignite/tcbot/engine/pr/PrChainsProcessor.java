@@ -403,7 +403,7 @@ public class PrChainsProcessor {
                 if (!missingTests.isEmpty()) {
                     return new ShortSuiteNewTestsUi()
                         .tests(missingTests)
-                        .initFrom(ctx);
+                        .initFrom(ctx, tcIgnited);
                 }
                 return null;
             })
