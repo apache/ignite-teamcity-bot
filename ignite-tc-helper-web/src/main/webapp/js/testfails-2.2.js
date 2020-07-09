@@ -111,6 +111,9 @@ function showNewTestsData(chain, settings) {
 
     for (var i = 0; i < chain.length; i++) {
         var newTests = chain[i].tests;
+        newTestRows += "<tr><td colspan='2' width='10%'></td>";
+        newTestRows += "<td colspan='2' width='80%'><a href='" + chain[i].webToBuild + "'>" + chain[i].name + "</a>" + "</td></tr>";
+        newTestRows += "<td colspan='2' width='10%'></td>";
         for (var j = 0; j < newTests.length; j++) {
             newTestsFounded = true
             var newTest = newTests[j];

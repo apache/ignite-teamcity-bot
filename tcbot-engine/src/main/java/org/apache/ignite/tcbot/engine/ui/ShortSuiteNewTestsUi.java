@@ -21,12 +21,16 @@ import java.util.Collection;
 import java.util.List;
 import javax.annotation.Nonnull;
 import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
 
 public class ShortSuiteNewTestsUi extends DsHistoryStatUi {
     /** Suite Name */
     public String name;
 
     public List<ShortTestUi> tests = new ArrayList<>();
+
+    /** Web Href. to suite particular run */
+    public String webToBuild = "";
 
     public Collection<? extends ShortTestUi> tests() {
         return tests;
@@ -38,9 +42,15 @@ public class ShortSuiteNewTestsUi extends DsHistoryStatUi {
         return this;
     }
 
-    public ShortSuiteNewTestsUi initFrom(@Nonnull MultBuildRunCtx suite) {
+    public ShortSuiteNewTestsUi initFrom(@Nonnull MultBuildRunCtx suite,
+        ITeamcityIgnited tcIgnited) {
         name = suite.suiteName();
+        webToBuild = buildWebLinkToBuild(tcIgnited, suite);
 
         return this;
+    }
+
+    private static String buildWebLinkToBuild(ITeamcityIgnited teamcity, MultBuildRunCtx chain) {
+        return teamcity.host() + "viewLog.html?buildId=" + chain.getBuildId();
     }
 }
