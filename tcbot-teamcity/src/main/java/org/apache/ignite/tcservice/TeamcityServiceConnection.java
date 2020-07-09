@@ -172,7 +172,7 @@ public class TeamcityServiceConnection implements ITeamcity {
         String comments = " <comment><text>" +
             Strings.nullToEmpty(freeTextComments) + ", " +
             "Build triggered from Ignite TC Bot" +
-            " [cleanRebuild=" + cleanRebuild + ", top=" + queueAtTop + "]" +
+            " [cleanSources=" + cleanRebuild + ", cleanRebuild=" + cleanRebuild + ", top=" + queueAtTop + "]" +
             "</text></comment>\n";
 
         Map<String, Object> props = new HashMap<>();

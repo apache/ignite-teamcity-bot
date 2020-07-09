@@ -237,12 +237,12 @@ function showChainCurrentStatusData(chain, settings) {
         moreInfoTxt += "Trigger failed " + cntFailed + " builds";
         moreInfoTxt += " <a href='javascript:void(0);' ";
         moreInfoTxt += " onClick='triggerBuilds(\"" + srvCodeForTriggering + "\", \"" + parentSuitId + "\", " +
-            "\"" + suitesFailedList + "\", \"" + chain.branchName + "\", false, false, null, \"" + chain.prNum + "\", null)' ";
+            "\"" + suitesFailedList + "\", \"" + chain.branchName + "\", false, false, null, \"" + chain.prNum + "\", null, false)' ";
         moreInfoTxt += " title='trigger builds'>in queue</a> ";
 
         moreInfoTxt += " <a href='javascript:void(0);' ";
         moreInfoTxt += " onClick='triggerBuilds(\"" + srvCodeForTriggering + "\", \"" + parentSuitId + "\", " +
-            "\"" + suitesFailedList + "\", \"" + chain.branchName + "\", true, false, null, \"" + chain.prNum + "\", null)' ";
+            "\"" + suitesFailedList + "\", \"" + chain.branchName + "\", true, false, null, \"" + chain.prNum + "\", null, false)' ";
         moreInfoTxt += " title='trigger builds'>on top</a><br>";
     }
 
@@ -302,7 +302,7 @@ function showChainCurrentStatusData(chain, settings) {
             "\"" + chain.branchName + "\", " +
             "\"" + parentSuitId + "\", " +
             "\"\", " + // ticket id
-            "\"" + baseBranchForTc + "\")'>Comment JIRA</button>&nbsp;&nbsp;";
+            "\"" + baseBranchForTc + "\")'>Comment JIRA</button><br>";
 
         var blockersList = "";
 
@@ -319,6 +319,8 @@ function showChainCurrentStatusData(chain, settings) {
             }
         }
 
+        res += "<label for='cleanRebuild'><input id='cleanRebuild' type='checkbox'>Delete all files in checkout directory before each snapshot dependency build</label><br>"
+
         res += "<button onclick='triggerBuilds(" +
             "\"" + srvCodeForTriggering + "\", " +
             "\"" + parentSuitId + "\", " +
@@ -328,7 +330,8 @@ function showChainCurrentStatusData(chain, settings) {
             "false, " + //observe
             "null, " + // ticketId
             "\"" + + chain.prNum + "\", " +
-            "\"" + baseBranchForTc + "\" " +
+            "\"" + baseBranchForTc + "\", " +
+            "document.getElementById(\"cleanRebuild\").checked" +
             ")'> " +
             "Re-run possible blockers</button><br>";
 
@@ -341,7 +344,9 @@ function showChainCurrentStatusData(chain, settings) {
             "false, " + //observe
             "null, " + // ticketId
             "\"" + chain.prNum + "\", " + //prNum
-            "\"" + baseBranchForTc + "\")'> " +
+            "\"" + baseBranchForTc + "\", " +
+            "document.getElementById(\"cleanRebuild\").checked" +
+            ")'> " +
             "Re-run possible blockers (top queue)</button><br>";
     }
 
@@ -445,7 +450,7 @@ function filterPossibleBlocker(suite) {
     return null;
 }
 
-function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top, observe, ticketId, prNum, baseBranchForTc) {
+function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top, observe, ticketId, prNum, baseBranchForTc, cleanRebuild=false) {
     var queueAtTop = isDefinedAndFilled(top) && top;
     var observeJira = isDefinedAndFilled(observe) && observe;
     var suiteIdsNotExists = !isDefinedAndFilled(suiteIdList) || suiteIdList.length === 0;
@@ -510,7 +515,8 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
                 "observe": observeJira,
                 "ticketId": ticketId,
                 "prNum": prNum,
-                "baseBranchForTc": baseBranchForTc
+                "baseBranchForTc": baseBranchForTc,
+                "cleanRebuild": cleanRebuild
             },
             success: successDialog,
             error: showErrInLoadStatus
@@ -732,12 +738,12 @@ function showSuiteData(suite, settings, prNum) {
         mInfo += " Trigger build: ";
         mInfo += "<a href='javascript:void(0);' ";
         mInfo += " onClick='triggerBuilds(\"" + suite.serverId + "\", null, \"" +
-            suite.suiteId + "\", \"" + suite.branchName + "\", false, false, null, \"" + prNum + "\", null)' ";
+            suite.suiteId + "\", \"" + suite.branchName + "\", false, false, null, \"" + prNum + "\", null, false)' ";
         mInfo += " title='trigger build' >queue</a> ";
 
         mInfo += "<a href='javascript:void(0);' ";
         mInfo += " onClick='triggerBuilds(\"" + suite.serverId + "\", null, \"" +
-            suite.suiteId + "\", \"" + suite.branchName + "\", true, false, null, \"" + prNum + "\", null)' ";
+            suite.suiteId + "\", \"" + suite.branchName + "\", true, false, null, \"" + prNum + "\", null, false)' ";
         mInfo += " title='trigger build at top of queue'>top</a><br>";
     }
 
