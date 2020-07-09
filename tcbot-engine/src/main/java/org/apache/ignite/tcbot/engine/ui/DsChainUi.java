@@ -300,8 +300,6 @@ public class DsChainUi {
         String failRateNormalizedBranch = normalizeBranch(baseBranchTc);
         Integer baseBranchId = compactor.getStringIdIfPresent(failRateNormalizedBranch);
 
-        LocalDate currentDate = LocalDate.now();
-
         newTestsUi = ctx
             .suites()
             .map((suite) -> {
@@ -311,11 +309,11 @@ public class DsChainUi {
                     if (hist == null && !test.isMutedOrIgored()) {
 
                         if (test.getId() != null &&
-                            newTestsStorage.isNewTest(currentDate, ctx.branchName(),
+                            newTestsStorage.isNewTest(ctx.branchName(),
                             test.getId().toString(), tcIgnited.serverCode()))
-                            return false;
-                        else
                             return true;
+                        else
+                            return false;
                     }
                     else
                         return false;

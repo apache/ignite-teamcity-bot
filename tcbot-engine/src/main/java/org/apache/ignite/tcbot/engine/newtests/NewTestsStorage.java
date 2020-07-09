@@ -7,13 +7,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+/** */
 public class NewTestsStorage {
     private final Cache<LocalDate, List<String>> newTests = CacheBuilder.newBuilder()
-        .expireAfterWrite(5, TimeUnit.DAYS).build();
+        .expireAfterWrite(3, TimeUnit.DAYS).build();
 
-    public boolean isNewTest(LocalDate date, String branch, String testId, String srvId) {
-        for (int day = 0; day < 5; day++) {
-            List<String> dayList = newTests.getIfPresent(date.minusDays(day));
+    public boolean isNewTest(String branch, String testId, String srvId) {
+        LocalDate nowDate = LocalDate.now();
+
+        for (int day = 0; day < 3; day++) {
+            List<String> dayList = newTests.getIfPresent(nowDate.minusDays(day));
 
             if (dayList != null) {
                 boolean match = dayList.stream().anyMatch(globalTestId -> {
@@ -29,15 +32,14 @@ public class NewTestsStorage {
         return true;
     }
 
-    public void putNewTest(LocalDate date, String globalTestId) {
-        List<String> currDayList = newTests.getIfPresent(date);
+    public void putNewTest(String globalTestId) {
+        List<String> currDayList = newTests.getIfPresent(LocalDate.now());
         if (currDayList != null)
             currDayList.add(globalTestId);
         else {
             List<String> list = new ArrayList<>();
             list.add(globalTestId);
-            newTests.put(date, list);
+            newTests.put(LocalDate.now(), list);
         }
     }
-
 }

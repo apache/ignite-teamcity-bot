@@ -389,8 +389,6 @@ public class PrChainsProcessor {
         String normalizedBaseBranch = BranchEquivalence.normalizeBranch(baseBranch);
         Integer baseBranchId = compactor.getStringIdIfPresent(normalizedBaseBranch);
 
-        LocalDate currentDate = LocalDate.now();
-
         return fullChainRunCtx
             .suites()
             .map((ctx) -> {
@@ -400,13 +398,14 @@ public class PrChainsProcessor {
                     if (hist == null && !test.isMutedOrIgored()) {
 
                         if (test.getId() != null &&
-                            newTestsStorage.isNewTest(currentDate, ctx.branchName(),
-                                test.getId().toString(), tcIgnited.serverCode()))
-                            return false;
-                        else {
-                            newTestsStorage.putNewTest(currentDate, globalTestId);
+                            newTestsStorage.isNewTest(ctx.branchName(),
+                                test.getId().toString(), tcIgnited.serverCode())) {
+                            newTestsStorage.putNewTest(globalTestId);
+
                             return true;
                         }
+                        else
+                            return false;
                     }
                     else
                         return false;
