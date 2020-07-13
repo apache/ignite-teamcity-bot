@@ -267,6 +267,7 @@ public class TcBotTriggerAndSignOffService {
         @Nullable String ticketId,
         @Nullable String prNum,
         @Nullable String baseBranchForTc,
+        @Nonnull Boolean cleanRebuild,
         @Nullable ITcBotUserCreds prov) {
         String jiraRes = "";
 
@@ -297,7 +298,7 @@ public class TcBotTriggerAndSignOffService {
         Set<Integer> buildidsToSync = new HashSet<>();
 
         for (int i = 0; i < suiteIds.length; i++) {
-            T2<Build, Set<Integer>> objects = teamcity.triggerBuild(suiteIds[i], branchForTc, false, top != null && top, new HashMap<>(),
+            T2<Build, Set<Integer>> objects = teamcity.triggerBuild(suiteIds[i], branchForTc, cleanRebuild, top != null && top, new HashMap<>(),
                 false, "");
             buildidsToSync.addAll(objects.get2());
             builds[i] = objects.get1();
@@ -927,13 +928,13 @@ public class TcBotTriggerAndSignOffService {
             newTests.append(jiraEscText(suite.name)).append("{color}");
 
             int totalNewTests = suite.tests.size();
-            newTests.append(" [tests ").append(totalNewTests);
+            newTests.append(" [[tests ").append(totalNewTests);
 
             int cnt = 0;
 
             newTestsCount += suite.tests().size();
 
-            newTests.append("]\\n");
+            newTests.append('|').append(suite.webToBuild).append("]]\\n");
 
             for (ShortTestUi test : suite.tests()) {
                 String testColor;
@@ -961,7 +962,7 @@ public class TcBotTriggerAndSignOffService {
 
                 cnt++;
                 if (cnt > 10) {
-                    newTests.append("... and ").append(totalNewTests - cnt).append(" tests blockers\\n");
+                    newTests.append("... and ").append(totalNewTests - cnt).append(" new tests\\n");
 
                     break;
                 }

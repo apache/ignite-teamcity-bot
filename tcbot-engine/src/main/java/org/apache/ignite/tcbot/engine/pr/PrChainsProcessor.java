@@ -393,7 +393,7 @@ public class PrChainsProcessor {
             .map((ctx) -> {
                 List<ShortTestUi> missingTests = ctx.getFilteredTests(test -> {
                     IRunHistory history = test.history(tcIgnited, baseBranchId, null);
-                    return history == null;
+                    return history == null && !test.isMutedOrIgored();
                 })
                     .stream()
                     .map(occurrence -> new ShortTestUi().initFrom(occurrence, occurrence.isPassed()))
@@ -403,7 +403,7 @@ public class PrChainsProcessor {
                 if (!missingTests.isEmpty()) {
                     return new ShortSuiteNewTestsUi()
                         .tests(missingTests)
-                        .initFrom(ctx);
+                        .initFrom(ctx, tcIgnited);
                 }
                 return null;
             })

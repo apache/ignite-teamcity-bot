@@ -302,7 +302,7 @@ public class DsChainUi {
             .map((suite) -> {
                 List<ShortTestUi> missingTests = suite.getFilteredTests(test -> {
                     IRunHistory history = test.history(tcIgnited, baseBranchId, null);
-                    return history == null;
+                    return history == null && !test.isMutedOrIgored();
                 })
                     .stream()
                     .map(occurrence -> {
@@ -314,7 +314,7 @@ public class DsChainUi {
                 if (!missingTests.isEmpty()) {
                     return new ShortSuiteNewTestsUi()
                         .tests(missingTests)
-                        .initFrom(suite);
+                        .initFrom(suite, tcIgnited);
                 }
                 return null;
             })
