@@ -18,12 +18,16 @@ package org.apache.ignite.tcbot.engine.cleaner;
 
 import java.io.File;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
+import org.apache.ignite.lang.IgniteBiTuple;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
@@ -39,6 +43,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Cleaner {
+    private final AtomicBoolean init = new AtomicBoolean();
+
     @Inject IIssuesStorage issuesStorage;
     @Inject FatBuildDao fatBuildDao;
     @Inject SuiteInvocationHistoryDao suiteInvocationHistoryDao;
@@ -55,41 +61,62 @@ public class Cleaner {
     private ScheduledExecutorService executorService;
 
     @AutoProfiling
-    @MonitoredTask(name = "Clean ignite cache data and logs")
+    @MonitoredTask(name = "Clean old cache data and log files")
     public void clean() {
-        if (cfg.getCleanerConfig().enabled()) {
-            try {
+        try {
+            if (cfg.getCleanerConfig().enabled()) {
                 long safeDays = cfg.getCleanerConfig().safeDays();
+
                 int numOfItemsToDel = cfg.getCleanerConfig().numOfItemsToDel();
-                long thresholdDate = ZonedDateTime.now().minusDays(safeDays).toInstant().toEpochMilli();
 
-                removeCacheEntries(thresholdDate, numOfItemsToDel);
-                removeLogFiles(thresholdDate, numOfItemsToDel);
-            }
-            catch (Exception e) {
-                e.printStackTrace();
+                ZonedDateTime thresholdDate = ZonedDateTime.now().minusDays(safeDays);
 
-                logger.error("Periodic cache clean failed: " + e.getMessage(), e);
+                logger.info("Some data (numOfItemsToDel=" + numOfItemsToDel + ") older than " + thresholdDate + " will be removed.");
+
+                long thresholdEpochMilli = thresholdDate.toInstant().toEpochMilli();
+
+                removeCacheEntries(thresholdEpochMilli, numOfItemsToDel);
+
+                removeLogFiles(thresholdEpochMilli, numOfItemsToDel);
             }
+            else
+                logger.info("Periodic cache clean disabled.");
         }
-        else
-            logger.info("Periodic cache clean disabled.");
+        catch (Throwable e) {
+            logger.error("Periodic cache clean failed: " + e.getMessage(), e);
+
+            e.printStackTrace();
+        }
 
     }
 
     private void removeCacheEntries(long thresholdDate, int numOfItemsToDel) {
         List<Long> oldBuildsKeys = fatBuildDao.getOldBuilds(thresholdDate, numOfItemsToDel);
 
+        List<String> strOldBuildsKeys = oldBuildsKeys.stream().map(compositeId -> {
+                IgniteBiTuple<Integer, Integer> idTuple = FatBuildDao.cacheKeyToSrvIdAndBuildId(compositeId);
+                return "TeamCity id: " + idTuple.get1() + " build id: " + idTuple.get2();
+            })
+            .collect(Collectors.toList());
+
+        logger.info("Builds will be removed (" + strOldBuildsKeys.size() + "): " + strOldBuildsKeys);
+
         for (Long buildCacheKey : oldBuildsKeys) {
             suiteInvocationHistoryDao.remove(buildCacheKey);
+
             buildLogCheckResultDao.remove(buildCacheKey);
+
             buildRefDao.remove(buildCacheKey);
+
             buildStartTimeStorage.remove(buildCacheKey);
+
             buildConditionDao.remove(buildCacheKey);
+
             fatBuildDao.remove(buildCacheKey);
         }
 
         defectsStorage.removeOldDefects(thresholdDate, numOfItemsToDel);
+
         issuesStorage.removeOldIssues(thresholdDate, numOfItemsToDel);
     }
 
@@ -98,34 +125,47 @@ public class Cleaner {
 
         for (String srvId : cfg.getServerIds()) {
             File srvIdLogDir = new File(workDir, cfg.getTeamcityConfig(srvId).logsDirectory());
+
             removeFiles(srvIdLogDir, thresholdDate, numOfItemsToDel);
         }
 
         File tcBotLogDir = new File(workDir, "tcbot_logs");
+
         removeFiles(tcBotLogDir, thresholdDate, numOfItemsToDel);
     }
 
     private void removeFiles(File dir, long thresholdDate, int numOfItemsToDel) {
         File[] logFiles = dir.listFiles();
+
+        List<File> filesToRmv = new ArrayList<>(numOfItemsToDel);
+
         if (logFiles != null)
-            for (File file : logFiles) {
+            for (File file : logFiles)
                 if (file.lastModified() < thresholdDate && numOfItemsToDel-- > 0)
-                    file.delete();
-            }
+                    filesToRmv.add(file);
+
+        logger.info("In the directory " + dir + " files will be removed (" +
+            filesToRmv.size() + "): " + filesToRmv.stream().map(File::getName).collect(Collectors.toList())
+        );
+
+        for (File file : filesToRmv) {
+            file.delete();
+        }
+
     }
 
     public void startBackgroundClean() {
-        suiteInvocationHistoryDao.init();
-        buildLogCheckResultDao.init();
-        buildRefDao.init();
-        buildStartTimeStorage.init();
-        buildConditionDao.init();
-        fatBuildDao.init();
+        if (init.compareAndSet(false, true)) {
+            suiteInvocationHistoryDao.init();
+            buildLogCheckResultDao.init();
+            buildRefDao.init();
+            buildStartTimeStorage.init();
+            buildConditionDao.init();
+            fatBuildDao.init();
 
-        executorService = Executors.newSingleThreadScheduledExecutor();
+            executorService = Executors.newSingleThreadScheduledExecutor();
 
-        executorService.scheduleAtFixedRate(this::clean, 30, 30, TimeUnit.MINUTES);
-//        executorService.scheduleAtFixedRate(this::clean, 0, 10, TimeUnit.SECONDS);
-
+            executorService.scheduleAtFixedRate(this::clean, 5, 30, TimeUnit.MINUTES);
+        }
     }
 }

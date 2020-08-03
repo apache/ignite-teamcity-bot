@@ -393,9 +393,9 @@ public class PrChainsProcessor {
             .suites()
             .map((ctx) -> {
                 List<ShortTestUi> missingTests = ctx.getFilteredTests(test -> {
-                    IRunHistory hist = test.history(tcIgnited, baseBranchId, null);
+                    IRunHistory history = test.history(tcIgnited, baseBranchId, null);
                     String globalTestId = fullChainRunCtx.branchName() + test.getId() + tcIgnited.serverCode();
-                    if (hist == null && !test.isMutedOrIgored()) {
+                    if (history == null && !test.isMutedOrIgored()) {
 
                         if (test.getId() != null &&
                             newTestsStorage.isNewTest(ctx.branchName(),
@@ -418,7 +418,7 @@ public class PrChainsProcessor {
                 if (!missingTests.isEmpty()) {
                     return new ShortSuiteNewTestsUi()
                         .tests(missingTests)
-                        .initFrom(ctx);
+                        .initFrom(ctx, tcIgnited);
                 }
                 return null;
             })

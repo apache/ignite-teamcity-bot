@@ -304,9 +304,9 @@ public class DsChainUi {
             .suites()
             .map((suite) -> {
                 List<ShortTestUi> missingTests = suite.getFilteredTests(test -> {
-                    IRunHistory hist = test.history(tcIgnited, baseBranchId, null);
+                    IRunHistory history = test.history(tcIgnited, baseBranchId, null);
 
-                    if (hist == null && !test.isMutedOrIgored()) {
+                    if (history == null && !test.isMutedOrIgored()) {
 
                         if (test.getId() != null &&
                             newTestsStorage.isNewTest(ctx.branchName(),
@@ -328,7 +328,7 @@ public class DsChainUi {
                 if (!missingTests.isEmpty()) {
                     return new ShortSuiteNewTestsUi()
                         .tests(missingTests)
-                        .initFrom(suite);
+                        .initFrom(suite, tcIgnited);
                 }
                 return null;
             })

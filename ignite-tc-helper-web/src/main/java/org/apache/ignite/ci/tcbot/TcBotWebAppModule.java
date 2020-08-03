@@ -38,6 +38,7 @@ import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.exeption.ServicesStartingException;
 import org.apache.ignite.tcbot.engine.TcBotEngineModule;
+import org.apache.ignite.tcbot.engine.cleaner.Cleaner;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
 import org.apache.ignite.tcbot.notify.TcBotNotificationsModule;
@@ -78,6 +79,7 @@ public class TcBotWebAppModule extends AbstractModule {
         bind(ObserverTask.class).in(new SingletonScope());
         bind(BuildObserver.class).in(new SingletonScope());
         bind(VisasHistoryStorage.class).in(new SingletonScope());
+        bind(Cleaner.class).in(new SingletonScope());
 
         install(new TcBotPersistenceModule());
         install(new TeamcityIgnitedModule());
