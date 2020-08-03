@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.inject.Inject;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
@@ -43,6 +42,8 @@ import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
+import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
+import org.apache.ignite.tcbot.notify.ISlackSender;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
@@ -52,6 +53,8 @@ import org.apache.ignite.tcservice.model.result.Triggered;
 import org.apache.ignite.tcservice.model.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * Trigger build if half of agents are available and there is no self-triggered builds in build queue.
@@ -80,6 +83,9 @@ public class CheckQueueJob implements Runnable {
     @Inject private ITcBotConfig cfg;
 
     /** */
+    @Inject private ISlackSender slackSender;
+
+    /** */
     private final Map<ITrackedChain, Long> startTimes = new HashMap<>();
 
     /**
@@ -94,10 +100,26 @@ public class CheckQueueJob implements Runnable {
         try {
             runEx();
         }
-        catch (Exception e) {
+        catch (Throwable e) {
             e.printStackTrace();
 
             logger.error("Check Queue periodic check failed: " + e.getMessage(), e);
+
+            NotificationsConfig notifications = cfg.notifications();
+
+            String msg = ":warning: Periodic check servers queue and build triggering failed";
+
+            notifications.channels().forEach(channel -> {
+                    String chName = channel.slack();
+
+                    if (chName != null && chName.startsWith("#"))
+                        try {
+                            slackSender.sendMessage(chName, msg, notifications);
+                        }
+                        catch (Exception ex) {
+                            logger.warn("Unable to notify address [" + chName + "] about periodic check queue failure", e);
+                        }
+                });
         }
     }
 
@@ -136,7 +158,7 @@ public class CheckQueueJob implements Runnable {
             List<ITrackedChain> chainsAll = entry.getValue();
             List<ITrackedChain> chains = chainsAll.stream()
                     .filter(c -> Objects.equals(c.serverCode(), srvCode))
-                    .collect(Collectors.toList());
+                    .collect(toList());
 
             srvsChecked++;
 
