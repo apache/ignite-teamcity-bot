@@ -517,7 +517,12 @@ public class IssueDetector {
 
                     if (flakyRate > cfg.flakyRate()) {
                         type = IssueType.newTestWithHighFlakyRate;
-                        firstFailedBuildId = lastInvocations.get(confidenceOkTestsRow).buildId();
+
+                        firstFailedBuildId = lastInvocations.stream()
+                            .filter(invocation -> invocation.status() == RES_FAILURE.getCode())
+                            .findFirst()
+                            .orElseGet(() -> lastInvocations.get(confidenceOkTestsRow))
+                            .buildId();
                     }
                 }
             }
