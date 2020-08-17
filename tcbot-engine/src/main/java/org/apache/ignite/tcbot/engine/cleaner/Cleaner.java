@@ -34,6 +34,7 @@ import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.defect.DefectsStorage;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
+import org.apache.ignite.tcbot.engine.newtests.NewTestsStorage;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.buildlog.BuildLogCheckResultDao;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
@@ -53,6 +54,7 @@ public class Cleaner {
     @Inject BuildStartTimeStorage buildStartTimeStorage;
     @Inject BuildConditionDao buildConditionDao;
     @Inject DefectsStorage defectsStorage;
+    @Inject NewTestsStorage newTestsStorage;
     @Inject ITcBotConfig cfg;
 
     /** Logger. */
@@ -118,6 +120,8 @@ public class Cleaner {
         defectsStorage.removeOldDefects(thresholdDate, numOfItemsToDel);
 
         issuesStorage.removeOldIssues(thresholdDate, numOfItemsToDel);
+
+        newTestsStorage.removeOldTests(ZonedDateTime.now().minusDays(5).toInstant().toEpochMilli());
     }
 
     private void removeLogFiles(long thresholdDate, int numOfItemsToDel) {

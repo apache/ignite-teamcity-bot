@@ -1,45 +1,60 @@
 package org.apache.ignite.tcbot.engine.newtests;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+import javax.cache.Cache;
+import javax.inject.Inject;
+import javax.inject.Provider;
+import org.apache.ignite.Ignite;
+import org.apache.ignite.IgniteCache;
+import org.apache.ignite.cache.query.ScanQuery;
+import org.apache.ignite.configuration.CacheConfiguration;
+import org.apache.ignite.tcbot.persistence.CacheConfigs;
 
-/** */
+/**
+ * The storage contains tests which were identified as new tests in the tcbot visa
+ */
 public class NewTestsStorage {
-    private final Cache<LocalDate, List<String>> newTests = CacheBuilder.newBuilder()
-        .expireAfterWrite(3, TimeUnit.DAYS).build();
+    /** */
+    @Inject
+    private Provider<Ignite> igniteProvider;
 
-    public boolean isNewTest(String branch, String testId, String srvId) {
-        LocalDate nowDate = LocalDate.now();
-
-        for (int day = 0; day < 3; day++) {
-            List<String> dayList = newTests.getIfPresent(nowDate.minusDays(day));
-
-            if (dayList != null) {
-                boolean match = dayList.stream().anyMatch(globalTestId -> {
-                    return !globalTestId.startsWith(branch) && globalTestId.contains(testId + srvId);
-                });
-
-                if (match)
-                    return false;
-            }
-
-        }
-
-        return true;
+    /** */
+    private IgniteCache<String, NewTestInfo> cache() {
+        return botNewTestsCache(getIgnite());
     }
 
-    public void putNewTest(String globalTestId) {
-        List<String> currDayList = newTests.getIfPresent(LocalDate.now());
-        if (currDayList != null)
-            currDayList.add(globalTestId);
-        else {
-            List<String> list = new ArrayList<>();
-            list.add(globalTestId);
-            newTests.put(LocalDate.now(), list);
-        }
+    /** */
+    private Ignite getIgnite() {
+        return igniteProvider.get();
+    }
+
+    /** */
+    public static IgniteCache<String, NewTestInfo> botNewTestsCache(Ignite ignite) {
+        CacheConfiguration<String, NewTestInfo> ccfg = CacheConfigs.getCache8PartsConfig("newTestsCache");
+
+        return ignite.getOrCreateCache(ccfg);
+    }
+
+    /** */
+    public boolean isNewTest(String branch, String testId, String srvId) {
+        NewTestInfo savedTest = cache().get(testId + srvId);
+
+        if (savedTest == null)
+            return true;
+        else
+            return savedTest.branch().equals(branch);
+    }
+
+    /** */
+    public void putNewTest(String branch, String testId, String srvId) {
+        cache().put(testId + srvId, new NewTestInfo(branch, System.currentTimeMillis()));
+    }
+
+    /** */
+    public void removeOldTests(long thresholdDate) {
+        ScanQuery<String, NewTestInfo> scan =
+            new ScanQuery<>((key, testBranch) -> testBranch.timestamp() < thresholdDate);
+
+        for (Cache.Entry<String, NewTestInfo> entry : cache().query(scan))
+            cache().remove(entry.getKey());
     }
 }

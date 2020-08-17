@@ -310,7 +310,7 @@ public class DsChainUi {
 
                         if (test.getId() != null &&
                             newTestsStorage.isNewTest(ctx.branchName(),
-                            test.getId().toString(), tcIgnited.serverCode()))
+                                test.getId().toString(), tcIgnited.serverCode()))
                             return true;
                         else
                             return false;
