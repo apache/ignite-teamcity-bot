@@ -19,6 +19,7 @@ package org.apache.ignite.tcignited;
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
+import org.apache.ignite.tcignited.boardmute.MuteBoardDao;
 import org.apache.ignite.tcignited.build.UpdateCountersStorage;
 import org.apache.ignite.tcignited.buildlog.BuildLogCheckResultDao;
 import org.apache.ignite.tcignited.buildlog.ILogProductSpecific;
@@ -66,6 +67,7 @@ public class TeamcityIgnitedModule extends AbstractModule {
         bind(BuildTypeSync.class).in(new SingletonScope());
         bind(BuildStartTimeStorage.class).in(new SingletonScope());
         bind(MuteDao.class).in(new SingletonScope());
+        bind(MuteBoardDao.class).in(new SingletonScope());
         bind(MuteSync.class).in(new SingletonScope());
         bind(BuildLogCheckResultDao.class).in(new SingletonScope());
         bind(SuiteInvocationHistoryDao.class).in(new SingletonScope());

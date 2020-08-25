@@ -18,7 +18,6 @@ package org.apache.ignite.tcbot.engine.board;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,6 +43,7 @@ import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.common.util.FutureUtil;
+import org.apache.ignite.tcignited.boardmute.MuteBoardDao;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.chain.SingleBuildRunCtx;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
@@ -76,6 +76,7 @@ public class BoardService {
     @Inject IIssuesStorage issuesStorage;
     @Inject FatBuildDao fatBuildDao;
     @Inject ChangeDao changeDao;
+    @Inject MuteBoardDao muteBoardDao;
     @Inject ITeamcityIgnitedProvider tcProv;
     @Inject DefectsStorage defectStorage;
     @Inject IScheduler scheduler;
@@ -83,8 +84,6 @@ public class BoardService {
     @Inject BuildChainProcessor buildChainProcessor;
     @Inject IUserStorage userStorage;
     @Inject ITcBotConfig cfg;
-
-    private List<String> mutedTests = new ArrayList();
 
     /**
      * @param creds Credentials.
@@ -133,7 +132,7 @@ public class BoardService {
                     BoardDefectIssueUi issueUi = processIssue(tcIgn, rebuild, issue, firstBuild.buildTypeId());
                     if (issueUi.status() != IssueResolveStatus.FIXED)
                         defectUi.addTags(tags);
-                    issueUi.setMuted(mutedTests.contains(issueUi.getName()));
+                    issueUi.setMuted(muteBoardDao.isMuted(defectUi.getId(), issueUi.getName()));
                     defectUi.addIssue(issueUi);
                 }
             }
@@ -257,6 +256,7 @@ public class BoardService {
         //todo not so good to to call init() twice
         fatBuildDao.init();
         changeDao.init();
+        muteBoardDao.init();
 
         AtomicInteger cntIssues = new AtomicInteger();
         HashSet<Integer> processedDefects = new HashSet<>();
@@ -374,7 +374,7 @@ public class BoardService {
         defectStorage.save(defect);
     }
 
-    public void muteTest(String name) {
-        mutedTests.add(name);
+    public void muteTest(int defectId, String branch, String name) {
+        muteBoardDao.muteTest(defectId, branch, name);
     }
 }

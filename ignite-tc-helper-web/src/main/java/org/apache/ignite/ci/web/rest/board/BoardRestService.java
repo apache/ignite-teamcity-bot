@@ -57,8 +57,10 @@ public class BoardRestService {
 
     @PUT
     @Path("muteTest")
-    public void muteTest(@FormParam("name") String name) {
-        CtxListener.getInjector(ctx).getInstance(BoardService.class).muteTest(name);
+    public void muteTest(@FormParam("defectId") int defectId,
+        @FormParam("branch") String branch,
+        @FormParam("name") String name) {
+        CtxListener.getInjector(ctx).getInstance(BoardService.class).muteTest(defectId, branch, name);
     }
 
     //ветка, тест id, тимсити сервер,

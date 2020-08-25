@@ -47,12 +47,15 @@
             Cancel: function() {
                 $(this).dialog("close");
                 },
-            onMuteTest: function () {
+            onMuteTest: function() {
                 document.getElementsByClassName('isMuted_' + $("#message").data('item').id + '_' + $("#message").data('index')).item(0).value = true;
                     $.ajax({
                         url: "/rest/board/muteTest",
                         type: 'PUT',
-                        data: { name: $("#message").data('issue').name}
+                        data: { defectId: $("#message").data('item').id,
+                                branch: $("#message").data('item').branch,
+                                name: $("#message").data('issue').name
+                              }
                     });
                 },
             }
