@@ -22,6 +22,52 @@
     <script src="/js/common-1.6.js"></script>
 </head>
 <body>
+
+<div id="message" title="asdf">
+    <input type="text" id="myText">
+    <p>qwer</p>
+</div>
+<!--<button class="showmodal">Show Modal</button>-->
+<script>
+    $('#message').dialog({
+        autoOpen: false,
+        modal: true,
+        show: {
+            effect: "fade",
+            duration: 1000
+            },
+        hide: {
+            effect: "blind",
+            duration: 500
+            },
+        buttons: {
+            OK: function() {
+                document.getElementById("myText").value = $("#message").data('item').id;
+                },
+            Cancel: function() {
+                $(this).dialog("close");
+                },
+            onMuteTest: function () {
+                    $.ajax({
+                        url: "/rest/board/muteTest",
+                        type: 'POST',
+                        data: { id: id, forceResolve: force } ,
+                        success: function (res) {
+                            window.alert("Resolved defect [" + id + "]");
+
+                            loadData();
+                        },
+                        error: showErrInLoadStatus
+                    });
+                },
+            }
+        });
+
+<!--        $('.showmodal').on('click', function() {-->
+<!--            $('#message').dialog("open");-->
+<!--            });-->
+    </script>
+
 <script>
     var g_shownDataHashCodeHex = "";
     let gVue, g_Loading, g_TcBotVersion;
@@ -75,7 +121,11 @@
                         },
                         error: showErrInLoadStatus
                     });
-                }
+                },
+
+                onshowmodal: function (item, issue) {
+                    $('#message').data('item', item).data('issue', issue).dialog("open");
+                    },
             }
         });
     }
@@ -204,6 +254,9 @@
                                 <span v-else>
                                 {{ issue.name }}
                                 </span>
+                            </td>
+                            <td>
+                                <button class="showmodal" v-on:click="onshowmodal(item, issue)">Show Modal</button>
                             </td>
                         </tr>
                     </table>

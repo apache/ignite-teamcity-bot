@@ -17,10 +17,13 @@
 package org.apache.ignite.ci.web.rest.board;
 
 import com.google.inject.Injector;
+import java.util.ArrayList;
+import java.util.List;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
@@ -43,6 +46,8 @@ public class BoardRestService {
     @Context
     private HttpServletRequest req;
 
+    private List<Integer> mutedTests = new ArrayList();
+
     @GET
     @Path("summary")
     public BoardSummaryUi getSummary() {
@@ -50,4 +55,12 @@ public class BoardRestService {
 
         return CtxListener.getInjector(ctx).getInstance(BoardService.class).summary(creds);
     }
+
+//    @PUT
+//    @Path("muteTest")
+//    public void muteTest(Integer id,) {
+//        mutedTests.add(id);
+//    }
+
+    //ветка, тест id, тимсити сервер,
 }
