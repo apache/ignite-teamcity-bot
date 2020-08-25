@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -46,8 +47,6 @@ public class BoardRestService {
     @Context
     private HttpServletRequest req;
 
-    private List<Integer> mutedTests = new ArrayList();
-
     @GET
     @Path("summary")
     public BoardSummaryUi getSummary() {
@@ -56,11 +55,11 @@ public class BoardRestService {
         return CtxListener.getInjector(ctx).getInstance(BoardService.class).summary(creds);
     }
 
-//    @PUT
-//    @Path("muteTest")
-//    public void muteTest(Integer id,) {
-//        mutedTests.add(id);
-//    }
+    @PUT
+    @Path("muteTest")
+    public void muteTest(@FormParam("name") String name) {
+        CtxListener.getInjector(ctx).getInstance(BoardService.class).muteTest(name);
+    }
 
     //ветка, тест id, тимсити сервер,
 }

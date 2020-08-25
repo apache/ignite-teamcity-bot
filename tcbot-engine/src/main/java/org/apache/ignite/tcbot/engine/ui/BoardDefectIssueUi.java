@@ -31,6 +31,7 @@ public class BoardDefectIssueUi {
     private transient IStringCompactor compactor;
     private transient DefectIssue issue;
     private boolean suiteProblem;
+    private boolean isMuted;
     @Nullable
     private String webUrl;
     private IssueResolveStatus status;
@@ -81,5 +82,13 @@ public class BoardDefectIssueUi {
     @Nullable
     public String getWebUrl() {
         return webUrl;
+    }
+
+    public boolean isMuted() {
+        return isMuted;
+    }
+
+    public void setMuted(boolean isMuted) {
+        this.isMuted = isMuted;
     }
 }

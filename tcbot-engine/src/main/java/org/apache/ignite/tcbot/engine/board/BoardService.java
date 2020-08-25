@@ -18,6 +18,7 @@ package org.apache.ignite.tcbot.engine.board;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -83,6 +84,8 @@ public class BoardService {
     @Inject IUserStorage userStorage;
     @Inject ITcBotConfig cfg;
 
+    private List<String> mutedTests = new ArrayList();
+
     /**
      * @param creds Credentials.
      */
@@ -130,6 +133,7 @@ public class BoardService {
                     BoardDefectIssueUi issueUi = processIssue(tcIgn, rebuild, issue, firstBuild.buildTypeId());
                     if (issueUi.status() != IssueResolveStatus.FIXED)
                         defectUi.addTags(tags);
+                    issueUi.setMuted(mutedTests.contains(issueUi.getName()));
                     defectUi.addIssue(issueUi);
                 }
             }
@@ -368,5 +372,9 @@ public class BoardService {
         defect.resolvedByUsernameId(strId);
 
         defectStorage.save(defect);
+    }
+
+    public void muteTest(String name) {
+        mutedTests.add(name);
     }
 }

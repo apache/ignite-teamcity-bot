@@ -48,16 +48,11 @@
                 $(this).dialog("close");
                 },
             onMuteTest: function () {
+                document.getElementsByClassName('isMuted_' + $("#message").data('item').id + '_' + $("#message").data('index')).item(0).value = true;
                     $.ajax({
                         url: "/rest/board/muteTest",
-                        type: 'POST',
-                        data: { id: id, forceResolve: force } ,
-                        success: function (res) {
-                            window.alert("Resolved defect [" + id + "]");
-
-                            loadData();
-                        },
-                        error: showErrInLoadStatus
+                        type: 'PUT',
+                        data: { name: $("#message").data('issue').name}
                     });
                 },
             }
@@ -123,8 +118,12 @@
                     });
                 },
 
-                onshowmodal: function (item, issue) {
-                    $('#message').data('item', item).data('issue', issue).dialog("open");
+                onshowmodal: function (item, issue, index) {
+                    $('#message')
+                        .data('item', item)
+                        .data('issue', issue)
+                        .data('index', index)
+                        .dialog("open");
                     },
             }
         });
@@ -235,7 +234,7 @@
 
                     Tests affected:
                     <table>
-                        <tr v-for="(issue) in item.allIssues">
+                        <tr v-for="(issue, i) in item.allIssues">
                             <td v-if="issue.status === 'FIXED'">
                                 Fixed
                             </td>
@@ -255,8 +254,11 @@
                                 {{ issue.name }}
                                 </span>
                             </td>
+                            <td v-bind:class="'isMuted_' + item.id + '_' + i">
+                                {{ issue.muted }}
+                            </td>
                             <td>
-                                <button class="showmodal" v-on:click="onshowmodal(item, issue)">Show Modal</button>
+                                <button class="showmodal" v-on:click="onshowmodal(item, issue, i)">Show Modal</button>
                             </td>
                         </tr>
                     </table>
