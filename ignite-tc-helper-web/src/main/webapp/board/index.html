@@ -273,7 +273,9 @@
                                 </span>
                             </td>
                             <td v-bind:class="'isMuted_' + item.id + '_' + i">
-                                {{ issue.muted }}
+                                <template v-if="issue.muted === true">
+                                    {{ issue.mutedByUser }}
+                                </template>
                             </td>
                             <td>
                                 <button class="showmodal" v-on:click="onshowmodal(item, issue, i)">Show Modal</button>

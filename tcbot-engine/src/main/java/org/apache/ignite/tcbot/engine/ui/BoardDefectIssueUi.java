@@ -32,6 +32,7 @@ public class BoardDefectIssueUi {
     private transient DefectIssue issue;
     private boolean suiteProblem;
     private boolean isMuted;
+    private String mutedByUser;
     @Nullable
     private String webUrl;
     private IssueResolveStatus status;
@@ -90,5 +91,13 @@ public class BoardDefectIssueUi {
 
     public void setMuted(boolean isMuted) {
         this.isMuted = isMuted;
+    }
+
+    public String getMutedByUser() {
+        return mutedByUser;
+    }
+
+    public void setMutedByUser(String mutedByUser) {
+        this.mutedByUser = mutedByUser;
     }
 }

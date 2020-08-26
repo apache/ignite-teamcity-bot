@@ -17,15 +17,16 @@
 
 package org.apache.ignite.tcignited.boardmute;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class MutedBoardDefect {
     private int id;
 
     private String trackedBranchCid;
 
-    private List<MutedBoardIssue> mutedBoardIssues = new ArrayList<>();
+    private Set<MutedBoardIssue> mutedBoardIssues = new HashSet<>();
 
     public MutedBoardDefect(int id, String trackedBranchCid) {
         this.id = id;
@@ -48,15 +49,23 @@ public class MutedBoardDefect {
         this.trackedBranchCid = trackedBranchCid;
     }
 
-    public List<MutedBoardIssue> getMutedIssues() {
+    public Set<MutedBoardIssue> getMutedIssues() {
         return mutedBoardIssues;
     }
 
-    public void setMutedIssues(List<MutedBoardIssue> mutedBoardIssues) {
+    public void setMutedIssues(Set<MutedBoardIssue> mutedBoardIssues) {
         this.mutedBoardIssues = mutedBoardIssues;
     }
 
     public boolean isTestMuted(String issueName) {
         return mutedBoardIssues.stream().anyMatch(issue -> issue.getName().equals(issueName));
+    }
+
+    public String userName(String issueName) {
+        return mutedBoardIssues.stream()
+            .filter(issue -> issue.getName().equals(issueName))
+            .map(MutedBoardIssue::getUserName)
+            .findFirst()
+            .orElse("UNKNOWN");
     }
 }

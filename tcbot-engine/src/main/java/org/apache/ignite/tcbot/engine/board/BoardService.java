@@ -134,7 +134,11 @@ public class BoardService {
                     BoardDefectIssueUi issueUi = processIssue(tcIgn, rebuild, issue, firstBuild.buildTypeId());
                     if (issueUi.status() != IssueResolveStatus.FIXED)
                         defectUi.addTags(tags);
+
                     issueUi.setMuted(muteBoardDao.isMuted(defectUi.getId(), issueUi.getName()));
+
+                    issueUi.setMutedByUser(muteBoardDao.mutedByUser(defectUi.getId(), issueUi.getName()));
+
                     defectUi.addIssue(issueUi);
                 }
             }
