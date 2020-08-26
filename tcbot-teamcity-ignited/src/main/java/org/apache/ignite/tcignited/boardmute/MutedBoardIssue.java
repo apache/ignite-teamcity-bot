@@ -22,10 +22,19 @@ import java.time.ZonedDateTime;
 public class MutedBoardIssue {
     private String name;
 
+    private String userName;
+
+    private String jiraTicket;
+
+    private String comment;
+
     ZonedDateTime muteTime;
 
-    public MutedBoardIssue(String name, ZonedDateTime muteTime) {
+    public MutedBoardIssue(String name, String jiraTicket, String comment, String userName, ZonedDateTime muteTime) {
         this.name = name;
+        this.jiraTicket = jiraTicket;
+        this.comment = comment;
+        this.userName = userName;
         this.muteTime = muteTime;
     }
 
@@ -35,6 +44,14 @@ public class MutedBoardIssue {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
     }
 
     public ZonedDateTime getMuteTime() {

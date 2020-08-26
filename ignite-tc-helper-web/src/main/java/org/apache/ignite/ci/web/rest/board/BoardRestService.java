@@ -59,8 +59,11 @@ public class BoardRestService {
     @Path("muteTest")
     public void muteTest(@FormParam("defectId") int defectId,
         @FormParam("branch") String branch,
-        @FormParam("name") String name) {
-        CtxListener.getInjector(ctx).getInstance(BoardService.class).muteTest(defectId, branch, name);
+        @FormParam("name") String name,
+        @FormParam("jiraTicket") String jiraTicket,
+        @FormParam("comment") String comment,
+        @FormParam("userName") String userName) {
+        CtxListener.getInjector(ctx).getInstance(BoardService.class).muteTest(defectId, branch, name, jiraTicket, comment, userName);
     }
 
     //ветка, тест id, тимсити сервер,

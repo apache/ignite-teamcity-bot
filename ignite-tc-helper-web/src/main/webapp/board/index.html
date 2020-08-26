@@ -20,18 +20,30 @@
     <link rel="stylesheet" href="/css/style-1.5.css">
 
     <script src="/js/common-1.6.js"></script>
+
+    <style>
+        input.solid {border-style: solid;}
+        textarea.solid {border-style: solid;}
+    </style>
 </head>
 <body>
 
-<div id="message" title="asdf">
-    <input type="text" id="myText">
-    <p>qwer</p>
+<div id="message" title="Mute test">
+    <input type="text" class="solid" id="myText"><br>
+    <label>Jira ticket</label><br>
+    <textarea rows="2" cols="60" class="solid" id="jiraTicket"></textarea><br>
+    <label>Comment</label><br>
+    <textarea rows="7" cols="60" class="solid" id="comment"></textarea>
 </div>
 <!--<button class="showmodal">Show Modal</button>-->
 <script>
     $('#message').dialog({
         autoOpen: false,
         modal: true,
+        maxWidth:600,
+        maxHeight: 600,
+        width: 600,
+        height: 350,
         show: {
             effect: "fade",
             duration: 1000
@@ -54,7 +66,10 @@
                         type: 'PUT',
                         data: { defectId: $("#message").data('item').id,
                                 branch: $("#message").data('item').branch,
-                                name: $("#message").data('issue').name
+                                name: $("#message").data('issue').name,
+                                jiraTicket: document.getElementById('jiraTicket').value,
+                                comment: document.getElementById('comment').value,
+                                userName: document.getElementById("userName").text
                               }
                     });
                 },

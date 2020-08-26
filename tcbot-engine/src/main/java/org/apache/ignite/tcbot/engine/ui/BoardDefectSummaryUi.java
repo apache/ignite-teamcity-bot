@@ -158,7 +158,9 @@ public class BoardDefectSummaryUi {
     }
 
     public Integer getCntFailingIssues() {
-        return (int) issues(IssueResolveStatus.FAILING).count();
+        return (int) issues(IssueResolveStatus.FAILING)
+        .filter(issue -> !issue.isMuted())
+        .count();
     }
 
     public boolean getForceResolveAllowed() {

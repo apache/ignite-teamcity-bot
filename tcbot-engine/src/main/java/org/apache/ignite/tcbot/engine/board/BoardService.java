@@ -91,6 +91,8 @@ public class BoardService {
     public BoardSummaryUi summary(ICredentialsProv creds) {
         issuesToDefectsLater();
 
+        muteBoardDao.init();
+
         Map<Integer, Future<FatBuildCompacted>> allBuildsMap = new HashMap<>();
 
         List<DefectCompacted> defects = defectStorage.loadAllDefects();
@@ -256,7 +258,6 @@ public class BoardService {
         //todo not so good to to call init() twice
         fatBuildDao.init();
         changeDao.init();
-        muteBoardDao.init();
 
         AtomicInteger cntIssues = new AtomicInteger();
         HashSet<Integer> processedDefects = new HashSet<>();
@@ -374,7 +375,7 @@ public class BoardService {
         defectStorage.save(defect);
     }
 
-    public void muteTest(int defectId, String branch, String name) {
-        muteBoardDao.muteTest(defectId, branch, name);
+    public void muteTest(int defectId, String branch, String name, String jiraTicket, String comment, String userName) {
+        muteBoardDao.muteTest(defectId, branch, name, jiraTicket, comment, userName);
     }
 }

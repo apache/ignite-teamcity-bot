@@ -183,7 +183,7 @@ function showMenu(menuData) {
 
         res += "<a href='/monitoring.html'>Server state</a>";
 
-        res += "<a href='/user.html'>" + userName + "</a>";
+        res += "<a id='userName' href='/user.html'>" + userName + "</a>";
         var logout = "/login.html" + "?exit=true&backref=" + encodeURIComponent(window.location.href);
         res += "<a href='" + logout + "'>Logout</a>";
 
