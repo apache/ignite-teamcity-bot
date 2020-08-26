@@ -28,7 +28,7 @@
 </head>
 <body>
 
-<div id="message" title="Mute test">
+<div id="message" title="Mute issue">
     <input type="text" class="solid" id="myText"><br>
     <label>Jira ticket</label><br>
     <textarea rows="2" cols="60" class="solid" id="jiraTicket"></textarea><br>
@@ -53,13 +53,7 @@
             duration: 500
             },
         buttons: {
-            OK: function() {
-                document.getElementById("myText").value = $("#message").data('item').id;
-                },
-            Cancel: function() {
-                $(this).dialog("close");
-                },
-            onMuteTest: function() {
+            Mute: function() {
                 document.getElementsByClassName('isMuted_' + $("#message").data('item').id + '_' + $("#message").data('index')).item(0).value = true;
                     $.ajax({
                         url: "/rest/board/muteTest",
@@ -73,7 +67,10 @@
                               }
                     });
                 },
-            }
+            },
+            Cancel: function() {
+                $(this).dialog("close");
+                }
         });
 
 <!--        $('.showmodal').on('click', function() {-->
@@ -136,7 +133,7 @@
                     });
                 },
 
-                onshowmodal: function (item, issue, index) {
+                muteModal: function (item, issue, index) {
                     $('#message')
                         .data('item', item)
                         .data('issue', issue)
@@ -278,7 +275,7 @@
                                 </template>
                             </td>
                             <td>
-                                <button class="showmodal" v-on:click="onshowmodal(item, issue, i)">Show Modal</button>
+                                <button class="muteModal" v-on:click="muteModal(item, issue, i)">Mute issue</button>
                             </td>
                         </tr>
                     </table>

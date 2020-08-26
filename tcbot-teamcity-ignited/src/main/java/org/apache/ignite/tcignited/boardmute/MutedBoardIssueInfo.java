@@ -19,7 +19,7 @@ package org.apache.ignite.tcignited.boardmute;
 
 import java.time.ZonedDateTime;
 
-public class MutedBoardIssue {
+public class MutedBoardIssueInfo {
     private String name;
 
     private String userName;
@@ -30,8 +30,7 @@ public class MutedBoardIssue {
 
     ZonedDateTime muteTime;
 
-    public MutedBoardIssue(String name, String jiraTicket, String comment, String userName, ZonedDateTime muteTime) {
-        this.name = name;
+    public MutedBoardIssueInfo(String jiraTicket, String comment, String userName, ZonedDateTime muteTime) {
         this.jiraTicket = jiraTicket;
         this.comment = comment;
         this.userName = userName;

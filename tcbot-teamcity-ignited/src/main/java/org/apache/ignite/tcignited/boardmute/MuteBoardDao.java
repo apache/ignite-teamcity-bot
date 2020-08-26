@@ -45,8 +45,10 @@ public class MuteBoardDao {
      *
      */
     public void init() {
+//        igniteProvider.get().destroyCache(BOARD_MUTE_CACHE_NAME);
         muteCache = igniteProvider.get().getOrCreateCache(CacheConfigs.getCacheV2Config(BOARD_MUTE_CACHE_NAME));
 //        muteCache.removeAll();
+//        muteCache.clear();
     }
 
     public void muteTest(int defectId, String branch, String issueName, String jiraTicket, String comment, String userName) {
@@ -55,7 +57,7 @@ public class MuteBoardDao {
         if (mutedBoardDefect == null)
             mutedBoardDefect = new MutedBoardDefect(defectId, branch);
 
-        mutedBoardDefect.getMutedIssues().add(new MutedBoardIssue(issueName, jiraTicket, comment, userName, ZonedDateTime.now()));
+        mutedBoardDefect.getMutedIssues().put(issueName, new MutedBoardIssueInfo(jiraTicket, comment, userName, ZonedDateTime.now()));
 
         muteCache.put(defectId, mutedBoardDefect);
     }

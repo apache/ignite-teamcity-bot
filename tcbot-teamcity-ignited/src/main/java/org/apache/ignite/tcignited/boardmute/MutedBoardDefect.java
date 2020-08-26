@@ -17,8 +17,8 @@
 
 package org.apache.ignite.tcignited.boardmute;
 
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class MutedBoardDefect {
@@ -26,7 +26,7 @@ public class MutedBoardDefect {
 
     private String trackedBranchCid;
 
-    private Set<MutedBoardIssue> mutedBoardIssues = new HashSet<>();
+    private HashMap<String, MutedBoardIssueInfo> mutedBoardIssues = new HashMap<>();
 
     public MutedBoardDefect(int id, String trackedBranchCid) {
         this.id = id;
@@ -49,23 +49,23 @@ public class MutedBoardDefect {
         this.trackedBranchCid = trackedBranchCid;
     }
 
-    public Set<MutedBoardIssue> getMutedIssues() {
+    public HashMap<String, MutedBoardIssueInfo> getMutedIssues() {
         return mutedBoardIssues;
     }
 
-    public void setMutedIssues(Set<MutedBoardIssue> mutedBoardIssues) {
-        this.mutedBoardIssues = mutedBoardIssues;
+    public void setMutedIssues(HashMap<String, MutedBoardIssueInfo> mutedBoardIssue) {
+        this.mutedBoardIssues = mutedBoardIssue;
     }
 
     public boolean isTestMuted(String issueName) {
-        return mutedBoardIssues.stream().anyMatch(issue -> issue.getName().equals(issueName));
+        return mutedBoardIssues.get(issueName) != null;
     }
 
     public String userName(String issueName) {
-        return mutedBoardIssues.stream()
-            .filter(issue -> issue.getName().equals(issueName))
-            .map(MutedBoardIssue::getUserName)
-            .findFirst()
-            .orElse("UNKNOWN");
+        MutedBoardIssueInfo issueInfo = mutedBoardIssues.get(issueName);
+        if (issueInfo != null)
+            return issueInfo.getUserName();
+        else
+            return null;
     }
 }
