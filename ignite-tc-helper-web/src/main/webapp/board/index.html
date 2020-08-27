@@ -29,11 +29,16 @@
 <body>
 
 <div id="message" title="Mute issue">
-    <input type="text" class="solid" id="myText"><br>
+    <label>Issue</label><br>
+    <textarea rows="2" cols="60" class="solid" id="issueName"></textarea><br>
     <label>Jira ticket</label><br>
     <textarea rows="2" cols="60" class="solid" id="jiraTicket"></textarea><br>
     <label>Comment</label><br>
-    <textarea rows="7" cols="60" class="solid" id="comment"></textarea>
+    <textarea rows="7" cols="60" class="solid" id="comment"></textarea><br>
+    <label>Muted by</label><br>
+    <input class="solid" id="mutedBy" readonly></textarea><br>
+    <label>Date</label><br>
+    <input class="solid" id="muteTime" readonly></textarea>
 </div>
 <!--<button class="showmodal">Show Modal</button>-->
 <script>
@@ -52,6 +57,15 @@
             effect: "blind",
             duration: 500
             },
+        open: function() {
+            $(this).parent().promise().done(function () {
+                document.getElementById('issueName').value = $("#message").data('issue').name;
+                document.getElementById('jiraTicket').value = $("#message").data('issue').jiraTicket;
+                document.getElementById('comment').value = $("#message").data('issue').comment;
+                document.getElementById('mutedBy').value = $("#message").data('issue').mutedByUser;
+                document.getElementById('muteTime').value = $("#message").data('issue').muteTime;
+            });
+        },
         buttons: {
             Mute: function() {
                 document.getElementsByClassName('isMuted_' + $("#message").data('item').id + '_' + $("#message").data('index')).item(0).value = true;
@@ -63,19 +77,15 @@
                                 name: $("#message").data('issue').name,
                                 jiraTicket: document.getElementById('jiraTicket').value,
                                 comment: document.getElementById('comment').value,
-                                userName: document.getElementById("userName").text
+                                userName: document.getElementById('userName').text
                               }
                     });
                 },
-            },
             Cancel: function() {
                 $(this).dialog("close");
                 }
-        });
-
-<!--        $('.showmodal').on('click', function() {-->
-<!--            $('#message').dialog("open");-->
-<!--            });-->
+        }
+    });
     </script>
 
 <script>
@@ -271,7 +281,7 @@
                             </td>
                             <td v-bind:class="'isMuted_' + item.id + '_' + i">
                                 <template v-if="issue.muted === true">
-                                    {{ issue.mutedByUser }}
+                                    muted
                                 </template>
                             </td>
                             <td>

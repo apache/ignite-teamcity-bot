@@ -18,6 +18,7 @@ package org.apache.ignite.tcbot.engine.board;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -64,6 +65,7 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcignited.boardmute.MutedBoardIssueInfo;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.build.ITest;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
@@ -135,9 +137,17 @@ public class BoardService {
                     if (issueUi.status() != IssueResolveStatus.FIXED)
                         defectUi.addTags(tags);
 
+                    MutedBoardIssueInfo mutedIssue = muteBoardDao.getMutedBoardDefect(defectUi.getId(), issueUi.getName());
+
                     issueUi.setMuted(muteBoardDao.isMuted(defectUi.getId(), issueUi.getName()));
 
                     issueUi.setMutedByUser(muteBoardDao.mutedByUser(defectUi.getId(), issueUi.getName()));
+
+                    issueUi.setJiraTicket(mutedIssue != null ? mutedIssue.getJiraTicket() : "");
+
+                    issueUi.setComment(mutedIssue != null ? mutedIssue.getComment() : "");
+
+                    issueUi.setMuteTime(mutedIssue != null ? mutedIssue.getMuteTime().format(DateTimeFormatter.ofPattern("MM/dd/yyyy - HH:mm:ss z")) : "");
 
                     defectUi.addIssue(issueUi);
                 }

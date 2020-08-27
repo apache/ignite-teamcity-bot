@@ -53,6 +53,22 @@ public class MutedBoardIssueInfo {
         this.userName = userName;
     }
 
+    public String getJiraTicket() {
+        return jiraTicket;
+    }
+
+    public void setJiraTicket(String jiraTicket) {
+        this.jiraTicket = jiraTicket;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
+    }
+
     public ZonedDateTime getMuteTime() {
         return muteTime;
     }

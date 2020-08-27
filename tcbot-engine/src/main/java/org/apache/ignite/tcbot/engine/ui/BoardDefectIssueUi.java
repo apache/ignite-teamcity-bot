@@ -33,6 +33,9 @@ public class BoardDefectIssueUi {
     private boolean suiteProblem;
     private boolean isMuted;
     private String mutedByUser;
+    private String jiraTicket;
+    private String comment;
+    private String muteTime;
     @Nullable
     private String webUrl;
     private IssueResolveStatus status;
@@ -99,5 +102,29 @@ public class BoardDefectIssueUi {
 
     public void setMutedByUser(String mutedByUser) {
         this.mutedByUser = mutedByUser;
+    }
+
+    public String getJiraTicket() {
+        return jiraTicket;
+    }
+
+    public void setJiraTicket(String jiraTicket) {
+        this.jiraTicket = jiraTicket;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
+    }
+
+    public String getMuteTime() {
+        return muteTime;
+    }
+
+    public void setMuteTime(String muteTime) {
+        this.muteTime = muteTime;
     }
 }

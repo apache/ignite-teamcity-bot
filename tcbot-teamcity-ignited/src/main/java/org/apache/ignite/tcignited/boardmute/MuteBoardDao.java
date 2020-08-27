@@ -62,6 +62,14 @@ public class MuteBoardDao {
         muteCache.put(defectId, mutedBoardDefect);
     }
 
+    public MutedBoardIssueInfo getMutedBoardDefect(int defectId, String issueName) {
+        MutedBoardDefect mutedDefect = muteCache.get(defectId);
+        if (mutedDefect != null)
+            return mutedDefect.getMutedIssues().get(issueName);
+        else
+            return null;
+    }
+
     public boolean isMuted(int defectId, String issueName) {
         MutedBoardDefect mutedDefect = muteCache.get(defectId);
         if (mutedDefect == null)
@@ -74,9 +82,9 @@ public class MuteBoardDao {
     public String mutedByUser(int defectId, String issueName) {
         MutedBoardDefect mutedDefect = muteCache.get(defectId);
         if (mutedDefect == null)
-            return "UNKNOWN";
+            return "";
         else if (mutedDefect.isTestMuted(issueName))
             return mutedDefect.userName(issueName);
-        else return "UNKNOWN";
+        else return "";
     }
 }
