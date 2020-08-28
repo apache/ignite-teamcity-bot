@@ -86,7 +86,8 @@ public class MutedBoardIssueInfo {
     }
 
     public String getMuteTimeAsString() {
-        return muteTime.format(DateTimeFormatter.ofPattern("MM/dd/yyyy - HH:mm:ss z"));
+        return muteTime != null ?
+            muteTime.format(DateTimeFormatter.ofPattern("MM/dd/yyyy - HH:mm:ss z")) : "";
     }
 
     public void setMuteTime(ZonedDateTime muteTime) {

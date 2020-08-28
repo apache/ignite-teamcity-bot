@@ -51,7 +51,7 @@
                 defects: [],
                 expanded: [],
                 headers: [
-                    {text: "Branch", value: 'trackedBranchCid'},
+                    {text: "Branch", value: 'branch'},
                     {text: 'Date', value: 'dateOfLastIssueAsString'},
 <!--                    {text: 'Suites', value: 'suitesSummary'},-->
 <!--                    {text: "Commits", value: 'blameCandidateSummary'},-->
@@ -155,9 +155,8 @@
         >
             <!-- expand item/row -->
             <template v-slot:expanded-item="{ item }">
-                Branch: {{ item.trackedBranchCid }}<br>
+                Branch: {{ item.trackedBranch }}<br>
                 <td>
-                    Tests affected:
                     <table>
                         <tr v-for="(value, key, i) in item.mutedIssues">
                             <td style="width:25%">

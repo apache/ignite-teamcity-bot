@@ -25,13 +25,15 @@ import java.util.HashMap;
 public class MutedBoardDefect {
     private int id;
 
-    private String trackedBranchCid;
+    private String trackedBranch;
+
+    private String branch;
 
     private HashMap<String, MutedBoardIssueInfo> mutedBoardIssues = new HashMap<>();
 
-    public MutedBoardDefect(int id, String trackedBranchCid) {
+    public MutedBoardDefect(int id, String branch) {
         this.id = id;
-        this.trackedBranchCid = trackedBranchCid;
+        this.branch = branch;
 
     }
     public int getId() {
@@ -42,12 +44,20 @@ public class MutedBoardDefect {
         this.id = id;
     }
 
-    public String getTrackedBranchCid() {
-        return trackedBranchCid;
+    public String getTrackedBranch() {
+        return trackedBranch;
     }
 
-    public void setTrackedBranchCid(String trackedBranchCid) {
-        this.trackedBranchCid = trackedBranchCid;
+    public void setTrackedBranch(String trackedBranch) {
+        this.trackedBranch = trackedBranch;
+    }
+
+    public String getBranch() {
+        return branch;
+    }
+
+    public void setBranch(String branch) {
+        this.branch = branch;
     }
 
     public HashMap<String, MutedBoardIssueInfo> getMutedIssues() {
