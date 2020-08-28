@@ -19,6 +19,7 @@ package org.apache.ignite.tcignited.boardmute;
 
 import java.time.ZonedDateTime;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import javax.cache.Cache;
@@ -57,13 +58,13 @@ public class MuteBoardDao {
 //        muteCache.clear();
     }
 
-    public void muteTest(int defectId, String branch, String issueName, String jiraTicket, String comment, String userName, String webUrl) {
+    public void muteTest(int defectId, String branch, String trackedBranch, String issueName, String jiraTicket, String comment, String userName, String webUrl) {
         MutedBoardDefect mutedBoardDefect = muteCache.get(defectId);
 
         if (mutedBoardDefect == null)
-            mutedBoardDefect = new MutedBoardDefect(defectId, branch);
+            mutedBoardDefect = new MutedBoardDefect(defectId, branch, trackedBranch);
 
-        mutedBoardDefect.getMutedIssues().put(issueName, new MutedBoardIssueInfo(jiraTicket, comment, userName, webUrl,ZonedDateTime.now()));
+        mutedBoardDefect.getMutedIssues().put(issueName, new MutedBoardIssueInfo(jiraTicket, comment, userName, webUrl, ZonedDateTime.now()));
 
         muteCache.put(defectId, mutedBoardDefect);
     }
@@ -95,7 +96,7 @@ public class MuteBoardDao {
     }
 
     public Collection<MutedBoardDefect> getDefects() {
-        Map<Integer, MutedBoardDefect> mutedIssues = new TreeMap<>();
+        Map<Integer, MutedBoardDefect> mutedIssues = new HashMap<>();
         try (QueryCursor<Cache.Entry<Integer, MutedBoardDefect>> qry = muteCache.query(new ScanQuery<>())) {
             for (Cache.Entry<Integer, MutedBoardDefect> next : qry) {
                 mutedIssues.put(next.getKey(), next.getValue());

@@ -31,9 +31,10 @@ public class MutedBoardDefect {
 
     private HashMap<String, MutedBoardIssueInfo> mutedBoardIssues = new HashMap<>();
 
-    public MutedBoardDefect(int id, String branch) {
+    public MutedBoardDefect(int id, String branch, String trackedBranch) {
         this.id = id;
         this.branch = branch;
+        this.trackedBranch = trackedBranch;
 
     }
     public int getId() {

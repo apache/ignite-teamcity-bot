@@ -390,8 +390,8 @@ public class BoardService {
         defectStorage.save(defect);
     }
 
-    public void muteTest(int defectId, String branch, String name, String jiraTicket, String comment, String userName, String webUrl) {
-        muteBoardDao.muteTest(defectId, branch, name, jiraTicket, comment, userName, webUrl);
+    public void muteTest(int defectId, String branch, String trackedBranch, String name, String jiraTicket, String comment, String userName, String webUrl) {
+        muteBoardDao.muteTest(defectId, branch, trackedBranch, name, jiraTicket, comment, userName, webUrl);
     }
 
     public Collection<MutedBoardDefect> getDefects() {
