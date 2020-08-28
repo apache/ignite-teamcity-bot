@@ -30,7 +30,7 @@
 
 <div id="message" title="Mute issue">
     <label>Issue</label><br>
-    <textarea rows="2" cols="60" class="solid" id="issueName"></textarea><br>
+    <textarea rows="2" cols="60" class="solid" id="issueName" readonly></textarea><br>
     <label>Jira ticket</label><br>
     <textarea rows="2" cols="60" class="solid" id="jiraTicket"></textarea><br>
     <label>Comment</label><br>
@@ -63,7 +63,7 @@
                 document.getElementById('jiraTicket').value = $("#message").data('issue').jiraTicket;
                 document.getElementById('comment').value = $("#message").data('issue').comment;
                 document.getElementById('mutedBy').value = $("#message").data('issue').mutedByUser;
-                document.getElementById('muteTime').value = $("#message").data('issue').muteTime;
+                document.getElementById('muteTime').value = $("#message").data('issue').muteTimeAsString;
             });
         },
         buttons: {
@@ -77,7 +77,8 @@
                                 name: $("#message").data('issue').name,
                                 jiraTicket: document.getElementById('jiraTicket').value,
                                 comment: document.getElementById('comment').value,
-                                userName: document.getElementById('userName').text
+                                userName: document.getElementById('userName').text,
+                                webUrl: $("#message").data('issue').webUrl
                               }
                     });
                 },
@@ -272,7 +273,7 @@
 
                             <td>{{ issue.issueType }}</td>
                             <td>
-                                <a v-if="issue.webUrl != null" :href="issue.webUrl">
+                                <a v-if="issue.webUrl != null" :href="issue.webUrl" v-bind:class="'webUrl_' + item.id + '_' + i">
                                     {{ issue.name }}
                                 </a>
                                 <span v-else>

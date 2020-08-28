@@ -18,9 +18,9 @@ package org.apache.ignite.tcbot.engine.board;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -65,12 +64,14 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcignited.boardmute.MutedBoardDefect;
 import org.apache.ignite.tcignited.boardmute.MutedBoardIssueInfo;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.build.ITest;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 import org.apache.ignite.tcignited.history.IRunHistory;
 
+import static java.util.stream.Collectors.toList;
 import static org.apache.ignite.tcignited.history.RunStatus.RES_MISSING;
 import static org.apache.ignite.tcignited.history.RunStatus.RES_OK;
 
@@ -124,7 +125,7 @@ public class BoardService {
                 List<Future<FatBuildCompacted>> futures = buildChainProcessor.replaceWithRecent(fatBuild, allBuildsMap, tcIgn);
 
                 Stream<FatBuildCompacted> results = FutureUtil.getResults(futures);
-                List<FatBuildCompacted> freshRebuild = results.collect(Collectors.toList());
+                List<FatBuildCompacted> freshRebuild = results.collect(toList());
 
                 Optional<FatBuildCompacted> rebuild;
 
@@ -147,7 +148,7 @@ public class BoardService {
 
                     issueUi.setComment(mutedIssue != null ? mutedIssue.getComment() : "");
 
-                    issueUi.setMuteTime(mutedIssue != null ? mutedIssue.getMuteTime().format(DateTimeFormatter.ofPattern("MM/dd/yyyy - HH:mm:ss z")) : "");
+                    issueUi.setMuteTime(mutedIssue != null ? mutedIssue.getMuteTimeAsString() : "");
 
                     defectUi.addIssue(issueUi);
                 }
@@ -389,7 +390,13 @@ public class BoardService {
         defectStorage.save(defect);
     }
 
-    public void muteTest(int defectId, String branch, String name, String jiraTicket, String comment, String userName) {
-        muteBoardDao.muteTest(defectId, branch, name, jiraTicket, comment, userName);
+    public void muteTest(int defectId, String branch, String name, String jiraTicket, String comment, String userName, String webUrl) {
+        muteBoardDao.muteTest(defectId, branch, name, jiraTicket, comment, userName, webUrl);
+    }
+
+    public Collection<MutedBoardDefect> getDefects() {
+        return muteBoardDao.getDefects().stream()
+            .sorted(Comparator.comparing(MutedBoardDefect::getDateOfLastIssue).reversed())
+            .collect(toList());
     }
 }

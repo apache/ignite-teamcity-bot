@@ -16,14 +16,11 @@
  */
 package org.apache.ignite.ci.web.rest.board;
 
-import com.google.inject.Injector;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
-import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -33,6 +30,7 @@ import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.tcbot.engine.board.BoardService;
 import org.apache.ignite.tcbot.engine.ui.BoardSummaryUi;
+import org.apache.ignite.tcignited.boardmute.MutedBoardDefect;
 
 @Path(BoardRestService.BOARD)
 @Produces(MediaType.APPLICATION_JSON)
@@ -62,9 +60,15 @@ public class BoardRestService {
         @FormParam("name") String name,
         @FormParam("jiraTicket") String jiraTicket,
         @FormParam("comment") String comment,
-        @FormParam("userName") String userName) {
-        CtxListener.getInjector(ctx).getInstance(BoardService.class).muteTest(defectId, branch, name, jiraTicket, comment, userName);
+        @FormParam("userName") String userName,
+        @FormParam("webUrl") String webUrl) {
+        CtxListener.getInjector(ctx).getInstance(BoardService.class).muteTest(defectId, branch, name, jiraTicket, comment, userName, webUrl);
     }
 
-    //ветка, тест id, тимсити сервер,
+    @GET
+    @Path("mutedissues")
+    public Collection<MutedBoardDefect> getMutedIssues() {
+        return CtxListener.getInjector(ctx).getInstance(BoardService.class).getDefects();
+    }
+
 }

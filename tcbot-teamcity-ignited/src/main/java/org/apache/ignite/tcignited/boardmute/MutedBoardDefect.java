@@ -17,9 +17,10 @@
 
 package org.apache.ignite.tcignited.boardmute;
 
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
 
 public class MutedBoardDefect {
     private int id;
@@ -67,5 +68,13 @@ public class MutedBoardDefect {
             return issueInfo.getUserName();
         else
             return null;
+    }
+
+    public ZonedDateTime getDateOfLastIssue() {
+        return mutedBoardIssues.values().stream().max(Comparator.comparing(MutedBoardIssueInfo::getMuteTime)).get().getMuteTime();
+    }
+
+    public String getDateOfLastIssueAsString() {
+        return mutedBoardIssues.values().stream().max(Comparator.comparing(MutedBoardIssueInfo::getMuteTime)).get().getMuteTime().format(DateTimeFormatter.ofPattern("MM/dd/yyyy - HH:mm:ss z"));
     }
 }

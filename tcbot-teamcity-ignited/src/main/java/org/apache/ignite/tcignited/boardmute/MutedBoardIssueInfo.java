@@ -18,6 +18,7 @@
 package org.apache.ignite.tcignited.boardmute;
 
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class MutedBoardIssueInfo {
     private String name;
@@ -28,12 +29,15 @@ public class MutedBoardIssueInfo {
 
     private String comment;
 
+    private String webUrl;
+
     ZonedDateTime muteTime;
 
-    public MutedBoardIssueInfo(String jiraTicket, String comment, String userName, ZonedDateTime muteTime) {
+    public MutedBoardIssueInfo(String jiraTicket, String comment, String userName, String webUrl, ZonedDateTime muteTime) {
         this.jiraTicket = jiraTicket;
         this.comment = comment;
         this.userName = userName;
+        this.webUrl = webUrl;
         this.muteTime = muteTime;
     }
 
@@ -69,8 +73,20 @@ public class MutedBoardIssueInfo {
         this.comment = comment;
     }
 
+    public String getWebUrl() {
+        return webUrl;
+    }
+
+    public void setWebUrl(String webUrl) {
+        this.webUrl = webUrl;
+    }
+
     public ZonedDateTime getMuteTime() {
         return muteTime;
+    }
+
+    public String getMuteTimeAsString() {
+        return muteTime.format(DateTimeFormatter.ofPattern("MM/dd/yyyy - HH:mm:ss z"));
     }
 
     public void setMuteTime(ZonedDateTime muteTime) {
