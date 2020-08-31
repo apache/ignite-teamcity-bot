@@ -154,9 +154,9 @@
                 dense
         >
             <!-- expand item/row -->
-            <template v-slot:expanded-item="{ item }">
+            <template v-slot:expanded-item="{ headers, item }">
+                <td :colspan="headers.length">
                 Branch: {{ item.trackedBranch }}<br>
-                <td>
                     <table>
                         <tr v-for="(value, key, i) in item.mutedIssues">
                             <td style="width:25%">
