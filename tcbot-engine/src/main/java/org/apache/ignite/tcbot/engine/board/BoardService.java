@@ -105,8 +105,8 @@ public class BoardService {
         for (DefectCompacted next : defects) {
             BoardDefectSummaryUi defectUi = new BoardDefectSummaryUi(next, compactor);
 
-                if (baseBranch != null && !baseBranch.equals("") && !defectUi.getTrackedBranch().equals(baseBranch))
-                    continue;
+            if (baseBranch != null && !baseBranch.equals("") && !defectUi.getTrackedBranch().equals(baseBranch))
+                continue;
 
             defectUi.setForceResolveAllowed(admin);
 
@@ -398,8 +398,14 @@ public class BoardService {
         muteBoardDao.muteTest(defectId, branch, trackedBranch, name, jiraTicket, comment, userName, webUrl);
     }
 
-    public Collection<MutedBoardDefect> getDefects() {
+    public Collection<MutedBoardDefect> getDefects(String baseBranch) {
         return muteBoardDao.getDefects().stream()
+            .filter(defect -> {
+                if (baseBranch != null && !baseBranch.equals("") && !defect.getTrackedBranch().equals(baseBranch))
+                    return false;
+                else
+                    return true;
+            })
             .sorted(Comparator.comparing(MutedBoardDefect::getDateOfLastIssue).reversed())
             .collect(toList());
     }

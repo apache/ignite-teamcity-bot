@@ -70,8 +70,8 @@ public class BoardRestService {
 
     @GET
     @Path("mutedissues")
-    public Collection<MutedBoardDefect> getMutedIssues() {
-        return CtxListener.getInjector(ctx).getInstance(BoardService.class).getDefects();
+    public Collection<MutedBoardDefect> getMutedIssues(@QueryParam("baseBranch") String baseBranch) {
+        return CtxListener.getInjector(ctx).getInstance(BoardService.class).getDefects(baseBranch);
     }
 
 }

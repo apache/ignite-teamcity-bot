@@ -21,6 +21,14 @@
 
     <script src="/js/common-1.6.js"></script>
 
+    <style>
+        input.solid {border-style: solid;}
+        textarea.solid {border-style: solid;}
+        select.solid {border-style: solid;}
+        select#selBranch {
+            width: 300px;
+        }
+    </style>
 </head>
 <body>
 
@@ -48,6 +56,7 @@
             vuetify: new Vuetify(),
             data: {
                 baseBranchSelected: '',
+                baseBranches: new Set(),
                 defects: [],
                 expanded: [],
                 headers: [
@@ -64,31 +73,32 @@
             },
             methods: {
                 formChanged: function () {
+                    loadDataSilent();
                 },
             }
         });
     }
 
 
-<!--    function parmsForRest() {-->
-<!--        var curReqParms = "";-->
-<!--        var branch = findGetParameter("branch");-->
-<!--        if (branch != null) {-->
-<!--            curReqParms += "?branch=" + branch;-->
-<!--        }-->
+    function parmsForRest() {
+        var curReqParms = "";
+        var branch = findGetParameter("branch");
+        if (branch != null) {
+            curReqParms += "?branch=" + branch;
+        }
 
-<!--        if (gVue.$data.baseBranchSelected != null) {-->
-<!--            curReqParms += "?baseBranch=" +  gVue.$data.baseBranchSelected;-->
-<!--        }-->
+        if (gVue.$data.baseBranchSelected != null && gVue.$data.baseBranchSelected != 'All branches') {
+            curReqParms += "?baseBranch=" +  gVue.$data.baseBranchSelected;
+        }
 
-<!--        return curReqParms;-->
-<!--    }-->
+        return curReqParms;
+    }
 
     function loadDataFromServer(silent) {
         g_Loading = true;
         if (!silent) $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
 
-        var curFailuresUrl = "/rest/board/mutedissues";
+        var curFailuresUrl = "/rest/board/mutedissues" + parmsForRest();
         $.ajax({
             url: curFailuresUrl,
             success: function (result) {
@@ -121,20 +131,43 @@
 <!--        });-->
 <!--    }-->
 
-<!--    function loadDataSilent() {-->
+    function loadDataSilent() {
 <!--        if(g_Loading)-->
 <!--            return;-->
 
-<!--        try {-->
-<!--            loadDataFromServer(true);-->
+        try {
+            loadDataFromServer(true);
 <!--            validateVersionsConsistency();-->
-<!--        } catch (e) {-->
-<!--            console.log(e);-->
-<!--        }-->
-<!--    }-->
+        } catch (e) {
+            console.log(e);
+        }
+    }
 
     function showData(result) {
         gVue.$data.defects = result;
+
+        result.forEach(function (defect, index) {
+            gVue.$data.baseBranches.add(defect.trackedBranch)
+        });
+
+        var selBranch = document.getElementById('selBranch');
+
+        var i, L = selBranch.options.length - 1;
+        for(i = L; i >= 0; i--) {
+            selBranch.remove(i);
+        }
+
+        gVue.$data.baseBranches.add('All branches');
+
+        gVue.$data.baseBranches.forEach(function (branch, index) {
+            var opt = document.createElement('option');
+            opt.appendChild(document.createTextNode(branch));
+            opt.value = index;
+            selBranch.appendChild(opt);
+        });
+
+<!--        selBranch.value = 'All branches';-->
+<!--        $("#selBranch").val('All branches');-->
     }
 
 </script>
@@ -142,6 +175,9 @@
 <div id="loadStatus"></div>
 <div id="vueQueryForm" class="h-25">
     <v-app id="queryForm" class="h-25">
+        <span>Base branch:</span>
+        <select v-model="baseBranchSelected" @change="formChanged" id="selBranch" cols="60" class="solid">
+        </select>
 
         <v-data-table
                 :headers="headers"
