@@ -116,6 +116,8 @@ public class IssueDetector {
     /** Send notification guard. */
     private final AtomicBoolean sndNotificationGuard = new AtomicBoolean();
 
+    private final AtomicBoolean flag = new AtomicBoolean(false);
+
     private String registerIssuesAndNotifyLater(DsSummaryUi res,
                                                 ITcBotUserCreds creds) {
 
@@ -572,7 +574,7 @@ public class IssueDetector {
 
                 executorService = Executors.newScheduledThreadPool(3);
 
-                executorService.scheduleAtFixedRate(this::checkFailures, 0, 15, TimeUnit.MINUTES);
+                executorService.scheduleAtFixedRate(this::checkFailures, 0, 5, TimeUnit.MINUTES);
 
                 final CheckQueueJob checkQueueJob = checkQueueJobProv.get();
 
@@ -612,7 +614,15 @@ public class IssueDetector {
     @MonitoredTask(name = "Detect Issues in tracked branch", nameExtArgIndex = 0)
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     protected String checkFailuresEx(String brachName) {
-        int buildsToQry = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
+        int buildsToQry = 0;
+
+        if (flag.get()) {
+            buildsToQry = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
+        }
+        else {
+            buildsToQry = 40;
+            flag.set(true);
+        }
 
         ITcBotUserCreds creds = Preconditions.checkNotNull(backgroundOpsCreds, "Server should be authorized");
 

@@ -105,8 +105,8 @@ public class BoardService {
         for (DefectCompacted next : defects) {
             BoardDefectSummaryUi defectUi = new BoardDefectSummaryUi(next, compactor);
 
-            if (defectUi.getTrackedBranch().equals(baseBranch))
-                continue;
+                if (baseBranch != null && !baseBranch.equals("") && !defectUi.getTrackedBranch().equals(baseBranch))
+                    continue;
 
             defectUi.setForceResolveAllowed(admin);
 
