@@ -91,7 +91,7 @@ public class BoardService {
     /**
      * @param creds Credentials.
      */
-    public BoardSummaryUi summary(ICredentialsProv creds) {
+    public BoardSummaryUi summary(ICredentialsProv creds, String baseBranch) {
         issuesToDefectsLater();
 
         muteBoardDao.init();
@@ -104,6 +104,10 @@ public class BoardService {
         boolean admin = userStorage.getUser(creds.getPrincipalId()).isAdmin();
         for (DefectCompacted next : defects) {
             BoardDefectSummaryUi defectUi = new BoardDefectSummaryUi(next, compactor);
+
+            if (defectUi.getTrackedBranch().equals(baseBranch))
+                continue;
+
             defectUi.setForceResolveAllowed(admin);
 
             String srvCode = next.tcSrvCode(compactor);

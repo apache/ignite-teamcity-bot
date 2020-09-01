@@ -24,6 +24,10 @@
     <style>
         input.solid {border-style: solid;}
         textarea.solid {border-style: solid;}
+        select.solid {border-style: solid;}
+        select#selBranch {
+            width: 300px;
+        }
     </style>
 </head>
 <body>
@@ -114,6 +118,7 @@
             vuetify: new Vuetify(),
             data: {
                 baseBranchSelected: '',
+                baseBranches: new Set(),
                 defects: [],
                 expanded: [],
                 headers: [
@@ -130,6 +135,7 @@
             },
             methods: {
                 formChanged: function () {
+                    loadDataSilent();
                 },
 
                 onResolve: function (id, force) {
@@ -165,7 +171,7 @@
             curReqParms += "?branch=" + branch;
         }
 
-        if (gVue.$data.baseBranchSelected != null) {
+        if (gVue.$data.baseBranchSelected != null && gVue.$data.baseBranchSelected != 'All branches') {
             curReqParms += "?baseBranch=" +  gVue.$data.baseBranchSelected;
         }
 
@@ -224,6 +230,29 @@
 
     function showData(result) {
         gVue.$data.defects = result.defects;
+
+        result.defects.forEach(function (defect, index) {
+            gVue.$data.baseBranches.add(defect.trackedBranch)
+        });
+
+        var selBranch = document.getElementById('selBranch');
+
+        var i, L = selBranch.options.length - 1;
+        for(i = L; i >= 0; i--) {
+            selBranch.remove(i);
+        }
+
+        gVue.$data.baseBranches.add('All branches');
+
+        gVue.$data.baseBranches.forEach(function (branch, index) {
+            var opt = document.createElement('option');
+            opt.appendChild(document.createTextNode(branch));
+            opt.value = index;
+            selBranch.appendChild(opt);
+        });
+
+<!--        selBranch.value = 'All branches';-->
+<!--        $("#selBranch").val('All branches');-->
     }
 
 </script>
@@ -231,13 +260,10 @@
 <div id="loadStatus"></div>
 <div id="vueQueryForm" class="h-25">
     <v-app id="queryForm" class="h-25">
-        <!-- <select v-model="baseBranchSelected" @change="formChanged">
-            <option disabled value="">Please select one</option>
-            <option>A</option>
-            <option>B</option>
-            <option>C</option>
+        <span>Base branch:</span>
+         <select v-model="baseBranchSelected" @change="formChanged" id="selBranch" cols="60" class="solid">
+<!--             <option value='All branches' selected>All branches</option>-->
         </select>
-        <span>Base branch: {{ baseBranchSelected }}</span> -->
 
 
         <v-data-table
