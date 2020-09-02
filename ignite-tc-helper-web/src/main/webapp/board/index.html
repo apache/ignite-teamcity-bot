@@ -112,6 +112,12 @@
         $.ajax({ url: "/rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
     });
 
+    $(window).on('load', function() {
+        var selBranch = document.getElementById('selBranch');
+        selBranch.value = 'All branches';
+        $("#selBranch").val('All branches');
+    });
+
     function showQueryForm() {
         gVue = new Vue({
             el: '#vueQueryForm',
@@ -251,8 +257,8 @@
             selBranch.appendChild(opt);
         });
 
-<!--        selBranch.value = 'All branches';-->
-<!--        $("#selBranch").val('All branches');-->
+        selBranch.value = 'All branches';
+        $("#selBranch").val('All branches');
     }
 
 </script>
