@@ -112,7 +112,7 @@
         $.ajax({ url: "/rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
     });
 
-    $(window).on('load', function() {
+    $(window).on('pageshow', function() {
         var selBranch = document.getElementById('selBranch');
         selBranch.value = 'All branches';
         $("#selBranch").val('All branches');
@@ -266,7 +266,7 @@
 <div id="loadStatus"></div>
 <div id="vueQueryForm" class="h-25">
     <v-app id="queryForm" class="h-25">
-        <span>Base branch:</span>
+        <span>Branch:</span>
          <select v-model="baseBranchSelected" @change="formChanged" id="selBranch" cols="60" class="solid">
 <!--             <option value='All branches' selected>All branches</option>-->
         </select>
