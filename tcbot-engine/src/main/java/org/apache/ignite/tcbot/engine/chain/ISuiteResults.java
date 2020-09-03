@@ -42,6 +42,9 @@ interface ISuiteResults {
     /** */
     public boolean hasBuildMessageProblem();
 
+    /** */
+    public boolean hasProblemNonByFailedTest();
+
 
     public String suiteId();
 }

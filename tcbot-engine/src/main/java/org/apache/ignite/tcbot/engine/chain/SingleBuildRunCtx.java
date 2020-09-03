@@ -118,6 +118,10 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return getProblemsStream().anyMatch(p -> p.isExitCode(compactor));
     }
 
+    @Override public boolean hasProblemNonByFailedTest() {
+        return getProblemsStream().anyMatch(p -> !p.isFailedTests(compactor));
+    }
+
     @Override public String suiteId() {
         return compactor.getStringFromId(buildCompacted.buildTypeId());
     }
@@ -325,12 +329,7 @@ public class SingleBuildRunCtx implements ISuiteResults {
     }
 
     public boolean hasSuiteIncompleteFailure() {
-        return hasJvmCrashProblem()
-            || hasTimeoutProblem()
-            || hasOomeProblem()
-            || hasExitCodeProblem()
-            || hasCompilationProblem()
-            || hasMetricProblem();
+        return hasProblemNonByFailedTest();
     }
 
     public int totalNotMutedTests() {
