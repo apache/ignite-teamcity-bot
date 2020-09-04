@@ -209,7 +209,7 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     public boolean hasProblemNonByFailedTest() {
-        return getProblemNonByFailedTestCount() > 0;
+        return buildsStream().anyMatch(SingleBuildRunCtx::hasProblemNonByFailedTest);
     }
 
     private long getExitCodeProblemsCount() {
@@ -218,10 +218,6 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     private long getOomeProblemCount() {
         return buildsStream().filter(SingleBuildRunCtx::hasOomeProblem).count();
-    }
-
-    private long getProblemNonByFailedTestCount() {
-        return buildsStream().filter(SingleBuildRunCtx::hasProblemNonByFailedTest).count();
     }
 
     public int failedTests() {
