@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.ignite.tcbot.engine.board.IssueResolveStatus;
@@ -32,6 +33,7 @@ import org.apache.ignite.tcbot.engine.defect.DefectCompacted;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 
 public class BoardDefectSummaryUi {
+    private static final Pattern teamTagPattern = Pattern.compile("\\D+");
     private final transient DefectCompacted defect;
     private final transient IStringCompactor compactor;
 
@@ -49,7 +51,7 @@ public class BoardDefectSummaryUi {
 
     public Set<String> getTags() {
         //todo bad code, make tag filter configurable.
-        return tags.stream().filter(t -> t.length() <= 2).collect(Collectors.toSet());
+        return tags.stream().filter(t -> teamTagPattern.matcher(t).matches()).collect(Collectors.toSet());
     }
 
     public List<String> getSuites() {
