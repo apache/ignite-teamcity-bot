@@ -22,9 +22,11 @@
     <script src="/js/common-1.6.js"></script>
 
     <style>
-        select.solid {border-style: solid;}
         select#selBranch {
-            width: 300px;
+            border-style: solid;
+            -webkit-appearance: auto;
+            -webkit-writing-mode: horizontal-tb !important;
+            -webkit-rtl-ordering: logical;
         }
     </style>
 </head>
@@ -47,9 +49,7 @@
     });
 
     $(window).on('pageshow', function() {
-        var selBranch = document.getElementById('selBranch');
-        selBranch.value = 'All branches';
-        $("#selBranch").val('All branches');
+        gVue.$data.baseBranchSelected = 'All branches';
     });
 
     function showQueryForm() {
@@ -103,7 +103,10 @@
             curReqParms += "?branch=" + branch;
         }
 
-        if (gVue.$data.baseBranchSelected != null && gVue.$data.baseBranchSelected != 'All branches') {
+        if (gVue.$data.baseBranchSelected != null &&
+                gVue.$data.baseBranchSelected != "" &&
+                typeof gVue.$data.baseBranchSelected !== 'undefined' &&
+                gVue.$data.baseBranchSelected != 'All branches') {
             curReqParms += "?baseBranch=" +  gVue.$data.baseBranchSelected;
         }
 
@@ -166,35 +169,25 @@
         result.defects.forEach(function (defect, index) {
             gVue.$data.baseBranches.add(defect.trackedBranch)
         });
-
-        var selBranch = document.getElementById('selBranch');
-
-        var i, L = selBranch.options.length - 1;
-        for(i = L; i >= 0; i--) {
-            selBranch.remove(i);
-        }
-
-        gVue.$data.baseBranches.add('All branches');
-
-        gVue.$data.baseBranches.forEach(function (branch, index) {
-            var opt = document.createElement('option');
-            opt.appendChild(document.createTextNode(branch));
-            opt.value = index;
-            selBranch.appendChild(opt);
-        });
-
-        selBranch.value = 'All branches';
-        $("#selBranch").val('All branches');
     }
 
 </script>
 
 <div id="loadStatus"></div>
-<div id="vueQueryForm" class="h-25">
-    <v-app id="queryForm" class="h-25">
+<div id="vueQueryForm">
+
+    <div class="formgroup">
         <span>Branch:</span>
-        <select v-model="baseBranchSelected" @change="formChanged" id="selBranch" cols="60" class="solid">
+        <select v-model="baseBranchSelected" @change="formChanged" id="selBranch">
+            <option  value="All branches">All branches</option>
+
+            <option v-for="option in baseBranches" v-bind:value="option">
+                {{ option }}
+            </option>
         </select>
+    </div>
+
+    <v-app id="queryForm">
 
 
         <v-data-table
