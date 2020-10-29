@@ -45,8 +45,15 @@ public class NewTestsStorage {
     }
 
     /** */
-    public void putNewTest(String branch, String testId, String srvId) {
-        cache().put(testId + srvId, new NewTestInfo(branch, System.currentTimeMillis()));
+    public boolean isNewTestAndPut(String branch, String testId, String srvId) {
+        NewTestInfo savedTest = cache().get(testId + srvId);
+
+        if (savedTest == null) {
+            cache().put(testId + srvId, new NewTestInfo(branch, System.currentTimeMillis()));
+            return true;
+        }
+        else
+            return savedTest.branch().equals(branch);
     }
 
     /** */
