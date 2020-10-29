@@ -52,7 +52,7 @@ public class NewTestsStorage {
     /** */
     public void removeOldTests(long thresholdDate) {
         ScanQuery<String, NewTestInfo> scan =
-            new ScanQuery<>((key, testBranch) -> testBranch.timestamp() < thresholdDate);
+            new ScanQuery<>((key, testInfo) -> testInfo.timestamp() < thresholdDate);
 
         for (Cache.Entry<String, NewTestInfo> entry : cache().query(scan))
             cache().remove(entry.getKey());

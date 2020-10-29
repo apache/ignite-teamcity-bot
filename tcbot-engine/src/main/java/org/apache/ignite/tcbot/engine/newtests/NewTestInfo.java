@@ -2,6 +2,7 @@ package org.apache.ignite.tcbot.engine.newtests;
 
 /** */
 public class NewTestInfo {
+    /** */
     private String branch;
 
     /** */
