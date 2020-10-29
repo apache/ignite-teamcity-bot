@@ -169,6 +169,8 @@
         result.defects.forEach(function (defect, index) {
             gVue.$data.baseBranches.add(defect.trackedBranch)
         });
+
+        result.defects.sort();
     }
 
 </script>
