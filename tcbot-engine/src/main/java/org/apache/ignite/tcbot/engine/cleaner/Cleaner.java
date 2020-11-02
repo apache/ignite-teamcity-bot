@@ -165,7 +165,12 @@ public class Cleaner {
 
             executorService = Executors.newSingleThreadScheduledExecutor();
 
-            executorService.scheduleAtFixedRate(this::clean, 5, 30, TimeUnit.MINUTES);
+            executorService.scheduleAtFixedRate(this::clean, 5, 60, TimeUnit.MINUTES);
         }
+    }
+
+    public void stop() {
+        if (executorService != null)
+            executorService.shutdownNow();
     }
 }
