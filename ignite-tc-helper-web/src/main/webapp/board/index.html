@@ -166,11 +166,17 @@
     function showData(result) {
         gVue.$data.defects = result.defects;
 
+        branches = [];
+
         result.defects.forEach(function (defect, index) {
-            gVue.$data.baseBranches.add(defect.trackedBranch)
+            branches.push(defect.trackedBranch)
         });
 
-        result.defects.sort();
+        branches.sort();
+
+        branches.forEach(function (branch, index) {
+            gVue.$data.baseBranches.add(branch)
+        });
     }
 
 </script>
