@@ -172,6 +172,5 @@ public class Cleaner {
     public void stop() {
         if (executorService != null)
             executorService.shutdownNow();
-
     }
 }
