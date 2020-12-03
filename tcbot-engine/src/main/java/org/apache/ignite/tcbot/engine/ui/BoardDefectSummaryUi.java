@@ -37,6 +37,7 @@ public class BoardDefectSummaryUi {
     private final transient DefectCompacted defect;
     private final transient IStringCompactor compactor;
 
+    /** branch name from Git*/
     public String branch;
 
     private Set<String> tags = new HashSet<>();
@@ -115,6 +116,7 @@ public class BoardDefectSummaryUi {
         });
     }
 
+    /** Branch alias */
     public String getTrackedBranch() {
        return compactor.getStringFromId(defect.trackedBranchCid());
     }

@@ -31,6 +31,7 @@ public class DefectCompacted {
     /** Synthetic Defect Id. */
     private int id;
 
+    /** Branch alias string ID. */
     private int tcBranch = -1;
 
     /** Tc server code hashcode. */
@@ -39,7 +40,7 @@ public class DefectCompacted {
     /** Tc server code compactor string ID. */
     private int tcSrvCodeCid = -1;
 
-    /** Tracked branch Compactor string ID. */
+    /** Tracked branch alias Compactor string ID. */
     private int trackedBranchCid = -1;
 
     /** Resolved by username id : Compactor ID of user login (principal ID). */
