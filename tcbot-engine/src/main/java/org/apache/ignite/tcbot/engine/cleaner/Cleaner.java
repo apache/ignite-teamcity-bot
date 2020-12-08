@@ -20,6 +20,8 @@ import java.io.File;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
+import org.apache.ignite.lang.IgniteBiTuple;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
@@ -40,6 +43,12 @@ import org.apache.ignite.tcignited.history.BuildStartTimeStorage;
 import org.apache.ignite.tcignited.history.SuiteInvocationHistoryDao;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
+import static org.apache.ignite.tcignited.build.FatBuildDao.cacheKeyToSrvIdAndBuildId;
 
 public class Cleaner {
     private final AtomicBoolean init = new AtomicBoolean();
@@ -61,9 +70,7 @@ public class Cleaner {
 
     @AutoProfiling
     @MonitoredTask(name = "Clean old cache data and log files")
-    private String clean() {
-        String resMsg;
-
+    public void clean() {
         try {
             if (cfg.getCleanerConfig().enabled()) {
                 int numOfItemsToDel = cfg.getCleanerConfig().numOfItemsToDel();
@@ -80,72 +87,68 @@ public class Cleaner {
 
                 logger.info("Some log files (numOfItemsToDel=" + numOfItemsToDel + ") older than " + thresholdDateForLogs + " will be removed.");
 
-                long thresholdEpochMilliForCaches = thresholdDateForCaches.toInstant().toEpochMilli();
+                removeCacheEntries(thresholdDateForCaches, numOfItemsToDel);
 
-                int cntOfRmvEntries = removeCacheEntries(thresholdEpochMilliForCaches, numOfItemsToDel);
-
-                long thresholdEpochMilliForLogs = thresholdDateForLogs.toInstant().toEpochMilli();
-
-                removeLogFiles(thresholdEpochMilliForLogs, numOfItemsToDel);
-
-                resMsg = "Number of entries removed:" + cntOfRmvEntries +
-                    ". The maximum number of entries that can be removed: " + numOfItemsToDel + ".";
+                removeLogFiles(thresholdDateForLogs, numOfItemsToDel);
             }
-            else {
-                resMsg = "Periodic cache clean disabled.";
-
-                logger.info(resMsg);
-            }
+            else
+                logger.info("Periodic cache clean disabled.");
         }
         catch (Throwable e) {
-            resMsg = "Periodic cache and log clean failed: " + e.getMessage();
-
-            logger.error(resMsg, e);
+            logger.error("Periodic cache and log clean failed: " + e.getMessage(), e);
 
             e.printStackTrace();
         }
-
-        return resMsg;
     }
 
-    private int removeCacheEntries(long thresholdDate, int numOfItemsToDel) {
-        List<Long> oldBuildsKeys = fatBuildDao.getOldBuilds(thresholdDate, numOfItemsToDel);
+    private int removeCacheEntries(ZonedDateTime thresholdDate, int numOfItemsToDel) {
+        long thresholdEpochMilli = thresholdDate.toInstant().toEpochMilli();
+
+        Set<Long> oldBuildsKeys = fatBuildDao.getOldBuilds(thresholdEpochMilli, numOfItemsToDel);//100000
+
+        Map<Integer, List<Integer>> oldBuildsTeamCityAndBuildIds = oldBuildsKeys.stream()
+            .map(FatBuildDao::cacheKeyToSrvIdAndBuildId)//val1=314497661, val2=4954216, "private".hashCode()
+            .collect(groupingBy(IgniteBiTuple::get1, mapping(IgniteBiTuple::get2, toList())));//16441+83559
+
+        defectsStorage.checkIfPossibleToRemove(oldBuildsTeamCityAndBuildIds);//16439+83554
+
+        oldBuildsKeys = oldBuildsTeamCityAndBuildIds.entrySet().stream()
+            .flatMap(entry -> entry.getValue().stream()
+                .map(buildId -> FatBuildDao.buildIdToCacheKey(entry.getKey(), buildId)))
+            .collect(toSet());
 
         logger.info("Builds will be removed (" + oldBuildsKeys.size() + ")");
 
-        for (Long buildCacheKey : oldBuildsKeys) {
-            suiteInvocationHistoryDao.remove(buildCacheKey);
+        suiteInvocationHistoryDao.removeAll(oldBuildsKeys);
+        buildLogCheckResultDao.removeAll(oldBuildsKeys);
+        buildRefDao.removeAll(oldBuildsKeys);
+        buildStartTimeStorage.removeAll(oldBuildsKeys);
+        buildConditionDao.removeAll(oldBuildsKeys);
+        defectsStorage.removeOldDefects(oldBuildsTeamCityAndBuildIds);
+        issuesStorage.removeOldIssues(oldBuildsTeamCityAndBuildIds);
+        fatBuildDao.removeAll(oldBuildsKeys);
 
-            buildLogCheckResultDao.remove(buildCacheKey);
-
-            buildRefDao.remove(buildCacheKey);
-
-            buildStartTimeStorage.remove(buildCacheKey);
-
-            buildConditionDao.remove(buildCacheKey);
-
-            fatBuildDao.remove(buildCacheKey);
-        }
-
-        defectsStorage.removeOldDefects(thresholdDate, numOfItemsToDel);
-
-        issuesStorage.removeOldIssues(thresholdDate, numOfItemsToDel);
+        //Need to eventually delete data with broken consistency
+        defectsStorage.removeOldDefects(thresholdDate.minusDays(60).toInstant().toEpochMilli(), numOfItemsToDel);
+        issuesStorage.removeOldIssues(thresholdDate.minusDays(60).toInstant().toEpochMilli(), numOfItemsToDel);
 
         return oldBuildsKeys.size();
     }
 
-    private void removeLogFiles(long thresholdDate, int numOfItemsToDel) {
+    private void removeLogFiles(ZonedDateTime thresholdDate, int numOfItemsToDel) {
+        long thresholdEpochMilli = thresholdDate.toInstant().toEpochMilli();
+
         final File workDir = TcBotWorkDir.resolveWorkDir();
 
         for (String srvId : cfg.getServerIds()) {
             File srvIdLogDir = new File(workDir, cfg.getTeamcityConfig(srvId).logsDirectory());
 
-            removeFiles(srvIdLogDir, thresholdDate, numOfItemsToDel);
+            removeFiles(srvIdLogDir, thresholdEpochMilli, numOfItemsToDel);
         }
 
         File tcBotLogDir = new File(workDir, "tcbot_logs");
 
-        removeFiles(tcBotLogDir, thresholdDate, numOfItemsToDel);
+        removeFiles(tcBotLogDir, thresholdEpochMilli, numOfItemsToDel);
     }
 
     private void removeFiles(File dir, long thresholdDate, int numOfItemsToDel) {
@@ -158,9 +161,7 @@ public class Cleaner {
                 if (file.lastModified() < thresholdDate && numOfItemsToDel-- > 0)
                     filesToRmv.add(file);
 
-        logger.info("In the directory " + dir + " files will be removed (" +
-            filesToRmv.size() + "): " + filesToRmv.stream().map(File::getName).collect(Collectors.toList())
-        );
+        logger.info("In the directory " + dir + " files will be removed (" + filesToRmv.size() + ")");
 
         for (File file : filesToRmv) {
             file.delete();

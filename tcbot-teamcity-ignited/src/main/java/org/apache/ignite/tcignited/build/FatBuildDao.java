@@ -419,7 +419,7 @@ public class FatBuildDao {
         }
     }
 
-    public List<Long> getOldBuilds(long thresholdDate, int numOfItemsToDel) {
+    public Set<Long> getOldBuilds(long thresholdDate, int numOfItemsToDel) {
         IgniteCache<Long, BinaryObject> cacheWithBinary = buildsCache.withKeepBinary();
 
         ScanQuery<Long, BinaryObject> scan = new ScanQuery<>((key, fatBuild) -> {
@@ -433,7 +433,7 @@ public class FatBuildDao {
             }
         );
 
-        List<Long> oldBuildsKeys = new ArrayList<>(numOfItemsToDel);
+        Set<Long> oldBuildsKeys = new HashSet<>(numOfItemsToDel);
 
         for (Cache.Entry<Long, BinaryObject> entry : cacheWithBinary.query(scan)) {
             if (numOfItemsToDel > 0) {
@@ -448,6 +448,10 @@ public class FatBuildDao {
 
     public void remove(long key) {
         buildsCache.remove(key);
+    }
+
+    public void removeAll(Set<Long> keys) {
+        buildsCache.removeAll(keys);
     }
 
     /**

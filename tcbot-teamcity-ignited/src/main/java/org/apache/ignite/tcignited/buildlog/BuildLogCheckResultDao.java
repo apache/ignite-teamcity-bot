@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.tcignited.buildlog;
 
+import java.util.Set;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.configuration.CacheConfiguration;
@@ -61,5 +62,9 @@ public class BuildLogCheckResultDao {
 
     public void remove(long key) {
         logsCache.remove(key);
+    }
+
+    public void removeAll(Set<Long> keys) {
+        logsCache.removeAll(keys);
     }
 }
