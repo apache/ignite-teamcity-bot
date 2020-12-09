@@ -17,6 +17,8 @@
 
 package org.apache.ignite.tcbot.engine.issue;
 
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.issue.Issue;
@@ -33,6 +35,8 @@ public interface IIssuesStorage {
 
     public void saveIssue(Issue issue);
 
+    public Issue getIssue(IssueKey issueKey);
+
     public Stream<Issue> allIssues();
 
     /**
@@ -45,6 +49,8 @@ public interface IIssuesStorage {
     public boolean getIsNewAndSetNotified(IssueKey key, String addr, @Nullable Exception e);
 
     public void saveIssueSubscribersStat(IssueKey key, int cntSrvAllowed, int cntSubscribed, int cntTagsFilterPassed);
+
+    public void removeOldIssues(Map<Integer, List<Integer>> oldBuildsTeamCityAndBuildIds);
 
     public void removeOldIssues(long thresholdDate, int numOfItemsToDel);
 }

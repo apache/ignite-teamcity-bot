@@ -18,6 +18,9 @@
 package org.apache.ignite.tcbot.engine.issue;
 
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
@@ -124,8 +127,26 @@ public class IssuesStorage implements IIssuesStorage {
     }
 
     /** {@inheritDoc} */
+    @Override public Issue getIssue(IssueKey issueKey) {
+        return cache().get(issueKey);
+    }
+
+    /** {@inheritDoc} */
     @Override public Stream<Issue> allIssues() {
         return StreamSupport.stream(cache().spliterator(), false).map(Cache.Entry::getValue);
+    }
+
+    public void removeOldIssues(Map<Integer, List<Integer>> oldBuildsTeamCityAndBuildIds) {
+        cache().forEach(entry -> {
+            IssueKey issueKey = entry.getKey();
+
+            Optional.ofNullable(oldBuildsTeamCityAndBuildIds.get(Math.abs(issueKey.getServer().hashCode())))
+                .ifPresent(buildIdsToRemove -> {
+                        if (buildIdsToRemove.contains(issueKey.getBuildId()))
+                            cache().remove(issueKey);
+                    }
+                );
+        });
     }
 
     public void removeOldIssues(long thresholdDate, int numOfItemsToDel) {

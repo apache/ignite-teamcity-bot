@@ -190,4 +190,8 @@ public class BuildStartTimeStorage {
         buildStartTime.remove(key);
     }
 
+    public void removeAll(Set<Long> keys) {
+        buildStartTime.removeAll(keys);
+    }
+
 }

@@ -20,6 +20,8 @@ import java.io.File;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -42,18 +44,24 @@ import org.apache.ignite.tcignited.history.SuiteInvocationHistoryDao;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
+import static org.apache.ignite.tcignited.build.FatBuildDao.cacheKeyToSrvIdAndBuildId;
+
 public class Cleaner {
     private final AtomicBoolean init = new AtomicBoolean();
 
-    @Inject IIssuesStorage issuesStorage;
-    @Inject FatBuildDao fatBuildDao;
-    @Inject SuiteInvocationHistoryDao suiteInvocationHistoryDao;
-    @Inject BuildLogCheckResultDao buildLogCheckResultDao;
-    @Inject BuildRefDao buildRefDao;
-    @Inject BuildStartTimeStorage buildStartTimeStorage;
-    @Inject BuildConditionDao buildConditionDao;
-    @Inject DefectsStorage defectsStorage;
-    @Inject ITcBotConfig cfg;
+    @Inject private IIssuesStorage issuesStorage;
+    @Inject private FatBuildDao fatBuildDao;
+    @Inject private SuiteInvocationHistoryDao suiteInvocationHistoryDao;
+    @Inject private BuildLogCheckResultDao buildLogCheckResultDao;
+    @Inject private BuildRefDao buildRefDao;
+    @Inject private BuildStartTimeStorage buildStartTimeStorage;
+    @Inject private BuildConditionDao buildConditionDao;
+    @Inject private DefectsStorage defectsStorage;
+    @Inject private ITcBotConfig cfg;
 
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(Cleaner.class);
@@ -65,73 +73,82 @@ public class Cleaner {
     public void clean() {
         try {
             if (cfg.getCleanerConfig().enabled()) {
-                long safeDays = cfg.getCleanerConfig().safeDays();
-
                 int numOfItemsToDel = cfg.getCleanerConfig().numOfItemsToDel();
 
-                ZonedDateTime thresholdDate = ZonedDateTime.now().minusDays(safeDays);
+                long safeDaysForCaches = cfg.getCleanerConfig().safeDaysForCaches();
 
-                logger.info("Some data (numOfItemsToDel=" + numOfItemsToDel + ") older than " + thresholdDate + " will be removed.");
+                ZonedDateTime thresholdDateForCaches = ZonedDateTime.now().minusDays(safeDaysForCaches);
 
-                long thresholdEpochMilli = thresholdDate.toInstant().toEpochMilli();
+                long safeDaysForLogs = cfg.getCleanerConfig().safeDaysForLogs();
 
-                removeCacheEntries(thresholdEpochMilli, numOfItemsToDel);
+                ZonedDateTime thresholdDateForLogs = ZonedDateTime.now().minusDays(safeDaysForLogs);
 
-                removeLogFiles(thresholdEpochMilli, numOfItemsToDel);
+                logger.info("Some data from caches (numOfItemsToDel=" + numOfItemsToDel + ") older than " + thresholdDateForCaches + " will be removed.");
+
+                logger.info("Some log files (numOfItemsToDel=" + numOfItemsToDel + ") older than " + thresholdDateForLogs + " will be removed.");
+
+                removeCacheEntries(thresholdDateForCaches, numOfItemsToDel);
+
+                removeLogFiles(thresholdDateForLogs, numOfItemsToDel);
             }
             else
                 logger.info("Periodic cache clean disabled.");
         }
         catch (Throwable e) {
-            logger.error("Periodic cache clean failed: " + e.getMessage(), e);
+            logger.error("Periodic cache and log clean failed: " + e.getMessage(), e);
 
             e.printStackTrace();
         }
-
     }
 
-    private void removeCacheEntries(long thresholdDate, int numOfItemsToDel) {
-        List<Long> oldBuildsKeys = fatBuildDao.getOldBuilds(thresholdDate, numOfItemsToDel);
+    private int removeCacheEntries(ZonedDateTime thresholdDate, int numOfItemsToDel) {
+        long thresholdEpochMilli = thresholdDate.toInstant().toEpochMilli();
 
-        List<String> strOldBuildsKeys = oldBuildsKeys.stream().map(compositeId -> {
-                IgniteBiTuple<Integer, Integer> idTuple = FatBuildDao.cacheKeyToSrvIdAndBuildId(compositeId);
-                return "TeamCity id: " + idTuple.get1() + " build id: " + idTuple.get2();
-            })
-            .collect(Collectors.toList());
+        Set<Long> oldBuildsKeys = fatBuildDao.getOldBuilds(thresholdEpochMilli, numOfItemsToDel);
 
-        logger.info("Builds will be removed (" + strOldBuildsKeys.size() + "): " + strOldBuildsKeys);
+        Map<Integer, List<Integer>> oldBuildsTeamCityAndBuildIds = oldBuildsKeys.stream()
+            .map(FatBuildDao::cacheKeyToSrvIdAndBuildId)
+            .collect(groupingBy(IgniteBiTuple::get1, mapping(IgniteBiTuple::get2, toList())));
 
-        for (Long buildCacheKey : oldBuildsKeys) {
-            suiteInvocationHistoryDao.remove(buildCacheKey);
+        defectsStorage.checkIfPossibleToRemove(oldBuildsTeamCityAndBuildIds);
 
-            buildLogCheckResultDao.remove(buildCacheKey);
+        oldBuildsKeys = oldBuildsTeamCityAndBuildIds.entrySet().stream()
+            .flatMap(entry -> entry.getValue().stream()
+                .map(buildId -> FatBuildDao.buildIdToCacheKey(entry.getKey(), buildId)))
+            .collect(toSet());
 
-            buildRefDao.remove(buildCacheKey);
+        logger.info("Builds will be removed (" + oldBuildsKeys.size() + ")");
 
-            buildStartTimeStorage.remove(buildCacheKey);
+        suiteInvocationHistoryDao.removeAll(oldBuildsKeys);
+        buildLogCheckResultDao.removeAll(oldBuildsKeys);
+        buildRefDao.removeAll(oldBuildsKeys);
+        buildStartTimeStorage.removeAll(oldBuildsKeys);
+        buildConditionDao.removeAll(oldBuildsKeys);
+        defectsStorage.removeOldDefects(oldBuildsTeamCityAndBuildIds);
+        issuesStorage.removeOldIssues(oldBuildsTeamCityAndBuildIds);
+        fatBuildDao.removeAll(oldBuildsKeys);
 
-            buildConditionDao.remove(buildCacheKey);
+        //Need to eventually delete data with broken consistency
+        defectsStorage.removeOldDefects(thresholdDate.minusDays(60).toInstant().toEpochMilli(), numOfItemsToDel);
+        issuesStorage.removeOldIssues(thresholdDate.minusDays(60).toInstant().toEpochMilli(), numOfItemsToDel);
 
-            fatBuildDao.remove(buildCacheKey);
-        }
-
-        defectsStorage.removeOldDefects(thresholdDate, numOfItemsToDel);
-
-        issuesStorage.removeOldIssues(thresholdDate, numOfItemsToDel);
+        return oldBuildsKeys.size();
     }
 
-    private void removeLogFiles(long thresholdDate, int numOfItemsToDel) {
+    private void removeLogFiles(ZonedDateTime thresholdDate, int numOfItemsToDel) {
+        long thresholdEpochMilli = thresholdDate.toInstant().toEpochMilli();
+
         final File workDir = TcBotWorkDir.resolveWorkDir();
 
         for (String srvId : cfg.getServerIds()) {
             File srvIdLogDir = new File(workDir, cfg.getTeamcityConfig(srvId).logsDirectory());
 
-            removeFiles(srvIdLogDir, thresholdDate, numOfItemsToDel);
+            removeFiles(srvIdLogDir, thresholdEpochMilli, numOfItemsToDel);
         }
 
         File tcBotLogDir = new File(workDir, "tcbot_logs");
 
-        removeFiles(tcBotLogDir, thresholdDate, numOfItemsToDel);
+        removeFiles(tcBotLogDir, thresholdEpochMilli, numOfItemsToDel);
     }
 
     private void removeFiles(File dir, long thresholdDate, int numOfItemsToDel) {
@@ -144,9 +161,7 @@ public class Cleaner {
                 if (file.lastModified() < thresholdDate && numOfItemsToDel-- > 0)
                     filesToRmv.add(file);
 
-        logger.info("In the directory " + dir + " files will be removed (" +
-            filesToRmv.size() + "): " + filesToRmv.stream().map(File::getName).collect(Collectors.toList())
-        );
+        logger.info("In the directory " + dir + " files will be removed (" + filesToRmv.size() + ")");
 
         for (File file : filesToRmv) {
             file.delete();
@@ -165,7 +180,7 @@ public class Cleaner {
 
             executorService = Executors.newSingleThreadScheduledExecutor();
 
-            executorService.scheduleAtFixedRate(this::clean, 5, 60, TimeUnit.MINUTES);
+            executorService.scheduleAtFixedRate(this::clean, 5, cfg.getCleanerConfig().period(), TimeUnit.MINUTES);
         }
     }
 
