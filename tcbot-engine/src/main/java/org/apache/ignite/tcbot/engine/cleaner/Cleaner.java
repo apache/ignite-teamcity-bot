@@ -104,13 +104,13 @@ public class Cleaner {
     private int removeCacheEntries(ZonedDateTime thresholdDate, int numOfItemsToDel) {
         long thresholdEpochMilli = thresholdDate.toInstant().toEpochMilli();
 
-        Set<Long> oldBuildsKeys = fatBuildDao.getOldBuilds(thresholdEpochMilli, numOfItemsToDel);//100000
+        Set<Long> oldBuildsKeys = fatBuildDao.getOldBuilds(thresholdEpochMilli, numOfItemsToDel);
 
         Map<Integer, List<Integer>> oldBuildsTeamCityAndBuildIds = oldBuildsKeys.stream()
-            .map(FatBuildDao::cacheKeyToSrvIdAndBuildId)//val1=314497661, val2=4954216, "private".hashCode()
-            .collect(groupingBy(IgniteBiTuple::get1, mapping(IgniteBiTuple::get2, toList())));//16441+83559
+            .map(FatBuildDao::cacheKeyToSrvIdAndBuildId)
+            .collect(groupingBy(IgniteBiTuple::get1, mapping(IgniteBiTuple::get2, toList())));
 
-        defectsStorage.checkIfPossibleToRemove(oldBuildsTeamCityAndBuildIds);//16439+83554
+        defectsStorage.checkIfPossibleToRemove(oldBuildsTeamCityAndBuildIds);
 
         oldBuildsKeys = oldBuildsTeamCityAndBuildIds.entrySet().stream()
             .flatMap(entry -> entry.getValue().stream()

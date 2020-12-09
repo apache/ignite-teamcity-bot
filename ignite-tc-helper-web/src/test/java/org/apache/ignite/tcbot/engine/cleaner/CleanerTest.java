@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.ignite.tcbot.engine.cleaner;
 
 import com.google.inject.AbstractModule;
@@ -85,31 +102,8 @@ public class CleanerTest {
             ignite.close();
     }
 
-    /**
-     * Clear relevant ignite caches to avoid tests invluence to each other.
-     */
-    @Before
-    public void clearIgniteCaches() {
-        clearCache(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
-        clearCache(FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME);
-
-        BuildRefCompacted.resetCached();
-        TestCompactedV2.resetCached();
-        TestCompactedMult.resetCached();
-    }
-
-    /**
-     * @param cacheName Cache name to clear.
-     */
-    private void clearCache(String cacheName) {
-        IgniteCache<Long, BuildRefCompacted> buildRefCache = ignite.cache(cacheName);
-
-        if (buildRefCache != null)
-            buildRefCache.clear();
-    }
-
     @Test
-    public void test1() throws Exception {
+    public void testCleaner() throws Exception {
         TeamcityIgnitedModule module = new TeamcityIgnitedModule();
 
         Injector injector = Guice.createInjector(module, new IgniteAndSchedulerTestModule());
@@ -117,19 +111,14 @@ public class CleanerTest {
         FatBuildDao fatBuildDao = injector.getInstance(FatBuildDao.class);
         DefectsStorage defectsStorage = injector.getInstance(DefectsStorage.class);
         IssuesStorage issuesStorage = injector.getInstance(IssuesStorage.class);
-        SuiteInvocationHistoryDao suiteInvocationHistoryDao = injector.getInstance(SuiteInvocationHistoryDao.class);
-        BuildLogCheckResultDao buildLogCheckResultDao = injector.getInstance(BuildLogCheckResultDao.class);
-        BuildRefDao buildRefDao = injector.getInstance(BuildRefDao.class);
-        BuildStartTimeStorage buildStartTimeStorage = injector.getInstance(BuildStartTimeStorage.class);
-        BuildConditionDao buildConditionDao = injector.getInstance(BuildConditionDao.class);
         Cleaner cleaner = injector.getInstance(Cleaner.class);
 
         fatBuildDao.init();
-        suiteInvocationHistoryDao.init();
-        buildLogCheckResultDao.init();
-        buildRefDao.init();
-        buildStartTimeStorage.init();
-        buildConditionDao.init();
+        injector.getInstance(SuiteInvocationHistoryDao.class).init();
+        injector.getInstance(BuildLogCheckResultDao.class).init();
+        injector.getInstance(BuildRefDao.class).init();
+        injector.getInstance(BuildStartTimeStorage.class).init();
+        injector.getInstance(BuildConditionDao.class).init();
 
         FatBuildEntry.fatBuildDao = fatBuildDao;
         DefectEntry.defectsStorage = defectsStorage;
@@ -159,8 +148,6 @@ public class CleanerTest {
         IssueEntry issueWithBrokenConsistencyToRemove2 = IssueEntry.createIssueEntry(tc1, Math.abs(rnd.nextInt()), now().minusDays(safeDays + 1000).toInstant().toEpochMilli());
         IssueEntry issueToSave1 = IssueEntry.createIssueEntry(tc2, oldBuildToRemove1.buildId, nowTime);
         IssueEntry issueWithBrokenConsistencyToSave2 = IssueEntry.createIssueEntry(tc1, Math.abs(rnd.nextInt()), nowTime);
-
-        Assert.assertNotNull(fatBuildDao.getFatBuild(oldBuildToRemove1.tcId, oldBuildToRemove1.buildId));
 
         cleaner.clean();
 
