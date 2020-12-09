@@ -44,13 +44,8 @@ import org.apache.ignite.tcignited.history.SuiteInvocationHistoryDao;
 import org.apache.ignite.tcignited.mute.MuteDao;
 import org.apache.ignite.tcignited.mute.MuteSync;
 import org.apache.ignite.tcservice.TcRealConnectionModule;
-import org.apache.ignite.tcservice.http.ITeamcityHttpConnection;
 
 public class TeamcityIgnitedModule extends AbstractModule {
-    /** Connection. */
-    @Nullable
-    private ITeamcityHttpConnection conn;
-
     /** {@inheritDoc} */
     @Override protected void configure() {
         bind(BuildRefDao.class).in(new SingletonScope());
@@ -76,8 +71,6 @@ public class TeamcityIgnitedModule extends AbstractModule {
         bind(IIssuesStorage.class).to(IssuesStorage.class).in(new SingletonScope());
 
         TcRealConnectionModule module = new TcRealConnectionModule();
-        if (conn != null)
-            module.overrideHttp(conn);
 
         install(module);
 
