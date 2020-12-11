@@ -52,6 +52,9 @@ public class DefectCompacted {
     /** Commits hashes involved. */
     private List<CommitCompacted> commits = new ArrayList<>();
 
+    /** Commits hashes of revisions involved. */
+    private List<CommitCompacted> revisions = new ArrayList<>();
+
     /** Blame candidates. */
     private List<BlameCandidate> blameCandidates = new ArrayList<>();
 
@@ -79,6 +82,26 @@ public class DefectCompacted {
     public DefectCompacted commits(List<CommitCompacted> collect) {
         commits.clear();
         commits.addAll(collect);
+
+        return this;
+    }
+
+    /**
+     * @param collect Collected revisions, should be sorted.
+     */
+    public boolean sameRevisions(List<CommitCompacted> collect) {
+        if (revisions == null)
+            return false;
+
+        return revisions.equals(collect);
+    }
+
+    /**
+     * @param collect Collected revisions, should be sorted.
+     */
+    public DefectCompacted revisions(List<CommitCompacted> collect) {
+        revisions.clear();
+        revisions.addAll(collect);
 
         return this;
     }

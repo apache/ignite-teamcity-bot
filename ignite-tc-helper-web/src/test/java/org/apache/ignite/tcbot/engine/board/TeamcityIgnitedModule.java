@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.tcbot.engine.cleaner;
+package org.apache.ignite.tcbot.engine.board;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
@@ -25,9 +25,12 @@ import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefDao;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeSync;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
+import org.apache.ignite.tcbot.engine.cleaner.Cleaner;
 import org.apache.ignite.tcbot.engine.defect.DefectsStorage;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
 import org.apache.ignite.tcbot.engine.issue.IssuesStorage;
+import org.apache.ignite.tcbot.engine.user.IUserStorage;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.build.ProactiveFatBuildSync;
 import org.apache.ignite.tcignited.build.UpdateCountersStorage;
@@ -44,6 +47,8 @@ import org.apache.ignite.tcignited.mute.MuteDao;
 import org.apache.ignite.tcignited.mute.MuteSync;
 import org.apache.ignite.tcservice.TcRealConnectionModule;
 
+import static org.mockito.Mockito.mock;
+
 public class TeamcityIgnitedModule extends AbstractModule {
     /** {@inheritDoc} */
     @Override protected void configure() {
@@ -53,7 +58,7 @@ public class TeamcityIgnitedModule extends AbstractModule {
         bind(FatBuildDao.class).in(new SingletonScope());
         bind(ProactiveFatBuildSync.class).in(new SingletonScope());
         bind(ChangeSync.class).in(new SingletonScope());
-        bind(ChangeDao.class).in(new SingletonScope());
+        bind(ChangeDao.class).toInstance(mock(ChangeDao.class));
         bind(BuildTypeRefDao.class).in(new SingletonScope());
         bind(BuildTypeDao.class).in(new SingletonScope());
         bind(BuildTypeSync.class).in(new SingletonScope());
@@ -68,6 +73,9 @@ public class TeamcityIgnitedModule extends AbstractModule {
         bind(Cleaner.class).in(new SingletonScope());
         bind(DefectsStorage.class).in(new SingletonScope());
         bind(IIssuesStorage.class).to(IssuesStorage.class).in(new SingletonScope());
+        bind(BoardService.class).in(new SingletonScope());
+        bind(ITeamcityIgnitedProvider.class).toInstance(mock(ITeamcityIgnitedProvider.class));
+        bind(IUserStorage.class).toInstance(mock(IUserStorage.class));
 
         TcRealConnectionModule module = new TcRealConnectionModule();
 

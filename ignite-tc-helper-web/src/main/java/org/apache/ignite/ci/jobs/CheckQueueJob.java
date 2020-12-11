@@ -128,6 +128,8 @@ public class CheckQueueJob implements Runnable {
     @AutoProfiling
     @MonitoredTask(name = "Check Servers Queue (Triggering)")
     protected String runEx() {
+        logger.info("Build triggering task is started");
+
         if (Boolean.valueOf(System.getProperty(AUTO_TRIGGERING_BUILD_DISABLED))) {
             final String msg = "Automatic build triggering was disabled.";
             logger.info(msg);

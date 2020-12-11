@@ -36,6 +36,7 @@ import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
+import org.apache.ignite.ci.teamcity.ignited.change.RevisionCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
@@ -109,13 +110,38 @@ public class DefectsStorage {
             .sorted(CommitCompacted::compareTo)
             .collect(toList());
 
-        try (QueryCursor<Cache.Entry<Integer, DefectCompacted>> qry = cache.query(new ScanQuery<Integer, DefectCompacted>()
-            .setFilter((k, v) -> v.resolvedByUsernameId() < 1 && v.tcSrvId() == srvId))) {
-            for (Cache.Entry<Integer, DefectCompacted> next : qry) {
-                DefectCompacted openDefect = next.getValue();
+        if (!commitsToUse.isEmpty()) {
+            try (QueryCursor<Cache.Entry<Integer, DefectCompacted>> qry = cache.query(new ScanQuery<Integer, DefectCompacted>()
+                .setFilter((k, v) -> v.resolvedByUsernameId() < 1 && v.tcSrvId() == srvId))) {
+                for (Cache.Entry<Integer, DefectCompacted> next : qry) {
+                    DefectCompacted openDefect = next.getValue();
 
-                if (openDefect.sameCommits(commitsToUse))
-                    return processExisting(function, cache, next.getKey(), openDefect);
+                    if (openDefect.sameCommits(commitsToUse))
+                        return processExisting(function, cache, next.getKey(), openDefect);
+                }
+            }
+        }
+
+        List<RevisionCompacted> buildRevisions = fatBuild.revisions();
+
+        if (buildRevisions == null)
+            buildRevisions = new ArrayList<>();
+
+        List<CommitCompacted> revisionsToUse = buildRevisions.stream()
+            .map(RevisionCompacted::revision)
+            .map(CommitCompacted::new)
+            .sorted(CommitCompacted::compareTo)
+            .collect(toList());
+
+        if (commitsToUse.isEmpty() && !buildRevisions.isEmpty()) {
+            try (QueryCursor<Cache.Entry<Integer, DefectCompacted>> qry = cache.query(new ScanQuery<Integer, DefectCompacted>()
+                .setFilter((k, v) -> v.resolvedByUsernameId() < 1 && v.tcSrvId() == srvId))) {
+                for (Cache.Entry<Integer, DefectCompacted> next : qry) {
+                    DefectCompacted openDefect = next.getValue();
+
+                    if (openDefect.sameRevisions(revisionsToUse))
+                        return processExisting(function, cache, next.getKey(), openDefect);
+                }
             }
         }
 
@@ -125,6 +151,7 @@ public class DefectsStorage {
 
         DefectCompacted defect = new DefectCompacted(id)
             .commits(commitsToUse)
+            .revisions(revisionsToUse)
             .changeMap(changeList)
             .tcBranch(fatBuild.branchName())
             .tcSrvId(srvId)
