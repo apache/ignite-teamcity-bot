@@ -220,6 +220,7 @@ public class DefectCompacted {
             resolvedByUsernameId == compacted.resolvedByUsernameId &&
             resolvedTs == compacted.resolvedTs &&
             Objects.equals(commits, compacted.commits) &&
+            Objects.equals(revisions, compacted.revisions) &&
             Objects.equals(blameCandidates, compacted.blameCandidates) &&
             Objects.equals(buildsInvolved, compacted.buildsInvolved) &&
             Objects.equals(changes, compacted.changes);
@@ -228,6 +229,6 @@ public class DefectCompacted {
     /** {@inheritDoc} */
     @Override public int hashCode() {
         return Objects.hash(id, tcBranch, tcSrvId, tcSrvCodeCid, trackedBranchCid, resolvedByUsernameId, resolvedTs,
-            commits, blameCandidates, buildsInvolved, changes);
+            commits, revisions, blameCandidates, buildsInvolved, changes);
     }
 }
