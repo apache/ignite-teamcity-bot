@@ -116,6 +116,13 @@ public class RevisionCompacted implements IVersionedEntity {
         return DatatypeConverter.printHexBinary(version).toLowerCase();
     }
 
+    /**
+     *
+     */
+    public byte[] revision() {
+        return version;
+    }
+
     /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)

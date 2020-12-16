@@ -52,6 +52,9 @@ public class DefectCompacted {
     /** Commits hashes involved. */
     private List<CommitCompacted> commits = new ArrayList<>();
 
+    /** Commits hashes of revisions involved. */
+    private List<CommitCompacted> revisions = new ArrayList<>();
+
     /** Blame candidates. */
     private List<BlameCandidate> blameCandidates = new ArrayList<>();
 
@@ -79,6 +82,26 @@ public class DefectCompacted {
     public DefectCompacted commits(List<CommitCompacted> collect) {
         commits.clear();
         commits.addAll(collect);
+
+        return this;
+    }
+
+    /**
+     * @param collect Collected revisions, should be sorted.
+     */
+    public boolean sameRevisions(List<CommitCompacted> collect) {
+        if (revisions == null)
+            return false;
+
+        return revisions.equals(collect);
+    }
+
+    /**
+     * @param collect Collected revisions, should be sorted.
+     */
+    public DefectCompacted revisions(List<CommitCompacted> collect) {
+        revisions.clear();
+        revisions.addAll(collect);
 
         return this;
     }
@@ -197,6 +220,7 @@ public class DefectCompacted {
             resolvedByUsernameId == compacted.resolvedByUsernameId &&
             resolvedTs == compacted.resolvedTs &&
             Objects.equals(commits, compacted.commits) &&
+            Objects.equals(revisions, compacted.revisions) &&
             Objects.equals(blameCandidates, compacted.blameCandidates) &&
             Objects.equals(buildsInvolved, compacted.buildsInvolved) &&
             Objects.equals(changes, compacted.changes);
@@ -205,6 +229,6 @@ public class DefectCompacted {
     /** {@inheritDoc} */
     @Override public int hashCode() {
         return Objects.hash(id, tcBranch, tcSrvId, tcSrvCodeCid, trackedBranchCid, resolvedByUsernameId, resolvedTs,
-            commits, blameCandidates, buildsInvolved, changes);
+            commits, revisions, blameCandidates, buildsInvolved, changes);
     }
 }
