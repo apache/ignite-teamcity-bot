@@ -368,4 +368,8 @@ public class BuildRefDao {
     public void remove(long key) {
         buildRefsCache.remove(key);
     }
+
+    public void removeAll(Set<Long> keys) {
+        buildRefsCache.removeAll(keys);
+    }
 }

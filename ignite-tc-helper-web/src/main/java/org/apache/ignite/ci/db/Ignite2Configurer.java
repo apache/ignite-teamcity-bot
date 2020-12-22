@@ -117,6 +117,9 @@ public class Ignite2Configurer {
             LoggerFactory.getLogger(Ignite2Configurer.class).info(msg);
             System.out.println(msg);
         }
+
+        regConf.setMetricsEnabled(true);
+
         return regConf;
     }
 

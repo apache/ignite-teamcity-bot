@@ -126,6 +126,10 @@ public class BoardService {
                 FatBuildCompacted firstBuild = cause.build();
                 FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(next.tcSrvId(), firstBuild.id());
 
+                // In case the build was removed from the cache, but the defect was not yet
+                if (fatBuild == null)
+                    continue;
+
                 List<Future<FatBuildCompacted>> futures = buildChainProcessor.replaceWithRecent(fatBuild, allBuildsMap, tcIgn);
 
                 Stream<FatBuildCompacted> results = FutureUtil.getResults(futures);

@@ -27,12 +27,13 @@ import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.tcbot.TcBotWebAppModule;
+import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTaskInterceptor;
+import org.apache.ignite.tcbot.engine.cleaner.Cleaner;
 import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
-import org.apache.ignite.ci.observer.BuildObserver;
-import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.tcservice.http.TeamcityRecorder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,8 +88,8 @@ public class CtxListener implements ServletContextListener {
             injector.getInstance(IssueDetector.class).stop();
             injector.getInstance(TcUpdatePool.class).stop();
             injector.getInstance(BuildObserver.class).stop();
-
             injector.getInstance(IScheduler.class).stop();
+            injector.getInstance(Cleaner.class).stop();
         }
         catch (Exception e) {
             e.printStackTrace();

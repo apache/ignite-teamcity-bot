@@ -16,12 +16,19 @@
  */
 package org.apache.ignite.tcbot.engine.conf;
 
+/** */
 public interface ICleanerConfig {
     /** */
-    int safeDays();
+    int safeDaysForCaches();
+
+    /** */
+    int safeDaysForLogs();
 
     /** */
     int numOfItemsToDel();
+
+    /** */
+    int period();
 
     /** */
     boolean enabled();

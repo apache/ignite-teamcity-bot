@@ -39,8 +39,8 @@ public class EventTemplates {
     );
 
     public static final EventTemplate newCriticalFailure = new EventTemplate(
-            new int[]{OK_OR_FAILURE, OK_OR_FAILURE, OK_OR_FAILURE, OK_OR_FAILURE, OK_OR_FAILURE},
-            new int[]{CRITICAL_FAILURE, CRITICAL_FAILURE, CRITICAL_FAILURE, CRITICAL_FAILURE}
+            new int[]{OK_OR_FAILURE},
+            new int[]{CRITICAL_FAILURE, CRITICAL_FAILURE, CRITICAL_FAILURE}
     );
 
     public static final EventTemplate newContributedTestFailure = new EventTemplate(

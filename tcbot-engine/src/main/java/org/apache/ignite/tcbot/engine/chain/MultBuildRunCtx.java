@@ -208,6 +208,10 @@ public class MultBuildRunCtx implements ISuiteResults {
         return getExitCodeProblemsCount() > 0;
     }
 
+    public boolean hasProblemNonByFailedTest() {
+        return buildsStream().anyMatch(SingleBuildRunCtx::hasProblemNonByFailedTest);
+    }
+
     private long getExitCodeProblemsCount() {
         return buildsStream().filter(SingleBuildRunCtx::hasExitCodeProblem).count();
     }
@@ -594,12 +598,7 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     public boolean hasCriticalProblem() {
-        return hasJvmCrashProblem()
-            || hasTimeoutProblem()
-            || hasCompilationProblem()
-            || hasMetricProblem()
-            || hasExitCodeProblem()
-            || hasOomeProblem();
+        return hasProblemNonByFailedTest();
     }
 
     public int totalTests() {

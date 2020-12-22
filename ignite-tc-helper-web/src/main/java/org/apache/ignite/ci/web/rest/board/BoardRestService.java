@@ -73,5 +73,4 @@ public class BoardRestService {
     public Collection<MutedBoardDefect> getMutedIssues(@QueryParam("baseBranch") String baseBranch) {
         return CtxListener.getInjector(ctx).getInstance(BoardService.class).getDefects(baseBranch);
     }
-
 }

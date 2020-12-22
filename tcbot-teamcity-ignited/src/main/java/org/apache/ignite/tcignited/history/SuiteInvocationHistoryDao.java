@@ -19,6 +19,7 @@ package org.apache.ignite.tcignited.history;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import javax.cache.Cache;
 import javax.cache.expiry.AccessedExpiryPolicy;
 import javax.cache.expiry.Duration;
@@ -94,5 +95,9 @@ public class SuiteInvocationHistoryDao {
 
     public void remove(long key) {
         suiteHist.remove(key);
+    }
+
+    public void removeAll(Set<Long> keys) {
+        suiteHist.removeAll(keys);
     }
 }
