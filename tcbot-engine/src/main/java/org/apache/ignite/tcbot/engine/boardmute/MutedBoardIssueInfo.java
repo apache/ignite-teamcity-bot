@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.tcignited.boardmute;
+package org.apache.ignite.tcbot.engine.boardmute;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class MutedBoardIssueInfo {
-    private String name;
+    private int trackedBranchNameId;
 
     private String userName;
 
@@ -31,22 +31,20 @@ public class MutedBoardIssueInfo {
 
     private String webUrl;
 
-    ZonedDateTime muteTime;
-
-    public MutedBoardIssueInfo(String jiraTicket, String comment, String userName, String webUrl, ZonedDateTime muteTime) {
+    public MutedBoardIssueInfo(int trackedBranchNameId, String userName, String jiraTicket, String comment, String webUrl) {
+        this.trackedBranchNameId = trackedBranchNameId;
+        this.userName = userName;
         this.jiraTicket = jiraTicket;
         this.comment = comment;
-        this.userName = userName;
         this.webUrl = webUrl;
-        this.muteTime = muteTime;
     }
 
-    public String getName() {
-        return name;
+    public int getTrackedBranchNameId() {
+        return trackedBranchNameId;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setTrackedBranchNameId(int trackedBranchNameId) {
+        this.trackedBranchNameId = trackedBranchNameId;
     }
 
     public String getUserName() {
@@ -79,18 +77,5 @@ public class MutedBoardIssueInfo {
 
     public void setWebUrl(String webUrl) {
         this.webUrl = webUrl;
-    }
-
-    public ZonedDateTime getMuteTime() {
-        return muteTime;
-    }
-
-    public String getMuteTimeAsString() {
-        return muteTime != null ?
-            muteTime.format(DateTimeFormatter.ofPattern("MM/dd/yyyy - HH:mm:ss z")) : "";
-    }
-
-    public void setMuteTime(ZonedDateTime muteTime) {
-        this.muteTime = muteTime;
     }
 }

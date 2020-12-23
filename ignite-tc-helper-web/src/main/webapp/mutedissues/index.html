@@ -66,21 +66,31 @@
                 defects: [],
                 expanded: [],
                 headers: [
-                    {text: "Branch", value: 'branch'},
-                    {text: 'Date', value: 'dateOfLastIssueAsString'},
-<!--                    {text: 'Suites', value: 'suitesSummary'},-->
-<!--                    {text: "Commits", value: 'blameCandidateSummary'},-->
-<!--                    {text: "Issues", value: 'cntissues'},-->
-<!--                    {text: "Fixed", value: 'cntfixedissues'},-->
-<!--                    {text: "Ignored", value: 'cntignoredissues'},-->
-<!--                    {text: "Not Fixed", value: 'cntfailingissues'},-->
-<!--                    {text: "Unclear", value: 'cntunclearissues'}-->
+                    {text: "Name", value: 'Name'},
+                    {text: 'Issue type', value: 'Issue type'},
+                    {text: 'Branch', value: 'Branch'},
+                    {text: "Ticket", value: 'Ticket'},
+                    {text: "Comment", value: 'Comment'},
+                    {text: "User", value: 'User'},
+                    {text: "Unmute", value: 'Unmute'},
                 ]
             },
             methods: {
                 formChanged: function () {
                     loadDataSilent();
                 },
+
+                unmuteModal: function (item) {
+                    $.ajax({
+                        url: "/rest/board/unmuteTest",
+                        type: 'DELETE',
+                        data: { tcSrvId: item.tcSrvId,
+                                name: item.name,
+                                branch: item.branchName,
+                                issueType: item.issueType
+                                }
+                    });
+                }
             }
         });
     }
@@ -188,44 +198,47 @@
         <v-data-table
                 :headers="headers"
                 :items="defects"
-                itrackedBranchtem-key="id"
                 class="elevation-1"
-                sort-by="branch"
                 :expanded.sync="expanded"
                 show-expand
                 dense
         >
             <!-- expand item/row -->
-            <template v-slot:expanded-item="{ headers, item }">
-                <td :colspan="headers.length">
-                Branch: {{ item.trackedBranch }}<br>
-                    <table>
-                        <tr v-for="(value, key, i) in item.mutedIssues">
+            <template v-slot:item="{ headers, item }">
+<!--                <td :colspan="headers.length">-->
+<!--                    <table>-->
+                        <tr>
                             <td style="width:25%">
-                                <a v-if="value.webUrl != null" :href="value.webUrl">
-                                    {{ key }}
+                                <a v-if="item.webUrl != null" :href="item.webUrl">
+                                    {{ item.name }}
                                 </a>
                                 <span v-else>
-                                {{ key }}
+                                {{ item.name }}
                                 </span>
                             </td>
+                            <td style="width:40%">
+                                {{ item.issueType }}
+                            </td>
+                            <td style="width:40%">
+                                {{ item.trackedBranchName }}
+                            </td>
                             <td style="width:25%">
-                                <a :href="value.jiraTicket">
-                                    {{ value.jiraTicket }}
+                                <a :href="item.jiraTicket">
+                                    {{ item.jiraTicket }}
                                 </a>
                             </td>
                             <td style="width:40%">
-                                {{ value.comment }}
+                                {{ item.comment }}
                             </td>
                             <td style="width:5%">
-                                {{ value.userName }}
+                                {{ item.userName }}
                             </td>
-                            <td style="width:5%">
-                                {{ value.muteTimeAsString }}
+                            <td>
+                                <button class="muteModal" v-on:click="unmuteModal(item)">Unmute</button>
                             </td>
                         </tr>
-                    </table>
-                </td>
+<!--                    </table>-->
+<!--                </td>-->
             </template>
         </v-data-table>
 

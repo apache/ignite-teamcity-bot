@@ -17,8 +17,10 @@
 package org.apache.ignite.ci.web.rest.board;
 
 import java.util.Collection;
+import java.util.Map;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
@@ -30,8 +32,10 @@ import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.tcbot.engine.board.BoardService;
+import org.apache.ignite.tcbot.engine.boardmute.MutedBoardIssueInfo;
+import org.apache.ignite.tcbot.engine.boardmute.MutedBoardIssueKey;
 import org.apache.ignite.tcbot.engine.ui.BoardSummaryUi;
-import org.apache.ignite.tcignited.boardmute.MutedBoardDefect;
+import org.apache.ignite.tcbot.engine.ui.MutedIssueUi;
 
 @Path(BoardRestService.BOARD)
 @Produces(MediaType.APPLICATION_JSON)
@@ -56,21 +60,34 @@ public class BoardRestService {
 
     @PUT
     @Path("muteTest")
-    public void muteTest(@FormParam("defectId") int defectId,
+    public void muteTest(
+        @FormParam("tcSrvId") int tcSrvId,
+        @FormParam("name") String name,
         @FormParam("branch") String branch,
         @FormParam("trackedBranch") String trackedBranch,
-        @FormParam("name") String name,
+        @FormParam("issueType") String issueType,
         @FormParam("jiraTicket") String jiraTicket,
         @FormParam("comment") String comment,
         @FormParam("userName") String userName,
         @FormParam("webUrl") String webUrl) {
         CtxListener.getInjector(ctx).getInstance(BoardService.class)
-            .muteTest(defectId, branch, trackedBranch, name, jiraTicket, comment, userName, webUrl);
+            .muteTest(tcSrvId, name, branch, trackedBranch, issueType, jiraTicket, comment, userName, webUrl);
+    }
+
+    @DELETE
+    @Path("unmuteTest")
+    public void unmuteTest(
+        @FormParam("tcSrvId") int tcSrvId,
+        @FormParam("name") String name,
+        @FormParam("branch") String branch,
+        @FormParam("issueType") String issueType) {
+        CtxListener.getInjector(ctx).getInstance(BoardService.class)
+            .unmuteTest(tcSrvId, name, branch, issueType);
     }
 
     @GET
     @Path("mutedissues")
-    public Collection<MutedBoardDefect> getMutedIssues(@QueryParam("baseBranch") String baseBranch) {
-        return CtxListener.getInjector(ctx).getInstance(BoardService.class).getDefects(baseBranch);
+    public Collection<MutedIssueUi> getMutedIssues(/*@QueryParam("baseBranch") String baseBranch*/) {
+        return CtxListener.getInjector(ctx).getInstance(BoardService.class).getAllMutedIssues(/*baseBranch*/);
     }
 }

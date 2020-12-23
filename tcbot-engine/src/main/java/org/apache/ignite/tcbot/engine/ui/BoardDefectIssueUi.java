@@ -31,11 +31,10 @@ public class BoardDefectIssueUi {
     private transient IStringCompactor compactor;
     private transient DefectIssue issue;
     private boolean suiteProblem;
-    private boolean isMuted;
+    private int tcSrvId;
     private String mutedByUser;
     private String jiraTicket;
     private String comment;
-    private String muteTime;
     @Nullable
     private String webUrl;
     private IssueResolveStatus status;
@@ -83,17 +82,17 @@ public class BoardDefectIssueUi {
         return status;
     }
 
+    public void setStatus(IssueResolveStatus status) {
+        this.status = status;
+    }
+
     @Nullable
     public String getWebUrl() {
         return webUrl;
     }
 
     public boolean isMuted() {
-        return isMuted;
-    }
-
-    public void setMuted(boolean isMuted) {
-        this.isMuted = isMuted;
+        return !"".equals(mutedByUser);
     }
 
     public String getMutedByUser() {
@@ -120,11 +119,11 @@ public class BoardDefectIssueUi {
         this.comment = comment;
     }
 
-    public String getMuteTime() {
-        return muteTime;
+    public int getTcSrvId() {
+        return tcSrvId;
     }
 
-    public void setMuteTime(String muteTime) {
-        this.muteTime = muteTime;
+    public void setTcSrvId(int tcSrvId) {
+        this.tcSrvId = tcSrvId;
     }
 }

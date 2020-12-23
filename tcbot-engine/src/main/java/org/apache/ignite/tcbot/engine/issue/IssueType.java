@@ -44,6 +44,25 @@ public enum IssueType {
     /** Display name. */
     private final String displayName;
 
+    static public IssueType convertDisplayName(String displayName) {
+        switch (displayName) {
+            case "New test failure":
+                return newFailure;
+            case "Recently contributed test failed":
+                return newContributedTestFailure;
+            case "New stable failure of a flaky test":
+                return newFailureForFlakyTest;
+            case "New Critical Failure":
+                return newCriticalFailure;
+            case "New Trusted Suite failure":
+                return newTrustedSuiteFailure;
+            case "Test with high flaky rate":
+                return newTestWithHighFlakyRate;
+        }
+
+        throw new IllegalArgumentException("Unable issue type: " + displayName);
+    }
+
     /**
      * @param code Code.
      * @param displayName Display name.
@@ -66,4 +85,5 @@ public enum IssueType {
     public String displayName() {
         return displayName;
     }
+
 }
