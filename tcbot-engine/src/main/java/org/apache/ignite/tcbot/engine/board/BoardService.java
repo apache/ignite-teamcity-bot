@@ -447,7 +447,7 @@ public class BoardService {
 
                 issueUi.tcSrvId = key.getTcSrvId();
                 issueUi.name = key.getName();
-                issueUi.branchName = compactor.getStringFromId(key.branchNameId());
+                issueUi.branch = compactor.getStringFromId(key.branchNameId());
                 issueUi.trackedBranch = compactor.getStringFromId(value.getTrackedBranchId());
                 issueUi.issueType = key.getIssueType().displayName();
                 issueUi.userName = value.getUserName();
