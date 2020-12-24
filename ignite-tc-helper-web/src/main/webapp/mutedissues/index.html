@@ -22,12 +22,6 @@
     <script src="/js/common-1.6.js"></script>
 
     <style>
-<!--        input.solid {border-style: solid;}-->
-<!--        textarea.solid {border-style: solid;}-->
-<!--        select.solid {border-style: solid;}-->
-<!--        select#selBranch {-->
-<!--            width: 300px;-->
-<!--        }-->
         select#selBranch {
             border-style: solid;
             -webkit-appearance: auto;
@@ -70,13 +64,13 @@
                 defects: [],
                 expanded: [],
                 headers: [
-                    {text: "Name", value: 'Name'},
-                    {text: 'Issue type', value: 'Issue type'},
-                    {text: 'Branch', value: 'Branch'},
-                    {text: "Ticket", value: 'Ticket'},
-                    {text: "Comment", value: 'Comment'},
-                    {text: "User", value: 'User'},
-                    {text: "Unmute", value: 'Unmute'},
+                    {text: "Name", value: 'name'},
+                    {text: 'Issue type', value: 'issueType'},
+                    {text: 'Branch', value: 'trackedBranchName'},
+                    {text: "Ticket", value: 'jiraTicket'},
+                    {text: "Comment", value: 'comment'},
+                    {text: "User", value: 'userName'},
+                    {text: "Unmute", value: 'unmute'},
                 ]
             },
             methods: {
@@ -86,7 +80,7 @@
 
                 unmuteModal: function (item) {
                     $.ajax({
-                        url: "/rest/board/unmuteTest",
+                        url: "/rest/board/unmuteIssue",
                         type: 'DELETE',
                         data: { tcSrvId: item.tcSrvId,
                                 name: item.name,
@@ -98,7 +92,6 @@
             }
         });
     }
-
 
     function parmsForRest() {
         var curReqParms = "";
@@ -142,17 +135,17 @@
         loadDataFromServer(false);
     }
 
-<!--    function validateVersionsConsistency() {-->
-<!--        $.ajax({-->
-<!--            url: "/rest/branches/version", success: function (result) {-->
-<!--                if (g_TcBotVersion == null)-->
-<!--                    g_TcBotVersion = result.version;-->
-<!--                else if (g_TcBotVersion !== result.version)-->
-<!--                    window.location.reload(true);-->
+    function validateVersionsConsistency() {
+        $.ajax({
+            url: "/rest/branches/version", success: function (result) {
+                if (g_TcBotVersion == null)
+                    g_TcBotVersion = result.version;
+                else if (g_TcBotVersion !== result.version)
+                    window.location.reload(true);
 
-<!--            }, error: showErrInLoadStatus-->
-<!--        });-->
-<!--    }-->
+            }, error: showErrInLoadStatus
+        });
+    }
 
     function loadDataSilent() {
         if(g_Loading)
@@ -206,17 +199,16 @@
         <v-data-table
                 :headers="headers"
                 :items="defects"
-                class="elevation-1"
-                :expanded.sync="expanded"
-                show-expand
+                sort-by="name"
                 dense
+                multi-sort
         >
             <!-- expand item/row -->
             <template v-slot:item="{ headers, item }">
 <!--                <td :colspan="headers.length">-->
 <!--                    <table>-->
                         <tr>
-                            <td style="width:25%">
+                            <td style="width:20%">
                                 <a v-if="item.webUrl != null" :href="item.webUrl">
                                     {{ item.name }}
                                 </a>
@@ -224,24 +216,24 @@
                                 {{ item.name }}
                                 </span>
                             </td>
-                            <td style="width:40%">
+                            <td style="width:10%">
                                 {{ item.issueType }}
                             </td>
-                            <td style="width:40%">
+                            <td style="width:10%">
                                 {{ item.trackedBranchName }}
                             </td>
-                            <td style="width:25%">
+                            <td style="width:15%">
                                 <a :href="item.jiraTicket">
                                     {{ item.jiraTicket }}
                                 </a>
                             </td>
-                            <td style="width:40%">
+                            <td style="width:35%">
                                 {{ item.comment }}
                             </td>
                             <td style="width:5%">
                                 {{ item.userName }}
                             </td>
-                            <td>
+                            <td style="width:5%">
                                 <button class="muteModal" v-on:click="unmuteModal(item)">Unmute</button>
                             </td>
                         </tr>

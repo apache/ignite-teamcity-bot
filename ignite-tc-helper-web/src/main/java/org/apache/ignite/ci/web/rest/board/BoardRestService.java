@@ -17,7 +17,6 @@
 package org.apache.ignite.ci.web.rest.board;
 
 import java.util.Collection;
-import java.util.Map;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
@@ -32,8 +31,6 @@ import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.tcbot.engine.board.BoardService;
-import org.apache.ignite.tcbot.engine.boardmute.MutedBoardIssueInfo;
-import org.apache.ignite.tcbot.engine.boardmute.MutedBoardIssueKey;
 import org.apache.ignite.tcbot.engine.ui.BoardSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.MutedIssueUi;
 
@@ -60,7 +57,7 @@ public class BoardRestService {
 
     @PUT
     @Path("muteTest")
-    public void muteTest(
+    public void muteIssue(
         @FormParam("tcSrvId") int tcSrvId,
         @FormParam("name") String name,
         @FormParam("branch") String branch,
@@ -71,18 +68,18 @@ public class BoardRestService {
         @FormParam("userName") String userName,
         @FormParam("webUrl") String webUrl) {
         CtxListener.getInjector(ctx).getInstance(BoardService.class)
-            .muteTest(tcSrvId, name, branch, trackedBranch, issueType, jiraTicket, comment, userName, webUrl);
+            .muteIssue(tcSrvId, name, branch, trackedBranch, issueType, jiraTicket, comment, userName, webUrl);
     }
 
     @DELETE
     @Path("unmuteTest")
-    public void unmuteTest(
+    public void unmuteIssue(
         @FormParam("tcSrvId") int tcSrvId,
         @FormParam("name") String name,
         @FormParam("branch") String branch,
         @FormParam("issueType") String issueType) {
         CtxListener.getInjector(ctx).getInstance(BoardService.class)
-            .unmuteTest(tcSrvId, name, branch, issueType);
+            .unmuteIssue(tcSrvId, name, branch, issueType);
     }
 
     @GET

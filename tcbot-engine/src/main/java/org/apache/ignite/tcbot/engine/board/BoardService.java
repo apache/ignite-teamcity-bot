@@ -20,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -150,7 +151,7 @@ public class BoardService {
 
                     issueUi.setTcSrvId(next.tcSrvId());
 
-                    MutedBoardIssueKey issueKey = new MutedBoardIssueKey(next.tcSrvId(), compactor.getStringFromId(issue.testNameCid()),
+                    MutedBoardIssueKey issueKey = new MutedBoardIssueKey(next.tcSrvId(), issueUi.getName(),
                         fatBuild.branchName(), IssueType.valueOf(compactor.getStringFromId(issue.issueTypeCode())));
 
                     MutedBoardIssueInfo mutedIssueInfo = muteBoardDao.getMutedBoardDefect(issueKey);
@@ -221,7 +222,7 @@ public class BoardService {
 
                 if (test.isIgnoredTest())
                     status = IssueResolveStatus.IGNORED;
-                if (test.isMutedTest())
+                else if (test.isMutedTest())
                     status = IssueResolveStatus.TC_MUTED;
                 else if (IssueType.newTestWithHighFlakyRate.code().equals(issueType)) {
                     int fullSuiteNameAndFullTestName = issue.testNameCid();
@@ -407,7 +408,7 @@ public class BoardService {
         defectStorage.save(defect);
     }
 
-    public void muteTest(
+    public void muteIssue(
         int tcSrvId,
         String name,
         String branch,
@@ -421,11 +422,12 @@ public class BoardService {
 
         if (muteBoardDao.getMutedBoardDefect(issueKey) == null) {
             MutedBoardIssueInfo issueInfo = new MutedBoardIssueInfo(compactor.getStringId(trackedBranch), userName, jiraTicket, comment, webUrl);
+
             muteBoardDao.putIssue(issueKey, issueInfo);
         }
     }
 
-    public void unmuteTest(
+    public void unmuteIssue(
         int tcSrvId,
         String name,
         String branch,
@@ -462,6 +464,7 @@ public class BoardService {
                     return false;
 
             })
+            .sorted(Comparator.comparing(issueUi -> issueUi.name))
             .collect(toList());
     }
 }

@@ -60,7 +60,7 @@ public enum IssueType {
                 return newTestWithHighFlakyRate;
         }
 
-        throw new IllegalArgumentException("Unable issue type: " + displayName);
+        throw new IllegalArgumentException("Illegal issue type: " + displayName);
     }
 
     /**

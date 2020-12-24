@@ -17,17 +17,13 @@
 
 package org.apache.ignite.tcbot.engine.boardmute;
 
-import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.tcbot.engine.issue.IssueType;
 
 public class MutedBoardIssueKey {
     private int tcSrvId = -1;
 
-    /** Test name */
     private String name;
 
-    /** Compacter identifier for string 'Branch name'. */
-    @QuerySqlField(index = true)
     private int branchNameId = -1;
 
     private IssueType issueType;

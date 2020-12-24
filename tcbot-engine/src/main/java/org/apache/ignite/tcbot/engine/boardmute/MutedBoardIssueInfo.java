@@ -17,9 +17,6 @@
 
 package org.apache.ignite.tcbot.engine.boardmute;
 
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-
 public class MutedBoardIssueInfo {
     private int trackedBranchNameId;
 
