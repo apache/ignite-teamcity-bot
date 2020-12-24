@@ -448,7 +448,7 @@ public class BoardService {
                 issueUi.tcSrvId = key.getTcSrvId();
                 issueUi.name = key.getName();
                 issueUi.branchName = compactor.getStringFromId(key.branchNameId());
-                issueUi.trackedBranchName = compactor.getStringFromId(value.getTrackedBranchNameId());
+                issueUi.trackedBranch = compactor.getStringFromId(value.getTrackedBranchId());
                 issueUi.issueType = key.getIssueType().displayName();
                 issueUi.userName = value.getUserName();
                 issueUi.jiraTicket = value.getJiraTicket();
@@ -458,7 +458,7 @@ public class BoardService {
                 return issueUi;
             })
             .filter(issue -> {
-                if (baseBranch == null || baseBranch.equals("") ||  issue.trackedBranchName.equals(baseBranch))
+                if (baseBranch == null || baseBranch.equals("") ||  issue.trackedBranch.equals(baseBranch))
                     return true;
                 else
                     return false;

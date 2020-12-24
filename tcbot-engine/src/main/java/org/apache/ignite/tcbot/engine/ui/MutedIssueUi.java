@@ -1,8 +1,5 @@
 package org.apache.ignite.tcbot.engine.ui;
 
-import org.apache.ignite.cache.query.annotations.QuerySqlField;
-import org.apache.ignite.tcbot.engine.issue.IssueType;
-
 public class MutedIssueUi {
     public int tcSrvId;
 
@@ -11,7 +8,7 @@ public class MutedIssueUi {
 
     public String branchName;
 
-    public String trackedBranchName;
+    public String trackedBranch;
 
     public String issueType;
 
@@ -47,12 +44,12 @@ public class MutedIssueUi {
         this.branchName = branchName;
     }
 
-    public String getTrackedBranchName() {
-        return trackedBranchName;
+    public String getTrackedBranch() {
+        return trackedBranch;
     }
 
-    public void setTrackedBranchName(String trackedBranchName) {
-        this.trackedBranchName = trackedBranchName;
+    public void setTrackedBranch(String trackedBranch) {
+        this.trackedBranch = trackedBranch;
     }
 
     public String getIssueType() {

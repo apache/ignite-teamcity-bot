@@ -66,7 +66,7 @@
                 headers: [
                     {text: "Name", value: 'name'},
                     {text: 'Issue type', value: 'issueType'},
-                    {text: 'Branch', value: 'trackedBranchName'},
+                    {text: 'Branch', value: 'trackedBranch'},
                     {text: "Ticket", value: 'jiraTicket'},
                     {text: "Comment", value: 'comment'},
                     {text: "User", value: 'userName'},
@@ -84,7 +84,7 @@
                         type: 'DELETE',
                         data: { tcSrvId: item.tcSrvId,
                                 name: item.name,
-                                branch: item.branchName,
+                                branch: item.branch,
                                 issueType: item.issueType
                                 }
                     });
@@ -114,7 +114,7 @@
         g_Loading = true;
         if (!silent) $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
 
-        var curFailuresUrl = "/rest/board/mutedissues" + parmsForRest();
+        var curFailuresUrl = "/rest/board/mutedIssues" + parmsForRest();
         $.ajax({
             url: curFailuresUrl,
             success: function (result) {
@@ -165,7 +165,7 @@
         branches = [];
 
         defects.forEach(function (defect, index) {
-            branches.push(defect.trackedBranchName)
+            branches.push(defect.trackedBranch)
         });
 
         branches.sort();
@@ -173,9 +173,6 @@
         branches.forEach(function (branch, index) {
             gVue.$data.baseBranches.add(branch)
         });
-
-<!--        selBranch.value = 'All branches';-->
-<!--        $("#selBranch").val('All branches');-->
     }
 
 </script>
@@ -203,10 +200,7 @@
                 dense
                 multi-sort
         >
-            <!-- expand item/row -->
             <template v-slot:item="{ headers, item }">
-<!--                <td :colspan="headers.length">-->
-<!--                    <table>-->
                         <tr>
                             <td style="width:20%">
                                 <a v-if="item.webUrl != null" :href="item.webUrl">
@@ -220,7 +214,7 @@
                                 {{ item.issueType }}
                             </td>
                             <td style="width:10%">
-                                {{ item.trackedBranchName }}
+                                {{ item.trackedBranch }}
                             </td>
                             <td style="width:15%">
                                 <a :href="item.jiraTicket">
@@ -237,8 +231,6 @@
                                 <button class="muteModal" v-on:click="unmuteModal(item)">Unmute</button>
                             </td>
                         </tr>
-<!--                    </table>-->
-<!--                </td>-->
             </template>
         </v-data-table>
 

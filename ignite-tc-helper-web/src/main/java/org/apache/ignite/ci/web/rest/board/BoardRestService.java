@@ -56,7 +56,7 @@ public class BoardRestService {
     }
 
     @PUT
-    @Path("muteTest")
+    @Path("muteIssue")
     public void muteIssue(
         @FormParam("tcSrvId") int tcSrvId,
         @FormParam("name") String name,
@@ -72,7 +72,7 @@ public class BoardRestService {
     }
 
     @DELETE
-    @Path("unmuteTest")
+    @Path("unmuteIssue")
     public void unmuteIssue(
         @FormParam("tcSrvId") int tcSrvId,
         @FormParam("name") String name,
@@ -83,7 +83,7 @@ public class BoardRestService {
     }
 
     @GET
-    @Path("mutedissues")
+    @Path("mutedIssues")
     public Collection<MutedIssueUi> getMutedIssues(@QueryParam("baseBranch") String baseBranch) {
         return CtxListener.getInjector(ctx).getInstance(BoardService.class).getAllMutedIssues(baseBranch);
     }

@@ -18,7 +18,7 @@
 package org.apache.ignite.tcbot.engine.boardmute;
 
 public class MutedBoardIssueInfo {
-    private int trackedBranchNameId;
+    private int trackedBranchId;
 
     private String userName;
 
@@ -28,20 +28,20 @@ public class MutedBoardIssueInfo {
 
     private String webUrl;
 
-    public MutedBoardIssueInfo(int trackedBranchNameId, String userName, String jiraTicket, String comment, String webUrl) {
-        this.trackedBranchNameId = trackedBranchNameId;
+    public MutedBoardIssueInfo(int trackedBranchId, String userName, String jiraTicket, String comment, String webUrl) {
+        this.trackedBranchId = trackedBranchId;
         this.userName = userName;
         this.jiraTicket = jiraTicket;
         this.comment = comment;
         this.webUrl = webUrl;
     }
 
-    public int getTrackedBranchNameId() {
-        return trackedBranchNameId;
+    public int getTrackedBranchId() {
+        return trackedBranchId;
     }
 
-    public void setTrackedBranchNameId(int trackedBranchNameId) {
-        this.trackedBranchNameId = trackedBranchNameId;
+    public void setTrackedBranchId(int trackedBranchId) {
+        this.trackedBranchId = trackedBranchId;
     }
 
     public String getUserName() {
