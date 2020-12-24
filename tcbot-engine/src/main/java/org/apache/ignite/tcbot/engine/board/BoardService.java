@@ -435,7 +435,7 @@ public class BoardService {
         muteBoardDao.removeIssue(issueKey);
     }
 
-    public Collection<MutedIssueUi> getAllMutedIssues(/*String baseBranch*/) {
+    public Collection<MutedIssueUi> getAllMutedIssues(String baseBranch) {
         return muteBoardDao.getAllMutedIssues().entrySet().stream()
             .map(entry -> {
                 MutedBoardIssueKey key = entry.getKey();
@@ -454,6 +454,13 @@ public class BoardService {
                 issueUi.webUrl = value.getWebUrl();
 
                 return issueUi;
+            })
+            .filter(issue -> {
+                if (baseBranch == null || baseBranch.equals("") ||  issue.trackedBranchName.equals(baseBranch))
+                    return true;
+                else
+                    return false;
+
             })
             .collect(toList());
     }

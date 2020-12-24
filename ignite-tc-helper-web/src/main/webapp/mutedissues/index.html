@@ -22,11 +22,17 @@
     <script src="/js/common-1.6.js"></script>
 
     <style>
-        input.solid {border-style: solid;}
-        textarea.solid {border-style: solid;}
-        select.solid {border-style: solid;}
+<!--        input.solid {border-style: solid;}-->
+<!--        textarea.solid {border-style: solid;}-->
+<!--        select.solid {border-style: solid;}-->
+<!--        select#selBranch {-->
+<!--            width: 300px;-->
+<!--        }-->
         select#selBranch {
-            width: 300px;
+            border-style: solid;
+            -webkit-appearance: auto;
+            -webkit-writing-mode: horizontal-tb !important;
+            -webkit-rtl-ordering: logical;
         }
     </style>
 </head>
@@ -38,22 +44,20 @@
     let gVue, g_Loading, g_TcBotVersion;
 
     $(document).ready(function() {
-<!--        $.getScript("/js/testfails-2.2.js", function(data, textStatus, jqxhr){ });-->
+        $.getScript("/js/testfails-2.2.js", function(data, textStatus, jqxhr){ });
 
-<!--        $( document ).tooltip();-->
+        $( document ).tooltip();
         showQueryForm();
 
         loadData();
 
-<!--        setInterval(loadDataSilent, 7000);-->
+        setInterval(loadDataSilent, 7000);
 
-<!--        $.ajax({ url: "/rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });-->
+        $.ajax({ url: "/rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
     });
 
     $(window).on('pageshow', function() {
-        var selBranch = document.getElementById('selBranch');
-        selBranch.value = 'All branches';
-        $("#selBranch").val('All branches');
+        gVue.$data.baseBranchSelected = 'All branches';
     });
 
     function showQueryForm() {
@@ -103,7 +107,10 @@
             curReqParms += "?branch=" + branch;
         }
 
-        if (gVue.$data.baseBranchSelected != null && gVue.$data.baseBranchSelected != 'All branches') {
+        if (gVue.$data.baseBranchSelected != null &&
+                gVue.$data.baseBranchSelected != "" &&
+                typeof gVue.$data.baseBranchSelected !== 'undefined' &&
+                gVue.$data.baseBranchSelected != 'All branches') {
             curReqParms += "?baseBranch=" +  gVue.$data.baseBranchSelected;
         }
 
@@ -148,38 +155,30 @@
 <!--    }-->
 
     function loadDataSilent() {
-<!--        if(g_Loading)-->
-<!--            return;-->
+        if(g_Loading)
+            return;
 
         try {
             loadDataFromServer(true);
-<!--            validateVersionsConsistency();-->
+            validateVersionsConsistency();
         } catch (e) {
             console.log(e);
         }
     }
 
-    function showData(result) {
-        gVue.$data.defects = result;
+    function showData(defects) {
+        gVue.$data.defects = defects;
 
-        result.forEach(function (defect, index) {
-            gVue.$data.baseBranches.add(defect.trackedBranch)
+        branches = [];
+
+        defects.forEach(function (defect, index) {
+            branches.push(defect.trackedBranchName)
         });
 
-        var selBranch = document.getElementById('selBranch');
+        branches.sort();
 
-        var i, L = selBranch.options.length - 1;
-        for(i = L; i >= 0; i--) {
-            selBranch.remove(i);
-        }
-
-        gVue.$data.baseBranches.add('All branches');
-
-        gVue.$data.baseBranches.forEach(function (branch, index) {
-            var opt = document.createElement('option');
-            opt.appendChild(document.createTextNode(branch));
-            opt.value = index;
-            selBranch.appendChild(opt);
+        branches.forEach(function (branch, index) {
+            gVue.$data.baseBranches.add(branch)
         });
 
 <!--        selBranch.value = 'All branches';-->
@@ -190,10 +189,19 @@
 
 <div id="loadStatus"></div>
 <div id="vueQueryForm" class="h-25">
-    <v-app id="queryForm" class="h-25">
+
+    <div class="formgroup">
         <span>Branch:</span>
-        <select v-model="baseBranchSelected" @change="formChanged" id="selBranch" cols="60" class="solid">
+        <select v-model="baseBranchSelected" @change="formChanged" id="selBranch">
+            <option  value="All branches">All branches</option>
+
+            <option v-for="option in baseBranches" v-bind:value="option">
+                {{ option }}
+            </option>
         </select>
+    </div>
+
+    <v-app id="queryForm" class="h-25">
 
         <v-data-table
                 :headers="headers"
