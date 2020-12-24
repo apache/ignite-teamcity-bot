@@ -61,7 +61,7 @@
             data: {
                 baseBranchSelected: '',
                 baseBranches: new Set(),
-                defects: [],
+                issues: [],
                 expanded: [],
                 headers: [
                     {text: "Name", value: 'name'},
@@ -159,13 +159,13 @@
         }
     }
 
-    function showData(defects) {
-        gVue.$data.defects = defects;
+    function showData(issues) {
+        gVue.$data.issues = issues;
 
         branches = [];
 
-        defects.forEach(function (defect, index) {
-            branches.push(defect.trackedBranch)
+        issues.forEach(function (issue, index) {
+            branches.push(issue.trackedBranch)
         });
 
         branches.sort();
@@ -195,7 +195,7 @@
 
         <v-data-table
                 :headers="headers"
-                :items="defects"
+                :items="issues"
                 sort-by="name"
                 dense
                 multi-sort

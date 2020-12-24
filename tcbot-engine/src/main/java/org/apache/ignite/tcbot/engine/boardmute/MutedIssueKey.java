@@ -19,7 +19,7 @@ package org.apache.ignite.tcbot.engine.boardmute;
 
 import org.apache.ignite.tcbot.engine.issue.IssueType;
 
-public class MutedBoardIssueKey {
+public class MutedIssueKey {
     private int tcSrvId;
 
     private String name;
@@ -28,7 +28,7 @@ public class MutedBoardIssueKey {
 
     private IssueType issueType;
 
-    public MutedBoardIssueKey(int tcSrvId, String name, int branchId, IssueType issueType) {
+    public MutedIssueKey(int tcSrvId, String name, int branchId, IssueType issueType) {
         this.tcSrvId = tcSrvId;
         this.name = name;
         this.branchId = branchId;

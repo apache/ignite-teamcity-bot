@@ -71,7 +71,7 @@
         },
         buttons: {
             Mute: function() {
-                document.getElementsByClassName('isMuted_' + $("#message").data('item').id + '_' + $("#message").data('index')).item(0).value = 'BotMuted';
+                document.getElementsByClassName('issue_' + $("#message").data('item').id + '_' + $("#message").data('index')).item(0).value = 'BotMuted';
                     $.ajax({
                         url: "/rest/board/muteIssue",
                         type: 'PUT',
@@ -294,7 +294,7 @@
                     Tests affected:
                     <table>
                         <tr v-for="(issue, i) in item.allIssues">
-                            <td v-bind:class="'isMuted_' + item.id + '_' + i">
+                            <td v-bind:class="'issue_' + item.id + '_' + i">
                                 <td v-if="issue.status === 'FIXED'">
                                     Fixed
                                 </td>
@@ -315,11 +315,6 @@
                                 {{ issue.name }}
                                 </span>
                             </td>
-<!--                            <td v-bind:class="'isMuted_' + item.id + '_' + i">-->
-<!--                                <template v-if="issue.muted === true">-->
-<!--                                    muted-->
-<!--                                </template>-->
-<!--                            </td>-->
                             <td>
                                 <template v-if="issue.status !== 'BOT_MUTED' && issue.status !== 'FIXED'">
                                     <button class="muteModal" v-on:click="muteModal(item, issue, i)">Mute</button>

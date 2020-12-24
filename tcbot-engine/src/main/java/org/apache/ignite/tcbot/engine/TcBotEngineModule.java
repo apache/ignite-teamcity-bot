@@ -21,7 +21,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.tcbot.common.TcBotCommonModule;
 import org.apache.ignite.tcbot.engine.board.BoardService;
-import org.apache.ignite.tcbot.engine.boardmute.MuteBoardDao;
+import org.apache.ignite.tcbot.engine.boardmute.MutedIssuesDao;
 import org.apache.ignite.tcbot.engine.build.SingleBuildResultsService;
 import org.apache.ignite.tcbot.engine.buildtime.BuildTimeService;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
@@ -50,7 +50,7 @@ public class TcBotEngineModule extends AbstractModule {
 
         bind(IUserStorage.class).to(UserAndSessionsStorage.class).in(new SingletonScope());
 
-        bind(MuteBoardDao.class).in(new SingletonScope());
+        bind(MutedIssuesDao.class).in(new SingletonScope());
 
         install(new TcBotCommonModule());
     }

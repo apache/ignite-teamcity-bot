@@ -43,8 +43,8 @@ import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.common.util.FutureUtil;
-import org.apache.ignite.tcbot.engine.boardmute.MuteBoardDao;
-import org.apache.ignite.tcbot.engine.boardmute.MutedBoardIssueKey;
+import org.apache.ignite.tcbot.engine.boardmute.MutedIssuesDao;
+import org.apache.ignite.tcbot.engine.boardmute.MutedIssueKey;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.chain.SingleBuildRunCtx;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
@@ -66,7 +66,7 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.tcbot.engine.boardmute.MutedBoardIssueInfo;
+import org.apache.ignite.tcbot.engine.boardmute.MutedIssueInfo;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.build.ITest;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
@@ -82,7 +82,7 @@ public class BoardService {
     @Inject IIssuesStorage issuesStorage;
     @Inject FatBuildDao fatBuildDao;
     @Inject ChangeDao changeDao;
-    @Inject MuteBoardDao muteBoardDao;
+    @Inject MutedIssuesDao mutedIssuesDao;
     @Inject ITeamcityIgnitedProvider tcProv;
     @Inject DefectsStorage defectStorage;
     @Inject IScheduler scheduler;
@@ -96,8 +96,6 @@ public class BoardService {
      */
     public BoardSummaryUi summary(ICredentialsProv creds, String baseBranch) {
         issuesToDefectsLater();
-
-        muteBoardDao.init();
 
         Map<Integer, Future<FatBuildCompacted>> allBuildsMap = new HashMap<>();
 
@@ -151,10 +149,10 @@ public class BoardService {
 
                     issueUi.setTcSrvId(next.tcSrvId());
 
-                    MutedBoardIssueKey issueKey = new MutedBoardIssueKey(next.tcSrvId(), issueUi.getName(),
+                    MutedIssueKey issueKey = new MutedIssueKey(next.tcSrvId(), issueUi.getName(),
                         fatBuild.branchName(), IssueType.valueOf(compactor.getStringFromId(issue.issueTypeCode())));
 
-                    MutedBoardIssueInfo mutedIssueInfo = muteBoardDao.getMutedBoardDefect(issueKey);
+                    MutedIssueInfo mutedIssueInfo = mutedIssuesDao.getMutedIssue(issueKey);
 
                     if (mutedIssueInfo != null) {
                         issueUi.setMutedByUser(mutedIssueInfo.getUserName());
@@ -418,12 +416,12 @@ public class BoardService {
         String comment,
         String userName,
         String webUrl) {
-        MutedBoardIssueKey issueKey = new MutedBoardIssueKey(tcSrvId, name, compactor.getStringId(branch), IssueType.valueOf(issueType));
+        MutedIssueKey issueKey = new MutedIssueKey(tcSrvId, name, compactor.getStringId(branch), IssueType.valueOf(issueType));
 
-        if (muteBoardDao.getMutedBoardDefect(issueKey) == null) {
-            MutedBoardIssueInfo issueInfo = new MutedBoardIssueInfo(compactor.getStringId(trackedBranch), userName, jiraTicket, comment, webUrl);
+        if (mutedIssuesDao.getMutedIssue(issueKey) == null) {
+            MutedIssueInfo issueInfo = new MutedIssueInfo(compactor.getStringId(trackedBranch), userName, jiraTicket, comment, webUrl);
 
-            muteBoardDao.putIssue(issueKey, issueInfo);
+            mutedIssuesDao.putIssue(issueKey, issueInfo);
         }
     }
 
@@ -432,16 +430,16 @@ public class BoardService {
         String name,
         String branch,
         String issueType) {
-        MutedBoardIssueKey issueKey = new MutedBoardIssueKey(tcSrvId, name, compactor.getStringId(branch), convertDisplayName(issueType));
+        MutedIssueKey issueKey = new MutedIssueKey(tcSrvId, name, compactor.getStringId(branch), convertDisplayName(issueType));
 
-        muteBoardDao.removeIssue(issueKey);
+        mutedIssuesDao.removeIssue(issueKey);
     }
 
     public Collection<MutedIssueUi> getAllMutedIssues(String baseBranch) {
-        return muteBoardDao.getAllMutedIssues().entrySet().stream()
+        return mutedIssuesDao.getAllMutedIssues().entrySet().stream()
             .map(entry -> {
-                MutedBoardIssueKey key = entry.getKey();
-                MutedBoardIssueInfo value = entry.getValue();
+                MutedIssueKey key = entry.getKey();
+                MutedIssueInfo value = entry.getValue();
 
                 MutedIssueUi issueUi = new MutedIssueUi();
 

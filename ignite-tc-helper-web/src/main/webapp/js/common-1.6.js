@@ -175,6 +175,7 @@ function showMenu(menuData) {
         res += "<a href=\"/visas.html\" title='Issued TC Bot Visa history'>Visas history</a>";
         res += "<a href=\"/mutes.html\" title='Muted tests list'>Muted tests</a>";
         res += "<a href=\"/mutedissues\" title='Muted issues list'>Muted issues</a>";
+        res += "<a href=\"/board\" title='Muted issues list'>Board</a>";
 
         res += "<div class='topnav-right'>";
 

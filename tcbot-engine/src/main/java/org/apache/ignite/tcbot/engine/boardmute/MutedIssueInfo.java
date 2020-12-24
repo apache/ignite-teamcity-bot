@@ -17,7 +17,7 @@
 
 package org.apache.ignite.tcbot.engine.boardmute;
 
-public class MutedBoardIssueInfo {
+public class MutedIssueInfo {
     private int trackedBranchId;
 
     private String userName;
@@ -28,7 +28,7 @@ public class MutedBoardIssueInfo {
 
     private String webUrl;
 
-    public MutedBoardIssueInfo(int trackedBranchId, String userName, String jiraTicket, String comment, String webUrl) {
+    public MutedIssueInfo(int trackedBranchId, String userName, String jiraTicket, String comment, String webUrl) {
         this.trackedBranchId = trackedBranchId;
         this.userName = userName;
         this.jiraTicket = jiraTicket;
