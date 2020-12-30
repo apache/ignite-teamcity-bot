@@ -52,6 +52,8 @@
                     gVue.$data.tcBranchesForSrv.push(baseBranchForTc);
                     gVue.$data.baseBranchSelected = baseBranchForTc;
                 }
+
+                gVue.$data.tcBranchesForSrv.sort();
             },
             error: showErrInLoadStatus
         });

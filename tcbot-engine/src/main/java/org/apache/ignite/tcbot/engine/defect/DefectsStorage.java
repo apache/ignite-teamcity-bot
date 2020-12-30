@@ -21,8 +21,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.cache.Cache;
 import javax.inject.Inject;
@@ -36,9 +36,12 @@ import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
+import org.apache.ignite.ci.teamcity.ignited.change.RevisionCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
+
+import static java.util.stream.Collectors.toList;
 
 @NotThreadSafe
 public class DefectsStorage {
@@ -105,15 +108,40 @@ public class DefectsStorage {
             .map(ChangeCompacted::commitVersion)
             .map(CommitCompacted::new)
             .sorted(CommitCompacted::compareTo)
-            .collect(Collectors.toList());
+            .collect(toList());
 
-        try (QueryCursor<Cache.Entry<Integer, DefectCompacted>> qry = cache.query(new ScanQuery<Integer, DefectCompacted>()
-            .setFilter((k, v) -> v.resolvedByUsernameId() < 1 && v.tcSrvId() == srvId))) {
-            for (Cache.Entry<Integer, DefectCompacted> next : qry) {
-                DefectCompacted openDefect = next.getValue();
+        if (!commitsToUse.isEmpty()) {
+            try (QueryCursor<Cache.Entry<Integer, DefectCompacted>> qry = cache.query(new ScanQuery<Integer, DefectCompacted>()
+                .setFilter((k, v) -> v.resolvedByUsernameId() < 1 && v.tcSrvId() == srvId))) {
+                for (Cache.Entry<Integer, DefectCompacted> next : qry) {
+                    DefectCompacted openDefect = next.getValue();
 
-                if (openDefect.sameCommits(commitsToUse))
-                    return processExisting(function, cache, next.getKey(), openDefect);
+                    if (openDefect.sameCommits(commitsToUse))
+                        return processExisting(function, cache, next.getKey(), openDefect);
+                }
+            }
+        }
+
+        List<RevisionCompacted> buildRevisions = fatBuild.revisions();
+
+        if (buildRevisions == null)
+            buildRevisions = new ArrayList<>();
+
+        List<CommitCompacted> revisionsToUse = buildRevisions.stream()
+            .map(RevisionCompacted::revision)
+            .map(CommitCompacted::new)
+            .sorted(CommitCompacted::compareTo)
+            .collect(toList());
+
+        if (commitsToUse.isEmpty() && !buildRevisions.isEmpty()) {
+            try (QueryCursor<Cache.Entry<Integer, DefectCompacted>> qry = cache.query(new ScanQuery<Integer, DefectCompacted>()
+                .setFilter((k, v) -> v.resolvedByUsernameId() < 1 && v.tcSrvId() == srvId))) {
+                for (Cache.Entry<Integer, DefectCompacted> next : qry) {
+                    DefectCompacted openDefect = next.getValue();
+
+                    if (openDefect.sameRevisions(revisionsToUse))
+                        return processExisting(function, cache, next.getKey(), openDefect);
+                }
             }
         }
 
@@ -123,6 +151,7 @@ public class DefectsStorage {
 
         DefectCompacted defect = new DefectCompacted(id)
             .commits(commitsToUse)
+            .revisions(revisionsToUse)
             .changeMap(changeList)
             .tcBranch(fatBuild.branchName())
             .tcSrvId(srvId)
@@ -173,6 +202,34 @@ public class DefectsStorage {
     public void save(DefectCompacted defect) {
         Preconditions.checkState(defect.id() != 0);
         cache().put(defect.id(), defect);
+    }
+
+    public void checkIfPossibleToRemove(Map<Integer, List<Integer>> oldBuildsTeamCityAndBuildIds) {
+        cache().forEach(entry -> {
+            DefectCompacted defect = entry.getValue();
+
+            List<Integer> buildIdsToRemove = oldBuildsTeamCityAndBuildIds.get(defect.tcSrvId());
+
+            if (defect.resolvedTs() == -1 && buildIdsToRemove != null) {
+                defect.buildsInvolved().values().stream()
+                    .map(build -> build.build().id())
+                    .forEach(buildIdsToRemove::remove);
+            }
+        });
+    }
+
+    public void removeOldDefects(Map<Integer, List<Integer>> oldBuildsTeamCityAndBuildIds) {
+        cache().forEach(entry -> {
+            DefectCompacted defect = entry.getValue();
+
+            Optional.ofNullable(oldBuildsTeamCityAndBuildIds.get(defect.tcSrvId())).ifPresent(buildIdsToRemove -> {
+                List<Integer> defectBuildIds = defect.buildsInvolved().values().stream()
+                    .map(build -> build.build().id()).collect(toList());
+
+                if (defectBuildIds.stream().anyMatch(buildIdsToRemove::contains))
+                    cache().remove(entry.getKey());
+            });
+        });
     }
 
     public void removeOldDefects(long thresholdDate, int numOfItemsToDel) {

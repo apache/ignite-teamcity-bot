@@ -49,6 +49,7 @@ public class Issue {
 
     public double flakyRate;
 
+    /** Branch alias */
     @Nullable
     public String trackedBranchName;
 

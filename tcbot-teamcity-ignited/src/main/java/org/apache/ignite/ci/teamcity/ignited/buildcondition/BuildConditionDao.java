@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.teamcity.ignited.buildcondition;
 
+import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
@@ -78,5 +79,9 @@ public class BuildConditionDao {
 
     public void remove(long key) {
         buildsCache.remove(key);
+    }
+
+    public void removeAll(Set<Long> keys) {
+        buildsCache.removeAll(keys);
     }
 }

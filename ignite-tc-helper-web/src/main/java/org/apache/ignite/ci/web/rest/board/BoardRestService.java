@@ -16,13 +16,12 @@
  */
 package org.apache.ignite.ci.web.rest.board;
 
-import com.google.inject.Injector;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
-import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
@@ -45,9 +44,9 @@ public class BoardRestService {
 
     @GET
     @Path("summary")
-    public BoardSummaryUi getSummary() {
+    public BoardSummaryUi getSummary(@QueryParam("baseBranch") String baseBranch) {
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
 
-        return CtxListener.getInjector(ctx).getInstance(BoardService.class).summary(creds);
+        return CtxListener.getInjector(ctx).getInstance(BoardService.class).summary(creds, baseBranch);
     }
 }
