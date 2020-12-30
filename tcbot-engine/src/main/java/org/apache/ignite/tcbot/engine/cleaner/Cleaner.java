@@ -20,11 +20,12 @@ import java.io.File;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
 import org.apache.ignite.lang.IgniteBiTuple;
@@ -47,7 +48,6 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
-import static org.apache.ignite.tcignited.build.FatBuildDao.cacheKeyToSrvIdAndBuildId;
 
 public class Cleaner {
     private final AtomicBoolean init = new AtomicBoolean();
@@ -140,10 +140,6 @@ public class Cleaner {
     private void removeLogFiles(ZonedDateTime thresholdDate, int numOfItemsToDel) {
         long thresholdEpochMilli = thresholdDate.toInstant().toEpochMilli();
 
-        issuesStorage.removeOldIssues(thresholdDate, numOfItemsToDel);
-    }
-
-    private void removeLogFiles(long thresholdDate, int numOfItemsToDel) {
         final File workDir = TcBotWorkDir.resolveWorkDir();
 
         for (String srvId : cfg.getServerIds()) {
