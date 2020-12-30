@@ -33,11 +33,16 @@ import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.tcbot.engine.board.BoardService;
 import org.apache.ignite.tcbot.engine.ui.BoardSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.MutedIssueUi;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Path(BoardRestService.BOARD)
 @Produces(MediaType.APPLICATION_JSON)
 public class BoardRestService {
     static final String BOARD = "board";
+
+    /** */
+    private static final Logger logger = LoggerFactory.getLogger(BoardRestService.class);
 
     /** Servlet Context. */
     @Context

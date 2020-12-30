@@ -410,10 +410,28 @@ public class BoardService {
         String comment,
         String userName,
         String webUrl) {
-        MutedIssueKey issueKey = new MutedIssueKey(tcSrvId, nameId, compactor.getStringId(branch), IssueType.valueOf(issueType));
+
+        if (branch == null || trackedBranch == null || issueType == null|| jiraTicket == null||
+                comment == null || userName == null || webUrl == null)
+            throw new NullPointerException(String.format("branch: %s, trackedBranch: %s, issueType: %s, jiraTicket: %s, " +
+                "comment: %s, userName: %s, webUrl: %s, ",
+                String.valueOf(branch), String.valueOf(trackedBranch), String.valueOf(issueType), String.valueOf(jiraTicket),
+                String.valueOf(comment), String.valueOf(userName), String.valueOf(webUrl)));
+
+        Integer branchId = compactor.getStringIdIfPresent(branch);
+
+        if (branchId <= 0)
+            throw new IllegalArgumentException("There is no id in the stringsCache for string: \"" + branch + "\"");
+
+        MutedIssueKey issueKey = new MutedIssueKey(tcSrvId, nameId, branchId, IssueType.valueOf(issueType));
 
         if (mutedIssuesDao.getMutedIssue(issueKey) == null) {
-            MutedIssueInfo issueInfo = new MutedIssueInfo(compactor.getStringId(trackedBranch), userName, jiraTicket, comment, webUrl);
+            Integer trackedBranchId = compactor.getStringIdIfPresent(trackedBranch);
+
+            if (trackedBranchId <= 0)
+                throw new IllegalArgumentException("There is no id in the stringsCache for string: \"" + trackedBranch + "\"");
+
+            MutedIssueInfo issueInfo = new MutedIssueInfo(trackedBranchId, userName, jiraTicket, comment, webUrl);
 
             mutedIssuesDao.putIssue(issueKey, issueInfo);
         }
