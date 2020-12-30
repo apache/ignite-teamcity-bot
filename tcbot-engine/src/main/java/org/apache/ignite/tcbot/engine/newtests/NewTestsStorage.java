@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.ignite.tcbot.engine.newtests;
 
 import javax.cache.Cache;
@@ -18,7 +35,7 @@ public class NewTestsStorage {
     private Provider<Ignite> igniteProvider;
 
     /** */
-    private IgniteCache<String, NewTestInfo> cache() {
+    private IgniteCache<NewTestKey, NewTestInfo> cache() {
         return botNewTestsCache(getIgnite());
     }
 
@@ -28,40 +45,42 @@ public class NewTestsStorage {
     }
 
     /** */
-    public static IgniteCache<String, NewTestInfo> botNewTestsCache(Ignite ignite) {
-        CacheConfiguration<String, NewTestInfo> ccfg = CacheConfigs.getCache8PartsConfig("newTestsCache");
+    public static IgniteCache<NewTestKey, NewTestInfo> botNewTestsCache(Ignite ignite) {
+        CacheConfiguration<NewTestKey, NewTestInfo> ccfg = CacheConfigs.getCache8PartsConfig("newTestsCache");
 
         return ignite.getOrCreateCache(ccfg);
     }
 
     /** */
-    public boolean isNewTest(String branch, String testId, String srvId) {
-        NewTestInfo savedTest = cache().get(testId + srvId);
+    public boolean isNewTest(String srvId, Long testId, String baseBranch, String branch) {
+        NewTestInfo savedTest = cache().get(new NewTestKey(srvId, testId, baseBranch));
 
         if (savedTest == null)
             return true;
         else
-            return savedTest.branch().equals(branch);
+            return savedTest.branch().startsWith(branch);
     }
 
     /** */
-    public boolean isNewTestAndPut(String branch, String testId, String srvId) {
-        NewTestInfo savedTest = cache().get(testId + srvId);
+    public boolean isNewTestAndPut(String srvId, Long testId, String baseBranch, String branch) {
+        NewTestKey testKey = new NewTestKey(srvId, testId, baseBranch);
+
+        NewTestInfo savedTest = cache().get(testKey);
 
         if (savedTest == null) {
-            cache().put(testId + srvId, new NewTestInfo(branch, System.currentTimeMillis()));
+            cache().put(testKey, new NewTestInfo(branch, System.currentTimeMillis()));
             return true;
         }
         else
-            return savedTest.branch().equals(branch);
+            return savedTest.branch().startsWith(branch);
     }
 
     /** */
     public void removeOldTests(long thresholdDate) {
-        ScanQuery<String, NewTestInfo> scan =
+        ScanQuery<NewTestKey, NewTestInfo> scan =
             new ScanQuery<>((key, testInfo) -> testInfo.timestamp() < thresholdDate);
 
-        for (Cache.Entry<String, NewTestInfo> entry : cache().query(scan))
+        for (Cache.Entry<NewTestKey, NewTestInfo> entry : cache().query(scan))
             cache().remove(entry.getKey());
     }
 }

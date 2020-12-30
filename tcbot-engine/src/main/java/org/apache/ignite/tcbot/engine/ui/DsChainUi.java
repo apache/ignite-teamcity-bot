@@ -309,8 +309,8 @@ public class DsChainUi {
                     if (history == null && !test.isMutedOrIgored()) {
 
                         if (test.getId() != null &&
-                            newTestsStorage.isNewTest(ctx.branchName(),
-                                test.getId().toString(), tcIgnited.serverCode()))
+                            newTestsStorage.isNewTest(tcIgnited.serverCode(),
+                                test.getId(), failRateNormalizedBranch, ctx.branchName()))
                             return true;
                         else
                             return false;

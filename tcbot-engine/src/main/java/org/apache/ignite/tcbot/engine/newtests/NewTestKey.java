@@ -18,26 +18,19 @@
 package org.apache.ignite.tcbot.engine.newtests;
 
 /** */
-public class NewTestInfo {
+public class NewTestKey {
     /** */
-    private String branch;
+    String srvId;
 
     /** */
-    private long timestamp;
+    Long testId;
 
     /** */
-    public NewTestInfo(String branch, long timestamp) {
-        this.branch = branch;
-        this.timestamp = timestamp;
-    }
+    String baseBranch;
 
-    /** */
-    public String branch() {
-        return branch;
-    }
-
-    /** */
-    public long timestamp() {
-        return timestamp;
+    public NewTestKey(String srvId, Long testId, String baseBranch) {
+        this.srvId = srvId;
+        this.testId = testId;
+        this.baseBranch = baseBranch;
     }
 }

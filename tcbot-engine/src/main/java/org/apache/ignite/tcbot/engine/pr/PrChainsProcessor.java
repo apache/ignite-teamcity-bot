@@ -397,8 +397,8 @@ public class PrChainsProcessor {
                     if (history == null && !test.isMutedOrIgored()) {
 
                         if (test.getId() != null &&
-                            newTestsStorage.isNewTestAndPut(ctx.branchName(),
-                                test.getId().toString(), tcIgnited.serverCode()))
+                            newTestsStorage.isNewTestAndPut(tcIgnited.serverCode(),
+                                test.getId(), normalizedBaseBranch, ctx.branchName()))
                             return true;
                         else
                             return false;
