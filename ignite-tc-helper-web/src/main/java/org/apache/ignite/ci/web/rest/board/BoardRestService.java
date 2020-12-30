@@ -59,7 +59,7 @@ public class BoardRestService {
     @Path("muteIssue")
     public void muteIssue(
         @FormParam("tcSrvId") int tcSrvId,
-        @FormParam("name") String name,
+        @FormParam("nameId") int nameId,
         @FormParam("branch") String branch,
         @FormParam("trackedBranch") String trackedBranch,
         @FormParam("issueType") String issueType,
@@ -68,18 +68,18 @@ public class BoardRestService {
         @FormParam("userName") String userName,
         @FormParam("webUrl") String webUrl) {
         CtxListener.getInjector(ctx).getInstance(BoardService.class)
-            .muteIssue(tcSrvId, name, branch, trackedBranch, issueType, jiraTicket, comment, userName, webUrl);
+            .muteIssue(tcSrvId, nameId, branch, trackedBranch, issueType, jiraTicket, comment, userName, webUrl);
     }
 
     @DELETE
     @Path("unmuteIssue")
     public void unmuteIssue(
         @FormParam("tcSrvId") int tcSrvId,
-        @FormParam("name") String name,
+        @FormParam("nameId") int nameId,
         @FormParam("branch") String branch,
         @FormParam("issueType") String issueType) {
         CtxListener.getInjector(ctx).getInstance(BoardService.class)
-            .unmuteIssue(tcSrvId, name, branch, issueType);
+            .unmuteIssue(tcSrvId, nameId, branch, issueType);
     }
 
     @GET

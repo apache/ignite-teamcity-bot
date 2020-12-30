@@ -74,6 +74,7 @@ import org.apache.ignite.tcignited.history.IRunHistory;
 
 import static java.util.stream.Collectors.toList;
 import static org.apache.ignite.tcbot.engine.board.IssueResolveStatus.BOT_MUTED;
+import static org.apache.ignite.tcbot.engine.boardmute.MutedIssueKey.parseName;
 import static org.apache.ignite.tcbot.engine.issue.IssueType.convertDisplayName;
 import static org.apache.ignite.tcignited.history.RunStatus.RES_MISSING;
 import static org.apache.ignite.tcignited.history.RunStatus.RES_OK;
@@ -149,20 +150,13 @@ public class BoardService {
 
                     issueUi.setTcSrvId(next.tcSrvId());
 
-                    MutedIssueKey issueKey = new MutedIssueKey(next.tcSrvId(), issueUi.getName(),
+                    MutedIssueKey issueKey = new MutedIssueKey(next.tcSrvId(), issue.testNameCid(),
                         fatBuild.branchName(), IssueType.valueOf(compactor.getStringFromId(issue.issueTypeCode())));
 
                     MutedIssueInfo mutedIssueInfo = mutedIssuesDao.getMutedIssue(issueKey);
 
-                    if (mutedIssueInfo != null) {
-                        issueUi.setMutedByUser(mutedIssueInfo.getUserName());
-
-                        issueUi.setJiraTicket(mutedIssueInfo.getJiraTicket());
-
-                        issueUi.setComment(mutedIssueInfo.getComment());
-
+                    if (mutedIssueInfo != null)
                         issueUi.setStatus(BOT_MUTED);
-                    }
 
                     defectUi.addIssue(issueUi);
                 }
@@ -408,7 +402,7 @@ public class BoardService {
 
     public void muteIssue(
         int tcSrvId,
-        String name,
+        int nameId,
         String branch,
         String trackedBranch,
         String issueType,
@@ -416,7 +410,7 @@ public class BoardService {
         String comment,
         String userName,
         String webUrl) {
-        MutedIssueKey issueKey = new MutedIssueKey(tcSrvId, name, compactor.getStringId(branch), IssueType.valueOf(issueType));
+        MutedIssueKey issueKey = new MutedIssueKey(tcSrvId, nameId, compactor.getStringId(branch), IssueType.valueOf(issueType));
 
         if (mutedIssuesDao.getMutedIssue(issueKey) == null) {
             MutedIssueInfo issueInfo = new MutedIssueInfo(compactor.getStringId(trackedBranch), userName, jiraTicket, comment, webUrl);
@@ -427,10 +421,10 @@ public class BoardService {
 
     public void unmuteIssue(
         int tcSrvId,
-        String name,
+        int nameId,
         String branch,
         String issueType) {
-        MutedIssueKey issueKey = new MutedIssueKey(tcSrvId, name, compactor.getStringId(branch), convertDisplayName(issueType));
+        MutedIssueKey issueKey = new MutedIssueKey(tcSrvId, nameId, compactor.getStringId(branch), convertDisplayName(issueType));
 
         mutedIssuesDao.removeIssue(issueKey);
     }
@@ -444,7 +438,7 @@ public class BoardService {
                 MutedIssueUi issueUi = new MutedIssueUi();
 
                 issueUi.tcSrvId = key.getTcSrvId();
-                issueUi.name = key.getName();
+                issueUi.nameId = key.getNameId();
                 issueUi.branch = compactor.getStringFromId(key.branchNameId());
                 issueUi.trackedBranch = compactor.getStringFromId(value.getTrackedBranchId());
                 issueUi.issueType = key.getIssueType().displayName();
@@ -452,6 +446,12 @@ public class BoardService {
                 issueUi.jiraTicket = value.getJiraTicket();
                 issueUi.comment = value.getComment();
                 issueUi.webUrl = value.getWebUrl();
+
+                if (key.getIssueType() == IssueType.newCriticalFailure
+                        || key.getIssueType() == IssueType.newTrustedSuiteFailure)
+                    issueUi.name = compactor.getStringFromId(key.getNameId());
+                else
+                    issueUi.name = parseName(compactor.getStringFromId(key.getNameId()));
 
                 return issueUi;
             })

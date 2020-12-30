@@ -37,8 +37,7 @@ public class MutedIssuesDao {
 
     /** */
     public IgniteCache<MutedIssueKey, MutedIssueInfo> cache() {
-
-        return igniteProvider.get().getOrCreateCache(CacheConfigs.getCacheV2Config(BOARD_MUTE_CACHE_NAME));
+        return igniteProvider.get().getOrCreateCache(CacheConfigs.getCache8PartsConfig(BOARD_MUTE_CACHE_NAME));
     }
 
     public void putIssue(MutedIssueKey issueKey, MutedIssueInfo issueInfo) {

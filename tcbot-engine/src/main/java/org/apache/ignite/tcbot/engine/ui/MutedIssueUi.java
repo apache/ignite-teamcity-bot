@@ -20,6 +20,8 @@ package org.apache.ignite.tcbot.engine.ui;
 public class MutedIssueUi {
     public int tcSrvId;
 
+    public int nameId;
+
     public String name;
 
     public String branch;

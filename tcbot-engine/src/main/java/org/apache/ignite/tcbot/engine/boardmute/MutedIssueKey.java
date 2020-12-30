@@ -17,20 +17,22 @@
 
 package org.apache.ignite.tcbot.engine.boardmute;
 
+import com.google.common.base.Strings;
 import org.apache.ignite.tcbot.engine.issue.IssueType;
+import org.apache.ignite.tcbot.engine.ui.ShortTestFailureUi;
 
 public class MutedIssueKey {
     private int tcSrvId;
 
-    private String name;
+    private int nameId;
 
     private int branchId;
 
     private IssueType issueType;
 
-    public MutedIssueKey(int tcSrvId, String name, int branchId, IssueType issueType) {
+    public MutedIssueKey(int tcSrvId, int nameId, int branchId, IssueType issueType) {
         this.tcSrvId = tcSrvId;
-        this.name = name;
+        this.nameId = nameId;
         this.branchId = branchId;
         this.issueType = issueType;
     }
@@ -43,12 +45,12 @@ public class MutedIssueKey {
         this.tcSrvId = tcSrvId;
     }
 
-    public String getName() {
-        return name;
+    public int getNameId() {
+        return nameId;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setNameId(int nameId) {
+        this.nameId = nameId;
     }
 
     public int branchNameId() {
@@ -65,5 +67,21 @@ public class MutedIssueKey {
 
     public void setIssueType(IssueType issueType) {
         this.issueType = issueType;
+    }
+
+    public static String parseName(String name) {
+        String suiteName = null, testName = null;
+
+        String[] split = Strings.nullToEmpty(name).split("\\:");
+        if (split.length >= 2) {
+            suiteName = ShortTestFailureUi.extractSuite(split[0]);
+            testName = ShortTestFailureUi.extractTest(split[1]);
+        }
+
+        if (testName != null && suiteName != null)
+            return suiteName + ":" + testName;
+
+        return name;
+
     }
 }

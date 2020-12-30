@@ -83,7 +83,7 @@
                         url: "/rest/board/unmuteIssue",
                         type: 'DELETE',
                         data: { tcSrvId: item.tcSrvId,
-                                name: item.name,
+                                nameId: item.nameId,
                                 branch: item.branch,
                                 issueType: item.issueType
                                 }
@@ -203,7 +203,7 @@
             <template v-slot:item="{ headers, item }">
                         <tr>
                             <td style="width:20%">
-                                <a v-if="item.webUrl != null" :href="item.webUrl">
+                                <a v-if="item.webUrl !== null && item.webUrl !== ''" :href="item.webUrl">
                                     {{ item.name }}
                                 </a>
                                 <span v-else>

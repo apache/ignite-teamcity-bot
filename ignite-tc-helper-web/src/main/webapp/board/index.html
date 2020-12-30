@@ -63,8 +63,15 @@
         open: function() {
             $(this).parent().promise().done(function () {
                 document.getElementById('issueName').value = $("#message").data('issue').name;
-                document.getElementById('jiraTicket').value = $("#message").data('issue').jiraTicket;
-                document.getElementById('comment').value = $("#message").data('issue').comment;
+                document.getElementById('jiraTicket').value = '';
+                document.getElementById('comment').value = '';
+            });
+        },
+        close: function() {
+            $(this).parent().promise().done(function () {
+                document.getElementById('issueName').value = '';
+                document.getElementById('jiraTicket').value = '';
+                document.getElementById('comment').value = '';
             });
         },
         buttons: {
@@ -74,7 +81,7 @@
                         url: "/rest/board/muteIssue",
                         type: 'PUT',
                         data: { tcSrvId: $("#message").data('issue').tcSrvId,
-                                name: $("#message").data('issue').name,
+                                nameId: $("#message").data('issue').nameId,
                                 trackedBranch: $("#message").data('item').trackedBranch,
                                 branch: $("#message").data('item').branch,
                                 issueType: $("#message").data('issue').issueType,

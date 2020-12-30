@@ -32,9 +32,6 @@ public class BoardDefectIssueUi {
     private transient DefectIssue issue;
     private boolean suiteProblem;
     private int tcSrvId;
-    private String mutedByUser;
-    private String jiraTicket;
-    private String comment;
     @Nullable
     private String webUrl;
     private IssueResolveStatus status;
@@ -70,6 +67,10 @@ public class BoardDefectIssueUi {
 
     }
 
+    public int getNameId() {
+        return issue.testNameCid();
+    }
+
     public String getIssueType() {
         return compactor.getStringFromId(issue.issueTypeCode());
     }
@@ -89,34 +90,6 @@ public class BoardDefectIssueUi {
     @Nullable
     public String getWebUrl() {
         return webUrl;
-    }
-
-    public boolean isMuted() {
-        return !"".equals(mutedByUser);
-    }
-
-    public String getMutedByUser() {
-        return mutedByUser;
-    }
-
-    public void setMutedByUser(String mutedByUser) {
-        this.mutedByUser = mutedByUser;
-    }
-
-    public String getJiraTicket() {
-        return jiraTicket;
-    }
-
-    public void setJiraTicket(String jiraTicket) {
-        this.jiraTicket = jiraTicket;
-    }
-
-    public String getComment() {
-        return comment;
-    }
-
-    public void setComment(String comment) {
-        this.comment = comment;
     }
 
     public int getTcSrvId() {
