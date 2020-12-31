@@ -19,9 +19,7 @@ package org.apache.ignite.ci.tcbot.chain;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
-import java.io.File;
-import java.util.Properties;
-import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.githubignited.IGitHubConnIgnited;
 import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
@@ -42,6 +40,7 @@ import org.apache.ignite.tcbot.engine.conf.ITrackedBranchesConfig;
 import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
 import org.apache.ignite.tcbot.engine.conf.TcServerConfig;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
+import org.apache.ignite.tcbot.engine.newtests.NewTestsStorage;
 import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.apache.ignite.tcbot.notify.IEmailSender;
 import org.apache.ignite.tcbot.notify.ISlackSender;
@@ -50,12 +49,9 @@ import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcbot.persistence.InMemoryStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
-import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.apache.ignite.tcignited.buildlog.IBuildLogProcessor;
-import org.apache.ignite.tcservice.ITeamcityConn;
 import org.mockito.Mockito;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -139,6 +135,9 @@ public class MockBasedTcBotModule extends AbstractModule {
 
         bind(IEmailSender.class).toInstance(Mockito.mock(IEmailSender.class));
         bind(ISlackSender.class).toInstance(Mockito.mock(ISlackSender.class));
+
+        bind(Ignite.class).toInstance(Mockito.mock(Ignite.class));
+        bind(NewTestsStorage.class).toInstance(Mockito.mock(NewTestsStorage.class));
 
         super.configure();
     }
