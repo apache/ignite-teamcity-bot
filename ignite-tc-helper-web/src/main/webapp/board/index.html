@@ -89,7 +89,10 @@
                                 comment: document.getElementById('comment').value,
                                 userName: document.getElementById('userName').text,
                                 webUrl: $("#message").data('issue').webUrl
-                              }
+                              },
+                        error: function (jqXHR, exception) {
+                            showErrInLoadStatus(jqXHR, exception);
+                        }
                     });
                 $(this).dialog("close");
                 },

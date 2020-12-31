@@ -412,8 +412,12 @@ public class BoardService {
         String webUrl) {
 
         if (branch == null || trackedBranch == null || issueType == null|| jiraTicket == null||
-                comment == null || userName == null || webUrl == null)
-            throw new NullPointerException(String.format("branch: %s, trackedBranch: %s, issueType: %s, jiraTicket: %s, " +
+                comment == null || userName == null || webUrl == null ||
+                userName.isEmpty() ||
+                jiraTicket.length() > 100 || comment.length() > 500 ||
+                userName.length() > 100 || webUrl.length() > 250
+        )
+            throw new IllegalArgumentException(String.format("branch: %s, trackedBranch: %s, issueType: %s, jiraTicket: %s, " +
                 "comment: %s, userName: %s, webUrl: %s, ",
                 String.valueOf(branch), String.valueOf(trackedBranch), String.valueOf(issueType), String.valueOf(jiraTicket),
                 String.valueOf(comment), String.valueOf(userName), String.valueOf(webUrl)));
