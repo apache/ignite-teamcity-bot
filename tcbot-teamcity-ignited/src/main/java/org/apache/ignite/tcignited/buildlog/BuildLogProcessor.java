@@ -78,7 +78,14 @@ class BuildLogProcessor implements IBuildLogProcessor {
                     logCheckResultCompacted = new LogCheckResultCompacted();
                 }
 
-                logCheckResultDao.put(teamcity.serverCode(), buildId, logCheckResultCompacted);
+                try {
+                    logCheckResultDao.put(teamcity.serverCode(), buildId, logCheckResultCompacted);
+                }
+                catch (Exception ex) {
+                    logger.error("serverCode: " + teamcity.serverCode() + "; buildId: " + buildId +
+                        "; logCheck: " + logCheckResultCompacted.toString());
+                    throw ex;
+                }
 
                 return logCheckResultCompacted;
             });
