@@ -441,6 +441,38 @@ public class BoardService {
         }
     }
 
+    public void updateIssue(
+        int tcSrvId,
+        int nameId,
+        String branch,
+        String issueType,
+        String jiraTicket,
+        String comment) {
+
+        if (branch == null || issueType == null|| jiraTicket == null|| comment == null ||
+            jiraTicket.length() > 100 || comment.length() > 500
+        )
+            throw new IllegalArgumentException(String.format("branch: %s, issueType: %s, jiraTicket: %s, comment: %s",
+                String.valueOf(branch), String.valueOf(issueType), String.valueOf(jiraTicket), String.valueOf(comment)));
+
+        Integer branchId = compactor.getStringIdIfPresent(branch);
+
+        if (branchId <= 0)
+            throw new IllegalArgumentException("There is no id in the stringsCache for string: \"" + branch + "\"");
+
+        MutedIssueKey issueKey = new MutedIssueKey(tcSrvId, nameId, branchId, convertDisplayName(issueType));
+
+        MutedIssueInfo issueInfo = mutedIssuesDao.getMutedIssue(issueKey);
+
+        if (issueInfo != null) {
+            issueInfo.setJiraTicket(jiraTicket);
+
+            issueInfo.setComment(comment);
+
+            mutedIssuesDao.putIssue(issueKey, issueInfo);
+        }
+    }
+
     public void unmuteIssue(
         int tcSrvId,
         int nameId,
@@ -484,7 +516,7 @@ public class BoardService {
                     return false;
 
             })
-            .sorted(Comparator.comparing(issueUi -> issueUi.name))
+            .sorted(Comparator.comparing(MutedIssueUi::getName).thenComparing(MutedIssueUi::getIssueType))
             .collect(toList());
     }
 }

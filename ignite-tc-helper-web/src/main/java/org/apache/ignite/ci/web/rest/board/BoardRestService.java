@@ -22,6 +22,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.PATCH;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -74,6 +75,19 @@ public class BoardRestService {
         @FormParam("webUrl") String webUrl) {
         CtxListener.getInjector(ctx).getInstance(BoardService.class)
             .muteIssue(tcSrvId, nameId, branch, trackedBranch, issueType, jiraTicket, comment, userName, webUrl);
+    }
+
+    @PATCH
+    @Path("updateIssue")
+    public void updateIssue(
+        @FormParam("tcSrvId") int tcSrvId,
+        @FormParam("nameId") int nameId,
+        @FormParam("branch") String branch,
+        @FormParam("issueType") String issueType,
+        @FormParam("jiraTicket") String jiraTicket,
+        @FormParam("comment") String comment) {
+        CtxListener.getInjector(ctx).getInstance(BoardService.class)
+            .updateIssue(tcSrvId, nameId, branch, issueType, jiraTicket, comment);
     }
 
     @DELETE

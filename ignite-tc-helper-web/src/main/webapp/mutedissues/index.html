@@ -22,6 +22,9 @@
     <script src="/js/common-1.6.js"></script>
 
     <style>
+        input.solid {border-style: solid;}
+        textarea.solid {border-style: solid;}
+        select.solid {border-style: solid;}
         select#selBranch {
             border-style: solid;
             -webkit-appearance: auto;
@@ -32,8 +35,81 @@
 </head>
 <body>
 
+<div id="message" title="Edit issue">
+    <label>Issue</label><br>
+    <textarea rows="2" cols="60" class="solid" id="issueName" readonly></textarea><br>
+    <label>Jira ticket</label><br>
+    <textarea maxlength = "100" rows="2" cols="60" class="solid" id="jiraTicket"></textarea><br>
+    <label>Comment</label><br>
+    <textarea maxlength = "500" rows="7" cols="60" class="solid" id="comment"></textarea><br>
+</div>
 
 <script>
+    $('#message').dialog({
+        autoOpen: false,
+        modal: true,
+        maxWidth:600,
+        maxHeight: 500,
+        width: 600,
+        height: 350,
+        show: {
+            effect: "fade",
+            duration: 1000
+            },
+        hide: {
+            effect: "blind",
+            duration: 500
+            },
+        open: function() {
+            $(this).parent().promise().done(function () {
+                document.getElementById('issueName').value = $("#message").data('issue').name;
+                document.getElementById('jiraTicket').value = $("#message").data('issue').jiraTicket;
+                document.getElementById('comment').value = $("#message").data('issue').comment;
+            });
+        },
+        close: function() {
+            $(this).parent().promise().done(function () {
+                document.getElementById('issueName').value = '';
+                document.getElementById('jiraTicket').value = '';
+                document.getElementById('comment').value = '';
+            });
+        },
+        buttons: {
+            Save: function() {
+                    $.ajax({
+                        url: "/rest/board/updateIssue",
+                        type: 'PATCH',
+                        data: { tcSrvId: $("#message").data('issue').tcSrvId,
+                                nameId: $("#message").data('issue').nameId,
+                                branch: $("#message").data('issue').branch,
+                                issueType: $("#message").data('issue').issueType,
+                                jiraTicket: document.getElementById('jiraTicket').value,
+                                comment: document.getElementById('comment').value
+                              },
+                        error: function (jqXHR, exception) {
+                            showErrInLoadStatus(jqXHR, exception);
+                        }
+                    });
+                $(this).dialog("close");
+                },
+            Unmute: function() {
+                    $.ajax({
+                        url: "/rest/board/unmuteIssue",
+                        type: 'DELETE',
+                        data: { tcSrvId: $("#message").data('issue').tcSrvId,
+                                nameId: $("#message").data('issue').nameId,
+                                branch: $("#message").data('issue').branch,
+                                issueType: $("#message").data('issue').issueType
+                                }
+                    });
+                    $(this).dialog("close");
+                },
+            Cancel: function() {
+                $(this).dialog("close");
+                }
+        }
+    });
+
     var g_shownDataHashCodeHex = "";
     let gVue, g_Loading, g_TcBotVersion;
 
@@ -77,18 +153,11 @@
                 formChanged: function () {
                     loadDataSilent();
                 },
-
-                unmuteModal: function (item) {
-                    $.ajax({
-                        url: "/rest/board/unmuteIssue",
-                        type: 'DELETE',
-                        data: { tcSrvId: item.tcSrvId,
-                                nameId: item.nameId,
-                                branch: item.branch,
-                                issueType: item.issueType
-                                }
-                    });
-                }
+                editModal: function (item) {
+                    $('#message')
+                        .data('issue', item)
+                        .dialog("open");
+                    },
             }
         });
     }
@@ -228,7 +297,7 @@
                                 {{ item.userName }}
                             </td>
                             <td style="width:5%">
-                                <button class="muteModal" v-on:click="unmuteModal(item)">Unmute</button>
+                                <button class="editModal" v-on:click="editModal(item)">Edit</button>
                             </td>
                         </tr>
             </template>
