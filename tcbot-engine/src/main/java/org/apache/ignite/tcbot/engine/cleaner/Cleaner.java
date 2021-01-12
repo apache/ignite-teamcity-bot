@@ -26,7 +26,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
 import org.apache.ignite.lang.IgniteBiTuple;
@@ -36,6 +35,7 @@ import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.defect.DefectsStorage;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
+import org.apache.ignite.tcbot.engine.newtests.NewTestsStorage;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.buildlog.BuildLogCheckResultDao;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
@@ -48,7 +48,6 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
-import static org.apache.ignite.tcignited.build.FatBuildDao.cacheKeyToSrvIdAndBuildId;
 
 public class Cleaner {
     private final AtomicBoolean init = new AtomicBoolean();
@@ -61,6 +60,7 @@ public class Cleaner {
     @Inject private BuildStartTimeStorage buildStartTimeStorage;
     @Inject private BuildConditionDao buildConditionDao;
     @Inject private DefectsStorage defectsStorage;
+    @Inject private NewTestsStorage newTestsStorage;
     @Inject private ITcBotConfig cfg;
 
     /** Logger. */
@@ -131,6 +131,8 @@ public class Cleaner {
         //Need to eventually delete data with broken consistency
         defectsStorage.removeOldDefects(thresholdDate.minusDays(60).toInstant().toEpochMilli(), numOfItemsToDel);
         issuesStorage.removeOldIssues(thresholdDate.minusDays(60).toInstant().toEpochMilli(), numOfItemsToDel);
+
+        newTestsStorage.removeOldTests(ZonedDateTime.now().minusDays(5).toInstant().toEpochMilli());
 
         return oldBuildsKeys.size();
     }

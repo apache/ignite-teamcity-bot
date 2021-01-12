@@ -18,6 +18,7 @@
 package org.apache.ignite.tcbot.engine.ui;
 
 import com.google.common.base.Strings;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -32,11 +33,11 @@ import org.apache.ignite.tcbot.common.util.CollectionUtil;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
 import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
+import org.apache.ignite.tcbot.engine.newtests.NewTestsStorage;
 import org.apache.ignite.tcbot.engine.tracked.DisplayMode;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.history.IRunHistory;
-import org.apache.ignite.tcservice.ITeamcityConn;
 import org.apache.ignite.tcservice.model.conf.BuildType;
 
 import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.createOccurForLogConsumer;
@@ -294,15 +295,28 @@ public class DsChainUi {
     public void findNewTests(FullChainRunCtx ctx,
         ITeamcityIgnited tcIgnited,
         String baseBranchTc,
-        IStringCompactor compactor){
+        IStringCompactor compactor,
+        NewTestsStorage newTestsStorage){
         String failRateNormalizedBranch = normalizeBranch(baseBranchTc);
         Integer baseBranchId = compactor.getStringIdIfPresent(failRateNormalizedBranch);
+
         newTestsUi = ctx
             .suites()
             .map((suite) -> {
                 List<ShortTestUi> missingTests = suite.getFilteredTests(test -> {
                     IRunHistory history = test.history(tcIgnited, baseBranchId, null);
-                    return history == null && !test.isMutedOrIgored();
+
+                    if (history == null && !test.isMutedOrIgored()) {
+
+                        if (test.getId() != null &&
+                            newTestsStorage.isNewTest(tcIgnited.serverCode(),
+                                test.getId(), failRateNormalizedBranch, ctx.branchName()))
+                            return true;
+                        else
+                            return false;
+                    }
+                    else
+                        return false;
                 })
                     .stream()
                     .map(occurrence -> {

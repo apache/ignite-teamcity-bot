@@ -17,6 +17,7 @@
 package org.apache.ignite.tcbot.engine.pr;
 
 import com.google.common.base.Strings;
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +28,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
-import javax.inject.Provider;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.githubignited.IGitHubConnIgnited;
 import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
@@ -44,6 +44,7 @@ import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
+import org.apache.ignite.tcbot.engine.newtests.NewTestsStorage;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi;
@@ -59,8 +60,6 @@ import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcservice.ITeamcity;
-import org.apache.ignite.tcservice.ITeamcityConn;
-import org.apache.ignite.tcservice.TeamcityServiceConnection;
 
 /**
  * Process pull request/untracked branch chain at particular server.
@@ -94,6 +93,8 @@ public class PrChainsProcessor {
     @Inject private BranchEquivalence branchEquivalence;
 
     @Inject private UpdateCountersStorage countersStorage;
+
+    @Inject private NewTestsStorage newTestsStorage;
 
     /**
      * @param creds Credentials.
@@ -174,7 +175,7 @@ public class PrChainsProcessor {
             //fail rate reference is always default (master)
             chainStatus.initFromContext(tcIgnited, ctx, baseBranchForTc, compactor, false,
                     null, null, -1, null, false, false); // don't need for PR
-            chainStatus.findNewTests(ctx, tcIgnited, baseBranchForTc, compactor);
+            chainStatus.findNewTests(ctx, tcIgnited, baseBranchForTc, compactor, newTestsStorage);
             initJiraAndGitInfo(chainStatus, jiraIntegration, gitHubConnIgnited);
         }
 
@@ -393,7 +394,17 @@ public class PrChainsProcessor {
             .map((ctx) -> {
                 List<ShortTestUi> missingTests = ctx.getFilteredTests(test -> {
                     IRunHistory history = test.history(tcIgnited, baseBranchId, null);
-                    return history == null && !test.isMutedOrIgored();
+                    if (history == null && !test.isMutedOrIgored()) {
+
+                        if (test.getId() != null &&
+                            newTestsStorage.isNewTestAndPut(tcIgnited.serverCode(),
+                                test.getId(), normalizedBaseBranch, ctx.branchName()))
+                            return true;
+                        else
+                            return false;
+                    }
+                    else
+                        return false;
                 })
                     .stream()
                     .map(occurrence -> new ShortTestUi().initFrom(occurrence, occurrence.isPassed()))
