@@ -17,5 +17,5 @@
 package org.apache.ignite.tcbot.engine.board;
 
 public enum IssueResolveStatus {
-    FIXED, FAILING, IGNORED, UNKNOWN
+    FIXED, FAILING, IGNORED, TC_MUTED, BOT_MUTED, UNKNOWN
 }

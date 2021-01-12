@@ -135,8 +135,15 @@ public class BoardDefectSummaryUi {
         return issuesList.size();
     }
 
-    private Stream<BoardDefectIssueUi> issues(IssueResolveStatus type) {
-        return issuesList.stream().filter(iss -> iss.status() == type);
+    private Stream<BoardDefectIssueUi> issues(IssueResolveStatus... types) {
+        return issuesList.stream().filter(iss -> {
+            for (IssueResolveStatus type : types) {
+                if (iss.status() == type)
+                    return true;
+            }
+
+            return false;
+        });
     }
 
     public List<BoardDefectIssueUi> getIgnoredIssues() {
@@ -148,7 +155,7 @@ public class BoardDefectSummaryUi {
     }
 
     public Integer getCntIgnoredIssues() {
-        return (int) issues(IssueResolveStatus.IGNORED).count();
+        return (int) issues(IssueResolveStatus.IGNORED, IssueResolveStatus.TC_MUTED, IssueResolveStatus.BOT_MUTED).count();
     }
 
     public List<BoardDefectIssueUi> getFailingIssues() {

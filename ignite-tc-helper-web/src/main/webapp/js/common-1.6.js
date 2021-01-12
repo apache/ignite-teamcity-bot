@@ -174,6 +174,8 @@ function showMenu(menuData) {
         res += "<a href=\"/issues.html\" title='Detected issues list'>Issues history</a>";
         res += "<a href=\"/visas.html\" title='Issued TC Bot Visa history'>Visas history</a>";
         res += "<a href=\"/mutes.html\" title='Muted tests list'>Muted tests</a>";
+        res += "<a href=\"/mutedissues/index.html\" title='Muted issues list'>Muted issues</a>";
+        res += "<a href=\"/board/index.html\" title='Board'>Board</a>";
 
         res += "<div class='topnav-right'>";
 
@@ -183,7 +185,7 @@ function showMenu(menuData) {
 
         res += "<a href='/monitoring.html'>Server state</a>";
 
-        res += "<a href='/user.html'>" + userName + "</a>";
+        res += "<a id='userName' href='/user.html'>" + userName + "</a>";
         var logout = "/login.html" + "?exit=true&backref=" + encodeURIComponent(window.location.href);
         res += "<a href='" + logout + "'>Logout</a>";
 

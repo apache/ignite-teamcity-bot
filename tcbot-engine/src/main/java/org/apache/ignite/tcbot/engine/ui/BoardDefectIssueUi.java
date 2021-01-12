@@ -31,6 +31,7 @@ public class BoardDefectIssueUi {
     private transient IStringCompactor compactor;
     private transient DefectIssue issue;
     private boolean suiteProblem;
+    private int tcSrvId;
     @Nullable
     private String webUrl;
     private IssueResolveStatus status;
@@ -66,6 +67,10 @@ public class BoardDefectIssueUi {
 
     }
 
+    public int getNameId() {
+        return issue.testNameCid();
+    }
+
     public String getIssueType() {
         return compactor.getStringFromId(issue.issueTypeCode());
     }
@@ -78,8 +83,20 @@ public class BoardDefectIssueUi {
         return status;
     }
 
+    public void setStatus(IssueResolveStatus status) {
+        this.status = status;
+    }
+
     @Nullable
     public String getWebUrl() {
         return webUrl;
+    }
+
+    public int getTcSrvId() {
+        return tcSrvId;
+    }
+
+    public void setTcSrvId(int tcSrvId) {
+        this.tcSrvId = tcSrvId;
     }
 }

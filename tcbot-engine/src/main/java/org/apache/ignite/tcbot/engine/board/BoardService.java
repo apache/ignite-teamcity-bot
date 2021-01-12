@@ -20,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -29,7 +30,6 @@ import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -43,6 +43,8 @@ import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.common.util.FutureUtil;
+import org.apache.ignite.tcbot.engine.boardmute.MutedIssuesDao;
+import org.apache.ignite.tcbot.engine.boardmute.MutedIssueKey;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.chain.SingleBuildRunCtx;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
@@ -58,16 +60,22 @@ import org.apache.ignite.tcbot.engine.ui.BoardDefectSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.BoardSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
 import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
+import org.apache.ignite.tcbot.engine.ui.MutedIssueUi;
 import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcbot.engine.boardmute.MutedIssueInfo;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.build.ITest;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 import org.apache.ignite.tcignited.history.IRunHistory;
 
+import static java.util.stream.Collectors.toList;
+import static org.apache.ignite.tcbot.engine.board.IssueResolveStatus.BOT_MUTED;
+import static org.apache.ignite.tcbot.engine.boardmute.MutedIssueKey.parseName;
+import static org.apache.ignite.tcbot.engine.issue.IssueType.convertDisplayName;
 import static org.apache.ignite.tcignited.history.RunStatus.RES_MISSING;
 import static org.apache.ignite.tcignited.history.RunStatus.RES_OK;
 
@@ -75,6 +83,7 @@ public class BoardService {
     @Inject IIssuesStorage issuesStorage;
     @Inject FatBuildDao fatBuildDao;
     @Inject ChangeDao changeDao;
+    @Inject MutedIssuesDao mutedIssuesDao;
     @Inject ITeamcityIgnitedProvider tcProv;
     @Inject DefectsStorage defectStorage;
     @Inject IScheduler scheduler;
@@ -126,7 +135,7 @@ public class BoardService {
                 List<Future<FatBuildCompacted>> futures = buildChainProcessor.replaceWithRecent(fatBuild, allBuildsMap, tcIgn);
 
                 Stream<FatBuildCompacted> results = FutureUtil.getResults(futures);
-                List<FatBuildCompacted> freshRebuild = results.collect(Collectors.toList());
+                List<FatBuildCompacted> freshRebuild = results.collect(toList());
 
                 Optional<FatBuildCompacted> rebuild;
 
@@ -138,6 +147,17 @@ public class BoardService {
                     BoardDefectIssueUi issueUi = processIssue(tcIgn, rebuild, issue, firstBuild.buildTypeId());
                     if (issueUi.status() != IssueResolveStatus.FIXED)
                         defectUi.addTags(tags);
+
+                    issueUi.setTcSrvId(next.tcSrvId());
+
+                    MutedIssueKey issueKey = new MutedIssueKey(next.tcSrvId(), issue.testNameCid(),
+                        fatBuild.branchName(), IssueType.valueOf(compactor.getStringFromId(issue.issueTypeCode())));
+
+                    MutedIssueInfo mutedIssueInfo = mutedIssuesDao.getMutedIssue(issueKey);
+
+                    if (mutedIssueInfo != null)
+                        issueUi.setStatus(BOT_MUTED);
+
                     defectUi.addIssue(issueUi);
                 }
             }
@@ -192,8 +212,10 @@ public class BoardService {
             if (testResult.isPresent()) {
                 ITest test = testResult.get();
 
-                if (test.isIgnoredTest() || test.isMutedTest())
+                if (test.isIgnoredTest())
                     status = IssueResolveStatus.IGNORED;
+                else if (test.isMutedTest())
+                    status = IssueResolveStatus.TC_MUTED;
                 else if (IssueType.newTestWithHighFlakyRate.code().equals(issueType)) {
                     int fullSuiteNameAndFullTestName = issue.testNameCid();
 
@@ -376,5 +398,125 @@ public class BoardService {
         defect.resolvedByUsernameId(strId);
 
         defectStorage.save(defect);
+    }
+
+    public void muteIssue(
+        int tcSrvId,
+        int nameId,
+        String branch,
+        String trackedBranch,
+        String issueType,
+        String jiraTicket,
+        String comment,
+        String userName,
+        String webUrl) {
+
+        if (branch == null || trackedBranch == null || issueType == null|| jiraTicket == null||
+                comment == null || userName == null || webUrl == null ||
+                userName.isEmpty() ||
+                jiraTicket.length() > 100 || comment.length() > 500 ||
+                userName.length() > 100 || webUrl.length() > 250
+        )
+            throw new IllegalArgumentException(String.format("branch: %s, trackedBranch: %s, issueType: %s, jiraTicket: %s, " +
+                "comment: %s, userName: %s, webUrl: %s, ",
+                String.valueOf(branch), String.valueOf(trackedBranch), String.valueOf(issueType), String.valueOf(jiraTicket),
+                String.valueOf(comment), String.valueOf(userName), String.valueOf(webUrl)));
+
+        Integer branchId = compactor.getStringIdIfPresent(branch);
+
+        if (branchId <= 0)
+            throw new IllegalArgumentException("There is no id in the stringsCache for string: \"" + branch + "\"");
+
+        MutedIssueKey issueKey = new MutedIssueKey(tcSrvId, nameId, branchId, IssueType.valueOf(issueType));
+
+        if (mutedIssuesDao.getMutedIssue(issueKey) == null) {
+            Integer trackedBranchId = compactor.getStringIdIfPresent(trackedBranch);
+
+            if (trackedBranchId <= 0)
+                throw new IllegalArgumentException("There is no id in the stringsCache for string: \"" + trackedBranch + "\"");
+
+            MutedIssueInfo issueInfo = new MutedIssueInfo(trackedBranchId, userName, jiraTicket, comment, webUrl);
+
+            mutedIssuesDao.putIssue(issueKey, issueInfo);
+        }
+    }
+
+    public void updateIssue(
+        int tcSrvId,
+        int nameId,
+        String branch,
+        String issueType,
+        String jiraTicket,
+        String comment) {
+
+        if (branch == null || issueType == null|| jiraTicket == null|| comment == null ||
+            jiraTicket.length() > 100 || comment.length() > 500
+        )
+            throw new IllegalArgumentException(String.format("branch: %s, issueType: %s, jiraTicket: %s, comment: %s",
+                String.valueOf(branch), String.valueOf(issueType), String.valueOf(jiraTicket), String.valueOf(comment)));
+
+        Integer branchId = compactor.getStringIdIfPresent(branch);
+
+        if (branchId <= 0)
+            throw new IllegalArgumentException("There is no id in the stringsCache for string: \"" + branch + "\"");
+
+        MutedIssueKey issueKey = new MutedIssueKey(tcSrvId, nameId, branchId, convertDisplayName(issueType));
+
+        MutedIssueInfo issueInfo = mutedIssuesDao.getMutedIssue(issueKey);
+
+        if (issueInfo != null) {
+            issueInfo.setJiraTicket(jiraTicket);
+
+            issueInfo.setComment(comment);
+
+            mutedIssuesDao.putIssue(issueKey, issueInfo);
+        }
+    }
+
+    public void unmuteIssue(
+        int tcSrvId,
+        int nameId,
+        String branch,
+        String issueType) {
+        MutedIssueKey issueKey = new MutedIssueKey(tcSrvId, nameId, compactor.getStringId(branch), convertDisplayName(issueType));
+
+        mutedIssuesDao.removeIssue(issueKey);
+    }
+
+    public Collection<MutedIssueUi> getAllMutedIssues(String baseBranch) {
+        return mutedIssuesDao.getAllMutedIssues().entrySet().stream()
+            .map(entry -> {
+                MutedIssueKey key = entry.getKey();
+                MutedIssueInfo value = entry.getValue();
+
+                MutedIssueUi issueUi = new MutedIssueUi();
+
+                issueUi.tcSrvId = key.getTcSrvId();
+                issueUi.nameId = key.getNameId();
+                issueUi.branch = compactor.getStringFromId(key.branchNameId());
+                issueUi.trackedBranch = compactor.getStringFromId(value.getTrackedBranchId());
+                issueUi.issueType = key.getIssueType().displayName();
+                issueUi.userName = value.getUserName();
+                issueUi.jiraTicket = value.getJiraTicket();
+                issueUi.comment = value.getComment();
+                issueUi.webUrl = value.getWebUrl();
+
+                if (key.getIssueType() == IssueType.newCriticalFailure
+                        || key.getIssueType() == IssueType.newTrustedSuiteFailure)
+                    issueUi.name = compactor.getStringFromId(key.getNameId());
+                else
+                    issueUi.name = parseName(compactor.getStringFromId(key.getNameId()));
+
+                return issueUi;
+            })
+            .filter(issue -> {
+                if (baseBranch == null || baseBranch.equals("") ||  issue.trackedBranch.equals(baseBranch))
+                    return true;
+                else
+                    return false;
+
+            })
+            .sorted(Comparator.comparing(MutedIssueUi::getName).thenComparing(MutedIssueUi::getIssueType))
+            .collect(toList());
     }
 }
