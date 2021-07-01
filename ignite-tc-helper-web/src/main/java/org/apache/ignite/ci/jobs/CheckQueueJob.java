@@ -47,6 +47,7 @@ import org.apache.ignite.tcbot.notify.ISlackSender;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcservice.model.Property;
 import org.apache.ignite.tcservice.model.agent.Agent;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.apache.ignite.tcservice.model.result.Triggered;
@@ -69,6 +70,10 @@ public class CheckQueueJob implements Runnable {
     /** Percentage of free agents required to trigger build. */
     private static final int CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT =
         Integer.getInteger("CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT", 15);
+
+    /** Percentage of free windows agents required to trigger build. */
+    private static final int CHECK_QUEUE_MIN_FREE_WINDOWS_AGENTS_PERCENT =
+        Integer.getInteger("CHECK_QUEUE_MIN_FREE_WINDOWS_AGENTS_PERCENT", 1);
 
     /** */
     private ITcBotUserCreds creds;
@@ -192,16 +197,35 @@ public class CheckQueueJob implements Runnable {
         List<Agent> agents = tcIgn.agents(true, true);
 
         int total = agents.size();
+        int winAgents = 0;
         int running = 0;
+        int winRunning = 0;
 
         for (Agent agent : agents) {
+            //filter for windows agents
+            if (agent.getPool().getName().contains("Default") &&
+                    agent.isEnabled() &&
+                    agent.getProperties().getProperty().stream()
+                    .filter(prop -> prop.getName().equals("teamcity.agent.jvm.os.name")).findAny().orElseGet(() -> {
+                        Property emptyProp = new Property();
+
+                        emptyProp.setValue("");
+
+                        return emptyProp;
+                    }).getValue().contains("Windows")) {
+                winAgents++;
+
+                if (agent.getBuild() != null)
+                    winRunning++;
+            }
+
             if (agent.getBuild() != null) //  || !STATE_RUNNING.equals(agent.getFatBuild().status)
                 ++running;
         }
 
         int free = total == 0 ? -1 : (total - running) * 100 / total;
 
-        final String agentStatus = MessageFormat.format("{0}% of agents are free ({1} total, {2} running builds).", free, total, running);
+        String agentStatus = MessageFormat.format("{0}% of agents are free ({1} total, {2} running builds).", free, total, running);
 
         logger.info(agentStatus);
 
@@ -210,6 +234,18 @@ public class CheckQueueJob implements Runnable {
 
         logger.info("There are more than {}% free agents (total={}, free={}).", CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT,
             total, total - running);
+
+        int winFree = winAgents == 0 ? -1 : (winAgents - winRunning) * 100 / winAgents;
+
+        agentStatus = MessageFormat.format("{0}% of Windows agents are free ({1} total, {2} running builds).", winFree, winAgents, winRunning);
+
+        logger.info(agentStatus);
+
+        if (winAgents > 0 && winFree < CHECK_QUEUE_MIN_FREE_WINDOWS_AGENTS_PERCENT)
+            return "Min agent percent of free Windows agents not met:" + agentStatus;
+
+        logger.info("There are more than {}% free Windows agents (total={}, free={}).", CHECK_QUEUE_MIN_FREE_WINDOWS_AGENTS_PERCENT,
+            winAgents, winAgents - winRunning);
 
         String selfLogin = creds.getUser(srvCode);
 
