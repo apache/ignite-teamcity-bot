@@ -30,6 +30,7 @@
           "name": "env.JAVA_HOME",
           "selection": [
             {"value":"%env.JDK_ORA_18%", "label":"JDK8"},
+            {"value":"%env.JDK_ORA_8%", "label":"JDK8"},
             {"value":"%env.JDK_ORA_9%", "label":"JDK9"},
             {"value":"%env.JDK_ORA_10%", "label":"JDK10"},
             {"value":"%env.JDK_OPEN_11%", "label":"JDK11"}
@@ -141,8 +142,6 @@
               "randomValue": true,
               "selection": [
                 {"value":"%env.JDK_ORA_18%", "label":"JDK8"},
-                {"value":"%env.JDK_ORA_9%", "label":"JDK9"},
-                {"value":"%env.JDK_ORA_10%", "label":"JDK10"},
                 {"value":"%env.JDK_OPEN_11%", "label":"JDK11"}
               ]
             }
@@ -153,28 +152,16 @@
       "disableIssueTypes": []
     },
     {
-      "id": "ignite-2.7.5",
-      "chains": [
-        {
-          "serverId": "apache",
-          "suiteId": "IgniteTests24Java8_RunAll",
-          "branchForRest": "ignite-2.7.5",
-          "baseBranchForTc": "\u003cdefault\u003e"
-        }
-      ],
-      /* Disable notifications for the following issue types. See {@link IssueType#code()}. */
-      "disableIssueTypes": []
-    },
-    {
-      "id": "ignite-2.7.5-nightly",
+      "id": "ignite-2.11-nightly",
       "chains": [
         {
           "serverId": "apache",
           "suiteId": "IgniteTests24Java8_RunAllNightly",
-          "branchForRest": "ignite-2.7.5",
-          "baseBranchForTc": "\u003cdefault\u003e",
+          "branchForRest": "ignite-2.11",
+          "baseBranchForTc": "ignite-2.10",
           "triggerBuild": true,
-          "triggerBuildQuietPeriod": 30 //triggering quiet period in minutes
+          //trigger twice per day
+          "triggerBuildQuietPeriod": 720  //triggering quiet period in minutes,
         }
       ],
       /* Disable notifications for the following issue types. See {@link IssueType#code()}. */
