@@ -112,11 +112,11 @@ public class PasswordEncoder {
         Preconditions.checkState(decode.equals(pass));
     }
 
-    public static void main(String[] args) {
+    public static void main1(String[] args) {
         mainEncodeEmailPassword(args);
     }
 
-    public static void main1(String[] args) {
+    public static void main(String[] args) {
         encodeJiraTok("ignitetcbot", "enterClearPasswordOrTokenForUser");
     }
 

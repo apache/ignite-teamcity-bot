@@ -1,6 +1,13 @@
 {
   // Default server (service) code, internal identification
   "primaryServerCode": "apache",
+  "confidence": 0.995,
+  "cleanerConfig": {
+    "numOfItemsToDel": 100000,
+    "safeDaysForCaches": 180,
+    "safeDaysForLogs": 90,
+    "period": 1440
+  },
   /* Teamcity Integration Parameters */
   "tcServers": [
     {
@@ -12,6 +19,11 @@
       "logsDir": "apache_logs",
       /** Default tracked branch name in internal identification of TC bot. */
       "defaultTrackedBranch": "master",
+      /** Time as auto-triggering build is disabled. ISO time formatting must be used. */
+      // "autoTriggeringBuildDisabledStartTime": "07:00:00",
+      /** Time as auto-triggering build is enabled. ISO time formatting must be used. */
+      // "autoTriggeringBuildDisabledEndTime": "20:00:00",
+
       /** Build parameters, which may be used for filtering Run history and tagging builds. */
       "filteringParameters": [
         {
@@ -22,10 +34,21 @@
             {"value":"%env.JDK_ORA_10%", "label":"JDK10"},
             {"value":"%env.JDK_OPEN_11%", "label":"JDK11"}
           ]
+        },
+        {
+          "name": "TEST_SCALE_FACTOR",
+          "selection": [
+            {"value":"1.0", "label":"S1.0"},
+            {"value":"0.1", "label":"S0.1"}
+          ]
         }
       ],
       /** Build type IDs, which should trigger notifications about any non build problem, and should be blocker in this case. **/
-      "trustedSuites": []
+      "trustedSuites": [
+        "IgniteTests24Java8_LicensesHeaders",
+        "IgniteTests24Java8_CheckCodeStyle",
+        "IgniteTests24Java8_Javadoc"
+      ]
     }
   ],
   /* Set of JIRA servers/projects configured */
