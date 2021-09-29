@@ -375,12 +375,16 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public List<BuildRefCompacted> getQueuedBuildsCompacted(
+    @Override public List<BuildRefCompacted> getQueuedAndRunningBuildsCompacted(
         @Nullable String branchName) {
         ensureActualizeRequested();
 
         Integer stateQueuedId = compactor.getStringIdIfPresent(BuildRef.STATE_QUEUED);
         if (stateQueuedId == null)
+            return Collections.emptyList();
+
+        Integer stateRunningId = compactor.getStringIdIfPresent(BuildRef.STATE_RUNNING);
+        if (stateRunningId == null)
             return Collections.emptyList();
 
         Set<Integer> branchNameIds = branchEquivalence.branchForQuery(branchName).stream().map(str -> compactor.getStringIdIfPresent(str))
@@ -394,7 +398,9 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             if(builds.isEmpty())
                 return;
 
-            builds.stream().filter(buildRef -> buildRef.state() == stateQueuedId).forEach(res::add);
+            builds.stream()
+                    .filter(buildRef -> (buildRef.state() == stateQueuedId || buildRef.state() == stateRunningId))
+                    .forEach(res::add);
         });
 
         return res;

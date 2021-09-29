@@ -72,12 +72,12 @@ public interface ITeamcityIgnited {
             @Nullable String branchName);
 
     /**
-     * Return queued builds for branch and suite, without relation to its status.
+     * Return queued and running builds for branch and suite, without relation to its status.
      *
      * @param branchName Branch name.
      * @return list of builds in history, includes all statuses: queued, running, etc
      */
-    public List<BuildRefCompacted> getQueuedBuildsCompacted(String branchName);
+    public List<BuildRefCompacted> getQueuedAndRunningBuildsCompacted(String branchName);
 
     /**
      * @param projectId Project id.

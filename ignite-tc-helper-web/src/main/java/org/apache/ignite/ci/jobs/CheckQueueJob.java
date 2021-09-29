@@ -274,7 +274,7 @@ public class CheckQueueJob implements Runnable {
         String selfLogin,
         ITrackedChain chain,
         String agentStatus) {
-        List<BuildRefCompacted> buildsForBr = tcIgn.getQueuedBuildsCompacted(tcBranch);
+        List<BuildRefCompacted> buildsForBr = tcIgn.getQueuedAndRunningBuildsCompacted(tcBranch);
 
         for (BuildRefCompacted refComp : buildsForBr) {
             Integer buildId = refComp.getId();
@@ -295,14 +295,14 @@ public class CheckQueueJob implements Runnable {
             User user = build.getTriggered().getUser();
 
             if (user == null) {
-                logger.info("Unable to get username for queued build {} (type={}).", buildId, build.buildTypeId);
+                logger.info("Unable to get username for queued build {} (type={}). Possibly VCS triggered", buildId, build.buildTypeId);
 
                 continue;
             }
 
             String buildTypeIdExisting = build.buildTypeId();
             if (buildTypeIdExisting == null) {
-                logger.info("Unable to get buildTypeId  for queued build {} (type={}).", buildId, build.buildTypeId);
+                logger.info("Unable to get buildTypeId for queued build {} (type={}).", buildId, build.buildTypeId);
 
                 continue;
             }

@@ -234,8 +234,7 @@ public class FatBuildDao {
     private static Set<Long> buildsIdsToCacheKeys(int srvId, int[] buildIds) {
         HashSet<Long> set = new HashSet<>(buildIds.length);
 
-        for (int i = 0; i < buildIds.length; i++) {
-            int id = buildIds[i];
+        for (int id : buildIds) {
             set.add(buildIdToCacheKey(srvId, id));
         }
 
