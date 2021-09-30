@@ -51,13 +51,7 @@ public class TestLogHandler implements ILineHandler {
             if (currentTestName != null)
                 currentTestName = null;
 
-            String startTest = line.substring(line.indexOf(STARTING_TEST) + STARTING_TEST.length(), line.indexOf(TEST_NAME_END));
-
-            this.currentTestName = startTest;
-        }
-        else if (currentTestName != null && logSpecific.isTestStopping(line)) {
-            //currentTestName = null;
-
+            this.currentTestName = line.substring(line.indexOf(STARTING_TEST) + STARTING_TEST.length(), line.indexOf(TEST_NAME_END));
         }
 
         if (currentTestName == null)

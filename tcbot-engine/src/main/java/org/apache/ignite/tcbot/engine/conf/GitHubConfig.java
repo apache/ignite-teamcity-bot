@@ -104,10 +104,7 @@ public class GitHubConfig implements IGitHubConfig {
     @Override public String gitAuthTok() {
         String encAuth = gitAuthTokenEncoded();
 
-        if (isNullOrEmpty(encAuth))
-            return null;
-
-        return PasswordEncoder.decode(encAuth);
+        return isNullOrEmpty(encAuth) ? null : PasswordEncoder.decode(encAuth);
     }
 
     /** {@inheritDoc} */
