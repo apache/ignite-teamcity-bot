@@ -39,7 +39,7 @@ public class PasswordEncoder {
     private static final char CHAR = 'A';
 
     public static String decode(String encPass) {
-        final String clearBlk = printHexBinary(d(parseHexBinary(encPass)));
+        final String clearBlk = printHexBinary(d(parseHexBinary(encPass.trim())));
         final String passBlk = clearBlk.substring(PREF_LEN * 2, clearBlk.length() - POSTF_LEN * 2);
         final String len = passBlk.substring(0, 2);
         final int i = Integer.parseInt(len, 16) - CHAR;
@@ -93,8 +93,8 @@ public class PasswordEncoder {
         System.err.println("Encoded: " +
                 "\"gitHubConfigs\": [\n" +
                         "    {\n" +
-                        "      \"authTok\": \"\",\n" +
-                             "" + encode +   "    }\n" +
+                        "      \"authTok\": \"" +
+                             "" + encode +   " \" , \n }\n" +
                 "  ],");
         String decode = decode(encode);
         Preconditions.checkState(decode.equals(pass));

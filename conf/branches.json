@@ -84,7 +84,7 @@
       /*
         Specify GitHub Auth token (if needed), go to User->Settings->Developers options->create new.
         Created token needs to be encrypted using org.apache.ignite.ci.tcbot.conf.PasswordEncoder,
-        use {@link org.apache.ignite.ci.conf.PasswordEncoder#encodeJiraTok} to set up value in a config.
+        use {@link org.apache.ignite.ci.conf.PasswordEncoder#encode} to set up value in a config.
         Git Auth token encoded to access non-public GitHub repos. For public GitHub repos token gives more velocity.
        */
       "authTok": "",
