@@ -16,23 +16,24 @@
  */
 
 apply plugin: 'java'
+apply plugin: 'java-library'
 
 dependencies {
-    compile group: 'com.google.guava', name: 'guava', version: guavaVer
+    api group: 'com.google.guava', name: 'guava', version: guavaVer
 
-    compile group: 'org.slf4j', name: 'slf4j-api', version: slf4jVer
+    api group: 'org.slf4j', name: 'slf4j-api', version: slf4jVer
     //Apache License Version 2.0
-    compile group: 'com.google.code.gson', name: 'gson', version: gsonVer
+    api group: 'com.google.code.gson', name: 'gson', version: gsonVer
 
-    compile group: 'javax.inject', name: 'javax.inject', version: '1'
-    compile group: 'com.google.inject', name: 'guice', version: '4.2.0'
+    api group: 'javax.inject', name: 'javax.inject', version: '1'
+    api group: 'com.google.inject', name: 'guice', version: '4.2.0'
 
-    compile group: 'org.xerial.snappy', name: 'snappy-java', version: '1.1.7.2'
+    api group: 'org.xerial.snappy', name: 'snappy-java', version: '1.1.7.2'
 
-    compile group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.1'
-    compile group: 'com.sun.xml.bind', name: 'jaxb-impl', version: '2.3.0'
-    compile group: 'com.sun.xml.bind', name: 'jaxb-core', version: '2.3.0'
+    api group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.1'
+    api group: 'com.sun.xml.bind', name: 'jaxb-impl', version: '2.3.0'
+    api group: 'com.sun.xml.bind', name: 'jaxb-core', version: '2.3.0'
     
-    testCompile group: 'junit', name: 'junit', version: junitVer;
-    testCompile group: 'org.mockito', name: 'mockito-core', version: mockitoVer;
+    testImplementation group: 'junit', name: 'junit', version: junitVer;
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVer;
 }

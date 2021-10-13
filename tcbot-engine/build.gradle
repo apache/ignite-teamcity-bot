@@ -16,14 +16,20 @@
  */
 
 apply plugin: 'java'
+apply plugin: 'java-library'
 
 dependencies {
-    compile (project(":tcbot-teamcity-ignited"));
-    compile (project(":tcbot-github-ignited"));
-    compile (project(":tcbot-jira-ignited"));
-    compile (project(":tcbot-notify"));
+    implementation (project(":tcbot-common"));
+    api (project(":tcbot-persistence"));
+    implementation (project(":tcbot-teamcity"));
+    implementation (project(":tcbot-teamcity-ignited"));
+    implementation (project(":tcbot-github"));
+    implementation (project(":tcbot-github-ignited"));
+    implementation (project(":tcbot-jira"));
+    implementation (project(":tcbot-jira-ignited"));
+    implementation (project(":tcbot-notify"));
 
-    testCompile group: 'junit', name: 'junit', version: junitVer
-    testCompile group: 'org.mockito', name: 'mockito-core', version: mockitoVer
+    testImplementation group: 'junit', name: 'junit', version: junitVer
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVer
 }
  

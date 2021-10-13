@@ -16,6 +16,7 @@
  */
 
 apply plugin: 'java'
+apply plugin: 'java-library'
 
 repositories {
     mavenCentral()
@@ -23,9 +24,9 @@ repositories {
 }
 
 dependencies {
-    compile (project(":tcbot-common"));
+    api (project(":tcbot-common"));
 
-    compile (group: 'org.apache.ignite', name: 'ignite-core', version: ignVer) {
+    api (group: 'org.apache.ignite', name: 'ignite-core', version: ignVer) {
         exclude group: 'org.jetbrains'
     }
 }

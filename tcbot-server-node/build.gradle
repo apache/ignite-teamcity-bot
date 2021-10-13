@@ -44,20 +44,20 @@ distributions {
 }
 
 dependencies {
-    compile (project(":tcbot-common")) {
+    implementation (project(":tcbot-common")) {
         transitive = false
     }
 
-    compile (project(":ignite-tc-helper-web"))  {
+    implementation (project(":ignite-tc-helper-web"))  {
         transitive = false
     }
 
-    compile group: 'com.google.guava', name: 'guava', version: guavaVer
+    implementation group: 'com.google.guava', name: 'guava', version: guavaVer
 
-    compile group: 'ch.qos.logback', name: 'logback-core', version: logbackVer
-    compile group: 'ch.qos.logback', name: 'logback-classic', version: logbackVer
+    implementation group: 'ch.qos.logback', name: 'logback-core', version: logbackVer
+    implementation group: 'ch.qos.logback', name: 'logback-classic', version: logbackVer
 
-    compile group: 'org.apache.ignite', name: 'ignite-core', version: ignVer
-    compile group: 'org.apache.ignite', name: 'ignite-slf4j', version: ignVer
-    compile group: 'org.apache.ignite', name: 'ignite-direct-io', version: ignVer
+    implementation group: 'org.apache.ignite', name: 'ignite-core', version: ignVer
+    implementation group: 'org.apache.ignite', name: 'ignite-slf4j', version: ignVer
+    implementation group: 'org.apache.ignite', name: 'ignite-direct-io', version: ignVer
 }

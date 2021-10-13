@@ -18,7 +18,7 @@
 apply plugin: 'java'
 
 dependencies {
-    compile (project(":tcbot-github"));
-    compile (project(":tcbot-persistence"));
+    implementation (project(":tcbot-github"));
+    implementation (project(":tcbot-persistence"));
 }
  

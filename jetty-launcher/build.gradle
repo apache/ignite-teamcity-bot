@@ -57,13 +57,13 @@ distributions {
 }
 
 dependencies {
-    compile (project(":ignite-tc-helper-web"))  {
+    implementation (project(":ignite-tc-helper-web"))  {
         transitive = false
     }
 
-    compile group: 'org.eclipse.jetty', name: 'jetty-util', version: jettyVer
-    compile group: 'org.eclipse.jetty', name: 'jetty-server', version: jettyVer
-    compile group: 'org.eclipse.jetty', name: 'jetty-webapp', version: jettyVer
+    implementation group: 'org.eclipse.jetty', name: 'jetty-util', version: jettyVer
+    implementation group: 'org.eclipse.jetty', name: 'jetty-server', version: jettyVer
+    implementation group: 'org.eclipse.jetty', name: 'jetty-webapp', version: jettyVer
 
-    compile group: 'com.google.guava', name: 'guava', version: guavaVer
+    implementation group: 'com.google.guava', name: 'guava', version: guavaVer
 }

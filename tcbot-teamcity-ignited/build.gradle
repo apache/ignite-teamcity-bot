@@ -18,10 +18,10 @@
 apply plugin: 'java'
  
 dependencies {
-    compile (project(":tcbot-teamcity"));
-    compile (project(":tcbot-persistence"));
+    implementation (project(":tcbot-teamcity"));
+    implementation (project(":tcbot-persistence"));
 
-    testCompile group: 'junit', name: 'junit', version: junitVer;
-    testCompile group: 'org.mockito', name: 'mockito-core', version: mockitoVer;
+    testImplementation group: 'junit', name: 'junit', version: junitVer;
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVer;
 }
  
