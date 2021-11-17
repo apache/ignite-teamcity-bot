@@ -36,6 +36,7 @@ import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.internal.util.typedef.T2;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
@@ -135,7 +136,7 @@ public class CheckQueueJob implements Runnable {
     protected String runEx() {
         logger.info("Build triggering task is started");
 
-        if (Boolean.valueOf(System.getProperty(AUTO_TRIGGERING_BUILD_DISABLED))) {
+        if (Boolean.parseBoolean(System.getProperty(AUTO_TRIGGERING_BUILD_DISABLED))) {
             final String msg = "Automatic build triggering was disabled.";
             logger.info(msg);
             return msg;
@@ -400,27 +401,24 @@ public class CheckQueueJob implements Runnable {
 
     /**
      * @param srvCode Server code.
-     * @return {@code true} if auto-triggering disabled for working hours.
+     * @return {@code true} if auto-triggering is disabled now for working hours.
      */
     private boolean autoTriggerDisabledForWorkingHours(String srvCode) {
-
         DayOfWeek curDayOfWeek = LocalDate.now().getDayOfWeek();
 
         if (curDayOfWeek == DayOfWeek.SATURDAY || curDayOfWeek == DayOfWeek.SUNDAY)
             return false;
 
-        String startTime = cfg.getTeamcityConfig(srvCode).autoTriggeringBuildDisabledStartTime();
+        ITcServerConfig tcCfg = cfg.getTeamcityConfig(srvCode);
 
-        String endTime = cfg.getTeamcityConfig(srvCode).autoTriggeringBuildDisabledEndTime();
+        String startTime = tcCfg.autoTriggeringBuildDisabledStartTime();
+        String endTime = tcCfg.autoTriggeringBuildDisabledEndTime();
 
         if (startTime == null || endTime == null)
             return false;
 
         LocalTime now = LocalTime.now();
 
-        if (now.isAfter(LocalTime.parse(startTime)) && now.isBefore(LocalTime.parse(endTime)))
-            return true;
-
-        return false;
+        return now.isAfter(LocalTime.parse(startTime)) && now.isBefore(LocalTime.parse(endTime));
     }
 }
