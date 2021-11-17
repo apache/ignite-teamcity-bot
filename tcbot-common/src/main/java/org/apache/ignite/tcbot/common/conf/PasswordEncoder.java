@@ -94,7 +94,7 @@ public class PasswordEncoder {
                 "\"gitHubConfigs\": [\n" +
                         "    {\n" +
                         "      \"authTok\": \"" +
-                             "" + encode +   " \" , \n }\n" +
+                             "" + encode +   "\" , \n }\n" +
                 "  ],");
         String decode = decode(encode);
         Preconditions.checkState(decode.equals(pass));
@@ -116,7 +116,7 @@ public class PasswordEncoder {
         mainEncodeEmailPassword(args);
     }
 
-    public static void main(String[] args) {
+    public static void main2(String[] args) {
         encodeJiraTok("ignitetcbot", "enterClearPasswordOrTokenForUser");
     }
 
