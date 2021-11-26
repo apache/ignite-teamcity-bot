@@ -477,6 +477,11 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return conn.agents(connected, authorized);
     }
 
+    @Override
+    public int queueSize() {
+        return conn.queueSize();
+    }
+
     @Nullable
     @Override
     public File downloadAndCacheBuildLog(int buildId) {

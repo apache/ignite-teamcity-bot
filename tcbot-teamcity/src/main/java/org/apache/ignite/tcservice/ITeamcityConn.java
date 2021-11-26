@@ -171,6 +171,11 @@ public interface ITeamcityConn {
     public List<Agent> agents(boolean connected, boolean authorized);
 
     /**
+     * @return size of TeamCity build queue
+     */
+    public int queueSize();
+
+    /**
      * @param buildId
      * @return
      *

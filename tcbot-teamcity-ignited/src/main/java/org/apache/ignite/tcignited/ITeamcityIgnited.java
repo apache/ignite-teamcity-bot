@@ -227,6 +227,11 @@ public interface ITeamcityIgnited {
     public List<Agent> agents(boolean connected, boolean authorized);
 
     /**
+     * @return size of TeamCity build queue
+     */
+    public int queueSize();
+
+    /**
      * @param build Build.
      */
     @Nullable
