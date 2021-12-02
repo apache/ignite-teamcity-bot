@@ -55,6 +55,7 @@ import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.hist.Builds;
 import org.apache.ignite.tcservice.model.mute.MuteInfo;
 import org.apache.ignite.tcservice.model.mute.Mutes;
+import org.apache.ignite.tcservice.model.queue.QueueRef;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrences;
 import org.apache.ignite.tcservice.model.result.stat.Statistics;
@@ -115,6 +116,15 @@ public class TeamcityServiceConnection implements ITeamcity {
             .parallel()
             .map(v -> getJaxbUsingHref(v.getHref(), Agent.class))
             .collect(Collectors.toList());
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public int queueSize() {
+        String url = "app/rest/buildQueue";
+
+        return getJaxbUsingHref(url, QueueRef.class)
+            .getCount();
     }
 
     /** {@inheritDoc} */

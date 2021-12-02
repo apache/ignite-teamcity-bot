@@ -76,6 +76,10 @@ public class CheckQueueJob implements Runnable {
     private static final int CHECK_QUEUE_MIN_FREE_WINDOWS_AGENTS_PERCENT =
         Integer.getInteger("CHECK_QUEUE_MIN_FREE_WINDOWS_AGENTS_PERCENT", 1);
 
+    /** Max build queue size to trigger build. */
+    private static final int CHECK_MAX_QUEUE_SIZE =
+        Integer.getInteger("CHECK_MAX_QUEUE_SIZE", 300);
+
     /** */
     private ITcBotUserCreds creds;
 
@@ -195,6 +199,16 @@ public class CheckQueueJob implements Runnable {
     protected String checkQueue(String srvCode, List<ITrackedChain> chains) {
         ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvCode, creds);
 
+        int queueSize = tcIgn.queueSize();
+
+        if (queueSize > CHECK_MAX_QUEUE_SIZE) {
+            String msg = MessageFormat.format("TeamCity queue is too big. No new builds will be triggered. Size of queue: {0}, TeamCity server: {1}", queueSize, srvCode);
+
+            logger.info(msg);
+
+            return msg;
+        }
+
         List<Agent> agents = tcIgn.agents(true, true);
 
         int total = agents.size();
@@ -226,24 +240,24 @@ public class CheckQueueJob implements Runnable {
 
         int free = total == 0 ? -1 : (total - running) * 100 / total;
 
-        String agentStatus = MessageFormat.format("{0}% of agents are free ({1} total, {2} running builds).", free, total, running);
+        String allAgentStatus = MessageFormat.format("{0}% of agents are free ({1} total, {2} running builds).", free, total, running);
 
-        logger.info(agentStatus);
+        logger.info(allAgentStatus);
 
         if (free < CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT)
-            return "Min agent percent of free agents not met:" + agentStatus;
+            return "Min agent percent of free agents not met:" + allAgentStatus;
 
         logger.info("There are more than {}% free agents (total={}, free={}).", CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT,
             total, total - running);
 
         int winFree = winAgents == 0 ? -1 : (winAgents - winRunning) * 100 / winAgents;
 
-        agentStatus = MessageFormat.format("{0}% of Windows agents are free ({1} total, {2} running builds).", winFree, winAgents, winRunning);
+        String windowsAgentStatus = MessageFormat.format("{0}% of Windows agents are free ({1} total, {2} running builds).", winFree, winAgents, winRunning);
 
-        logger.info(agentStatus);
+        logger.info(windowsAgentStatus);
 
         if (winAgents > 0 && winFree < CHECK_QUEUE_MIN_FREE_WINDOWS_AGENTS_PERCENT)
-            return "Min agent percent of free Windows agents not met:" + agentStatus;
+            return "Min agent percent of free Windows agents not met:" + windowsAgentStatus;
 
         logger.info("There are more than {}% free Windows agents (total={}, free={}).", CHECK_QUEUE_MIN_FREE_WINDOWS_AGENTS_PERCENT,
             winAgents, winAgents - winRunning);
@@ -257,6 +271,8 @@ public class CheckQueueJob implements Runnable {
         for (ITrackedChain chain : chains) {
             if (!Objects.equals(chain.serverCode(), srvCode))
                 continue;
+
+            String agentStatus = allAgentStatus + " " + windowsAgentStatus;
 
             String chainRes = checkIfChainTriggerable(chain.serverCode(), chain.tcSuiteId(), chain.tcBranch(), tcIgn, selfLogin, chain, agentStatus);
 
