@@ -127,10 +127,10 @@ public class DsTestFailureUi extends ShortTestFailureUi {
             .filter(Objects::nonNull)
             .forEach(testNameId -> {
                 if (webUrl == null)
-                    webUrl = buildWebLink(tcIgn, testNameId, projectId, branchName);
+                    webUrl = buildTestWebLink(tcIgn, testNameId, projectId, branchName);
 
                 if (webUrlBaseBranch == null)
-                    webUrlBaseBranch = buildWebLink(tcIgn, testNameId, projectId, baseBranchName);
+                    webUrlBaseBranch = buildTestWebLink(tcIgn, testNameId, projectId, baseBranchName);
             });
 
 
@@ -168,18 +168,17 @@ public class DsTestFailureUi extends ShortTestFailureUi {
         }
     }
 
-    public static String buildWebLink(ITeamcityIgnited tcIgn, Long testNameId,
-        @Nullable String projectId, @Nullable String branchName) {
+    public static String buildTestWebLink(ITeamcityIgnited tcIgn, Long testNameId,
+                                          @Nullable String projectId, @Nullable String branchName) {
         if (projectId == null || testNameId == null)
             return null;
 
         final String branch = normalizeBranch(branchName);
 
-        return tcIgn.host() + "project.html"
-            + "?projectId=" + projectId
-            + "&testNameId=" + testNameId
-            + "&branch=" + UrlUtil.escape(branch)
-            + "&tab=testDetails";
+        return tcIgn.host()
+                + "test/" + testNameId
+                + "?currentProjectId=" + projectId
+                + "&branch=" + UrlUtil.escape(branch);
     }
 
     /**

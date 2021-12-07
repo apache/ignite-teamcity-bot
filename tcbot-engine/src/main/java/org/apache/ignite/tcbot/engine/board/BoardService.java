@@ -256,7 +256,7 @@ public class BoardService {
                 String RebuildProjectId = fatBuildCompacted.projectId(compactor);
                 String branchName = fatBuildCompacted.branchName(compactor);
 
-                webUrl = DsTestFailureUi.buildWebLink(tcIgn, testNameId, RebuildProjectId, branchName);
+                webUrl = DsTestFailureUi.buildTestWebLink(tcIgn, testNameId, RebuildProjectId, branchName);
             }
             else {
                 //exception for new test. removal of test means test is fixed

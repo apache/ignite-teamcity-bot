@@ -461,10 +461,10 @@
             let testId = results[key][suite][testName][0];
 
             let href = g_tcHost
-                + "project.html"
-                + "?projectId=" + g_projectId
-                + "&testNameId=" +  testId
-                + "&tab=testDetails"  ;
+                + "test/" + testId
+                + "?currentProjectId=" + g_projectId
+                + "&branch=<default>"; // supposing it is always default
+
             res += '<tr>' +
                 '<td class="innerTestName"><p title="' + testName + '">' + testClass + '.' + testMethodName + '</p></td>' +
                 '<td class="innerFailRate"><p title="Test\'s fail-rate for corresponding date period">' +
