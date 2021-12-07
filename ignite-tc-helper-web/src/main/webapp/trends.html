@@ -462,7 +462,8 @@
 
             let href = g_tcHost
                 + "test/" + testId
-                + "?currentProjectId=" + g_projectId;
+                + "?currentProjectId=" + g_projectId
+                + "&branch=<default>"; // supposing it is always default
 
             res += '<tr>' +
                 '<td class="innerTestName"><p title="' + testName + '">' + testClass + '.' + testMethodName + '</p></td>' +
