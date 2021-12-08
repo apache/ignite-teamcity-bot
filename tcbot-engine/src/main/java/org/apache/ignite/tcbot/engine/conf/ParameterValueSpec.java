@@ -29,6 +29,16 @@ public class ParameterValueSpec implements IParameterValueSpec {
     private String label;
     private String valueRegExp;
 
+    @SuppressWarnings("unused")
+    public ParameterValueSpec() {
+    }
+
+    public ParameterValueSpec(IParameterValueSpec spec) {
+        this.value = spec.value();
+        this.valueRegExp = spec.valueRegExp();
+        this.label = spec.label();
+    }
+
     /**
      * Exact value, which can be present in a build.
      */

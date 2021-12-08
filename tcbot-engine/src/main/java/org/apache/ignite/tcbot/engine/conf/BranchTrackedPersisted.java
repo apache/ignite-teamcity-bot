@@ -22,16 +22,16 @@ public class BranchTrackedPersisted extends BranchTracked {
     @Nullable
     protected Boolean softDeleted;
 
-    public static BranchTrackedPersisted initFrom(ITrackedBranch b) {
-        BranchTrackedPersisted bp = new BranchTrackedPersisted();
+    @SuppressWarnings("unused")
+    public BranchTrackedPersisted() {
+    }
 
-        b.chainsStream().map(ChainAtServerTracked::initFrom).forEach(bp.chains::add);
+    public BranchTrackedPersisted(ITrackedBranch b) {
+        b.chainsStream().map(ChainAtServerTracked::new).forEach(chains::add);
 
-        bp.id = b.name();
-        bp.disableIssueTypes = b.disableIssueTypes();
-        bp.softDeleted = false;
-
-        return bp;
+        this.id = b.name();
+        this.disableIssueTypes = b.disableIssueTypes();
+        this.softDeleted = false;
     }
 
     public boolean isDeleted() {

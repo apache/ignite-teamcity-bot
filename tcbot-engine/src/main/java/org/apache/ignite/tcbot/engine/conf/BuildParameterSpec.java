@@ -23,6 +23,7 @@ import org.apache.ignite.tcbot.common.conf.IBuildParameterSpec;
 import org.apache.ignite.tcbot.common.conf.IParameterValueSpec;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class BuildParameterSpec implements IBuildParameterSpec {
     /** Parameter (property) Name. */
@@ -40,8 +41,23 @@ public class BuildParameterSpec implements IBuildParameterSpec {
      */
     @Nullable private List<ParameterValueSpec> selection = new ArrayList<>();
 
-    /** {@inheritDoc} */
-    @Override public boolean equals(Object o) {
+
+    @SuppressWarnings("unused")
+    public BuildParameterSpec() {
+    }
+
+    BuildParameterSpec(IBuildParameterSpec spec) {
+        name = spec.name();
+        randomValue = spec.useRandomValue();
+        value = spec.value();
+        selection = spec.selection().stream().map(ParameterValueSpec::new).collect(Collectors.toList());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean equals(Object o) {
         if (this == o)
             return true;
         if (o == null || getClass() != o.getClass())
@@ -69,7 +85,7 @@ public class BuildParameterSpec implements IBuildParameterSpec {
      * @return some valid value for property or null.
      */
     public Object generateValue() {
-        if (!Boolean.TRUE.equals(randomValue))
+        if (!useRandomValue())
             return value;
 
         if (selection == null || selection.isEmpty())
@@ -80,6 +96,15 @@ public class BuildParameterSpec implements IBuildParameterSpec {
         ParameterValueSpec spec = selection.get(idx);
 
         return spec.value();
+    }
+
+    public boolean useRandomValue() {
+        return Boolean.TRUE.equals(randomValue);
+    }
+
+    @Override
+    public String value() {
+        return value;
     }
 
     public boolean isFilled() {

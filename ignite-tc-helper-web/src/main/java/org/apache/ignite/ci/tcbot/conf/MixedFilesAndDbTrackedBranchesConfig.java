@@ -50,7 +50,7 @@ public class MixedFilesAndDbTrackedBranchesConfig implements ITrackedBranchesCon
         filesBasedCfg.getConfig()
                 .getBranches()
                 .stream()
-                .map(BranchTrackedPersisted::initFrom).forEach(btp -> {
+                .map(BranchTrackedPersisted::new).forEach(btp -> {
             res.put(btp.name(), btp);
         });
 

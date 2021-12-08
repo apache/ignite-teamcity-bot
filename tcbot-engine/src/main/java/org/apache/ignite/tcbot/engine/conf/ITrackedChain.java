@@ -16,9 +16,12 @@
  */
 package org.apache.ignite.tcbot.engine.conf;
 
+import org.apache.ignite.tcbot.common.conf.IBuildParameterSpec;
+
 import javax.annotation.Nonnull;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  *
@@ -47,4 +50,6 @@ public interface ITrackedChain {
      * @return {@code True} If automatic build triggering enabled.
      */
     public boolean triggerBuild();
+
+    Stream<IBuildParameterSpec> triggerParameterSpecs();
 }

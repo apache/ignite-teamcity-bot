@@ -18,18 +18,20 @@
 package org.apache.ignite.tcbot.engine.conf;
 
 import com.google.common.base.Strings;
+import org.apache.ignite.tcbot.common.conf.IBuildParameterSpec;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
  * Chain on particular TC server, which is tracked by the Bot.
@@ -51,20 +53,21 @@ public class ChainAtServerTracked extends ChainAtServer implements ITrackedChain
     /** Build parameters for Triggering. */
     @Nullable private List<BuildParameterSpec> triggerParameters;
 
-    static ChainAtServerTracked initFrom(ITrackedChain c) {
-        ChainAtServerTracked ct = new ChainAtServerTracked();
-        ct.serverId = c.serverCode();
-        ct.suiteId = c.tcSuiteId();
+    @SuppressWarnings("unused")
+    public ChainAtServerTracked() {}
 
-        ct.branchForRest = c.tcBranch();
-        ct.baseBranchForTc = c.tcBaseBranch().orElse(null);
-        ct.triggerBuild = c.triggerBuild();
+    ChainAtServerTracked(ITrackedChain c) {
+        serverId = c.serverCode();
+        suiteId = c.tcSuiteId();
 
-        ct.triggerBuildQuietPeriod = c.triggerBuildQuietPeriod();
+        branchForRest = c.tcBranch();
+        baseBranchForTc = c.tcBaseBranch().orElse(null);
+        triggerBuild = c.triggerBuild();
 
-        //todo support copying trigger parms: ct.triggerParameters = c.generateBuildParameters();//todo
+        triggerBuildQuietPeriod = c.triggerBuildQuietPeriod();
 
-        return ct;
+        triggerParameters =
+            c.triggerParameterSpecs().map(BuildParameterSpec::new).collect(Collectors.toList());
     }
 
     /**
@@ -101,6 +104,13 @@ public class ChainAtServerTracked extends ChainAtServer implements ITrackedChain
     /** {@inheritDoc} */
     @Override public boolean triggerBuild() {
         return triggerBuild == null ? false : triggerBuild;
+    }
+
+    @Override
+    public Stream<IBuildParameterSpec> triggerParameterSpecs() {
+        return triggerParameters == null
+                ? Stream.empty()
+                : triggerParameters.stream().map(p -> p);
     }
 
     /** {@inheritDoc} */
