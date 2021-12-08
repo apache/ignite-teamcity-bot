@@ -28,7 +28,7 @@ public class MixedFilesAndDbTrackedBranchesConfig implements ITrackedBranchesCon
     @Override
     public Stream<ITrackedBranch> branchesStream() {
 
-        Stream<ITrackedBranch> fileBasedBranches = filesBasedCfg.getTrackedBranches().branchesStream();
+        Stream<ITrackedBranch> fileBasedBranches = filesBasedCfg.getConfig().branchesStream();
 
         IgniteCache<String, BranchTrackedPersisted> cache = igniteProvider.get().getOrCreateCache(CacheConfigs.getCacheV2Config(TRACKED_BRANCHES));
 
@@ -43,6 +43,6 @@ public class MixedFilesAndDbTrackedBranchesConfig implements ITrackedBranchesCon
 
     @Override
     public Collection<String> getServerIds() {
-        return filesBasedCfg.getTrackedBranches().getServerIds();
+        return filesBasedCfg.getConfig().getServerIds();
     }
 }
