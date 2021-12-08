@@ -51,6 +51,25 @@ public class ChainAtServerTracked extends ChainAtServer implements ITrackedChain
     /** Build parameters for Triggering. */
     @Nullable private List<BuildParameterSpec> triggerParameters;
 
+    static ChainAtServerTracked initFrom(ITrackedChain c) {
+        ChainAtServerTracked ct = new ChainAtServerTracked();
+        ct.serverId = c.serverCode();
+        ct.branchForRest = c.tcBranch();
+        ct.baseBranchForTc = c.tcBaseBranch().orElse(null);
+        ct.suiteId = c.tcSuiteId();
+
+
+        //@Nullable private Boolean triggerBuild;
+        //@Nullable private Integer triggerBuildQuietPeriod;
+        //@Nullable private List<BuildParameterSpec> triggerParameters;
+        ct.triggerBuild= c.triggerBuild();
+        ct.triggerBuildQuietPeriod = c.triggerBuildQuietPeriod();
+
+        //todo support copying trigger parms: ct.triggerParameters = c.generateBuildParameters();//todo
+
+        return ct;
+    }
+
     /** @return {@link #suiteId} */
     @Nonnull public String getSuiteIdMandatory() {
         checkState(!isNullOrEmpty(suiteId), "Invalid config: suiteId should be filled " + this);
