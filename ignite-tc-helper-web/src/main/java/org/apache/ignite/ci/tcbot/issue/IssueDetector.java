@@ -108,8 +108,6 @@ public class IssueDetector {
     /** Config. */
     @Inject private ITcBotConfig cfg;
 
-
-    /** Config. */
     @Inject private ITrackedBranchesConfig trackedBranchesConfig;
 
     /** Email sender. */
@@ -203,8 +201,7 @@ public class IssueDetector {
             })
             .peek(issue -> filteredBuildTs.incrementAndGet())
             .filter(issue -> {
-                return trackedBranchesConfig
-                    .get(issue.trackedBranchName)
+                return trackedBranchesConfig.get(issue.trackedBranchName)
                     .filter(tb -> !tb.disableIssueTypes().contains(issue.type()))
                     .isPresent();
             })
@@ -599,7 +596,7 @@ public class IssueDetector {
      *
      */
     private void checkFailures() {
-        cfg.getTrackedBranches().branchesStream().forEach(tb -> {
+        trackedBranchesConfig.branchesStream().forEach(tb -> {
             try {
                 checkFailuresEx(tb.name());
             } catch (Exception e) {

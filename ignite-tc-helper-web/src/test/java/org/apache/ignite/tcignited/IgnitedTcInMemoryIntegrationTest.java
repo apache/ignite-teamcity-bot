@@ -915,7 +915,6 @@ public class IgnitedTcInMemoryIntegrationTest {
             when(tcCfg.host()).thenReturn("http://ci.ignite.apache.org/");
             when(tcCfg.trustedSuites()).thenReturn(new ArrayList<>());
             when(cfg.getTeamcityConfig(anyString())).thenReturn(tcCfg);
-            when(cfg.getTrackedBranches()).thenReturn(new TcBotJsonConfig());
 
             bind(ITcBotConfig.class).toInstance(cfg);
             bind(IDataSourcesConfigSupplier.class).toInstance(cfg);

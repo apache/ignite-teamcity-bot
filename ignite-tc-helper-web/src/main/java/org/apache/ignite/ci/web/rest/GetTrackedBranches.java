@@ -34,9 +34,9 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.ignite.tcbot.common.conf.ITcServerConfigSupplier;
 import org.apache.ignite.tcbot.engine.conf.ChainAtServer;
 import org.apache.ignite.ci.tcbot.TcBotGeneralService;
-import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranchesConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
@@ -80,10 +80,10 @@ public class GetTrackedBranches {
     @NotNull public Stream<ITrackedBranch> accessibleTrackedBranches() {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
         Injector injector = CtxListener.getInjector(ctx);
-        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
+        ITrackedBranchesConfig trackedBranchesConfig = injector.getInstance(ITrackedBranchesConfig.class);
         ITeamcityIgnitedProvider tcProv = injector.getInstance(ITeamcityIgnitedProvider.class);
 
-        return cfg.getTrackedBranches().branchesStream()
+        return trackedBranchesConfig.branchesStream()
             .filter(bt ->
                 bt.chainsStream().anyMatch(chain -> tcProv.hasAccess(chain.serverCode(), prov)));
     }
@@ -109,10 +109,10 @@ public class GetTrackedBranches {
     public Set<ChainAtServer> getSuites(@Nullable @QueryParam("server") String srvId) {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
         Injector injector = CtxListener.getInjector(ctx);
-        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
+        ITrackedBranchesConfig trackedBranchesConfig = injector.getInstance(ITrackedBranchesConfig.class);
         ITeamcityIgnitedProvider tcProv = injector.getInstance(ITeamcityIgnitedProvider.class);
 
-        return getSuitesUnique(cfg.getTrackedBranches())
+        return getSuitesUnique(trackedBranchesConfig)
             .stream()
             .filter(chainAtSrv ->
                 Strings.isNullOrEmpty(srvId)
@@ -129,10 +129,10 @@ public class GetTrackedBranches {
     public Set<String> getServerIds() {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
         Injector injector = CtxListener.getInjector(ctx);
-        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
+        ITcServerConfigSupplier tcServerConfigSupplier = injector.getInstance(ITcServerConfigSupplier.class);
         ITeamcityIgnitedProvider tcProv = injector.getInstance(ITeamcityIgnitedProvider.class);
 
-        return cfg.getServerIds()
+        return tcServerConfigSupplier.getConfiguredServerIds()
             .stream()
             .filter(srvId -> tcProv.hasAccess(srvId, prov))
             .collect(Collectors.toSet());

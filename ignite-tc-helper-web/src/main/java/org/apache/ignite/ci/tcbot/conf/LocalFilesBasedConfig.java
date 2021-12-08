@@ -21,6 +21,7 @@ import com.google.common.base.Strings;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Objects;
 import java.util.Properties;
 
@@ -46,6 +47,11 @@ import org.apache.ignite.tcbot.engine.conf.TcServerConfig;
  *
  */
 public class LocalFilesBasedConfig implements ITcBotConfig {
+
+    public LocalFilesBasedConfig() {
+        System.out.println("LocalFilesBasedConfig");
+    }
+
     private static TcBotJsonConfig reloadConfig() {
         final File workDir = TcBotWorkDir.resolveWorkDir();
         final File file = new File(workDir, "branches.json");
@@ -62,6 +68,11 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
     @GuavaCached(softValues = true, expireAfterWriteSecs = 3 * 60)
     protected TcBotJsonConfig getConfig() {
         return reloadConfig();
+    }
+
+    @Override
+    public Collection<String> getConfiguredServerIds() {
+        return getConfig().getConfiguredServerIds();
     }
 
     /** {@inheritDoc} */
@@ -128,11 +139,6 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
         Double confidence = getConfig().confidence();
 
         return confidence == null || confidence < 0 || confidence > 1 ? ITcBotConfig.DEFAULT_CONFIDENCE : confidence;
-    }
-
-    @Override
-    public ITrackedBranchesConfig getTrackedBranches() {
-        return getConfig();
     }
 
     @GuavaCached(softValues = true, expireAfterWriteSecs = 3 * 60)

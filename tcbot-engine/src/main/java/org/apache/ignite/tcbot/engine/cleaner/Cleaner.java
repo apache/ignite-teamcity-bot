@@ -142,7 +142,7 @@ public class Cleaner {
 
         final File workDir = TcBotWorkDir.resolveWorkDir();
 
-        for (String srvId : cfg.getServerIds()) {
+        for (String srvId : cfg.getConfiguredServerIds()) {
             File srvIdLogDir = new File(workDir, cfg.getTeamcityConfig(srvId).logsDirectory());
 
             removeFiles(srvIdLogDir, thresholdEpochMilli, numOfItemsToDel);

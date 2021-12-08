@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.tcbot.chain;
 
+import com.google.common.collect.Sets;
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.Ignite;
@@ -51,6 +52,8 @@ import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 import org.apache.ignite.tcignited.buildlog.IBuildLogProcessor;
 import org.mockito.Mockito;
+
+import java.util.Collection;
 
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -102,8 +105,9 @@ public class MockBasedTcBotModule extends AbstractModule {
                 return DEFAULT_CONFIDENCE;
             }
 
-            @Override  public ITrackedBranchesConfig getTrackedBranches() {
-                return tracked;
+            @Override
+            public Collection<String> getConfiguredServerIds() {
+                return Sets.newHashSet(DEFAULT_SERVER_CODE);
             }
 
             /** {@inheritDoc} */
@@ -128,6 +132,7 @@ public class MockBasedTcBotModule extends AbstractModule {
             }
         };
         bind(ITcBotConfig.class).toInstance(cfg);
+        bind(ITrackedBranchesConfig.class).toInstance(tracked);
         bind(IDataSourcesConfigSupplier.class).toInstance(cfg);
 
         bind(IIssuesStorage.class).toInstance(Mockito.mock(IIssuesStorage.class));

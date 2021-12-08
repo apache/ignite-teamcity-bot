@@ -35,6 +35,7 @@ import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
 import org.apache.ignite.tcbot.engine.cleaner.Cleaner;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
+import org.apache.ignite.tcbot.engine.conf.ITrackedBranchesConfig;
 import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
@@ -120,14 +121,14 @@ public class UserService {
         final String currUserLogin = ITcBotUserCreds.get(req).getPrincipalId();
         final String login = Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
         Injector injector = CtxListener.getInjector(ctx);
-        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
+        ITrackedBranchesConfig trackedBranchesConfig = injector.getInstance(ITrackedBranchesConfig.class);
 
         IUserStorage users = injector.getInstance(IUserStorage.class);
         final TcHelperUser user = users.getUser(login);
 
         //todo can filter accessibliity
         final TcHelperUserUi tcHelperUserUi = new TcHelperUserUi(user,
-                cfg.getTrackedBranches().branchesStream()
+                trackedBranchesConfig.branchesStream()
                         .map(ITrackedBranch::name)
                         .collect(Collectors.toList()) );
 

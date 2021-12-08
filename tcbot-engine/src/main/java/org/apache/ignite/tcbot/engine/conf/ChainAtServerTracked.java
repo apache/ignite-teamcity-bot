@@ -54,35 +54,17 @@ public class ChainAtServerTracked extends ChainAtServer implements ITrackedChain
     static ChainAtServerTracked initFrom(ITrackedChain c) {
         ChainAtServerTracked ct = new ChainAtServerTracked();
         ct.serverId = c.serverCode();
-        ct.branchForRest = c.tcBranch();
-        ct.baseBranchForTc = c.tcBaseBranch().orElse(null);
         ct.suiteId = c.tcSuiteId();
 
+        ct.branchForRest = c.tcBranch();
+        ct.baseBranchForTc = c.tcBaseBranch().orElse(null);
+        ct.triggerBuild = c.triggerBuild();
 
-        //@Nullable private Boolean triggerBuild;
-        //@Nullable private Integer triggerBuildQuietPeriod;
-        //@Nullable private List<BuildParameterSpec> triggerParameters;
-        ct.triggerBuild= c.triggerBuild();
         ct.triggerBuildQuietPeriod = c.triggerBuildQuietPeriod();
 
         //todo support copying trigger parms: ct.triggerParameters = c.generateBuildParameters();//todo
 
         return ct;
-    }
-
-    /** @return {@link #suiteId} */
-    @Nonnull public String getSuiteIdMandatory() {
-        checkState(!isNullOrEmpty(suiteId), "Invalid config: suiteId should be filled " + this);
-        return suiteId;
-    }
-
-    /**
-     * @return branch in TC indentification to queue build results.
-     */
-    @Nonnull public String getBranchForRestMandatory() {
-        checkState(!isNullOrEmpty(branchForRest), "Invalid config: branchForRest should be filled " + this);
-
-        return branchForRest;
     }
 
     /**
@@ -151,13 +133,6 @@ public class ChainAtServerTracked extends ChainAtServer implements ITrackedChain
         );
 
         return values;
-    }
-
-    public Stream<String> buildParametersKeys() {
-        if (triggerParameters == null || triggerParameters.isEmpty())
-            return Stream.empty();
-
-        return triggerParameters.stream().map(BuildParameterSpec::name);
     }
 
     /** {@inheritDoc} */

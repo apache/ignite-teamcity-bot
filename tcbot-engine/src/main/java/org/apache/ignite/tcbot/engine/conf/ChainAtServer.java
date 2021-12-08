@@ -22,7 +22,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * Pair of serverId and suiteId.
+ * Pair of serverId and suiteId. Identifies build configuration at TC.
  */
 @SuppressWarnings("PublicField")
 public class ChainAtServer {

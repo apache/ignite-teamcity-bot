@@ -16,18 +16,15 @@
  */
 package org.apache.ignite.tcbot.engine.conf;
 
-import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
- *
+ * Tracked branches configuration for TC Bot.
  */
 public interface ITrackedBranchesConfig {
     Stream<ITrackedBranch> branchesStream();
-
-    Collection<String> getServerIds();
 
     public default Optional<ITrackedBranch> get(String branch) {
         return branchesStream().filter(b -> Objects.equals(branch, b.name())).findAny();
@@ -37,5 +34,4 @@ public interface ITrackedBranchesConfig {
     public default ITrackedBranch getBranchMandatory(String branch) {
         return get(branch).orElseThrow(() -> new RuntimeException("Branch not found: " + branch));
     }
-
 }

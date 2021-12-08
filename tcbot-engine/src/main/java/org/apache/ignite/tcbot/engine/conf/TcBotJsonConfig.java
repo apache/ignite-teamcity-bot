@@ -17,6 +17,8 @@
 
 package org.apache.ignite.tcbot.engine.conf;
 
+import com.google.common.base.Strings;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -63,17 +65,14 @@ public class TcBotJsonConfig implements ITrackedBranchesConfig {
         return branches.stream().map(t->t);
     }
 
-    /**
-     *
-     */
-    public Set<String> getServerIds() {
-        Stream<String> srvsInTracked = branchesStream()
-            .flatMap(ITrackedBranch::chainsStream)
-            .map(ITrackedChain::serverCode);
+    public Set<String> getConfiguredServerIds() {
+        Set<String> collect = tcServers.stream().map(TcServerConfig::getCode).collect(Collectors.toSet());
 
-        return Stream.concat(srvsInTracked,
-            tcServers.stream().map(TcServerConfig::getCode))
-            .collect(Collectors.toSet());
+        String e = primaryServerCode();
+        if(Strings.isNullOrEmpty(e))
+            collect.add(e);
+
+        return collect;
     }
 
     public List<BranchTracked> getBranches() {

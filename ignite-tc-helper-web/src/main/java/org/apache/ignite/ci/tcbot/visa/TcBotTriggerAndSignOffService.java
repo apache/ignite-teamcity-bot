@@ -66,6 +66,7 @@ import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
 import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.conf.ITrackedBranchesConfig;
 import org.apache.ignite.tcbot.engine.pr.BranchTicketMatcher;
 import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
 import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi;
@@ -133,6 +134,8 @@ public class TcBotTriggerAndSignOffService {
 
     /** Config. */
     @Inject ITcBotConfig cfg;
+
+    @Inject ITrackedBranchesConfig trackedBranchesConfig;
 
     @Inject
     BranchTicketMatcher ticketMatcher;
@@ -686,8 +689,7 @@ public class TcBotTriggerAndSignOffService {
 
         String realTcId = Strings.isNullOrEmpty(tcCfg.reference()) ? srvIdOrAlias : tcCfg.reference();
 
-        cfg.getTrackedBranches()
-            .get(trBranch)
+        trackedBranchesConfig.get(trBranch)
             .ifPresent(
                 b -> b.chainsStream()
                     .filter(c -> Objects.equals(realTcId, c.serverCode()))
