@@ -28,12 +28,13 @@ public class MixedFilesAndDbTrackedBranchesConfig implements ITrackedBranchesCon
     public Stream<ITrackedBranch> branchesStream() {
         //todo internal cached version,
        // @GuavaCached(softValues = true, expireAfterWriteSecs = 3 * 60)
-        Stream<ITrackedBranch> fileBasedBranches = filesBasedCfg.getConfig().branchesStream();
-
         IgniteCache<String, BranchTrackedPersisted> cache = igniteProvider.get().getOrCreateCache(CacheConfigs.getCache8PartsConfig(TRACKED_BRANCHES));
 
         Map<String, BranchTrackedPersisted> res = new HashMap<>();
-        fileBasedBranches.map(BranchTrackedPersisted::initFrom).forEach(btp -> {
+        filesBasedCfg.getConfig()
+                .getBranches()
+                .stream()
+                .map(BranchTrackedPersisted::initFrom).forEach(btp -> {
             res.put(btp.name(), btp);
         });
 

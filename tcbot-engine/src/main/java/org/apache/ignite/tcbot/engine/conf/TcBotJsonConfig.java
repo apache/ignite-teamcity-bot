@@ -33,7 +33,7 @@ import javax.annotation.Nullable;
  * TC Bot main JSON config file, Historically.
  * Config file for tracked branches.
  */
-public class TcBotJsonConfig implements ITrackedBranchesConfig {
+public class TcBotJsonConfig {
     /** Branches. */
     private List<BranchTracked> branches = new ArrayList<>();
 
@@ -60,11 +60,6 @@ public class TcBotJsonConfig implements ITrackedBranchesConfig {
     /** Notifications settings & tokens. */
     private NotificationsConfig notifications = new NotificationsConfig();
 
-    @Override
-    public Stream<ITrackedBranch> branchesStream() {
-        return branches.stream().map(t->t);
-    }
-
     public Set<String> getConfiguredServerIds() {
         Set<String> collect = tcServers.stream().map(TcServerConfig::getCode).collect(Collectors.toSet());
 
@@ -77,10 +72,6 @@ public class TcBotJsonConfig implements ITrackedBranchesConfig {
 
     public List<BranchTracked> getBranches() {
         return Collections.unmodifiableList(branches);
-    }
-
-    public void addBranch(BranchTracked branch) {
-        branches.add(branch);
     }
 
     /**

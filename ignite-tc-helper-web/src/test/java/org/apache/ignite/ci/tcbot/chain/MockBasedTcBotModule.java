@@ -22,6 +22,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.tcbot.conf.MemoryTrackedBranches;
 import org.apache.ignite.githubignited.IGitHubConnIgnited;
 import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.jiraignited.IJiraIgnited;
@@ -64,9 +65,9 @@ import static org.mockito.Mockito.when;
  * Setup TC bot context with Ignited services mocks: - TC: {@link TeamcityIgnitedProviderMock}
  */
 public class MockBasedTcBotModule extends AbstractModule {
-    private TcBotJsonConfig tracked = new TcBotJsonConfig();
+    private MemoryTrackedBranches tracked = new MemoryTrackedBranches();
 
-    public MockBasedTcBotModule(TcBotJsonConfig tracked) {
+    public MockBasedTcBotModule(MemoryTrackedBranches tracked) {
         this.tracked = tracked;
     }
 

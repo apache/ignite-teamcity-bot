@@ -28,6 +28,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 import org.apache.ignite.ci.tcbot.chain.MockBasedTcBotModule;
+import org.apache.ignite.ci.tcbot.conf.MemoryTrackedBranches;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
@@ -63,7 +64,7 @@ public class IssueDetectorTest {
     private Map<Integer, FatBuildCompacted> apacheBuilds = new ConcurrentHashMap<>();
 
     /** Config Branches tracked. */
-    private TcBotJsonConfig branchesTracked = new TcBotJsonConfig();
+    private MemoryTrackedBranches branchesTracked = new MemoryTrackedBranches();
     /**
      * Injector.
      */
