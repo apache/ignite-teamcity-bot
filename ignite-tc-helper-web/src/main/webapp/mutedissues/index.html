@@ -181,7 +181,7 @@
 
     function loadDataFromServer(silent) {
         g_Loading = true;
-        if (!silent) $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
+        if (!silent) $("#loadStatus").html("&#8987; Please wait");
 
         var curFailuresUrl = "/rest/board/mutedIssues" + parmsForRest();
         $.ajax({

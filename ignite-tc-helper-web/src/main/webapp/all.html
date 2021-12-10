@@ -84,7 +84,7 @@
     function loadData() {
         var curFailuresUrl = "rest/tracked/mergedResults" + parmsForRest();
 
-        $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait. Loading merged runs may require significant time.");
+        $("#loadStatus").html("&#8987; Please wait. Loading merged runs may require significant time.");
         setTimeout(loadPartialData, 3000);
         $.ajax({
             url: curFailuresUrl,
