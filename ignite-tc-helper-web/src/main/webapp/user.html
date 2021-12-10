@@ -135,7 +135,7 @@ function parmsForRest() {
 function loadData() {
     var curFailuresUrl = "rest/user/get" + parmsForRest();
 
-    $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
+    $("#loadStatus").html("&#8987; Please wait");
     $.ajax({
         url: curFailuresUrl,
         success: function(result) {

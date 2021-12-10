@@ -582,7 +582,7 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
         return;
     }
 
-    $("#notifyJira").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px>" +
+    $("#notifyJira").html("&#8987;" +
         " Please wait. First action for PR run-all data may require significant time.");
 
     $.ajax({
