@@ -20,6 +20,7 @@ package org.apache.ignite.ci.web.rest;
 import com.google.common.base.Strings;
 import com.google.inject.Injector;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -34,6 +35,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfigSupplier;
 import org.apache.ignite.tcbot.engine.conf.ChainAtServer;
 import org.apache.ignite.ci.tcbot.TcBotGeneralService;
@@ -140,7 +142,7 @@ public class GetTrackedBranches {
 
 
     /**
-     * Finds all registere unique teamcity branches.
+     * Finds all registered unique teamcity branches.
      * @param srvCodeOrAlias Server code or its alisas.
      */
     @GET
@@ -159,5 +161,23 @@ public class GetTrackedBranches {
                         || srvCode.equals(tc.serverCode()));
             })
             .map(ITrackedChain::tcBranch).collect(Collectors.toSet());
+    }
+
+    /**
+     * Finds all registered unique teamcity branches.
+     * @param branch TC Bot's branch name
+     */
+    @GET
+    @Path("get")
+    public ITrackedBranch get(@Nullable @QueryParam("branch") String branch) {
+        ITeamcityIgnitedProvider instance = CtxListener.getInjector(ctx)
+                .getInstance(ITeamcityIgnitedProvider.class);
+        String branchId = Strings.isNullOrEmpty(branch) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
+
+        Stream<ITrackedBranch> branchStream = accessibleTrackedBranches();
+        Optional<ITrackedBranch> any = branchStream.filter(
+                tb -> branchId.equals(tb.name())
+        ).findAny();
+        return any.orElse(null);
     }
 }

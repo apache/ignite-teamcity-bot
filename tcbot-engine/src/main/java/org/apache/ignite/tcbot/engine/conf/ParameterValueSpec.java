@@ -33,7 +33,7 @@ public class ParameterValueSpec implements IParameterValueSpec {
     public ParameterValueSpec() {
     }
 
-    public ParameterValueSpec(IParameterValueSpec spec) {
+    ParameterValueSpec(IParameterValueSpec spec) {
         this.value = spec.value();
         this.valueRegExp = spec.valueRegExp();
         this.label = spec.label();

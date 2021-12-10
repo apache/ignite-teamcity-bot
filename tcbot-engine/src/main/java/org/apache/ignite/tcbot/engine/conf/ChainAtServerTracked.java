@@ -63,11 +63,9 @@ public class ChainAtServerTracked extends ChainAtServer implements ITrackedChain
         branchForRest = c.tcBranch();
         baseBranchForTc = c.tcBaseBranch().orElse(null);
         triggerBuild = c.triggerBuild();
-
         triggerBuildQuietPeriod = c.triggerBuildQuietPeriod();
 
-        triggerParameters =
-            c.triggerParameterSpecs().map(BuildParameterSpec::new).collect(Collectors.toList());
+        triggerParameters = c.triggerParameterSpecs().map(BuildParameterSpec::new).collect(Collectors.toList());
     }
 
     /**
