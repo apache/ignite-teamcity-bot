@@ -165,19 +165,16 @@ public class GetTrackedBranches {
 
     /**
      * Finds all registered unique teamcity branches.
-     * @param branch TC Bot's branch name
+     * @param code TC Bot's branch code
      */
     @GET
     @Path("get")
-    public ITrackedBranch get(@Nullable @QueryParam("branch") String branch) {
-        ITeamcityIgnitedProvider instance = CtxListener.getInjector(ctx)
-                .getInstance(ITeamcityIgnitedProvider.class);
-        String branchId = Strings.isNullOrEmpty(branch) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
+    public ITrackedBranch get(@Nullable @QueryParam("code") String code) {
+        String branchCode = Strings.isNullOrEmpty(code) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : code;
 
-        Stream<ITrackedBranch> branchStream = accessibleTrackedBranches();
-        Optional<ITrackedBranch> any = branchStream.filter(
-                tb -> branchId.equals(tb.name())
-        ).findAny();
-        return any.orElse(null);
+        return accessibleTrackedBranches()
+                .filter(tb -> branchCode.equals(tb.name()))
+                .findAny()
+                .orElse(null);
     }
 }

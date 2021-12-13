@@ -164,9 +164,9 @@
 
     function parmsForRest() {
         var curReqParms = "";
-        var branch = findGetParameter("branch");
-        if (branch != null) {
-            curReqParms += "?branch=" + branch;
+        var branchCode = findGetParameter("code");
+        if (branchCode != null) {
+            curReqParms += "?code=" + branchCode;
         }
 
         return curReqParms;
