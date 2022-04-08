@@ -19,21 +19,16 @@ package org.apache.ignite.tcbot.engine.conf;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.conf.PasswordEncoder;
-import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
+import org.apache.ignite.tcbot.notify.ISendEmailConfig;
+import org.apache.ignite.tcbot.notify.ISlackBotConfig;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Properties;
-import javax.annotation.Nonnull;
-import org.apache.ignite.tcbot.notify.ISendEmailConfig;
-import org.apache.ignite.tcbot.notify.ISlackBotConfig;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -48,59 +43,8 @@ public class NotificationsConfig implements ISendEmailConfig, ISlackBotConfig {
     private String slackAuthTok;
 
     /** Channels to send notifications to. */
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     private List<NotificationChannel> channels = new ArrayList<>();
-
-    private static final String MAIL_PROPS = "mail.auth.properties";
-    private static final String USERNAME = "username";
-    private static final String ENCODED_PASSWORD = "encoded_password";
-    /** Slack authorization token property name. */
-    private static final String SLACK_AUTH_TOKEN = "slack.auth_token";
-    @Deprecated
-    private static final String SLACK_CHANNEL = "slack.channel";
-
-    @Nonnull
-    public static NotificationsConfig backwardConfig() {
-        Properties cfgProps = loadEmailSettings();
-
-        NotificationsConfig cfg = new NotificationsConfig();
-
-        cfg.slackAuthTok = cfgProps.getProperty(SLACK_AUTH_TOKEN);
-
-        cfg.email.username(cfgProps.getProperty(USERNAME));
-
-        cfg.email.password(cfgProps.getProperty(ENCODED_PASSWORD));
-
-        String slackCh = cfgProps.getProperty(SLACK_CHANNEL);
-        if (!Strings.isNullOrEmpty(slackCh)) {
-            NotificationChannel ch = new NotificationChannel();
-            ch.slack("#" + slackCh);
-            ch.subscribe(ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME);
-            cfg.channels.add(ch);
-        }
-
-        return cfg;
-    }
-
-    public static Properties loadEmailSettings() {
-        try {
-            return loadProps(new File(TcBotWorkDir.resolveWorkDir(), MAIL_PROPS));
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-            return new Properties();
-        }
-    }
-
-    private static Properties loadProps(File file) throws IOException {
-        Properties props = new Properties();
-
-        try (FileReader reader = new FileReader(file)) {
-            props.load(reader);
-        }
-
-        return props;
-    }
-
 
     public boolean isEmpty() {
         return (email == null || Strings.isNullOrEmpty(email.username()))
@@ -145,17 +89,15 @@ public class NotificationsConfig implements ISendEmailConfig, ISlackBotConfig {
         return PasswordEncoder.decode(email.password());
     }
 
-    public Collection<? extends INotificationChannel> channels() {
-        if (channels == null)
-            return Collections.emptyList();
+    @Nullable
+    @Override
+    public String emailSmtpHost() {
+        SmtpSettings smtp = email.smtp();
 
-        return Collections.unmodifiableList(channels);
+        return smtp != null ? smtp.host() : null;
     }
 
-    public void addChannel(NotificationChannel ch) {
-        if (channels == null)
-            this.channels = new ArrayList<>();
-
-        channels.add(ch);
+    public Collection<? extends INotificationChannel> channels() {
+        return channels == null ? Collections.emptyList() : Collections.unmodifiableList(channels);
     }
 }

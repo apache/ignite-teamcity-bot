@@ -30,6 +30,8 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
+
 /**
  * Class for sending email with configured credentials.
  */
@@ -40,12 +42,12 @@ class EmailSender implements IEmailSender {
 
         String user = notifications.emailUsernameMandatory();
 
-        String from = user;
+        String pwd = notifications.emailPasswordClearMandatory();
 
-        final String pwd = notifications.emailPasswordClearMandatory();
+        String smtpHost = notifications.emailSmtpHost();
 
         Properties props = new Properties();
-        props.put("mail.smtp.host", "smtp.gmail.com");
+        props.put("mail.smtp.host", isNullOrEmpty(smtpHost) ? "smtp.gmail.com" : smtpHost);
         props.put("mail.smtp.socketFactory.port", "465");
         props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
         props.put("mail.smtp.auth", "true");
@@ -62,7 +64,7 @@ class EmailSender implements IEmailSender {
         MimeMessage msg = new MimeMessage(ses);
 
         // Set From: header field of the header.
-        msg.setFrom(new InternetAddress(from));
+        msg.setFrom(new InternetAddress(user));
 
         // Set To: header field of the header.
         msg.addRecipient(Message.RecipientType.TO, new InternetAddress(to));

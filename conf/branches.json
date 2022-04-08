@@ -100,8 +100,11 @@
       /* Username, equal to from: field */
       "username": "ignitetcbot@gmail.com",
       /** Email password encoded using Password Encoder.  */
-      "pwd": ""
+      "pwd": "",
       //todo ^ specify password
+      "smtp": {
+        "host": "127.0.0.1"
+      }
     },
     "channels": [
       {

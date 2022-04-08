@@ -16,12 +16,16 @@
  */
 package org.apache.ignite.tcbot.engine.conf;
 
+@SuppressWarnings("unused")
 public class EmailSettings {
     /** Email to send notifications from. */
     private String username;
 
     /** Email password, encoded using Password Encoder. */
     private String pwd;
+
+    /** Custom smtp server, default is gmail */
+    private SmtpSettings smtp;
 
     /**
      * @return Email to send notifications from.
@@ -49,5 +53,9 @@ public class EmailSettings {
      */
     public void password(String pwd) {
         this.pwd = pwd;
+    }
+
+    public SmtpSettings smtp() {
+        return smtp;
     }
 }
