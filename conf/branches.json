@@ -99,11 +99,14 @@
     "email": {
       /* Username, equal to from: field */
       "username": "ignitetcbot@gmail.com",
+      "auth": false,
       /** Email password encoded using Password Encoder.  */
       "pwd": "",
-      //todo ^ specify password
+      //todo ^ specify password or set auth to false
       "smtp": {
-        "host": "127.0.0.1"
+        "host": "127.0.0.1",
+        "port": 25,
+        "ssl": false
       }
     },
     "channels": [

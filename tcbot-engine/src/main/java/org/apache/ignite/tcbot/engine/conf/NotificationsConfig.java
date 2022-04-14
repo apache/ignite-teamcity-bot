@@ -35,7 +35,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 /**
  * Notifications Config
  */
-public class NotificationsConfig implements ISendEmailConfig, ISlackBotConfig {
+public class NotificationsConfig implements ISlackBotConfig {
     /** (Source) Email. */
     private EmailSettings email = new EmailSettings();
 
@@ -56,48 +56,12 @@ public class NotificationsConfig implements ISendEmailConfig, ISlackBotConfig {
         return slackAuthTok;
     }
 
-    /**
-     * @return Email to send notifications from.
-     */
-    public String emailUsername() {
-        return email == null ? null : email.username();
-    }
-
-    /**
-     *
-     */
-    @Nonnull
-    @Override public String emailUsernameMandatory() {
-        String username = emailUsername();
-
-        Preconditions.checkState(!isNullOrEmpty(username),
-            "notifications/email/username property should be filled in branches.json");
-
-        return username;
-    }
-
-    /**
-     * @return Email password.
-     */
-    @Nonnull
-    @Override public String emailPasswordClearMandatory() {
-        Preconditions.checkNotNull(email,
-            "notifications/email/pwd property should be filled in branches.json");
-        Preconditions.checkState(!isNullOrEmpty(email.password()),
-            "notifications/email/pwd property should be filled in branches.json");
-
-        return PasswordEncoder.decode(email.password());
-    }
-
-    @Nullable
-    @Override
-    public String emailSmtpHost() {
-        SmtpSettings smtp = email.smtp();
-
-        return smtp != null ? smtp.host() : null;
-    }
 
     public Collection<? extends INotificationChannel> channels() {
         return channels == null ? Collections.emptyList() : Collections.unmodifiableList(channels);
+    }
+
+    public ISendEmailConfig email() {
+        return email;
     }
 }

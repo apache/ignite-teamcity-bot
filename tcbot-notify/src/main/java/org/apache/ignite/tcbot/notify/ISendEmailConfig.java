@@ -28,14 +28,18 @@ public interface ISendEmailConfig {
      * @return Email username.
      */
     @Nonnull
-    public String emailUsernameMandatory() ;
+    String usernameMandatory() ;
 
     /**
      * @return Email password.
      */
     @Nonnull
-    public String emailPasswordClearMandatory() ;
+    String passwordClearMandatory() ;
 
-    @Nullable
-    String emailSmtpHost();
+    @Nullable Boolean isAuthRequired();
+
+    @Nullable Boolean isSmtpSsl();
+    @Nullable String smtpHost();
+
+    @Nullable Integer smtpPort();
 }
