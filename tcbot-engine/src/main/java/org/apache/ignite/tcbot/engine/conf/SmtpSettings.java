@@ -15,31 +15,29 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.tcbot.notify;
+package org.apache.ignite.tcbot.engine.conf;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-/**
- * Source email configuration. Now only gmail server is supported.
- */
-public interface ISendEmailConfig {
-    /**
-     * @return Email username.
-     */
-    @Nonnull
-    String usernameMandatory() ;
+public class SmtpSettings {
+    /** Default is gmail server: "smtp.gmail.com". */
+    private String host;
 
-    /**
-     * @return Email password.
-     */
-    @Nonnull
-    String passwordClearMandatory() ;
+    /** Default is 465. */
+    private Integer port;
 
-    @Nullable Boolean isAuthRequired();
+    /** Default is true. */
+    private Boolean ssl;
 
-    @Nullable Boolean isSmtpSsl();
-    @Nullable String smtpHost();
+    @Nullable public String host() {
+        return host;
+    }
 
-    @Nullable Integer smtpPort();
+    public Integer port() {
+        return port;
+    }
+
+    public Boolean ssl() {
+        return ssl;
+    }
 }

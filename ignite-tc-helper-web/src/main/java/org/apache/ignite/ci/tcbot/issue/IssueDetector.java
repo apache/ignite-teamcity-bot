@@ -299,7 +299,7 @@ public class IssueDetector {
                     String builds = next.buildIdToIssue.keySet().toString();
                     String subj = "[MTCGA]: " + next.countIssues() + " new failures in builds " + builds + " needs to be handled";
 
-                    emailSender.sendEmail(addr, subj, next.toHtml(), next.toPlainText(), notifications);
+                    emailSender.sendEmail(addr, subj, next.toHtml(), next.toPlainText(), notifications.email());
 
                     sndStat.computeIfAbsent(addr, k -> new AtomicInteger()).incrementAndGet();
                 }
