@@ -33,10 +33,7 @@ import org.apache.ignite.tcbot.notify.ISlackSender;
 
 import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import java.util.ArrayList;
@@ -129,9 +126,8 @@ public class MonitoringService {
     }
 
     @POST
-    @PermitAll
     @Path("testEmailNotification")
-    public SimpleResult testEmailNotification(String address) {
+    public SimpleResult testEmailNotification(@FormParam("address") String address) {
         IEmailSender emailSender = CtxListener.getInjector(ctx).getInstance(IEmailSender.class);
 
         ITcBotConfig tcBotConfig = CtxListener.getInjector(ctx).getInstance(ITcBotConfig.class);
