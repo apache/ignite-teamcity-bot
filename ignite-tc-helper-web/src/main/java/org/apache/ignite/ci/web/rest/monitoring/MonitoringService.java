@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.web.rest.monitoring;
 
+import com.google.common.base.Strings;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.CacheMetrics;
@@ -138,7 +139,8 @@ public class MonitoringService {
 
             ISendEmailConfig email = notifications.email();
             String plainText = "Test Email notification message!";
-            emailSender.sendEmail(address, subj, plainText, plainText, email);
+            String addressUnescaped = Strings.nullToEmpty(address).replace("%40", "@");
+            emailSender.sendEmail(addressUnescaped, subj, plainText, plainText, email);
         } catch (Exception e) {
             return new SimpleResult("Failed to send test Email message: " + e.getMessage());
         }
