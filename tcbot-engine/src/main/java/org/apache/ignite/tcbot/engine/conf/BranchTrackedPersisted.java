@@ -16,22 +16,30 @@
  */
 package org.apache.ignite.tcbot.engine.conf;
 
-import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Stream;
+import javax.annotation.Nullable;
 
-/**
- * Tracked branches configuration for TC Bot.
- */
-public interface ITrackedBranchesConfig {
-    Stream<ITrackedBranch> branchesStream();
+public class BranchTrackedPersisted extends BranchTracked {
+    @Nullable
+    protected Boolean softDeleted;
 
-    public default Optional<ITrackedBranch> get(String branch) {
-        return branchesStream().filter(b -> Objects.equals(branch, b.name())).findAny();
+    @SuppressWarnings("unused")
+    public BranchTrackedPersisted() {
     }
 
+    public BranchTrackedPersisted(ITrackedBranch b) {
+        b.chainsStream().map(ChainAtServerTracked::new).forEach(chains::add);
 
-    public default ITrackedBranch getBranchMandatory(String branch) {
-        return get(branch).orElseThrow(() -> new RuntimeException("Branch not found: " + branch));
+        this.id = b.name();
+        this.disableIssueTypes = b.disableIssueTypes();
+        this.softDeleted = false;
     }
+
+    public boolean isDeleted() {
+        return softDeleted != null && softDeleted;
+    }
+
+    public boolean isAlive() {
+        return !isDeleted();
+    }
+
 }

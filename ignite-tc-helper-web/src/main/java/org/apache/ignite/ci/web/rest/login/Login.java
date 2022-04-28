@@ -19,6 +19,7 @@ package org.apache.ignite.ci.web.rest.login;
 
 import com.google.common.base.Preconditions;
 import com.google.inject.Injector;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfigSupplier;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.apache.ignite.tcservice.model.user.User;
@@ -72,14 +73,15 @@ public class Login {
         Preconditions.checkNotNull(pwd);
 
         final Injector injector = CtxListener.getInjector(ctx);
-        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
+        final ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
         final ITcLogin tcLogin = injector.getInstance(ITcLogin.class);
-        IUserStorage users = injector.getInstance(IUserStorage.class);
+        final IUserStorage users = injector.getInstance(IUserStorage.class);
+        final ITcServerConfigSupplier tcConfigSupplier = injector.getInstance(ITcServerConfigSupplier.class);
 
         String primarySrvCode = cfg.primaryServerCode();
 
         try {
-            return doLogin(username, pwd, users, primarySrvCode, cfg.getServerIds(), tcLogin);
+            return doLogin(username, pwd, users, primarySrvCode, tcConfigSupplier.getConfiguredServerIds(), tcLogin);
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
@@ -88,7 +90,7 @@ public class Login {
 
     public LoginResponse doLogin(@FormParam("uname") String username,
                                  @FormParam("psw") String pwd,
-        IUserStorage users,
+                                 IUserStorage users,
                                  String primarySrvId,
                                  Collection<String> srvIds,
                                  ITcLogin tcLogin) {

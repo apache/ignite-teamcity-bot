@@ -14,24 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.tcbot.engine.conf;
+package org.apache.ignite.tcbot.common.conf;
 
-import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Stream;
+import java.util.Collection;
 
-/**
- * Tracked branches configuration for TC Bot.
- */
-public interface ITrackedBranchesConfig {
-    Stream<ITrackedBranch> branchesStream();
+public interface ITcServerConfigSupplier {
+    /**
+     * @return all configured server identifiers, without relation to current user access.
+     */
+    public Collection<String> getConfiguredServerIds();
 
-    public default Optional<ITrackedBranch> get(String branch) {
-        return branchesStream().filter(b -> Objects.equals(branch, b.name())).findAny();
-    }
+    public ITcServerConfig getTeamcityConfig(String srvCode);
 
-
-    public default ITrackedBranch getBranchMandatory(String branch) {
-        return get(branch).orElseThrow(() -> new RuntimeException("Branch not found: " + branch));
-    }
 }

@@ -29,17 +29,20 @@ import org.apache.ignite.ci.db.Ignite1Init;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
 import org.apache.ignite.ci.tcbot.conf.LocalFilesBasedConfig;
+import org.apache.ignite.ci.tcbot.conf.MixedFilesAndDbTrackedBranchesConfig;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.apache.ignite.githubignited.GitHubIgnitedModule;
 import org.apache.ignite.jiraignited.JiraIgnitedModule;
 import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfigSupplier;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.exeption.ServicesStartingException;
 import org.apache.ignite.tcbot.engine.TcBotEngineModule;
 import org.apache.ignite.tcbot.engine.cleaner.Cleaner;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.conf.ITrackedBranchesConfig;
 import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
 import org.apache.ignite.tcbot.notify.TcBotNotificationsModule;
 import org.apache.ignite.tcbot.persistence.TcBotPersistenceModule;
@@ -90,9 +93,13 @@ public class TcBotWebAppModule extends AbstractModule {
 
         // common services
         install(new TcBotEngineModule());
+
+        bind(LocalFilesBasedConfig.class).in(new SingletonScope());
         bind(ITcBotConfig.class).to(LocalFilesBasedConfig.class).in(new SingletonScope());
-        //todo remove duplication of instances for base and for overriden class
-        bind(IDataSourcesConfigSupplier.class).to(LocalFilesBasedConfig.class).in(new SingletonScope());
+        bind(IDataSourcesConfigSupplier.class).to(ITcBotConfig.class).in(new SingletonScope());
+        bind(ITcServerConfigSupplier.class).to(IDataSourcesConfigSupplier.class).in(new SingletonScope());
+        bind(ITrackedBranchesConfig.class).to(MixedFilesAndDbTrackedBranchesConfig.class).in(new SingletonScope());
+
         bind(MasterTrendsService.class).in(new SingletonScope());
         bind(ITcBotBgAuth.class).to(TcBotBgAuthImpl.class).in(new SingletonScope());
     }

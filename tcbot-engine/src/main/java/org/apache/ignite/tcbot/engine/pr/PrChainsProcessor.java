@@ -43,6 +43,7 @@ import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
 import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
+import org.apache.ignite.tcbot.engine.conf.ITrackedBranchesConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
 import org.apache.ignite.tcbot.engine.newtests.NewTestsStorage;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
@@ -89,6 +90,8 @@ public class PrChainsProcessor {
 
     /** Config. */
     @Inject private ITcBotConfig cfg;
+
+    @Inject private ITrackedBranchesConfig trackedBranchesConfig;
 
     @Inject private BranchEquivalence branchEquivalence;
 
@@ -196,7 +199,7 @@ public class PrChainsProcessor {
 
         String tcRealSvc = tcCfg.reference();
 
-        Optional<ITrackedBranch> branch = cfg.getTrackedBranches().get(dfltTrackedBranch);
+        Optional<ITrackedBranch> branch = trackedBranchesConfig.get(dfltTrackedBranch);
 
         if (!branch.isPresent())
             return ITeamcity.DEFAULT;

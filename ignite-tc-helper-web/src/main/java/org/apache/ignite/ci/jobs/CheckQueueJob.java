@@ -40,10 +40,7 @@ import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
-import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
-import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
-import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
-import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
+import org.apache.ignite.tcbot.engine.conf.*;
 import org.apache.ignite.tcbot.notify.ISlackSender;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
@@ -91,6 +88,8 @@ public class CheckQueueJob implements Runnable {
 
     /** */
     @Inject private ITcBotConfig cfg;
+
+    @Inject private ITrackedBranchesConfig trackedBranchesConfig;
 
     /** */
     @Inject private ISlackSender slackSender;
@@ -146,7 +145,7 @@ public class CheckQueueJob implements Runnable {
             return msg;
         }
 
-        Stream<ITrackedBranch> tracked = cfg.getTrackedBranches().branchesStream();
+        Stream<ITrackedBranch> tracked = trackedBranchesConfig.branchesStream();
 
         int srvsChecked = 0, chainsChecked = 0;
 

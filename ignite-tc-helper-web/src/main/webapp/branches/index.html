@@ -1,0 +1,349 @@
+<html>
+<head>
+    <title>Apache Ignite Teamcity Bot - Tracked branch - Edit</title>
+    <link rel="icon" href="/img/leaf-icon-png-7066.png">
+
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+    <!-- production version, optimized for size and speed -->
+    <!--<script src="https://cdn.jsdelivr.net/npm/vue"></script>-->
+
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900|Material+Icons" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@3.x/css/materialdesignicons.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="/css/style-1.5.css">
+
+    <script src="/js/common-1.6.js"></script>
+
+    <style>
+        input.solid {border-style: solid;}
+        textarea.solid {border-style: solid;}
+        select.solid {border-style: solid;}
+        select#selBranch {
+            border-style: solid;
+            -webkit-appearance: auto;
+            -webkit-writing-mode: horizontal-tb !important;
+            -webkit-rtl-ordering: logical;
+        }
+    </style>
+</head>
+<body>
+
+<div id="message" title="Mute issue">
+    <label>Issue</label><br>
+    <textarea rows="2" cols="60" class="solid" id="issueName" readonly></textarea><br>
+    <label>Jira ticket</label><br>
+    <textarea maxlength = "100" rows="2" cols="60" class="solid" id="jiraTicket"></textarea><br>
+    <label>Comment</label><br>
+    <textarea maxlength = "500" rows="7" cols="60" class="solid" id="comment"></textarea><br>
+</div>
+
+<script>
+    $('#message').dialog({
+        autoOpen: false,
+        modal: true,
+        maxWidth:600,
+        maxHeight: 500,
+        width: 600,
+        height: 350,
+        show: {
+            effect: "fade",
+            duration: 1000
+            },
+        hide: {
+            effect: "blind",
+            duration: 500
+            },
+        open: function() {
+            $(this).parent().promise().done(function () {
+                document.getElementById('issueName').value = $("#message").data('issue').name;
+                document.getElementById('jiraTicket').value = '';
+                document.getElementById('comment').value = '';
+            });
+        },
+        close: function() {
+            $(this).parent().promise().done(function () {
+                document.getElementById('issueName').value = '';
+                document.getElementById('jiraTicket').value = '';
+                document.getElementById('comment').value = '';
+            });
+        },
+        buttons: {
+            Mute: function() {
+                document.getElementsByClassName('issue_' + $("#message").data('item').id + '_' + $("#message").data('index')).item(0).value = 'BotMuted';
+                    $.ajax({
+                        url: "/rest/board/muteIssue",
+                        type: 'PUT',
+                        data: { tcSrvId: $("#message").data('issue').tcSrvId,
+                                nameId: $("#message").data('issue').nameId,
+                                trackedBranch: $("#message").data('item').trackedBranch,
+                                branch: $("#message").data('item').branch,
+                                issueType: $("#message").data('issue').issueType,
+                                jiraTicket: document.getElementById('jiraTicket').value,
+                                comment: document.getElementById('comment').value,
+                                userName: document.getElementById('userName').text,
+                                webUrl: $("#message").data('issue').webUrl
+                              },
+                        error: function (jqXHR, exception) {
+                            showErrInLoadStatus(jqXHR, exception);
+                        }
+                    });
+                $(this).dialog("close");
+                },
+            Cancel: function() {
+                $(this).dialog("close");
+                }
+        }
+    });
+    </script>
+
+<script>
+    let gVue, g_Loading, g_TcBotVersion;
+
+    $(document).ready(function() {
+        $( document ).tooltip();
+        showQueryForm();
+
+        loadData();
+
+        setInterval(loadDataSilent, 7000);
+
+        $.ajax({ url: "/rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
+    });
+
+    $(window).on('pageshow', function() {
+        gVue.$data.baseBranchSelected = 'All branches';
+    });
+
+    function showQueryForm() {
+        gVue = new Vue({
+            el: '#vueQueryForm',
+            vuetify: new Vuetify(),
+            data: {
+                baseBranchSelected: '',
+                baseBranches: new Set(),
+                defects: [],
+                expanded: [],
+                headers: [
+                    {text: "Branch", value: 'branch'},
+                    {text: 'Tags', value: 'tags'},
+                    {text: 'Suites', value: 'suitesSummary'},
+                    {text: "Commits", value: 'blameCandidateSummary'},
+                    {text: "Issues", value: 'cntissues'},
+                    {text: "Fixed", value: 'cntfixedissues'},
+                    {text: "Ignored", value: 'cntignoredissues'},
+                    {text: "Not Fixed", value: 'cntfailingissues'},
+                    {text: "Unclear", value: 'cntunclearissues'}
+                ]
+            },
+            methods: {
+                formChanged: function () {
+                    loadDataSilent();
+                },
+
+                onResolve: function (id, force) {
+
+                },
+                muteModal: function (item, issue, index) {
+                    $('#message')
+                        .data('item', item)
+                        .data('issue', issue)
+                        .data('index', index)
+                        .dialog("open");
+                    },
+            }
+        });
+    }
+
+
+    function parmsForRest() {
+        var curReqParms = "";
+        var branchCode = findGetParameter("code");
+        if (branchCode != null) {
+            curReqParms += "?code=" + branchCode;
+        }
+
+        return curReqParms;
+    }
+
+    function loadDataFromServer(silent) {
+        g_Loading = true;
+        if (!silent) $("#loadStatus").html("&#8987; Please wait");
+
+        var curFailuresUrl = "/rest/branches/get" + parmsForRest();
+        $.ajax({
+            url: curFailuresUrl,
+            success: function (result) {
+                $("#loadStatus").html("");
+
+                showData(result);
+
+                g_Loading = false;
+            },
+            error: function (jqXHR, exception) {
+                g_Loading = false;
+                showErrInLoadStatus(jqXHR, exception);
+            }
+        });
+    }
+
+    function loadData() {
+        loadDataFromServer(false);
+    }
+
+    function validateVersionsConsistency() {
+        $.ajax({
+            url: "/rest/branches/version", success: function (result) {
+                if (g_TcBotVersion == null)
+                    g_TcBotVersion = result.version;
+                else if (g_TcBotVersion !== result.version)
+                    window.location.reload(true);
+
+            }, error: showErrInLoadStatus
+        });
+    }
+
+    function loadDataSilent() {
+        if(g_Loading)
+            return;
+
+        try {
+            loadDataFromServer(true);
+            validateVersionsConsistency();
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
+    function showData(result) {
+
+       console.log(result);
+    }
+
+</script>
+
+<div id="loadStatus"></div>
+<div id="vueQueryForm">
+
+    <div class="formgroup">
+        <span>Branch:</span>
+        <select v-model="baseBranchSelected" @change="formChanged" id="selBranch">
+            <option  value="All branches">All branches</option>
+
+            <option v-for="option in baseBranches" v-bind:value="option">
+                {{ option }}
+            </option>
+        </select>
+    </div>
+
+    <v-app id="queryForm">
+        <v-data-table
+                :headers="headers"
+                :items="defects"
+                itrackedBranchtem-key="id"
+                class="elevation-1"
+                sort-by="branch"
+                :expanded.sync="expanded"
+                show-expand
+                dense
+                multi-sort
+        >
+            <!-- expand item/row -->
+            <template v-slot:expanded-item="{ headers, item }">
+                <td :colspan="headers.length">
+                    Branch: <a :href="'/current.html?branch=' + item.trackedBranch">{{item.trackedBranch}}</a>
+
+                    Commits from:
+                    <div v-for="(candidate) in item.blameCandidates">
+                        {{ candidate }}
+                    </div>
+
+                    Tests affected:
+                    <table>
+                        <tr v-for="(issue, i) in item.allIssues">
+                            <td v-bind:class="'issue_' + item.id + '_' + i">
+                            <td v-if="issue.status === 'FIXED'">
+                                Fixed
+                            </td>
+                            <td v-else-if="issue.status === 'FAILING'">
+                                Still Failing
+                            </td>
+                            <td v-else>
+                                {{ issue.status }}
+                            </td>
+                            </td>
+
+                            <td>{{ issue.issueType }}</td>
+                            <td>
+                                <a v-if="issue.webUrl != null" :href="issue.webUrl">
+                                    {{ issue.name }}
+                                </a>
+                                <span v-else>
+                                {{ issue.name }}
+                                </span>
+                            </td>
+                            <td>
+                                <template v-if="issue.status !== 'BOT_MUTED' && issue.status !== 'FIXED'">
+                                    <button class="muteModal" v-on:click="muteModal(item, issue, i)">Mute</button>
+                                </template>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <button v-if="item.cntFailingIssues === 0" v-on:click="onResolve(item.id, false)">Resolve</button>
+                    <button v-if="item.forceResolveAllowed === true" v-on:click="onResolve(item.id, true)" class='disabledbtn'>Force resolve</button>
+                </td>
+            </template>
+
+            <template v-slot:item.tags="{ item }">
+                <span v-for="(tag) in item.tags">
+                    {{ tag }}
+                </span>
+            </template>
+
+            <template v-slot:item.suites="{ item }">
+                <span v-for="(suite) in item.suites">
+                    {{ suite }}
+                </span>
+            </template>
+
+            <template v-slot:item.cntIssues="{ item }">
+                {{ item.cntIssues }}
+            </template>
+            <template v-slot:item.cntFixedIssues="{ item }">
+                <span class='visaStage' style="background: #12AD5E"
+                      v-if="item.cntFixedIssues!=0"
+                      :title="item.summaryFixedIssues">  {{ item.cntFixedIssues }} </span>
+            </template>
+            <template v-slot:item.cntIgnoredIssues="{ item }">
+                <span class='visaStage' style="background: darkorange"
+                      v-if="item.cntIgnoredIssues!=0"
+                      :title="item.summaryIgnoredIssues"> {{ item.cntIgnoredIssues }} </span>
+            </template>
+            <template v-slot:item.cntFailingIssues="{ item }" >
+                <span class='visaStage' style="background: red"
+                      v-if="item.cntFailingIssues!=0"
+                      :title="item.summaryFailingIssues">  {{ item.cntFailingIssues }} </span>
+            </template>
+
+            <template v-slot:item.cntUnclearIssues="{ item }" >
+                <span class='visaStage' style="background: grey"
+                      v-if="item.cntUnclearIssues!=0"
+                      :title="item.summaryUnclearIssues" >  {{ item.cntUnclearIssues }} </span>
+            </template>
+
+        </v-data-table>
+
+    </v-app>
+</div>
+
+<div id="version"></div>
+<div style="visibility:hidden;"><div id="triggerConfirm" title="Trigger Confirmation"></div><div id="triggerDialog" title="Trigger Result"></div></div>
+</body>
+</html>

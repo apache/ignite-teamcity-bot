@@ -31,12 +31,10 @@ public class BranchTracked implements ITrackedBranch {
     /** ID for internal REST and for config file. */
     public String id;
 
-    /** */
     public List<ChainAtServerTracked> chains = new ArrayList<>();
 
     /** Disable notifications for the following issue types. See  IssueType#code()   */
-    @Nullable private List<String> disableIssueTypes = new ArrayList<>();
-
+    @Nullable protected List<String> disableIssueTypes = new ArrayList<>();
 
     /**
      * @return internal identifier of the branch.
@@ -45,12 +43,6 @@ public class BranchTracked implements ITrackedBranch {
         return id;
     }
 
-    /** */
-    public List<ChainAtServerTracked> getChains() {
-        return Collections.unmodifiableList(chains);
-    }
-
-    /** */
     public Stream<ITrackedChain> chainsStream() {
         return chains.stream().map(t->t);
     }

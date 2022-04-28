@@ -22,39 +22,32 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-
-import org.apache.ignite.tcbot.engine.tracked.DisplayMode;
-import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
-import org.apache.ignite.tcservice.ITeamcity;
-import org.apache.ignite.tcbot.engine.conf.BranchTracked;
-import org.apache.ignite.tcbot.engine.conf.ChainAtServerTracked;
-import org.apache.ignite.tcbot.engine.conf.TcBotJsonConfig;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.ci.tcbot.conf.MemoryTrackedBranches;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
+import org.apache.ignite.tcbot.engine.conf.BranchTracked;
+import org.apache.ignite.tcbot.engine.conf.ChainAtServerTracked;
+import org.apache.ignite.tcbot.engine.tracked.DisplayMode;
+import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
 import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
-import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
+import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcservice.ITeamcity;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest.CACHE_9;
-import static org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest.TEST_RARE_FAILED_WITHOUT_CHANGES;
-import static org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest.TEST_RARE_FAILED_WITH_CHANGES;
-import static org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest.createFatBuild;
-import static org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest.createTest;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+
+import static org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest.*;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -69,7 +62,7 @@ public class TrackedBranchProcessorTest {
     private Map<Integer, FatBuildCompacted> apacheBuilds = new ConcurrentHashMap<>();
 
     /** Branches tracked. */
-    private TcBotJsonConfig branchesTracked = new TcBotJsonConfig();
+    private MemoryTrackedBranches branchesTracked = new MemoryTrackedBranches();
     /**
      * Injector.
      */

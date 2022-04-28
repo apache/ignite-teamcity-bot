@@ -20,8 +20,7 @@ package org.apache.ignite.tcbot.common.conf;
 /**
  * 3rd party data sources (services/servers) configurations.
  */
-public interface IDataSourcesConfigSupplier {
-    public ITcServerConfig getTeamcityConfig(String srvCode);
+public interface IDataSourcesConfigSupplier extends ITcServerConfigSupplier {
 
     public IGitHubConfig getGitConfig(String srvCode);
 

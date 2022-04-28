@@ -14,24 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.tcbot.engine.conf;
+package org.apache.ignite.ci.tcbot.conf;
 
-import java.util.Objects;
-import java.util.Optional;
+import org.apache.ignite.tcbot.engine.conf.BranchTracked;
+import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
+import org.apache.ignite.tcbot.engine.conf.ITrackedBranchesConfig;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
 /**
- * Tracked branches configuration for TC Bot.
+ * Inmem only implementation for tests
  */
-public interface ITrackedBranchesConfig {
-    Stream<ITrackedBranch> branchesStream();
+public class MemoryTrackedBranches implements ITrackedBranchesConfig {
+    /**
+     * Branches.
+     */
+    private List<BranchTracked> branches = new ArrayList<>();
 
-    public default Optional<ITrackedBranch> get(String branch) {
-        return branchesStream().filter(b -> Objects.equals(branch, b.name())).findAny();
+    @Override
+    public Stream<ITrackedBranch> branchesStream() {
+        return branches.stream().map(t -> t);
     }
 
 
-    public default ITrackedBranch getBranchMandatory(String branch) {
-        return get(branch).orElseThrow(() -> new RuntimeException("Branch not found: " + branch));
+    public void addBranch(BranchTracked branch) {
+        branches.add(branch);
     }
 }

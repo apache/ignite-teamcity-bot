@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.tcbot.common.conf;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 
 /**
@@ -27,4 +28,9 @@ public interface IBuildParameterSpec {
     boolean isFilled();
 
     Collection<? extends IParameterValueSpec> selection();
+
+    boolean useRandomValue();
+
+    /** Fixed value (if any) */
+    @Nullable String value();
 }

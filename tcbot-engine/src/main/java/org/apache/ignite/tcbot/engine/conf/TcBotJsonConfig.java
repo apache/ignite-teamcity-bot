@@ -17,6 +17,8 @@
 
 package org.apache.ignite.tcbot.engine.conf;
 
+import com.google.common.base.Strings;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -31,7 +33,7 @@ import javax.annotation.Nullable;
  * TC Bot main JSON config file, Historically.
  * Config file for tracked branches.
  */
-public class TcBotJsonConfig implements ITrackedBranchesConfig {
+public class TcBotJsonConfig {
     /** Branches. */
     private List<BranchTracked> branches = new ArrayList<>();
 
@@ -58,30 +60,18 @@ public class TcBotJsonConfig implements ITrackedBranchesConfig {
     /** Notifications settings & tokens. */
     private NotificationsConfig notifications = new NotificationsConfig();
 
-    @Override
-    public Stream<ITrackedBranch> branchesStream() {
-        return branches.stream().map(t->t);
-    }
+    public Set<String> getConfiguredServerIds() {
+        Set<String> collect = tcServers.stream().map(TcServerConfig::getCode).collect(Collectors.toSet());
 
-    /**
-     *
-     */
-    public Set<String> getServerIds() {
-        Stream<String> srvsInTracked = branchesStream()
-            .flatMap(ITrackedBranch::chainsStream)
-            .map(ITrackedChain::serverCode);
+        String e = primaryServerCode();
+        if(Strings.isNullOrEmpty(e))
+            collect.add(e);
 
-        return Stream.concat(srvsInTracked,
-            tcServers.stream().map(TcServerConfig::getCode))
-            .collect(Collectors.toSet());
+        return collect;
     }
 
     public List<BranchTracked> getBranches() {
         return Collections.unmodifiableList(branches);
-    }
-
-    public void addBranch(BranchTracked branch) {
-        branches.add(branch);
     }
 
     /**

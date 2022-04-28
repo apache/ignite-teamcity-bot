@@ -18,18 +18,20 @@
 package org.apache.ignite.tcbot.engine.conf;
 
 import com.google.common.base.Strings;
+import org.apache.ignite.tcbot.common.conf.IBuildParameterSpec;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
  * Chain on particular TC server, which is tracked by the Bot.
@@ -51,19 +53,19 @@ public class ChainAtServerTracked extends ChainAtServer implements ITrackedChain
     /** Build parameters for Triggering. */
     @Nullable private List<BuildParameterSpec> triggerParameters;
 
-    /** @return {@link #suiteId} */
-    @Nonnull public String getSuiteIdMandatory() {
-        checkState(!isNullOrEmpty(suiteId), "Invalid config: suiteId should be filled " + this);
-        return suiteId;
-    }
+    @SuppressWarnings("unused")
+    public ChainAtServerTracked() {}
 
-    /**
-     * @return branch in TC indentification to queue build results.
-     */
-    @Nonnull public String getBranchForRestMandatory() {
-        checkState(!isNullOrEmpty(branchForRest), "Invalid config: branchForRest should be filled " + this);
+    ChainAtServerTracked(ITrackedChain c) {
+        serverId = c.serverCode();
+        suiteId = c.tcSuiteId();
 
-        return branchForRest;
+        branchForRest = c.tcBranch();
+        baseBranchForTc = c.tcBaseBranch().orElse(null);
+        triggerBuild = c.triggerBuild();
+        triggerBuildQuietPeriod = c.triggerBuildQuietPeriod();
+
+        triggerParameters = c.triggerParameterSpecs().map(BuildParameterSpec::new).collect(Collectors.toList());
     }
 
     /**
@@ -102,6 +104,13 @@ public class ChainAtServerTracked extends ChainAtServer implements ITrackedChain
         return triggerBuild == null ? false : triggerBuild;
     }
 
+    @Override
+    public Stream<IBuildParameterSpec> triggerParameterSpecs() {
+        return triggerParameters == null
+                ? Stream.empty()
+                : triggerParameters.stream().map(p -> p);
+    }
+
     /** {@inheritDoc} */
     @Override public int triggerBuildQuietPeriod() {
         return triggerBuildQuietPeriod == null ? 0 : triggerBuildQuietPeriod;
@@ -132,13 +141,6 @@ public class ChainAtServerTracked extends ChainAtServer implements ITrackedChain
         );
 
         return values;
-    }
-
-    public Stream<String> buildParametersKeys() {
-        if (triggerParameters == null || triggerParameters.isEmpty())
-            return Stream.empty();
-
-        return triggerParameters.stream().map(BuildParameterSpec::name);
     }
 
     /** {@inheritDoc} */

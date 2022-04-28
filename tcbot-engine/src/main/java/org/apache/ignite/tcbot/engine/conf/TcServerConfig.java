@@ -127,7 +127,7 @@ public class TcServerConfig implements ITcServerConfig {
     }
 
     /**
-     * @return tracked branch name to be used for this server for PRs check
+     * @inheritDoc
      */
     @Nonnull @Override public String defaultTrackedBranch() {
         if (!Strings.isNullOrEmpty(defaultTrackedBranch))

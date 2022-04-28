@@ -37,6 +37,7 @@ import javax.inject.Provider;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
+import org.apache.ignite.tcbot.engine.conf.ITrackedBranchesConfig;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
 import org.apache.ignite.tcbot.engine.issue.IssueType;
 import org.apache.ignite.ci.jobs.CheckQueueJob;
@@ -106,6 +107,8 @@ public class IssueDetector {
 
     /** Config. */
     @Inject private ITcBotConfig cfg;
+
+    @Inject private ITrackedBranchesConfig trackedBranchesConfig;
 
     /** Email sender. */
     @Inject private IEmailSender emailSender;
@@ -198,8 +201,7 @@ public class IssueDetector {
             })
             .peek(issue -> filteredBuildTs.incrementAndGet())
             .filter(issue -> {
-                return cfg.getTrackedBranches()
-                    .get(issue.trackedBranchName)
+                return trackedBranchesConfig.get(issue.trackedBranchName)
                     .filter(tb -> !tb.disableIssueTypes().contains(issue.type()))
                     .isPresent();
             })
@@ -594,7 +596,7 @@ public class IssueDetector {
      *
      */
     private void checkFailures() {
-        cfg.getTrackedBranches().branchesStream().forEach(tb -> {
+        trackedBranchesConfig.branchesStream().forEach(tb -> {
             try {
                 checkFailuresEx(tb.name());
             } catch (Exception e) {

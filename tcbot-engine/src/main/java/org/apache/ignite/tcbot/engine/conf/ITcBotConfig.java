@@ -46,24 +46,6 @@ public interface ITcBotConfig extends IDataSourcesConfigSupplier {
     public Double confidence();
 
     /**
-     * @return Tracked branches configuration for TC Bot.
-     */
-    public ITrackedBranchesConfig getTrackedBranches();
-
-    /**
-     * @return list of servers (services) identifiers involved into tracked branches processing.
-     */
-    public default Collection<String> getServerIds() {
-        return getTrackedBranches().getServerIds();
-    }
-
-    public ITcServerConfig getTeamcityConfig(String srvCode);
-
-    public IJiraServerConfig getJiraConfig(String srvCode);
-
-    public IGitHubConfig getGitConfig(String srvCode);
-
-    /**
      * @return notification settings config.
      */
     public NotificationsConfig notifications();

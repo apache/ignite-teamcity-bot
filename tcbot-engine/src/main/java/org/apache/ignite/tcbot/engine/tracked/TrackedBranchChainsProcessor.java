@@ -42,6 +42,7 @@ import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
 import org.apache.ignite.tcbot.engine.chain.SortOption;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
+import org.apache.ignite.tcbot.engine.conf.ITrackedBranchesConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
@@ -66,6 +67,8 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
 
     /** Tc Bot config. */
     @Inject private ITcBotConfig tcBotCfg;
+
+    @Inject private ITrackedBranchesConfig trackedBranchesConfig;
 
     /** Chains processor. */
     @Inject private BuildChainProcessor chainProc;
@@ -100,7 +103,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         final String branchNn = isNullOrEmpty(branch) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
         res.setTrackedBranch(branchNn);
 
-        final ITrackedBranch tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);
+        final ITrackedBranch tracked = trackedBranchesConfig.getBranchMandatory(branchNn);
 
         tracked.chainsStream()
             .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverCode(), creds))
@@ -192,14 +195,11 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
     }
 
     @Override public GuardBranchStatusUi getBranchSummary(String name, ICredentialsProv prov) {
-        ITrackedBranch tb = tcBotCfg.getTrackedBranches().getBranchMandatory(name);
+        ITrackedBranch tb = trackedBranchesConfig.getBranchMandatory(name);
         List<ITrackedChain> accessibleChains =
             tb.chainsStream()
                 .filter(chain -> tcIgnitedProv.hasAccess(chain.serverCode(), prov))
                 .collect(Collectors.toList());
-
-        if (accessibleChains == null)
-            return null;
 
         int ageDays = 1;
         long minStartTime = System.currentTimeMillis() - Duration.ofDays(ageDays).toMillis();
@@ -250,7 +250,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         @Nonnull ICredentialsProv creds) {
 
         final String branchNn = isNullOrEmpty(branch) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
-        final ITrackedBranch tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);
+        final ITrackedBranch tracked = trackedBranchesConfig.getBranchMandatory(branchNn);
 
         Set<Integer> allBranches = new HashSet<>();
         tracked.chainsStream()
@@ -282,7 +282,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         LrTestsFullSummaryUi summary = new LrTestsFullSummaryUi();
 
         final String branchNn = isNullOrEmpty(branch) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
-        final ITrackedBranch tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);
+        final ITrackedBranch tracked = trackedBranchesConfig.getBranchMandatory(branchNn);
 
         tracked.chainsStream()
             .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverCode(), creds))

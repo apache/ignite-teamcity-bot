@@ -17,9 +17,9 @@
 
 package org.apache.ignite.tcbot.engine.buildtime;
 
+import org.apache.ignite.tcbot.common.conf.ITcServerConfigSupplier;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.common.util.TimeUtil;
-import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.ui.BuildTimeRecordUi;
 import org.apache.ignite.tcbot.engine.ui.BuildTimeResultUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -46,7 +46,7 @@ import java.util.stream.Collectors;
  */
 public class BuildTimeService {
     /** Config. */
-    @Inject private ITcBotConfig cfg;
+    @Inject private ITcServerConfigSupplier tcServerConfigSupplier;
 
     @Inject private FatBuildDao fatBuildDao;
 
@@ -64,7 +64,7 @@ public class BuildTimeService {
         if (buildRefDao.buildRefsCache() == null)
             return new BuildTimeResultUi();
 
-        Collection<String> allSrvs = cfg.getServerIds();
+        Collection<String> allSrvs = tcServerConfigSupplier.getConfiguredServerIds();
 
         scheduler.sheduleNamed("BuildTimeService.loadAnalytics",
                 this::loadAnalytics, 15, TimeUnit.MINUTES);
@@ -111,10 +111,8 @@ public class BuildTimeService {
     protected void loadAnalytics() {
         int days = 1;
 
-        List<Long> idsToCheck = historyCollector.findAllRecentBuilds(days, cfg.getServerIds());
+        List<Long> idsToCheck = historyCollector.findAllRecentBuilds(days, tcServerConfigSupplier.getConfiguredServerIds());
 
-        BuildTimeResult res = fatBuildDao.loadBuildTimeResult(days, idsToCheck);
-
-        lastRes1d = res;
+        lastRes1d = fatBuildDao.loadBuildTimeResult(days, idsToCheck);
     }
 }

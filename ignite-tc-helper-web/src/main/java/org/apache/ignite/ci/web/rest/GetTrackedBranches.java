@@ -20,6 +20,7 @@ package org.apache.ignite.ci.web.rest;
 import com.google.common.base.Strings;
 import com.google.inject.Injector;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -34,9 +35,10 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfigSupplier;
 import org.apache.ignite.tcbot.engine.conf.ChainAtServer;
 import org.apache.ignite.ci.tcbot.TcBotGeneralService;
-import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranchesConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
@@ -80,10 +82,10 @@ public class GetTrackedBranches {
     @NotNull public Stream<ITrackedBranch> accessibleTrackedBranches() {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
         Injector injector = CtxListener.getInjector(ctx);
-        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
+        ITrackedBranchesConfig trackedBranchesConfig = injector.getInstance(ITrackedBranchesConfig.class);
         ITeamcityIgnitedProvider tcProv = injector.getInstance(ITeamcityIgnitedProvider.class);
 
-        return cfg.getTrackedBranches().branchesStream()
+        return trackedBranchesConfig.branchesStream()
             .filter(bt ->
                 bt.chainsStream().anyMatch(chain -> tcProv.hasAccess(chain.serverCode(), prov)));
     }
@@ -109,10 +111,10 @@ public class GetTrackedBranches {
     public Set<ChainAtServer> getSuites(@Nullable @QueryParam("server") String srvId) {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
         Injector injector = CtxListener.getInjector(ctx);
-        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
+        ITrackedBranchesConfig trackedBranchesConfig = injector.getInstance(ITrackedBranchesConfig.class);
         ITeamcityIgnitedProvider tcProv = injector.getInstance(ITeamcityIgnitedProvider.class);
 
-        return getSuitesUnique(cfg.getTrackedBranches())
+        return getSuitesUnique(trackedBranchesConfig)
             .stream()
             .filter(chainAtSrv ->
                 Strings.isNullOrEmpty(srvId)
@@ -129,10 +131,10 @@ public class GetTrackedBranches {
     public Set<String> getServerIds() {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
         Injector injector = CtxListener.getInjector(ctx);
-        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
+        ITcServerConfigSupplier tcServerConfigSupplier = injector.getInstance(ITcServerConfigSupplier.class);
         ITeamcityIgnitedProvider tcProv = injector.getInstance(ITeamcityIgnitedProvider.class);
 
-        return cfg.getServerIds()
+        return tcServerConfigSupplier.getConfiguredServerIds()
             .stream()
             .filter(srvId -> tcProv.hasAccess(srvId, prov))
             .collect(Collectors.toSet());
@@ -140,7 +142,7 @@ public class GetTrackedBranches {
 
 
     /**
-     * Finds all registere unique teamcity branches.
+     * Finds all registered unique teamcity branches.
      * @param srvCodeOrAlias Server code or its alisas.
      */
     @GET
@@ -159,5 +161,20 @@ public class GetTrackedBranches {
                         || srvCode.equals(tc.serverCode()));
             })
             .map(ITrackedChain::tcBranch).collect(Collectors.toSet());
+    }
+
+    /**
+     * Finds all registered unique teamcity branches.
+     * @param code TC Bot's branch code
+     */
+    @GET
+    @Path("get")
+    public ITrackedBranch get(@Nullable @QueryParam("code") String code) {
+        String branchCode = Strings.isNullOrEmpty(code) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : code;
+
+        return accessibleTrackedBranches()
+                .filter(tb -> branchCode.equals(tb.name()))
+                .findAny()
+                .orElse(null);
     }
 }

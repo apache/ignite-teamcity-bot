@@ -17,10 +17,12 @@
 
 package org.apache.ignite.ci.tcbot.chain;
 
+import com.google.common.collect.Sets;
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.tcbot.conf.MemoryTrackedBranches;
 import org.apache.ignite.githubignited.IGitHubConnIgnited;
 import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.jiraignited.IJiraIgnited;
@@ -52,6 +54,8 @@ import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 import org.apache.ignite.tcignited.buildlog.IBuildLogProcessor;
 import org.mockito.Mockito;
 
+import java.util.Collection;
+
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -61,9 +65,9 @@ import static org.mockito.Mockito.when;
  * Setup TC bot context with Ignited services mocks: - TC: {@link TeamcityIgnitedProviderMock}
  */
 public class MockBasedTcBotModule extends AbstractModule {
-    private TcBotJsonConfig tracked = new TcBotJsonConfig();
+    private MemoryTrackedBranches tracked = new MemoryTrackedBranches();
 
-    public MockBasedTcBotModule(TcBotJsonConfig tracked) {
+    public MockBasedTcBotModule(MemoryTrackedBranches tracked) {
         this.tracked = tracked;
     }
 
@@ -102,8 +106,9 @@ public class MockBasedTcBotModule extends AbstractModule {
                 return DEFAULT_CONFIDENCE;
             }
 
-            @Override  public ITrackedBranchesConfig getTrackedBranches() {
-                return tracked;
+            @Override
+            public Collection<String> getConfiguredServerIds() {
+                return Sets.newHashSet(DEFAULT_SERVER_CODE);
             }
 
             /** {@inheritDoc} */
@@ -128,6 +133,7 @@ public class MockBasedTcBotModule extends AbstractModule {
             }
         };
         bind(ITcBotConfig.class).toInstance(cfg);
+        bind(ITrackedBranchesConfig.class).toInstance(tracked);
         bind(IDataSourcesConfigSupplier.class).toInstance(cfg);
 
         bind(IIssuesStorage.class).toInstance(Mockito.mock(IIssuesStorage.class));

@@ -38,6 +38,7 @@ import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.tcbot.engine.chain.SortOption;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.conf.ITrackedBranchesConfig;
 import org.apache.ignite.tcbot.engine.tracked.DisplayMode;
 import org.apache.ignite.tcbot.engine.tracked.IDetailedStatusForTrackedBranch;
 import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
@@ -245,10 +246,10 @@ public class GetTrackedBranchTestResults {
     public List<GuardBranchStatusUi> getIdsIfAccessible() {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
         Injector injector = CtxListener.getInjector(ctx);
-        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
+        ITrackedBranchesConfig trackedBranchesConfig = injector.getInstance(ITrackedBranchesConfig.class);
         IDetailedStatusForTrackedBranch status = injector.getInstance(IDetailedStatusForTrackedBranch.class);
 
-        return cfg.getTrackedBranches().branchesStream()
+        return trackedBranchesConfig.branchesStream()
             .map(bt -> status.getBranchSummary(bt.name(), prov)).filter(Objects::nonNull)
             .collect(Collectors.toList());
     }

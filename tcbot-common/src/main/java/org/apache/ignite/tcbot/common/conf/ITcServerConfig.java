@@ -53,6 +53,7 @@ public interface ITcServerConfig {
     @NonNull public String logsDirectory();
 
     /**
+     * TC Bot's identification tracked branch name to be used for this server for PRs check.
      * @return internal naming of default tracked branch for this server.
      */
     @NonNull public String defaultTrackedBranch();
