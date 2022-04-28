@@ -95,13 +95,22 @@
     }
   ],
   "notifications": {
-    /* Email sending settings, only smtp.gmail.com is now supported. */
+    /* Email sending settings */
     "email": {
-      /* Username, equal to from: field */
+      /* Username, and 'from' field for emails. */
       "username": "ignitetcbot@gmail.com",
+      "auth": true,
       /** Email password encoded using Password Encoder.  */
-      "pwd": ""
-      //todo ^ specify password
+      "pwd": "",
+      //todo ^ specify password or set auth to false
+      "smtp": {
+        /** Host or IP */
+        "host": "127.0.0.1",
+        /** Default is 25 for non-ssl, 465 for ssl enabled */
+        "port": 465,
+        /** SSL enabled, default true */
+        "ssl": true
+      }
     },
     "channels": [
       {

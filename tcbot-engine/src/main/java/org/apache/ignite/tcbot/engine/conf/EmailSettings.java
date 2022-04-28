@@ -16,12 +16,28 @@
  */
 package org.apache.ignite.tcbot.engine.conf;
 
-public class EmailSettings {
+import com.google.common.base.Preconditions;
+import org.apache.ignite.tcbot.common.conf.PasswordEncoder;
+import org.apache.ignite.tcbot.notify.ISendEmailConfig;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import static com.google.common.base.Strings.isNullOrEmpty;
+
+@SuppressWarnings("unused")
+public class EmailSettings implements ISendEmailConfig {
     /** Email to send notifications from. */
     private String username;
 
     /** Email password, encoded using Password Encoder. */
     private String pwd;
+
+    /** Custom smtp server, default is gmail */
+    private SmtpSettings smtp;
+
+    /** Default is true. */
+    private Boolean auth;
 
     /**
      * @return Email to send notifications from.
@@ -50,4 +66,63 @@ public class EmailSettings {
     public void password(String pwd) {
         this.pwd = pwd;
     }
+
+    @Nullable
+    public SmtpSettings smtp() {
+        return smtp;
+    }
+
+    @Nullable public Boolean isAuthRequired() {
+        return auth;
+    }
+
+    @Nullable
+    @Override
+    public Boolean isSmtpSsl() {
+        SmtpSettings smtp = smtp();
+
+        return smtp != null ? smtp.ssl() : null;
+    }
+
+    @Nullable
+    @Override
+    public Integer smtpPort() {
+        SmtpSettings smtp = smtp();
+
+        return smtp != null ? smtp.port() : null;
+    }
+
+    /**
+     *
+     */
+    @Nonnull
+    @Override public String usernameMandatory() {
+        String username = username();
+
+        Preconditions.checkState(!isNullOrEmpty(username),
+                "notifications/email/username property should be filled in branches.json");
+
+        return username;
+    }
+
+    /**
+     * @return Email password.
+     */
+    @Nonnull
+    @Override public String passwordClearMandatory() {
+        Preconditions.checkState(!isNullOrEmpty(password()),
+                "notifications/email/pwd property should be filled in branches.json");
+
+        return PasswordEncoder.decode(password());
+    }
+
+    @Nullable
+    @Override
+    public String smtpHost() {
+        SmtpSettings smtp = smtp();
+
+        return smtp != null ? smtp.host() : null;
+    }
+
+
 }

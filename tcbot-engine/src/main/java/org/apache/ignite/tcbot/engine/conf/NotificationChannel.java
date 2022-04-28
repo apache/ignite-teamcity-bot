@@ -26,7 +26,7 @@ import javax.annotation.Nullable;
  *
  */
 public class NotificationChannel implements INotificationChannel {
-    /** (Destionation) Email. */
+    /** (Destination) Email. */
     private String email;
 
     /** Slack. */
@@ -72,14 +72,6 @@ public class NotificationChannel implements INotificationChannel {
     /** {@inheritDoc} */
     @Override public boolean hasTagFilter() {
         return (tagsFilter != null) && !tagsFilter.isEmpty();
-    }
-
-    public void slack(String slack) {
-        this.slack = slack;
-    }
-
-    public void subscribe(String trackedBranchName) {
-        this.subscribed.add(trackedBranchName);
     }
 
     /** {@inheritDoc} */

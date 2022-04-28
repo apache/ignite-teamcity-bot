@@ -30,39 +30,60 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
+
 /**
  * Class for sending email with configured credentials.
  */
 class EmailSender implements IEmailSender {
     /** {@inheritDoc} */
     @Override public void sendEmail(String to, String subject, String html, String plainText,
-        ISendEmailConfig notifications) throws MessagingException {
+        ISendEmailConfig emailConfig) throws MessagingException {
 
-        String user = notifications.emailUsernameMandatory();
+        String user = emailConfig.usernameMandatory();
 
-        String from = user;
+        Authenticator authenticator;
+        Boolean authRequired = emailConfig.isAuthRequired();
+        boolean auth = authRequired == null || authRequired;
+        if (auth) {
+            String pwd = emailConfig.passwordClearMandatory();
 
-        final String pwd = notifications.emailPasswordClearMandatory();
-
-        Properties props = new Properties();
-        props.put("mail.smtp.host", "smtp.gmail.com");
-        props.put("mail.smtp.socketFactory.port", "465");
-        props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
-        props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.port", "465");
-
-        Session ses = Session.getInstance(props,
-            new Authenticator() {
-                @Override protected PasswordAuthentication getPasswordAuthentication() {
+            authenticator = new Authenticator() {
+                @Override
+                protected PasswordAuthentication getPasswordAuthentication() {
                     return new PasswordAuthentication(user, pwd);
                 }
-            });
+            };
+        } else {
+            authenticator = null;
+        }
+
+        String smtpHost = emailConfig.smtpHost();
+
+        Boolean sslCfg = emailConfig.isSmtpSsl();
+        boolean useSsl = sslCfg == null || sslCfg;
+        int defaultPort = useSsl ? 465 : 25;
+        Integer smtpPortCfg = emailConfig.smtpPort();
+        String smtpPort = Integer.toString(smtpPortCfg == null ? defaultPort : smtpPortCfg);
+
+        Properties props = new Properties();
+        props.put("mail.smtp.host", isNullOrEmpty(smtpHost) ? "smtp.gmail.com" : smtpHost);
+
+        if (useSsl) {
+            props.put("mail.smtp.socketFactory.port", smtpPort);
+            props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+        }
+
+        props.put("mail.smtp.auth", Boolean.toString(auth));
+        props.put("mail.smtp.port", smtpPort);
+
+        Session ses = Session.getInstance(props, authenticator);
 
         // Create a default MimeMessage object.
         MimeMessage msg = new MimeMessage(ses);
 
         // Set From: header field of the header.
-        msg.setFrom(new InternetAddress(from));
+        msg.setFrom(new InternetAddress(user));
 
         // Set To: header field of the header.
         msg.addRecipient(Message.RecipientType.TO, new InternetAddress(to));

@@ -113,11 +113,7 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
 
     /** {@inheritDoc} */
     @Override public NotificationsConfig notifications() {
-        NotificationsConfig notifications = getConfig().notifications();
-        if (notifications != null && !notifications.isEmpty())
-            return notifications;
-
-        return NotificationsConfig.backwardConfig();
+        return getConfig().notifications();
     }
 
     /** {@inheritDoc} */

@@ -157,6 +157,24 @@
                 alert(JSON.stringify(result));
             }
         });
+
+        return false;
+    }
+
+    function testEmailNotification() {
+        $.ajax({
+            url: "rest/monitoring/testEmailNotification",
+            method: "post",
+            data: $("#emailForm").serialize(),
+            success: function(result) {
+                alert(JSON.stringify(result));
+            },
+            error: function(result) {
+                alert(JSON.stringify(result));
+            }
+        });
+
+        return false;
     }
 
 </script>
@@ -178,6 +196,14 @@ Tasks Monitoring Data:
 
 <hr>
 <b>Test Slack notification:</b> <button onclick="testSlackNotification()">Send</button>
+<b>Test Email notification:</b>
+
+<form id="emailForm"><b>Email Address:</b>
+    <input type="text" placeholder="Enter Address" name="address" required>
+</form>
+
+<button onclick="testEmailNotification()">Send</button>
+
 <br>
 
 <div id="loadStatus"></div>

@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.web.rest.monitoring;
 
+import com.google.common.base.Strings;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.CacheMetrics;
@@ -27,17 +28,15 @@ import org.apache.ignite.tcbot.common.interceptor.MonitoredTaskInterceptor;
 import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
+import org.apache.ignite.tcbot.notify.IEmailSender;
+import org.apache.ignite.tcbot.notify.ISendEmailConfig;
 import org.apache.ignite.tcbot.notify.ISlackSender;
 
 import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -120,8 +119,30 @@ public class MonitoringService {
                     slackSender.sendMessage(channel.slack(), "Test Slack notification message!", notifications);
             }
         }
-        catch (IOException e) {
+        catch (Exception e) {
             return new SimpleResult("Failed to send test Slack message: " + e.getMessage());
+        }
+
+        return new SimpleResult("Ok");
+    }
+
+    @POST
+    @Path("testEmailNotification")
+    public SimpleResult testEmailNotification(@FormParam("address") String address) {
+        IEmailSender emailSender = CtxListener.getInjector(ctx).getInstance(IEmailSender.class);
+
+        ITcBotConfig tcBotConfig = CtxListener.getInjector(ctx).getInstance(ITcBotConfig.class);
+
+        try {
+            NotificationsConfig notifications = tcBotConfig.notifications();
+            String subj = "[MTCGA]: test email notification";
+
+            ISendEmailConfig email = notifications.email();
+            String plainText = "Test Email notification message!";
+            String addressUnescaped = Strings.nullToEmpty(address).replace("%40", "@");
+            emailSender.sendEmail(addressUnescaped, subj, plainText, plainText, email);
+        } catch (Exception e) {
+            return new SimpleResult("Failed to send test Email message: " + e.getMessage());
         }
 
         return new SimpleResult("Ok");
