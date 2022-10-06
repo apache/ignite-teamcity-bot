@@ -116,7 +116,7 @@ function showVersionInfo(result) {
     }
 
     res += "<br>";
-    res += "Managed by the <a href='https://ignite.apache.org/community/resources.html#people'>Apache Ignite Development Project.</a>";
+    res += "Managed by the <a href='https://ignite.apache.org/our-community.html'>Apache Ignite Development Project.</a>";
 
     res += "<br>";
 

@@ -127,6 +127,7 @@ public class Ignite1Init {
         dsCfg.setPageSize(4 * 1024);
 
         cfg.setDataStorageConfiguration(dsCfg);
+        cfg.setMetricsLogFrequency(0);
         return cfg;
     }
 
