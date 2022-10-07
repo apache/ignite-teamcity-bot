@@ -37,7 +37,10 @@ public enum IssueType {
     newTrustedSuiteFailure("newTrustedSuiteFailure", "New Trusted Suite failure"),
 
     /** New failure for flaky test. */
-    newTestWithHighFlakyRate("newTestWithHighFlakyRate", "Test with high flaky rate");
+    newTestWithHighFlakyRate("newTestWithHighFlakyRate", "Test with high flaky rate"),
+
+    /** New always failure test. */
+    newAlwaysFailure("newAlwaysFailure", "Always failed test");
 
     /** Code. */
     private final String code;
@@ -58,6 +61,8 @@ public enum IssueType {
                 return newTrustedSuiteFailure;
             case "Test with high flaky rate":
                 return newTestWithHighFlakyRate;
+            case "Always failed test":
+                return newAlwaysFailure;
         }
 
         throw new IllegalArgumentException("Illegal issue type: " + displayName);

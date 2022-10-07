@@ -126,6 +126,13 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
         return confidence == null || confidence < 0 || confidence > 1 ? ITcBotConfig.DEFAULT_CONFIDENCE : confidence;
     }
 
+    /** {@inheritDoc} */
+    @Override public Boolean alwaysFailedTestDetection() {
+        Boolean alwaysFailedTestDetection = getConfig().alwaysFailedTestDetection();
+
+        return alwaysFailedTestDetection != null && alwaysFailedTestDetection;
+    }
+
     @Override
     public ITrackedBranchesConfig getTrackedBranches() {
         return getConfig();
