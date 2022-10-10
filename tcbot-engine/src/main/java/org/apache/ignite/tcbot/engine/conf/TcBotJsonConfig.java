@@ -44,6 +44,9 @@ public class TcBotJsonConfig implements ITrackedBranchesConfig {
     /** Сonfidence (used with flaky tests). */
     @Nullable private Double confidence;
 
+    /** Always failed test detection. */
+    @Nullable private Boolean alwaysFailedTestDetection;
+
     /** Additional list Servers to be used for validation of PRs, but not for tracking any branches. */
     private List<TcServerConfig> tcServers = new ArrayList<>();
 
@@ -103,6 +106,13 @@ public class TcBotJsonConfig implements ITrackedBranchesConfig {
      */
     @Nullable public Double confidence() {
         return confidence;
+    }
+
+    /**
+     * @return Is always failed test detection enabled.
+     */
+    @Nullable public Boolean alwaysFailedTestDetection() {
+        return alwaysFailedTestDetection;
     }
 
     public Optional<TcServerConfig> getTcConfig(String code) {

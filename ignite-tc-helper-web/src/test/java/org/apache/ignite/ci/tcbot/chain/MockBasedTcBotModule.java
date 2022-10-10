@@ -102,6 +102,11 @@ public class MockBasedTcBotModule extends AbstractModule {
                 return DEFAULT_CONFIDENCE;
             }
 
+            /** */
+            @Override public Boolean alwaysFailedTestDetection() {
+                return false;
+            }
+
             @Override  public ITrackedBranchesConfig getTrackedBranches() {
                 return tracked;
             }

@@ -45,6 +45,9 @@ public interface ITcBotConfig extends IDataSourcesConfigSupplier {
     /** */
     public Double confidence();
 
+    /** */
+    public Boolean alwaysFailedTestDetection();
+
     /**
      * @return Tracked branches configuration for TC Bot.
      */

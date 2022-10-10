@@ -528,6 +528,13 @@ public class IssueDetector {
             }
         }
 
+        if (firstFailedBuildId == null && cfg.alwaysFailedTestDetection()) {
+            firstFailedBuildId = runStat.detectTemplate(EventTemplates.alwaysFailure);
+
+            if (firstFailedBuildId != null)
+                type = IssueType.newAlwaysFailure;
+        }
+
         if (firstFailedBuildId == null)
             return false;
 

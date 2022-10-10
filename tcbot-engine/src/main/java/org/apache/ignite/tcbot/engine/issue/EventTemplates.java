@@ -55,10 +55,15 @@ public class EventTemplates {
                     FAIL, FAIL}
     );
 
+    public static final EventTemplate alwaysFailure = new EventTemplate(
+        new int[]{FAIL, FAIL, FAIL, FAIL, FAIL, FAIL},
+        new int[]{FAIL, FAIL, FAIL, FAIL, FAIL, FAIL}
+    );
+
     public static ArrayList<EventTemplate> templates;
 
     static {
         templates = Lists.newArrayList(newFailure, newCriticalFailure,
-            newContributedTestFailure, newFailureForFlakyTest);
+            newContributedTestFailure, newFailureForFlakyTest, alwaysFailure);
     }
 }

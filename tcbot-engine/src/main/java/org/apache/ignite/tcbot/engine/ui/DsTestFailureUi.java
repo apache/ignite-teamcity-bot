@@ -217,6 +217,10 @@ public class DsTestFailureUi extends ShortTestFailureUi {
             if (statForProblemsDetection.detectTemplate(EventTemplates.newContributedTestFailure) != null)
                 problemRef = new DsProblemRef("Recently contributed test failure");
 
+
+            if (statForProblemsDetection.detectTemplate(EventTemplates.alwaysFailure) != null)
+                problemRef = new DsProblemRef("Always failed test");
+
             if (statForProblemsDetection.isFlaky()
                     && statForProblemsDetection.detectTemplate(EventTemplates.newFailureForFlakyTest) != null)
                 problemRef = new DsProblemRef("New failure of flaky test");
