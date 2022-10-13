@@ -145,10 +145,19 @@ public class BoardService {
 
                 for (DefectIssue issue : cause.issues()) {
                     BoardDefectIssueUi issueUi = processIssue(tcIgn, rebuild, issue, firstBuild.buildTypeId());
-                    if (issueUi.status() != IssueResolveStatus.FIXED)
-                        defectUi.addTags(tags);
 
                     issueUi.setTcSrvId(next.tcSrvId());
+
+                    if (defectUi.getAllIssues().stream().anyMatch(issueUi0 -> {
+                        return issueUi0.getNameId() == issueUi.getNameId() &&
+                            issueUi0.getTcSrvId() == issueUi.getTcSrvId() &&
+                            issueUi0.getIssueTypeCode() == issueUi.getIssueTypeCode();
+
+                    }))
+                        continue;
+
+                    if (issueUi.status() != IssueResolveStatus.FIXED)
+                        defectUi.addTags(tags);
 
                     MutedIssueKey issueKey = new MutedIssueKey(next.tcSrvId(), issue.testNameCid(),
                         fatBuild.branchName(), IssueType.valueOf(compactor.getStringFromId(issue.issueTypeCode())));
