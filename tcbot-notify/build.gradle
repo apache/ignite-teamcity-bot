@@ -22,5 +22,5 @@ dependencies {
 
     compile group: 'javax.mail', name: 'mail', version: '1.4.7'
 
-    compile group: 'com.ullink.slack', name: 'simpleslackapi', version: '1.2.0'
+    compile group: 'com.ullink.slack', name: 'simpleslackapi', version: '1.4.0'
 }
