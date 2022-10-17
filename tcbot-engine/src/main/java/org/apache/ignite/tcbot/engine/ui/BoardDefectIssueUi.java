@@ -71,6 +71,10 @@ public class BoardDefectIssueUi {
         return issue.testNameCid();
     }
 
+    public int getIssueTypeCode() {
+        return issue.issueTypeCode();
+    }
+
     public String getIssueType() {
         return compactor.getStringFromId(issue.issueTypeCode());
     }
