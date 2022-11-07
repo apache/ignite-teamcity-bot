@@ -32,10 +32,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.UncheckedIOException;
+import java.io.*;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -58,7 +55,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
     /** Service (server) code. */
     private String srvCode;
 
-    private static AtomicLong lastRq = new AtomicLong();
+    private static final AtomicLong lastRq = new AtomicLong();
 
     /**
      * @param linkRspHdrVal Value of Link response HTTP header.
@@ -101,15 +98,19 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public PullRequest getPullRequest(Integer id) {
+    @Override @Nullable public PullRequest getPullRequest(@Nonnull Integer prNum) {
         String gitApiUrl = getApiUrlMandatory();
 
-        String pr = gitApiUrl + "pulls/" + id;
+        String pr = gitApiUrl + "pulls/" + prNum;
 
         try (InputStream is = sendGetToGit(pr, null)) {
             InputStreamReader reader = new InputStreamReader(is);
 
             return new Gson().fromJson(reader, PullRequest.class);
+        }
+        catch (FileNotFoundException e) {
+            logger.warn("Unable to find PR " + prNum, e);
+            return null;
         }
         catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -197,7 +198,15 @@ class GitHubConnectionImpl implements IGitHubConnection {
         }
     }
 
-
+    /**
+     * Send GET request to the GitHub url.
+     *
+     * @param url URL.
+     * @param rspHeaders [IN] - required codes name->null, [OUT] required codes: name->value.
+     * @return Input stream from connection.
+     * @throws FileNotFoundException If not found (404) was returned from service.
+     * @throws IOException If failed.
+     */
     protected InputStream sendGetToGit(String url, HashMap<String, String> rspHeaders) throws IOException {
         final String tok = config().gitAuthTok();
 
@@ -215,7 +224,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
         boolean win;
         do {
-            final long lastRq = this.lastRq.get();
+            final long lastRq = GitHubConnectionImpl.lastRq.get();
 
             final long curNs = System.nanoTime();
 
@@ -227,7 +236,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
                     LockSupport.parkNanos(nsWait);
             }
 
-            win = this.lastRq.compareAndSet(lastRq, curNs);
+            win = GitHubConnectionImpl.lastRq.compareAndSet(lastRq, curNs);
         } while (!win);
     }
 

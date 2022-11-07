@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
@@ -217,10 +218,18 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
             .filter(entry -> entry.getKey() >> 32 == srvIdMaskHigh)
             .filter(entry -> PullRequest.OPEN.equals(entry.getValue().getState()))
             .filter(entry -> !actualPrs.contains(entry.getValue().getNumber()))
-            .peek(entry -> prCache.put(entry.getKey(), conn.getPullRequest(entry.getValue().getNumber())))
+            .peek(this::savePr)
             .count();
 
         return "PRs updated for " + srvId + ": " + cnt + " from " + prCache.size();
+    }
+
+    private void savePr(Cache.Entry<Long, PullRequest> entry) {
+        PullRequest pullRequest = conn.getPullRequest(entry.getValue().getNumber());
+        if (pullRequest != null)
+            prCache.put(entry.getKey(), pullRequest);
+        else
+            prCache.remove(entry.getKey());
     }
 
     /**

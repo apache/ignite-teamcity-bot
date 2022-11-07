@@ -33,8 +33,12 @@ import javax.annotation.Nullable;
 public interface IGitHubConnection {
     public void init(String srvCode);
 
-    /** */
-    public PullRequest getPullRequest(Integer id);
+    /**
+     *
+     * @param id defined PR number
+     * @return PR data from Github or null if PR not found
+     */
+    public @Nullable PullRequest getPullRequest(@Nonnull Integer id);
 
     /**
      * Send POST request with given body.

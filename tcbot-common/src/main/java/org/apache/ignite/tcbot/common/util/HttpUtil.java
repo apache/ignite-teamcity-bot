@@ -106,6 +106,7 @@ public class HttpUtil {
      * @param url URL.
      * @param rspHeaders [IN] - required codes name->null, [OUT] required codes: name->value.
      * @return Input stream from connection.
+     * @throws FileNotFoundException If not found (404) was returned from service.
      * @throws IOException If failed.
      */
     public static InputStream sendGetToGit(String githubAuthTok, String url, @Nullable Map<String, String> rspHeaders) throws IOException {
