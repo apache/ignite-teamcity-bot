@@ -32,7 +32,11 @@ import org.apache.ignite.ci.tcbot.TcBotWebAppModule;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTaskInterceptor;
 import org.apache.ignite.tcbot.engine.cleaner.Cleaner;
+import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
 import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
+import org.apache.ignite.tcbot.notify.ISlackSender;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcservice.http.TeamcityRecorder;
 import org.slf4j.Logger;
@@ -61,6 +65,8 @@ public class CtxListener implements ServletContextListener {
         final ServletContext ctx = sctxEvt.getServletContext();
 
         ctx.setAttribute(INJECTOR, injector);
+
+        sendMessageToSlackChannel("TeamCity Bot is started!", ctx);
     }
 
     /**
@@ -81,6 +87,8 @@ public class CtxListener implements ServletContextListener {
     /** {@inheritDoc} */
     @Override public void contextDestroyed(ServletContextEvent sctxEvt) {
         final ServletContext ctx = sctxEvt.getServletContext();
+
+        sendMessageToSlackChannel("TeamCity Bot is stopped!", ctx);
 
         Injector injector = getInjector(ctx);
 
@@ -125,5 +133,25 @@ public class CtxListener implements ServletContextListener {
                 logger.error("Exception during shutdown: " + e.getMessage(), e);
         }
     }
-}
 
+    private void sendMessageToSlackChannel(String msg, ServletContext ctx) {
+        try {
+            ISlackSender slackSender = CtxListener.getInjector(ctx).getInstance(ISlackSender.class);
+
+            ITcBotConfig tcBotConfig = CtxListener.getInjector(ctx).getInstance(ITcBotConfig.class);
+
+            NotificationsConfig notifications = tcBotConfig.notifications();
+
+            for (INotificationChannel channel : notifications.channels()) {
+                if (channel.slack() != null && channel.slack().startsWith("#"))
+                    slackSender.sendMessage(channel.slack(), msg, notifications);
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+
+            if (logger != null)
+                logger.error("Exception during sending message to the slack channel: " + e.getMessage(), e);
+        }
+    }
+}
