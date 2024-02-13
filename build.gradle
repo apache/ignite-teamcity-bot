@@ -46,7 +46,7 @@ allprojects {
 
         jettyVer = '9.4.12.v20180830'
 
-        ignVer = '2.14.0'
+        ignVer = '2.16.0'
 
         guavaVer = '26.0-jre'
 
@@ -57,7 +57,7 @@ allprojects {
         slf4jVer = '1.7.25'
 
         gsonVer = '2.8.2'
-        
+
         junitVer = '4.12'
         mockitoVer = '2.22.0'
     }
