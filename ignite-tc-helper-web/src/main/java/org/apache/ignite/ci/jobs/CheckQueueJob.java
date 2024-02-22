@@ -218,7 +218,8 @@ public class CheckQueueJob implements Runnable {
 
         for (Agent agent : agents) {
             //filter for windows agents
-            if (agent.getPool().getName().contains("Default") &&
+            if (agent.getProperties() != null &&
+                    agent.getPool().getName().contains("Default") &&
                     agent.isEnabled() &&
                     agent.getProperties().getProperty().stream()
                     .filter(prop -> prop.getName().equals("teamcity.agent.jvm.os.name")).findAny().orElseGet(() -> {
@@ -298,7 +299,14 @@ public class CheckQueueJob implements Runnable {
             if (buildId == null)
                 continue; // should not occur;
 
-            FatBuildCompacted fatBuild = tcIgn.getFatBuild(buildId);
+            FatBuildCompacted fatBuild;
+
+            try {
+                fatBuild = tcIgn.getFatBuild(buildId);
+            }
+            catch (Exception e) {
+                continue;
+            }
 
             Build build = fatBuild.toBuild(compactor);
             Triggered triggered = build.getTriggered();
