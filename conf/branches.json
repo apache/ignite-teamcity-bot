@@ -161,13 +161,13 @@
       "disableIssueTypes": []
     },
     {
-      "id": "ignite-2.11-nightly",
+      "id": "ignite-2.17-nightly",
       "chains": [
         {
           "serverId": "apache",
           "suiteId": "IgniteTests24Java8_RunAllNightly",
-          "branchForRest": "ignite-2.11",
-          "baseBranchForTc": "ignite-2.10",
+          "branchForRest": "ignite-2.17",
+          "baseBranchForTc": "ignite-2.16",
           "triggerBuild": true,
           //trigger twice per day
           "triggerBuildQuietPeriod": 720  //triggering quiet period in minutes,
