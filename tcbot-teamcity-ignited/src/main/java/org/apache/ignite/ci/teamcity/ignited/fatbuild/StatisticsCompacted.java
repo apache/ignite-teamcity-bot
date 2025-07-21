@@ -24,7 +24,7 @@ import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcservice.model.conf.bt.Property;
 import org.apache.ignite.tcservice.model.result.stat.Statistics;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.internal.util.GridIntList;
+import org.apache.ignite.tcbot.common.util.GridIntList;
 import org.apache.ignite.internal.util.GridLongList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

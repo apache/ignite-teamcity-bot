@@ -45,7 +45,7 @@ import org.apache.ignite.cache.query.SqlQuery;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
 import org.apache.ignite.configuration.CacheConfiguration;
-import org.apache.ignite.internal.util.GridIntList;
+import org.apache.ignite.tcbot.common.util.GridIntList;
 import org.apache.ignite.lang.IgnitePredicate;
 import org.apache.ignite.tcbot.common.conf.TcBotSystemProperties;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;

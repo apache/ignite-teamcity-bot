@@ -15,20 +15,19 @@
  * limitations under the License.
  */
 
-apply plugin: 'java'
+package org.apache.ignite.tcbot.common.util;
 
-repositories {
-    mavenCentral()
-    mavenLocal()
+/**
+ * Iterator over integer primitives.
+ */
+public interface GridIntIterator {
+    /**
+     * @return {@code true} if the iteration has more elements.
+     */
+    public boolean hasNext();
+
+    /**
+     * @return Next int.
+     */
+    public int next();
 }
-
-dependencies {
-    compile (project(":tcbot-common"));
-
-    compile (group: 'org.apache.ignite', name: 'ignite-core', version: ignVer) {
-        exclude group: 'org.jetbrains'
-    }
-
-    implementation "org.apache.ignite:ignite-indexing:$ignVer"
-}
- 
