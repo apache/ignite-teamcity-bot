@@ -1,0 +1,13 @@
+plugins {
+    id 'application'
+}
+repositories { mavenCentral() }
+dependencies {
+    implementation 'org.apache.ignite:ignite-core:2.16.0'
+    implementation 'org.slf4j:slf4j-simple:2.0.13'
+    implementation project(':tcbot-common')
+
+}
+application {
+    mainClass = 'migrate.GridIntListMigrator'
+}
