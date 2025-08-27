@@ -15,13 +15,11 @@
  * limitations under the License.
  */
 
-package migrate;
+package src.main.java.migrate;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
-import org.apache.ignite.binary.BinaryObject;
-import org.apache.ignite.binary.BinaryObjectBuilder;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.cluster.ClusterState;
@@ -33,7 +31,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.cache.Cache;
 import java.io.File;
-import java.lang.reflect.Constructor;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -57,24 +54,9 @@ public final class GridIntListMigrator {
     private static final Logger log = LoggerFactory.getLogger(GridIntListMigrator.class);
 
     /**
-     * Fully-qualified name of the legacy type to replace.
-     */
-    private static final String OLD_KEYS_TYPE = "org.apache.ignite.internal.util.GridIntList";
-
-    /**
-     * Fully-qualified name of the new type.
-     */
-    private static final String NEW_KEYS_TYPE = "org.apache.ignite.tcbot.common.util.GridIntList";
-
-    /**
      * Scan page size.
      */
     private static final int DEFAULT_PAGE_SIZE = 256;
-
-    /**
-     * Recursion guard to prevent accidental cycles.
-     */
-    private static final int MAX_DEPTH = 32;
 
     /**
      * Default constructor.
@@ -88,7 +70,7 @@ public final class GridIntListMigrator {
     public static void main(String[] args) {
         System.setProperty("java.net.preferIPv4Stack", "true");
 
-        Args a = Args.parse(args);
+        MigratorArgs a = MigratorArgs.parse(args);
 
         if (a.workDir == null || a.workDir.isEmpty()) {
             String wd = System.getProperty("IGNITE_WORK_DIR");
@@ -221,312 +203,9 @@ public final class GridIntListMigrator {
     }
 
     /**
-     * Result of a recursive transformation: value and flag indicating changes.
+     * Class static logger.
      */
-    private static final class TransformResult {
-        /** Value. */
-        final Object val;
-
-        /** Changed. */
-        final boolean changed;
-
-        private TransformResult(Object val, boolean changed) {
-            this.val = val;
-            this.changed = changed;
-        }
-
-        static TransformResult same(Object v) {
-            return new TransformResult(v, false);
-        }
-
-        static TransformResult changed(Object v) {
-            return new TransformResult(v, true);
-        }
-    }
-
-    /**
-     * Performs recursive transformation of values, replacing legacy GridIntList with the new type.
-     * Guarded by a MAX_DEPTH to avoid accidental cycles.
-     */
-    private static final class Transformer {
-        private final boolean verbose;
-
-        /** Cached constructor of NEW_KEYS_TYPE(int[]) to avoid excessive reflection. */
-        private final Constructor<?> newKeysCachedConstruct;
-
-        Transformer(boolean verb) {
-            verbose = verb;
-            newKeysCachedConstruct = findNewKeysConstruct();
-        }
-
-        /**
-         * Recursively transforms a value.
-         * <p>
-         * Rules:
-         * - BinaryObject of OLD_KEYS_TYPE -> build NEW_KEYS_TYPE or fallback to int[].
-         * - Java object of OLD_KEYS_TYPE -> same replacement.
-         * - BinaryObject (other type) -> rebuild only if some field changed.
-         * - List/Set/Map/Object[] -> rebuild container only if any element changed.
-         * - Primitives/String/int[] -> unchanged.
-         *
-         * @param v     value to transform
-         * @param depth recursion depth (fixed guard inside)
-         * @return transform result with possibly new value and 'changed' flag
-         */
-        TransformResult transform(Object v, int depth) {
-            if (v == null)
-                return TransformResult.same(null);
-
-            // Strict migration interruption
-            if (depth > MAX_DEPTH) {
-                String errMsg = String.format("Max depth %d reached; value type=%s, aborting migration.", MAX_DEPTH, v.getClass());
-
-                throw new IllegalStateException(errMsg);
-            }
-
-            // Binary legacy type
-            if (v instanceof BinaryObject) {
-                BinaryObject bo = (BinaryObject)v;
-                String typeName = bo.type().typeName();
-
-                if (typeName.equals(OLD_KEYS_TYPE)) {
-                    int[] ints = extractInts(bo);
-                    Object newKeys = buildNewKeys(ints);
-
-                    return TransformResult.changed(newKeys);
-                }
-
-                // Generic BinaryObject
-                BinaryObjectBuilder bb = bo.toBuilder();
-                boolean anyChanged = false;
-
-                for (String oldChildField : bo.type().fieldNames()) {
-                    // Transform nested fields
-                    TransformResult childRes = transform(bo.field(oldChildField), depth + 1);
-
-                    if (childRes.changed) {
-                        bb.setField(oldChildField, childRes.val);
-
-                        anyChanged = true;
-                    }
-                }
-
-                // Rebuild only if some field changed
-                return anyChanged ? TransformResult.changed(bb.build()) : TransformResult.same(v);
-            }
-
-            // Java legacy type
-            if (v instanceof org.apache.ignite.internal.util.GridIntList) {
-                org.apache.ignite.internal.util.GridIntList g = (org.apache.ignite.internal.util.GridIntList)v;
-                int[] ints = new int[g.size()];
-
-                for (int i = 0; i < ints.length; i++)
-                    ints[i] = g.get(i);
-
-                Object newKeys = buildNewKeys(ints);
-
-                return TransformResult.changed(newKeys);
-            }
-
-            // Already new type
-            if (v.getClass().getName().equals(NEW_KEYS_TYPE))
-                return TransformResult.same(v);
-
-            // Collections
-            if (v instanceof List) {
-                List<?> src = (List<?>)v;
-                boolean anyChanged = false;
-
-                List<Object> out = new ArrayList<>(src.size());
-
-                for (Object listElem : src) {
-                    TransformResult tr = transform(listElem, depth + 1);
-
-                    out.add(tr.val);
-                    anyChanged |= tr.changed;
-                }
-
-                return anyChanged ? TransformResult.changed(out) : TransformResult.same(v);
-            }
-
-            if (v instanceof Set) {
-                Set<?> src = (Set<?>)v;
-                boolean anyChanged = false;
-
-                LinkedHashSet<Object> out = new LinkedHashSet<>(Math.max(16, (int)Math.ceil(src.size() / 0.75)));
-
-                for (Object el : src) {
-                    TransformResult tr = transform(el, depth + 1);
-
-                    out.add(tr.val);
-                    anyChanged |= tr.changed;
-                }
-
-                return anyChanged ? TransformResult.changed(out) : TransformResult.same(v);
-            }
-
-            if (v instanceof Map) {
-                Map<?, ?> src = (Map<?, ?>)v;
-                boolean anyChanged = false;
-
-                LinkedHashMap<Object, Object> out = new LinkedHashMap<>(Math.max(16, (int)Math.ceil(src.size() / 0.75)));
-
-                for (Map.Entry<?, ?> en : src.entrySet()) {
-                    TransformResult k = transform(en.getKey(), depth + 1);
-                    TransformResult val = transform(en.getValue(), depth + 1);
-
-                    out.put(k.val, val.val);
-                    anyChanged |= k.changed || val.changed;
-                }
-
-                return anyChanged ? TransformResult.changed(out) : TransformResult.same(v);
-            }
-
-            // Object[] arrays (non-primitive)
-            if (v.getClass().isArray() && !v.getClass().getComponentType().isPrimitive()) {
-                Object[] arr = (Object[])v;
-                Object[] out = new Object[arr.length];
-
-                boolean anyChanged = false;
-
-                for (int i = 0; i < arr.length; i++) {
-                    TransformResult tr = transform(arr[i], depth + 1);
-
-                    out[i] = tr.val;
-                    anyChanged |= tr.changed;
-                }
-
-                return anyChanged ? TransformResult.changed(out) : TransformResult.same(v);
-            }
-
-            // Primitives, String, int[] etc.: unchanged
-            return TransformResult.same(v);
-        }
-
-        /**
-         * Extracts int[] from legacy GridIntList BinaryObject.
-         */
-        private int[] extractInts(BinaryObject oldKeys) {
-            try {
-                Object obj = oldKeys.deserialize();
-
-                if (obj instanceof org.apache.ignite.internal.util.GridIntList) {
-                    org.apache.ignite.internal.util.GridIntList g = (org.apache.ignite.internal.util.GridIntList)obj;
-
-                    int[] res = new int[g.size()];
-
-                    for (int i = 0; i < res.length; i++)
-                        res[i] = g.get(i);
-
-                    return res;
-                }
-            }
-            catch (Throwable t) {
-                if (verbose)
-                    log.info("Deserialize fallback: {}", t.toString());
-            }
-
-            // Hardcode ("arr") based on GridIntList fields
-            Collection<String> childFields = oldKeys.type().fieldNames();
-            if (childFields.contains("arr")) {
-                int[] arr = oldKeys.field("arr");
-
-                if (arr != null)
-                    return arr;
-            }
-
-            log.warn("Can't extract ints from {} fields={}", oldKeys.type().typeName(), childFields);
-
-            return new int[0]; // best effort fallback
-        }
-
-        /**
-         * Builds an instance of the new GridIntList (org.apache.ignite.tcbot.common.util.GridIntList),
-         * or falls back to int[] if the class is not on the classpath.
-         */
-        private Object buildNewKeys(int[] ints) {
-            if (newKeysCachedConstruct != null) {
-                try {
-                    return newKeysCachedConstruct.newInstance((Object)ints);
-                }
-                catch (ReflectiveOperationException ignored) {
-                    // fall through to fallback
-                }
-            }
-
-            if (verbose)
-                log.warn("NEW_KEYS_TYPE {} is not available; falling back to raw int[]", NEW_KEYS_TYPE);
-
-            return ints; // best effort fallback
-        }
-
-        /**
-         * Resolves constructor NEW_KEYS_TYPE(int[]) once to avoid reflection per entry.
-         */
-        private Constructor<?> findNewKeysConstruct() {
-            try {
-                Class<?> cls = Class.forName(NEW_KEYS_TYPE);
-
-                return cls.getConstructor(int[].class);
-            }
-            catch (Throwable t) {
-                if (verbose) {
-                    log.warn("New keys type {} is not on classpath, will fallback to int[] (cause: {})",
-                        NEW_KEYS_TYPE, t.toString());
-                }
-
-                return null;
-            }
-        }
-    }
-
-    /**
-     * Command-line arguments.
-     * <p>
-     * Supported flags:
-     * --apply           actually write changes (otherwise dry-run)
-     * --verbose         more diagnostics
-     * --cache <substr>  process only caches whose name contains given substring
-     * --report <N>      progress log interval
-     * --workDir <path>  path to work/ directory (overrides IGNITE_WORK_DIR)
-     */
-    static final class Args {
-        boolean apply = false;
-        boolean verbose = false;
-        String cacheFilter = null;
-        long reportEvery = 500;
-        String workDir = null;
-
-        static Args parse(String[] args) {
-            Args cliArgs = new Args();
-
-            for (int i = 0; i < args.length; i++) {
-                switch (args[i]) {
-                    case "--apply":
-                        cliArgs.apply = true;
-                        break;
-                    case "--verbose":
-                        cliArgs.verbose = true;
-                        break;
-                    case "--cache":
-                        cliArgs.cacheFilter = args[++i];
-                        break;
-                    case "--report":
-                        cliArgs.reportEvery = Long.parseLong(args[++i]);
-                        break;
-                    case "--workDir":
-                        cliArgs.workDir = args[++i];
-                        break;
-                    default:
-                        break;
-                }
-            }
-            LoggerFactory.getLogger(GridIntListMigrator.class).info(
-                "Args: apply={} verbose={} cacheFilter={} reportEvery={} workDir={}",
-                cliArgs.apply, cliArgs.verbose, cliArgs.cacheFilter, cliArgs.reportEvery, cliArgs.workDir
-            );
-
-            return cliArgs;
-        }
+    public static Logger GetMigratorLogger() {
+        return log;
     }
 }
