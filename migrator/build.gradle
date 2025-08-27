@@ -9,5 +9,5 @@ dependencies {
 
 }
 application {
-    mainClass = 'migrate.GridIntListMigrator'
+    mainClass = 'src.main.java.migrate.GridIntListMigrator'
 }
