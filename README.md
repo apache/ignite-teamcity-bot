@@ -38,7 +38,7 @@ A build can be done using following commands
 - gradle clean
 - gradle build
 
-It is recommended to use Java 8 for development.
+It is recommended to use Java 11 for development.
 
 It may be required to install 
 [Java Cryptography Extension JCE Unlimited Strength Jurisdiction Policy Files 8 Download](https://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html)
