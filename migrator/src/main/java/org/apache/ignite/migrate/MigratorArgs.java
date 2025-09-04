@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package src.main.java.migrate;
+package org.apache.ignite.migrate;
 
 /**
  * Migrator command-line arguments.

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package src.main.java.migrate;
+package org.apache.ignite.migrate;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
@@ -219,12 +219,7 @@ public final class Transformer {
             if (obj instanceof org.apache.ignite.internal.util.GridIntList) {
                 org.apache.ignite.internal.util.GridIntList g = (org.apache.ignite.internal.util.GridIntList)obj;
 
-                int[] res = new int[g.size()];
-
-                for (int i = 0; i < res.length; i++)
-                    res[i] = g.get(i);
-
-                return res;
+                return g.array();
             }
         }
         catch (Throwable t) {

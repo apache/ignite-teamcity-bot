@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package src.main.java.migrate;
+package org.apache.ignite.migrate;
 
 /**
  * Result of a recursive transformation: value and flag indicating changes.
