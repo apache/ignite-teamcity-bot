@@ -40,7 +40,7 @@ import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.internal.util.GridConcurrentHashSet;
-import org.apache.ignite.internal.util.GridIntList;
+import org.apache.ignite.tcbot.common.util.GridIntList;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.exeption.ServiceConflictException;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
