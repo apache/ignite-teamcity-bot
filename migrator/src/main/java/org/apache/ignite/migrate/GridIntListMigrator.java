@@ -121,65 +121,96 @@ public final class GridIntListMigrator {
         try (Ignite ig = Ignition.start(cfg)) {
             ig.cluster().state(ClusterState.ACTIVE);
 
-            Collection<String> cacheNames = new ArrayList<>(ig.cacheNames());
+            long updated = migrateOnInstance(
+                ig,
+                a.cacheFilter,
+                a.apply,
+                a.verbose,
+                a.reportEvery
+            );
 
-            if (a.cacheFilter != null && !a.cacheFilter.isEmpty())
-                cacheNames.removeIf(n -> !n.contains(a.cacheFilter));
+            log.info("Migration finished. Total updated: {}", updated);
+        }
+    }
 
-            log.info("Caches to scan: {}", cacheNames);
+    /**
+     * Perform migration on existing Ignite instance
+     * @param ignite Ignite instance
+     * @param cacheFilter cache name filter
+     * @param apply true to apply changes, false to dry-run
+     * @param verbose logging
+     * @param reportEvery frequency of reports
+     * @return number of updated records
+     */
+    public static long migrateOnInstance(Ignite ignite,
+        String cacheFilter,
+        boolean apply,
+        boolean verbose,
+        int reportEvery) {
+        Collection<String> cacheNames = new ArrayList<>(ignite.cacheNames());
 
-            Transformer transformer = new Transformer(a.verbose);
+        if (cacheFilter != null && !cacheFilter.isEmpty())
+            cacheNames.removeIf(n -> !n.contains(cacheFilter));
 
-            for (String cacheName : cacheNames) {
-                IgniteCache<Object, Object> rawCache = ig.cache(cacheName);
+        log.info("GridIntList migration - Caches to scan: {}", cacheNames);
 
-                if (rawCache == null)
-                    continue;
+        Transformer transformer = new Transformer(verbose);
+        long totalUpdated = 0;
 
-                IgniteCache<Object, Object> c = rawCache.withKeepBinary();
+        for (String cacheName : cacheNames) {
+            IgniteCache<Object, Object> rawCache = ignite.cache(cacheName);
 
-                log.info("Scanning cache: {}", cacheName);
+            if (rawCache == null)
+                continue;
 
-                ScanQuery<Object, Object> q = new ScanQuery<>();
-                q.setPageSize(DEFAULT_PAGE_SIZE);
+            IgniteCache<Object, Object> c = rawCache.withKeepBinary();
 
-                AtomicLong scanned = new AtomicLong();
-                AtomicLong updated = new AtomicLong();
+            log.info("GridIntList migration - Scanning cache: {}", cacheName);
 
-                try (QueryCursor<Cache.Entry<Object, Object>> cur = c.query(q)) {
-                    for (Cache.Entry<Object, Object> e : cur) {
-                        try {
-                            Object v = e.getValue();
-                            TransformResult tr = transformer.transform(v, 0);
+            ScanQuery<Object, Object> q = new ScanQuery<>();
+            q.setPageSize(DEFAULT_PAGE_SIZE);
 
-                            if (tr.changed) {
-                                if (a.apply) {
-                                    c.put(e.getKey(), tr.val);
+            AtomicLong scanned = new AtomicLong();
+            AtomicLong updated = new AtomicLong();
 
-                                    updated.incrementAndGet();
-                                }
-                                else if (a.verbose)
-                                    log.info("DRY-RUN would update key={}", e.getKey());
+            try (QueryCursor<Cache.Entry<Object, Object>> cur = c.query(q)) {
+                for (Cache.Entry<Object, Object> e : cur) {
+                    try {
+                        Object v = e.getValue();
+                        TransformResult tr = transformer.transform(v, 0);
+
+                        if (tr.changed) {
+                            if (apply) {
+                                c.put(e.getKey(), tr.val);
+
+                                updated.incrementAndGet();
                             }
-
-                            long s = scanned.incrementAndGet();
-
-                            if (s % a.reportEvery == 0)
-                                log.info("Scanned={} updated={}", s, updated.get());
+                            else if (verbose)
+                                log.info("DRY-RUN would update key={}", e.getKey());
                         }
-                        catch (Throwable t) {
-                            log.warn("Entry migration failed, skipping. Cause: {}", t.toString());
 
-                            scanned.incrementAndGet();
-                        }
+                        long s = scanned.incrementAndGet();
+
+                        if (s % reportEvery == 0)
+                            log.info("Scanned={} updated={}", s, updated.get());
+
+                    }
+                    catch (Throwable t) {
+                        log.warn("Entry migration failed, skipping. Cause: {}", t.toString());
+
+                        scanned.incrementAndGet();
                     }
                 }
-
-                log.info("Done {}: scanned={} updated={}", cacheName, scanned.get(), updated.get());
             }
 
-            log.info("Migration finished.");
+            log.info("Done {}: scanned={} updated={}", cacheName, scanned.get(), updated.get());
+
+            totalUpdated += updated.get();
         }
+
+        log.info("GridIntList migration finished. Total updated: {}", totalUpdated);
+
+        return totalUpdated;
     }
 
     /**

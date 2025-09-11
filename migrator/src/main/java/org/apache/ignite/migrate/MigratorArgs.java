@@ -31,7 +31,7 @@ public final class MigratorArgs {
     boolean apply = false;
     boolean verbose = false;
     String cacheFilter = null;
-    long reportEvery = 500;
+    int reportEvery = 500;
     String workDir = null;
 
     static MigratorArgs parse(String[] args) {
@@ -49,7 +49,7 @@ public final class MigratorArgs {
                     cliArgs.cacheFilter = args[++i];
                     break;
                 case "--report":
-                    cliArgs.reportEvery = Long.parseLong(args[++i]);
+                    cliArgs.reportEvery = Integer.parseInt(args[++i]);
                     break;
                 case "--workDir":
                     cliArgs.workDir = args[++i];

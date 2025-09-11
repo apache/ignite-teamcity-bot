@@ -1,13 +1,17 @@
 plugins {
     id 'application'
 }
-repositories { mavenCentral() }
+
+repositories {
+    mavenCentral()
+}
+
 dependencies {
     implementation 'org.apache.ignite:ignite-core:2.16.0'
-    implementation 'org.slf4j:slf4j-simple:2.0.13'
+    implementation 'ch.qos.logback:logback-classic:1.2.3'
     implementation project(':tcbot-common')
-
 }
+
 application {
-    mainClass = 'src.main.java.migrate.GridIntListMigrator'
+    mainClass = 'org.apache.ignite.migrate.GridIntListMigrator'
 }

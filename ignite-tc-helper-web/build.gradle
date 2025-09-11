@@ -20,7 +20,8 @@ apply plugin: 'war'
 
 // https://www.apache.org/legal/resolved.html#category-a
 dependencies {
-    compile (project(":tcbot-engine")); 
+    compile (project(":tcbot-engine"));
+    implementation project(':migrator')
 
     compile group: 'org.apache.ignite', name: 'ignite-core', version: ignVer
     compile group: 'org.apache.ignite', name: 'ignite-slf4j', version: ignVer
