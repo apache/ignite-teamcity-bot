@@ -43,6 +43,7 @@ import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
+import org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
@@ -68,10 +69,8 @@ import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.pr.BranchTicketMatcher;
 import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
-import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi;
 import org.apache.ignite.tcbot.engine.ui.ShortSuiteNewTestsUi;
-import org.apache.ignite.tcbot.engine.ui.ShortTestFailureUi;
-import org.apache.ignite.tcbot.engine.ui.ShortTestUi;
+import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
@@ -87,7 +86,6 @@ import org.slf4j.LoggerFactory;
 import static org.apache.ignite.ci.observer.BuildsInfo.CANCELLED_STATUS;
 import static org.apache.ignite.ci.observer.BuildsInfo.FINISHED_STATUS;
 import static org.apache.ignite.ci.observer.BuildsInfo.RUNNING_STATUS;
-import static org.apache.ignite.tcservice.util.XmlUtil.xmlEscapeText;
 
 /**
  * TC Bot Visa Facade. Provides method for TC Bot Visa obtaining. Contains features for adding comment to the ticket
@@ -501,7 +499,7 @@ public class TcBotTriggerAndSignOffService {
                 }
             }
 
-            contribution.prTitle = ticket.fields.summary;
+            contribution.prTitle = ticket.fields.summary();
             contribution.prHtmlUrl = "";
             contribution.prHeadCommit = "";
             contribution.prTimeUpdate = ""; //todo ticket updateTime
@@ -837,12 +835,11 @@ public class TcBotTriggerAndSignOffService {
 
             if (suitesStatuses == null)
                 return new Visa("JIRA wasn't commented - no finished builds to analyze." +
-                    " Check builds availabiliy for branch: " + build.branchName + "/" + baseBranch);
+                    " Check builds availability for branch: " + build.branchName + "/" + baseBranch);
 
             blockers = suitesStatuses.stream().mapToInt(ShortSuiteUi::totalBlockers).sum();
 
-            String comment = generateJiraComment(suitesStatuses, newTestsStatuses, build.webUrl, buildTypeId, tcIgnited, blockers, build.branchName, baseBranch);
-
+            String comment = JiraCommentsGenerator.generateJiraComment(jira.config().getApiVersion(), compactor, suitesStatuses, newTestsStatuses, build.webUrl, buildTypeId, tcIgnited, blockers, build.branchName, baseBranch);
 
             res = objMapper.readValue(jira.postJiraComment(ticket, comment), JiraCommentResponse.class);
         }
@@ -856,170 +853,5 @@ public class TcBotTriggerAndSignOffService {
         }
 
         return new Visa(Visa.JIRA_COMMENTED, res, blockers);
-    }
-
-    /**
-     * @param suites Suite Current Status.
-     * @param webUrl Build URL.
-     * @param buildTypeId Build type ID, for which visa was ordered.
-     * @param tcIgnited TC service.
-     * @param blockers Count of blockers.
-     * @param branchName TC Branch name, which was tested.
-     * @param baseBranch TC Base branch used for comment
-     * @return Comment, which should be sent to the JIRA ticket.
-     */
-    private String generateJiraComment(List<ShortSuiteUi> suites, List<ShortSuiteNewTestsUi> newTestsStatuses, String webUrl, String buildTypeId,
-        ITeamcityIgnited tcIgnited, int blockers, String branchName, String baseBranch) {
-        BuildTypeRefCompacted bt = tcIgnited.getBuildTypeRef(buildTypeId);
-
-        String suiteNameUsedForVisa = (bt != null ? bt.name(compactor) : buildTypeId);
-
-        StringBuilder res = new StringBuilder();
-
-        String baseBranchDisp = (Strings.isNullOrEmpty(baseBranch) || ITeamcity.DEFAULT.equals(baseBranch))
-            ? "master" :  baseBranch ;
-        for (ShortSuiteUi suite : suites) {
-            res.append("{color:#d04437}");
-
-            res.append(jiraEscText(suite.name)).append("{color}");
-
-            int totalBlockerTests = suite.testFailures().size();
-            res.append(" [[tests ").append(totalBlockerTests);
-
-            if (suite.result != null && !suite.result.isEmpty())
-                res.append(' ').append(suite.result);
-
-            res.append('|').append(suite.webToBuild).append("]]\\n");
-
-            int cnt = 0;
-
-            for (ShortTestFailureUi failure : suite.testFailures()) {
-                res.append("* ");
-
-                if (failure.suiteName != null && failure.testName != null)
-                    res.append(jiraEscText(failure.suiteName)).append(": ").append(jiraEscText(failure.testName));
-                else
-                    res.append(jiraEscText(failure.name));
-
-                res.append(" - ").append(jiraEscText(failure.blockerComment));
-
-                res.append("\\n");
-
-                cnt++;
-                if (cnt > 10) {
-                    res.append("... and ").append(totalBlockerTests - cnt).append(" tests blockers\\n");
-
-                    break;
-                }
-            }
-
-            res.append("\\n");
-        }
-
-        StringBuilder newTests = new StringBuilder();
-
-        int newTestsCount = 0;
-
-        int failedNewTestsCount = 0;
-
-        for (ShortSuiteNewTestsUi suite : newTestsStatuses) {
-            newTests.append("{color:#00008b}");
-
-            newTests.append(jiraEscText(suite.name)).append("{color}");
-
-            int totalNewTests = suite.tests.size();
-            newTests.append(" [[tests ").append(totalNewTests);
-
-            int cnt = 0;
-
-            newTestsCount += suite.tests().size();
-
-            newTests.append('|').append(suite.webToBuild).append("]]\\n");
-
-            for (ShortTestUi test : suite.tests()) {
-                String testColor;
-                if (test.status)
-                    testColor = "#013220";
-                else {
-                    testColor = "#8b0000";
-                    failedNewTestsCount++;
-                }
-
-                newTests.append("* ");
-
-                newTests.append(String.format("{color:%s}", testColor));
-
-                if (test.suiteName != null && test.testName != null)
-                    newTests.append(jiraEscText(test.suiteName)).append(": ").append(jiraEscText(test.testName));
-                else
-                    newTests.append(jiraEscText(test.name));
-
-                newTests.append(" - ").append(jiraEscText(test.status ? "PASSED" : "FAILED"));
-
-                newTests.append("{color}");
-
-                newTests.append("\\n");
-
-                cnt++;
-                if (cnt > 10) {
-                    newTests.append("... and ").append(totalNewTests - cnt).append(" new tests\\n");
-
-                    break;
-                }
-            }
-
-            newTests.append("\\n");
-        }
-
-        String suiteNameForComment = jiraEscText(suiteNameUsedForVisa);
-
-        String branchNameForComment = jiraEscText("Branch: [" + branchName + "] ");
-
-        String baseBranchForComment = jiraEscText("Base: [" + baseBranchDisp + "] ");
-        String branchVsBaseComment = branchNameForComment + baseBranchForComment;
-
-        if (res.length() > 0) {
-            String hdrPanel = "{panel:title=" + branchVsBaseComment + ": Possible Blockers (" + blockers + ")|" +
-                "borderStyle=dashed|borderColor=#ccc|titleBGColor=#F7D6C1}\\n";
-
-            res.insert(0, hdrPanel)
-                .append("{panel}");
-        }
-        else {
-            res.append("{panel:title=").append(branchVsBaseComment).append(": No blockers found!|")
-                .append("borderStyle=dashed|borderColor=#ccc|titleBGColor=#D6F7C1}{panel}");
-        }
-
-        if (newTests.length() > 0) {
-            String bgColor;
-            if (failedNewTestsCount > 0)
-                bgColor = "#F7D6C1";
-            else
-                bgColor = "#D6F7C1";
-            String hdrPanel = "{panel:title=" + branchVsBaseComment + ": New Tests (" + newTestsCount + ")|" +
-                "borderStyle=dashed|borderColor=#ccc|titleBGColor=" + bgColor + "}\\n";
-
-            newTests.insert(0, hdrPanel)
-                .append("{panel}");
-        }
-        else {
-            newTests.append("{panel:title=").append(branchVsBaseComment).append(": No new tests found!|")
-                .append("borderStyle=dashed|borderColor=#ccc|titleBGColor=#F7D6C1}{panel}");
-        }
-
-        res.append("\\n").append(newTests).append("\\n").append("[TeamCity *").append(suiteNameForComment).append("* Results|").append(webUrl).append(']');
-
-        return xmlEscapeText(res.toString());
-    }
-
-    /**
-     * Escapes text for JIRA.
-     * @param txt Txt.
-     */
-    private String jiraEscText(String txt) {
-        if(Strings.isNullOrEmpty(txt))
-            return "";
-
-        return txt.replaceAll("\\|", "/");
     }
 }

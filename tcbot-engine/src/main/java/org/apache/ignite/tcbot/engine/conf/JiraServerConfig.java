@@ -21,6 +21,7 @@ import java.util.Properties;
 import javax.annotation.Nullable;
 import org.apache.ignite.jiraservice.Ticket;
 import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
+import org.apache.ignite.tcbot.common.conf.JiraApiVersion;
 import org.apache.ignite.tcbot.common.conf.PasswordEncoder;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -72,6 +73,12 @@ public class JiraServerConfig implements IJiraServerConfig {
      */
     private String url;
 
+    /**
+     * JIRA API version.
+     * We use the default api version if it is not specified by the configuration.
+     **/
+    private JiraApiVersion apiVersion = JiraApiVersion.defaultApiVersion();
+
     public JiraServerConfig() {
     }
 
@@ -109,6 +116,11 @@ public class JiraServerConfig implements IJiraServerConfig {
             return props.getProperty(JIRA_URL);
 
         return url;
+    }
+
+    /** {@inheritDoc} */
+    @Override public JiraApiVersion getApiVersion() {
+        return apiVersion;
     }
 
     /** {@inheritDoc} */

@@ -51,7 +51,7 @@ public class Status {
      * @return Reconstructed object.
      * @throws ObjectStreamException Thrown in case of unmarshalling error.
      */
-    protected Object readResolve() throws ObjectStreamException {
+    public Object readResolve() throws ObjectStreamException {
         statusCode = JiraTicketStatusCode.fromId(id);
         name = JiraTicketStatusCode.text(statusCode);
 

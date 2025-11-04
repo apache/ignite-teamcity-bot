@@ -17,15 +17,14 @@
 
 package org.apache.ignite.ci.jira.ignited;
 
+import java.util.Objects;
+import javax.annotation.Nullable;
 import org.apache.ignite.ci.tcbot.common.StringFieldCompacted;
-import org.apache.ignite.jiraservice.Fields;
 import org.apache.ignite.jiraservice.Status;
 import org.apache.ignite.jiraservice.Ticket;
+import org.apache.ignite.jiraservice.v2.Fields;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.Persisted;
-
-import javax.annotation.Nullable;
-import java.util.Objects;
 
 /**
  *
@@ -65,10 +64,10 @@ public class TicketCompacted {
     public TicketCompacted(Ticket ticket, IStringCompactor comp, String projectCode) {
         id = ticket.id;
         igniteId = ticket.keyWithoutProject(projectCode);
-        statusCodeId = ticket.fields.status.id;
-        summary.setValue(ticket.fields.summary);
-        customfield_11050.setValue(ticket.fields.customfield_11050);
-        description.setValue(ticket.fields.description);
+        statusCodeId = ticket.fields.status().id;
+        summary.setValue(ticket.fields.summary());
+        customfield_11050.setValue(ticket.fields.igniteLink()/*customfield_11050*/);
+        description.setValue(ticket.fields.description());
     }
 
     /**
@@ -80,11 +79,14 @@ public class TicketCompacted {
 
         ticket.id = id;
         ticket.key = projectCode + Ticket.PROJECT_DELIM + igniteId;
-        ticket.fields = new Fields();
-        ticket.fields.status = new Status(statusCodeId);
-        ticket.fields.summary = summary != null ? summary.getValue() : null;
-        ticket.fields.customfield_11050 = customfield_11050 != null ? customfield_11050.getValue() : null;
-        ticket.fields.description = description != null ? description.getValue() : null;
+
+        Fields fields = new Fields();
+        fields.status = new Status(statusCodeId);
+        fields.summary = summary != null ? summary.getValue() : null;
+        fields.customfield_11050 = customfield_11050 != null ? customfield_11050.getValue() : null;
+        fields.description = description != null ? description.getValue() : null;
+
+        ticket.fields = fields;
 
         return ticket;
     }

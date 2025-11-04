@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.jiraservice;
+package org.apache.ignite.jiraservice.adapters;
 
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
@@ -24,6 +24,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
 import java.io.IOException;
+import org.apache.ignite.jiraservice.Status;
 
 /**
  * Type adapter factory which is intended to trigger readResolve() after Gson deserialization.
