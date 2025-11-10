@@ -28,6 +28,14 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 
 public class JiraCommentsGenerator {
+    public static final String FAILED_TEST_SUITE_COLOR = "#d04437";
+
+    public static final String NEW_TEST_SUITE_COLOR = "#00008b";
+
+    public static final String FAILED_TEST_COLOR = "#8b0000";
+
+    public static final String PASSED_TEST_COLOR = "#013220";
+
     /**
      * @param apiVer Jira API version.
      * @param compactor String compactor.
@@ -88,6 +96,6 @@ public class JiraCommentsGenerator {
         if(Strings.isNullOrEmpty(txt))
             return "";
 
-        return txt.replaceAll("\\|", "/");
+        return txt.replace('|', '/');
     }
 }

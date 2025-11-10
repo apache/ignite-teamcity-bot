@@ -35,6 +35,10 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcservice.ITeamcity;
 
+import static org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator.FAILED_TEST_COLOR;
+import static org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator.FAILED_TEST_SUITE_COLOR;
+import static org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator.NEW_TEST_SUITE_COLOR;
+import static org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator.PASSED_TEST_COLOR;
 import static org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator.jiraEscText;
 
 public class JiraCommentsGeneratorV3 {
@@ -82,7 +86,7 @@ public class JiraCommentsGeneratorV3 {
 
         for (ShortSuiteUi suite : suites) {
             Paragraph p = new Paragraph();
-            Text suiteName = new Text(jiraEscText(suite.name), Mark.textColor("#d04437"));
+            Text suiteName = new Text(jiraEscText(suite.name), Mark.textColor(FAILED_TEST_SUITE_COLOR));
 
             int suiteBlockers = suite.testFailures().size();
             String suiteRes = "tests " + suiteBlockers;
@@ -132,7 +136,7 @@ public class JiraCommentsGeneratorV3 {
 
         for (ShortSuiteNewTestsUi suite : newTestsStatuses) {
             Paragraph p = new Paragraph();
-            Text suiteName = new Text(jiraEscText(suite.name), Mark.textColor("#00008b"));
+            Text suiteName = new Text(jiraEscText(suite.name), Mark.textColor(NEW_TEST_SUITE_COLOR));
 
             Text tests = new Text("tests " + suite.tests.size(), Mark.textLink(suite.webToBuild));
 
@@ -141,7 +145,7 @@ public class JiraCommentsGeneratorV3 {
             int cnt = 0;
             BulletList list = new BulletList();
             for (ShortTestUi test : suite.tests()) {
-                String testColor = test.status ? "#013220" : "#8b0000";
+                String testColor = test.status ? PASSED_TEST_COLOR : FAILED_TEST_COLOR;
 
                 String testName;
                 if (test.suiteName != null && test.testName != null)

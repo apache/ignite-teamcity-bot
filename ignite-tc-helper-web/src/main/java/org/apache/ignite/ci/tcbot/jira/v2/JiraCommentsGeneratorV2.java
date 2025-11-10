@@ -28,6 +28,10 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcservice.ITeamcity;
 
+import static org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator.FAILED_TEST_COLOR;
+import static org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator.FAILED_TEST_SUITE_COLOR;
+import static org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator.NEW_TEST_SUITE_COLOR;
+import static org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator.PASSED_TEST_COLOR;
 import static org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator.jiraEscText;
 import static org.apache.ignite.tcservice.util.XmlUtil.xmlEscapeText;
 
@@ -63,7 +67,7 @@ public class JiraCommentsGeneratorV2 {
         String baseBranchDisp = (Strings.isNullOrEmpty(baseBranch) || ITeamcity.DEFAULT.equals(baseBranch))
             ? "master" :  baseBranch ;
         for (ShortSuiteUi suite : suites) {
-            res.append("{color:#d04437}");
+            res.append("{color:" + FAILED_TEST_SUITE_COLOR + "}");
 
             res.append(jiraEscText(suite.name)).append("{color}");
 
@@ -107,7 +111,7 @@ public class JiraCommentsGeneratorV2 {
         int failedNewTestsCount = 0;
 
         for (ShortSuiteNewTestsUi suite : newTestsStatuses) {
-            newTests.append("{color:#00008b}");
+            newTests.append("{color:" + NEW_TEST_SUITE_COLOR + "}");
 
             newTests.append(jiraEscText(suite.name)).append("{color}");
 
@@ -123,9 +127,9 @@ public class JiraCommentsGeneratorV2 {
             for (ShortTestUi test : suite.tests()) {
                 String testColor;
                 if (test.status)
-                    testColor = "#013220";
+                    testColor = PASSED_TEST_COLOR;
                 else {
-                    testColor = "#8b0000";
+                    testColor = FAILED_TEST_COLOR;
                     failedNewTestsCount++;
                 }
 
