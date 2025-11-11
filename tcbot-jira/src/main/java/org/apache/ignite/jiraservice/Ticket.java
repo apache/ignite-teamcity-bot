@@ -33,7 +33,7 @@ public class Ticket {
     public String key;
 
     /** Fields. */
-    public Fields fields;
+    public IFields fields;
 
     public Ticket() {}
 
@@ -57,10 +57,10 @@ public class Ticket {
      */
     @Nullable
     public JiraTicketStatusCode status() {
-        if (fields == null || fields.status == null)
+        if (fields == null || fields.status() == null)
             return null;
 
-        return fields.status.statusCode;
+        return fields.status().statusCode;
     }
 
     /** {@inheritDoc} */

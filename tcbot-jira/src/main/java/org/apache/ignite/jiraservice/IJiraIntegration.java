@@ -21,7 +21,7 @@ import java.io.IOException;
 import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
 
 /**
- * Reperesents methods to provide interaction with Jira servers.
+ * Represents methods to provide interaction with Jira servers.
  */
 public interface IJiraIntegration {
     /**
@@ -44,7 +44,7 @@ public interface IJiraIntegration {
      * @param url Tickets loading URL and parameters, URL is relative, should not contain any start slashes.
      * @return Jira tickets.
      */
-    public Tickets getTicketsPage(String url);
+    public ITickets getTicketsPage(String url);
 
     /**
      * @param ticketFullName Ticket full name (e.g IGNITE-8331)

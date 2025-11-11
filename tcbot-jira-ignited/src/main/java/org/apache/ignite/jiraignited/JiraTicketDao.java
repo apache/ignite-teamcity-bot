@@ -122,7 +122,7 @@ public class JiraTicketDao {
         compactedTickets.forEach((k, v) -> {
             TicketCompacted existing = dbVal.get(k);
 
-            if (existing == null || !v.equals(existing))
+            if (!v.equals(existing))
                 ticketsToUpdate.put(k, v);
         });
 

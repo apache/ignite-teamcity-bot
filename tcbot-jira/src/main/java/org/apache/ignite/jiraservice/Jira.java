@@ -18,18 +18,22 @@
 package org.apache.ignite.jiraservice;
 
 import com.google.common.base.Preconditions;
-import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import java.io.IOException;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import org.apache.ignite.jiraservice.adapters.ReadResolveFactory;
+import org.apache.ignite.jiraservice.adapters.TypeFactory;
+import org.apache.ignite.jiraservice.v2.Fields;
+import org.apache.ignite.jiraservice.v2.ITicketsV2;
+import org.apache.ignite.jiraservice.v3.FieldsV3;
+import org.apache.ignite.jiraservice.v3.ITicketsV3;
 import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
-import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.util.HttpUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import java.io.IOException;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -52,11 +56,16 @@ class Jira implements IJiraIntegration {
     }
 
     /** {@inheritDoc} */
-    @Override public Tickets getTicketsPage(String url) {
+    @Override public ITickets getTicketsPage(String url) {
         try {
-            Gson gson = new GsonBuilder().registerTypeAdapterFactory(new ReadResolveFactory()).create();
+            GsonBuilder gson = new GsonBuilder();
+            gson.registerTypeAdapterFactory(new ReadResolveFactory());
+            gson.registerTypeAdapterFactory(new TypeFactory<>(
+                config().getApiVersion(), ITickets.class, ITicketsV2.class, ITicketsV3.class));
+            gson.registerTypeAdapterFactory(new TypeFactory<>(
+                config().getApiVersion(), IFields.class, Fields.class, FieldsV3.class));
 
-            return gson.fromJson(sendGetToJira(url), Tickets.class);
+            return gson.create().fromJson(sendGetToJira(url), ITickets.class);
         }
         catch (Exception e) {
             String errMsg = "Exception happened during receiving JIRA tickets " +

@@ -15,45 +15,54 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.jiraservice;
+package org.apache.ignite.jiraservice.v2;
 
 import java.util.Collection;
 import java.util.Collections;
+import org.apache.ignite.jiraservice.ITickets;
 import org.apache.ignite.jiraservice.Ticket;
 
 /**
  * See example of GSON here https://issues.apache.org/jira/rest/api/2/search?jql=project%20=%20IGNITE%20order%20by%20updated%20DESC&fields=status
  */
-@SuppressWarnings("PublicField")
-public class Tickets {
+public class ITicketsV2 implements ITickets {
     /** Start at. */
-    public int startAt;
+    private int startAt;
 
     /** Max amount of tickets on the page. */
-    public int maxResults;
+    private int maxResults;
 
     /** Total tickets. */
-    public int total;
+    private int total;
 
     /** Jira tickets. */
-    public Collection<Ticket> issues;
+    private Collection<Ticket> issues;
+
+    /** {@inheritDoc} */
+    @Override public boolean hasNextPage() {
+        int next = nextStart();
+        return next != -1;
+    }
+
+    /** {@inheritDoc} */
+    @Override public String nextPagePosition() {
+        return "&startAt=" + nextStart();
+    }
+
+    /** {@inheritDoc} */
+    @Override public Collection<Ticket> issues() {
+        return issues == null ? Collections.emptyList() : issues;
+    }
 
     /**
      * @return Start index for next page. Return -1 if it is last page.
      */
-    public int nextStart() {
+    private int nextStart() {
         int next = startAt + maxResults;
 
         if (next < total)
             return next;
 
         return -1;
-    }
-
-    /**
-     * @return Jira tickets.
-     */
-    public Collection<Ticket> issuesNotNull() {
-        return issues == null ? Collections.emptyList() : issues;
     }
 }

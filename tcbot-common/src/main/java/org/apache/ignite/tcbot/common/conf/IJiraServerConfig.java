@@ -37,6 +37,13 @@ public interface IJiraServerConfig {
     public String getUrl();
 
     /**
+     * Returns JIRA API version.
+     *
+     * @return JIRA API version.
+     */
+    public JiraApiVersion getApiVersion();
+
+    /**
      * JIRA project code for filtering out tickets and for adding VISA (JIRA comments).
      */
     public String projectCodeForVisa();
@@ -72,9 +79,8 @@ public interface IJiraServerConfig {
         if (!jiraUrl.endsWith("/"))
             apiUrl.append("/");
 
-        apiUrl.append("rest/api/2/");
+        apiUrl.append(getApiVersion().apiUrl());
 
         return apiUrl.toString();
     }
-
 }

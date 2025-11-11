@@ -17,22 +17,19 @@
 
 package org.apache.ignite.jiraignited;
 
-import java.lang.reflect.Field;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
-import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
-import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
-import org.apache.ignite.jiraservice.Tickets;
-import org.apache.ignite.jiraservice.Fields;
+import org.apache.ignite.internal.util.typedef.F;
+import org.apache.ignite.jiraservice.IFields;
 import org.apache.ignite.jiraservice.IJiraIntegration;
 import org.apache.ignite.jiraservice.IJiraIntegrationProvider;
+import org.apache.ignite.jiraservice.ITickets;
 import org.apache.ignite.jiraservice.Ticket;
 import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
-import org.apache.ignite.internal.util.typedef.F;
+import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
+import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,13 +94,11 @@ public class JiraTicketSync {
         int srvIdMaskHigh = IJiraIgnited.serverIdToInt(srvCode);
         IJiraIntegration jira = jiraIntegrationProvider.server(srvCode);
 
-        String reqFields = Arrays.stream(Fields.class.getDeclaredFields())
-            .map(Field::getName)
-            .collect(Collectors.joining(","));
+        String reqFields = String.join(",", IFields.FIELD_NAMES);
 
         IJiraServerConfig cfg = jira.config();
         String projectCode = cfg.projectCodeForVisa();
-        String baseUrl = "search?jql=" + escape("project=" + projectCode + " order by updated DESC")
+        String baseUrl = cfg.getApiVersion().searchUrl() + escape("project=" + projectCode + " order by updated DESC")
             + "&" +
             "fields=" + reqFields +
             "&maxResults=100";
@@ -111,8 +106,8 @@ public class JiraTicketSync {
         String url = baseUrl;
 
         logger.info("Requesting JIRA tickets using URL " + url + ("\n" + cfg.restApiUrl() + url));
-        Tickets tickets = jira.getTicketsPage(url);
-        Collection<Ticket> page = tickets.issuesNotNull();
+        ITickets tickets = jira.getTicketsPage(url);
+        Collection<Ticket> page = tickets.issues();
 
         if (F.isEmpty(page))
             return "Something went wrong - no tickets found. Check jira availability: " +
@@ -123,13 +118,13 @@ public class JiraTicketSync {
         int ticketsProcessed = page.size();
 
         if (ticketsSaved != 0 || fullResync) {
-            while (tickets.nextStart() > 0) {
-                url = baseUrl + "&startAt=" + tickets.nextStart();
+            while (tickets.hasNextPage()) {
+                url = baseUrl + tickets.nextPagePosition();
 
                 logger.info("Requesting JIRA tickets using URL " + url + ("\n" + cfg.restApiUrl() + url));
                 tickets = jira.getTicketsPage(url);
 
-                page = tickets.issuesNotNull();
+                page = tickets.issues();
 
                 if (F.isEmpty(page))
                     break;

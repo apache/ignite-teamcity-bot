@@ -15,31 +15,41 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.jiraservice;
+package org.apache.ignite.ci.tcbot.jira.v3.adf;
 
-import com.google.common.base.MoreObjects;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
- *
+ * @link https://developer.atlassian.com/cloud/jira/platform/apis/document/nodes/text/
  */
-public class Fields {
-    /** Ticket status. */
-    public Status status;
+public class Text extends Element {
+    private static final String TYPE = "text";
 
-    /** Summary. */
-    public String summary;
+    private final String text;
 
-    /** Customfield 11050. */
-    public String customfield_11050;
+    private List<Mark> marks;
 
-    /** Description. */
-    public String description;
+    public Text(String text) {
+        super(TYPE);
 
-    @Override public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("status", status)
-            .add("summary", summary)
-            .add("customfield_11050", customfield_11050)
-            .toString();
+        this.text = text;
+    }
+
+    public Text(String text, Mark mark) {
+        super(TYPE);
+
+        this.text = text;
+        this.marks = Collections.singletonList(mark);
+    }
+
+    public Text append(Mark mark) {
+        if (marks == null)
+            marks = new ArrayList<>();
+
+        marks.add(mark);
+
+        return this;
     }
 }

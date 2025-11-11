@@ -60,8 +60,8 @@ public class BranchTicketMatcher {
 
         String branchJiraIdentification = findFixPrefixedNoInValues(branchNumPrefix,
             ticket.key,
-            ticket.fields.summary,
-            ticket.fields.customfield_11050);
+            ticket.fields.summary(),
+            ticket.fields.igniteLink());
 
         return convertJiraToGit(branchJiraIdentification, branchNumPrefix, gitHubCfg);
 
@@ -157,11 +157,11 @@ public class BranchTicketMatcher {
      * @param ticket Ticket.
      */
     private boolean mentionsBranch(String branchName, Ticket ticket) {
-        String summary = ticket.fields.summary;
+        String summary = ticket.fields.summary();
         if (summary != null && summary.contains(branchName))
             return true;
 
-        String val = ticket.fields.customfield_11050;
+        String val = ticket.fields.igniteLink();
         if (val != null && val.contains(branchName))
             return true;
 
