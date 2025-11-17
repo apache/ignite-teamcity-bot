@@ -127,6 +127,7 @@ public class JiraCommentsGeneratorV3 {
         }
 
         // New tests
+        /*
         int newTestsCount = newTestsStatuses.stream().mapToInt(s -> s.tests.size()).sum();
         boolean failedNewTests = newTestsStatuses.stream().flatMap(s -> s.tests().stream()).anyMatch(t -> !t.status);
         String newTestsPanelName = newTestsCount > 0
@@ -172,13 +173,14 @@ public class JiraCommentsGeneratorV3 {
             if (!list.isEmpty())
                 newTestsPanel.append(list);
         }
+        */
 
         Paragraph linkToBuild = new Paragraph()
             .append(new Text("TeamCity " + suiteNameForComment + " Results", Mark.textLink(webUrl)));
 
         Root root = new Root();
         root.append(testFailuresPanel);
-        root.append(newTestsPanel);
+        // root.append(newTestsPanel);
         root.append(linkToBuild);
 
         return new GsonBuilder().create().toJson(root);

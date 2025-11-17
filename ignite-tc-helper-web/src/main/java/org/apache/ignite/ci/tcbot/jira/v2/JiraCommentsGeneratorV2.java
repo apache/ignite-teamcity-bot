@@ -104,6 +104,10 @@ public class JiraCommentsGeneratorV2 {
             res.append("\\n");
         }
 
+        // REMOVED: New Tests section from JIRA comments
+        // The logic for identifying new tests is preserved in the backend (NewTestsStorage)
+        // but we're hiding it from user-facing surfaces (UI and JIRA)
+        /*
         StringBuilder newTests = new StringBuilder();
 
         int newTestsCount = 0;
@@ -158,6 +162,7 @@ public class JiraCommentsGeneratorV2 {
 
             newTests.append("\\n");
         }
+        */
 
         String suiteNameForComment = jiraEscText(suiteNameUsedForVisa);
 
@@ -178,6 +183,8 @@ public class JiraCommentsGeneratorV2 {
                 .append("borderStyle=dashed|borderColor=#ccc|titleBGColor=#D6F7C1}{panel}");
         }
 
+        // New Tests section hidden - only Blockers section shown
+        /*
         if (newTests.length() > 0) {
             String bgColor;
             if (failedNewTestsCount > 0)
@@ -196,6 +203,9 @@ public class JiraCommentsGeneratorV2 {
         }
 
         res.append("\\n").append(newTests).append("\\n").append("[TeamCity *").append(suiteNameForComment).append("* Results|").append(webUrl).append(']');
+        */
+
+        res.append("\\n").append("[TeamCity *").append(suiteNameForComment).append("* Results|").append(webUrl).append(']');
 
         return xmlEscapeText(res.toString());
     }
