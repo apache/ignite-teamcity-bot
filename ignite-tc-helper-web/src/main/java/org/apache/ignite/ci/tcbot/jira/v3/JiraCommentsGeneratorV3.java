@@ -40,6 +40,7 @@ import static org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator.FAILED_TEST_
 import static org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator.NEW_TEST_SUITE_COLOR;
 import static org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator.PASSED_TEST_COLOR;
 import static org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator.jiraEscText;
+import static org.apache.ignite.tcservice.util.XmlUtil.xmlEscapeText;
 
 public class JiraCommentsGeneratorV3 {
     /**
@@ -181,6 +182,6 @@ public class JiraCommentsGeneratorV3 {
         root.append(newTestsPanel);
         root.append(linkToBuild);
 
-        return new GsonBuilder().create().toJson(root);
+        return xmlEscapeText(new GsonBuilder().create().toJson(root));
     }
 }
