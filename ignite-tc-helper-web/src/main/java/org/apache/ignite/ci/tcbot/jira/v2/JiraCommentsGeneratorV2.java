@@ -197,6 +197,6 @@ public class JiraCommentsGeneratorV2 {
 
         res.append("\\n").append(newTests).append("\\n").append("[TeamCity *").append(suiteNameForComment).append("* Results|").append(webUrl).append(']');
 
-        return xmlEscapeText(res.toString());
+        return "\"" + xmlEscapeText(res.toString()) + "\"";
     }
 }

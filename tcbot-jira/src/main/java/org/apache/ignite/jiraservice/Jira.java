@@ -106,7 +106,7 @@ class Jira implements IJiraIntegration {
 
         String url = jiraApiUrl + "issue/" + ticket + "/comment";
 
-        return HttpUtil.sendPostAsStringToJira(config().decodedHttpAuthToken(), url, "{\"body\": \"" + comment + "\"}");
+        return HttpUtil.sendPostAsStringToJira(config().decodedHttpAuthToken(), url, "{\"body\": " + comment + "}");
     }
 
     /**
