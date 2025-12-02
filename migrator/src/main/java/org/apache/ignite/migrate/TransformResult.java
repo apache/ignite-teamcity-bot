@@ -15,20 +15,28 @@
  * limitations under the License.
  */
 
-apply plugin: 'java'
+package org.apache.ignite.migrate;
 
-repositories {
-    mavenCentral()
-    mavenLocal()
-}
+/**
+ * Result of a recursive transformation: value and flag indicating changes.
+ */
+public final class TransformResult {
+    /** Value. */
+    final Object val;
 
-dependencies {
-    compile (project(":tcbot-common"));
+    /** Changed. */
+    final boolean changed;
 
-    compile (group: 'org.apache.ignite', name: 'ignite-core', version: ignVer) {
-        exclude group: 'org.jetbrains'
+    private TransformResult(Object val, boolean changed) {
+        this.val = val;
+        this.changed = changed;
     }
 
-    implementation "org.apache.ignite:ignite-indexing:$ignVer"
+    static TransformResult same(Object v) {
+        return new TransformResult(v, false);
+    }
+
+    static TransformResult changed(Object v) {
+        return new TransformResult(v, true);
+    }
 }
- 

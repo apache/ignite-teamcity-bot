@@ -31,6 +31,7 @@ import org.apache.ignite.tcservice.model.result.Build;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.ignite.migrate.GridIntListMigrator;
 
 import javax.cache.Cache;
 import java.util.HashMap;
@@ -232,6 +233,8 @@ public class DbMigrations {
         applyDestroyCacheMigration(Old.TEST_HIST_CACHE_NAME_V2_0);
         applyDestroyCacheMigration(Old.SUITE_HIST_CACHE_NAME_V2_0);
 
+        applyGridIntListMigration();
+
         int sizeAfter = doneMigrations.size();
         return (sizeAfter - sizeBefore) + " Migrations done from " + sizeAfter;
 
@@ -306,6 +309,38 @@ public class DbMigrations {
         ccfg.setCacheMode(CacheMode.REPLICATED);
 
         return ignite.getOrCreateCache(ccfg);
+    }
+
+    /**
+     * Applies the GridIntList migration from ignite.internal to tcbot-common realization
+     */
+    private void applyGridIntListMigration() {
+        applyMigration("migrate-GridIntList", () -> {
+            try {
+                logger.info("Starting GridIntList type migration");
+
+                String cacheFilter = null;
+                boolean apply = true;
+                boolean verbose = false;
+                int reportEvery = 500;
+
+                long updated = GridIntListMigrator.migrateOnInstance(
+                    ignite,
+                    cacheFilter,
+                    apply,
+                    verbose,
+                    reportEvery
+                );
+
+                logger.info("GridIntList migration completed. Updated {} entries", updated);
+
+            }
+            catch (Exception e) {
+                logger.error("GridIntList migration failed", e);
+
+                throw new RuntimeException("GridIntList migration failed", e);
+            }
+        });
     }
 
     private void applyMigration(String code, Runnable runnable) {

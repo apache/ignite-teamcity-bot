@@ -1,5 +1,6 @@
 include 'ignite-tc-helper-web'
 include 'jetty-launcher'
+include 'migrator'
 include 'tcbot-server-node'
 include 'tcbot-common'
 include 'tcbot-notify'

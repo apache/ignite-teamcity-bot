@@ -19,7 +19,7 @@ package org.apache.ignite.ci.teamcity.ignited.buildtype;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
-import org.apache.ignite.internal.util.GridIntList;
+import org.apache.ignite.tcbot.common.util.GridIntList;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcservice.model.conf.bt.Parameters;
