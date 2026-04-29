@@ -124,3 +124,27 @@ TC Bot integrations are placed in corresponding submodules
 | JIRA | [tcbot-jira](tcbot-jira) | [tcbot-jira-ignited](tcbot-jira-ignited)  |
 | GitHub | [tcbot-github](tcbot-github) | [tcbot-github-ignited](tcbot-github-ignited)  |
 
+## GridIntList migration
+
+The `migrate-GridIntList` database migration updates persisted TeamCity Bot data after replacing Ignite's internal
+`org.apache.ignite.internal.util.GridIntList` with the project-owned
+`org.apache.ignite.tcbot.common.util.GridIntList`.
+
+During startup, `DbMigrations` runs `GridIntListMigrator.migrateOnInstance` once and stores the migration marker only
+after the scan finishes successfully. The migrator iterates over Ignite cache entries in keep-binary mode, recursively
+checks cache values, nested binary objects, lists, sets, maps, and object arrays, and rebuilds only values that contain
+the legacy `GridIntList` type.
+
+For each legacy list, the migration preserves the logical list contents, not the backing array capacity. If normal
+deserialization is available, it reads the old object through `GridIntList.array()`. If binary fallback is needed, it
+reads both persisted fields, `arr` and `idx`, validates that `idx` is inside the backing array bounds, and copies only
+`arr[0..idx)`. The copied values are then written as the new TC Bot `GridIntList` type.
+
+The migration is intentionally fail-fast from the database marker point of view. Per-entry failures are logged with the
+cache name and key, counted, and reported after the scan. If any entry fails, the migration throws an exception and the
+`migrate-GridIntList` marker is not written to `apache.doneMigrations`, so the issue can be fixed and the migration can
+be retried instead of silently leaving mixed old and new data.
+
+The same migrator can also be run as a standalone tool from the `migrator` module against an Ignite work directory. The
+standalone module uses the same Ignite version as the rest of the project through the shared `ignVer` Gradle property.
+
