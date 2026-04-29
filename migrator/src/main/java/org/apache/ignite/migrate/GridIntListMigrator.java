@@ -156,6 +156,7 @@ public final class GridIntListMigrator {
 
         Transformer transformer = new Transformer(verbose);
         long totalUpdated = 0;
+        long totalFailed = 0;
 
         for (String cacheName : cacheNames) {
             IgniteCache<Object, Object> rawCache = ignite.cache(cacheName);
@@ -172,6 +173,7 @@ public final class GridIntListMigrator {
 
             AtomicLong scanned = new AtomicLong();
             AtomicLong updated = new AtomicLong();
+            AtomicLong failed = new AtomicLong();
 
             try (QueryCursor<Cache.Entry<Object, Object>> cur = c.query(q)) {
                 for (Cache.Entry<Object, Object> e : cur) {
@@ -196,16 +198,24 @@ public final class GridIntListMigrator {
 
                     }
                     catch (Throwable t) {
-                        log.warn("Entry migration failed, skipping. Cause: {}", t.toString());
+                        failed.incrementAndGet();
+
+                        log.error("Entry migration failed [cache={}, key={}]", cacheName, e.getKey(), t);
 
                         scanned.incrementAndGet();
                     }
                 }
             }
 
-            log.info("Done {}: scanned={} updated={}", cacheName, scanned.get(), updated.get());
+            log.info("Done {}: scanned={} updated={} failed={}", cacheName, scanned.get(), updated.get(), failed.get());
 
             totalUpdated += updated.get();
+            totalFailed += failed.get();
+        }
+
+        if (totalFailed > 0) {
+            throw new IllegalStateException("GridIntList migration failed for " + totalFailed +
+                " entries. Migration marker will not be written.");
         }
 
         log.info("GridIntList migration finished. Total updated: {}", totalUpdated);
