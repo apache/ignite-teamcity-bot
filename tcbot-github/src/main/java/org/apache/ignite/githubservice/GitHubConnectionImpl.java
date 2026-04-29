@@ -112,7 +112,8 @@ class GitHubConnectionImpl implements IGitHubConnection {
             return new Gson().fromJson(reader, PullRequest.class);
         }
         catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new UncheckedIOException("Failed to read GitHub pull request [srv=" + srvCode +
+                ", pr=" + id + ", url=" + pr + ']', e);
         }
     }
 
@@ -193,7 +194,8 @@ class GitHubConnectionImpl implements IGitHubConnection {
             return list;
         }
         catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new UncheckedIOException("Failed to read GitHub page [srv=" + srvCode +
+                ", url=" + url + ", link=" + rspHeaders.get("Link") + ']', e);
         }
     }
 

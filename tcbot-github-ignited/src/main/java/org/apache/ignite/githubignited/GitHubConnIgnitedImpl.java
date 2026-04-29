@@ -16,6 +16,8 @@
  */
 package org.apache.ignite.githubignited;
 
+import java.io.FileNotFoundException;
+import java.io.UncheckedIOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -185,6 +187,9 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
 
         int cntSaved = savePrsChunk(ghData);
         int totalChecked = ghData.size();
+        if (fullReindex)
+            collectPullRequestIds(ghData, actualPrs);
+
         while (outLinkNext.get() != null) {
             String nextPageUrl = outLinkNext.get();
             ghData = conn.getPullRequestsPage(nextPageUrl, outLinkNext);
@@ -192,11 +197,8 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
             cntSaved += savedThisChunk;
             totalChecked += ghData.size();
 
-            if (fullReindex) {
-                actualPrs.addAll(ghData.stream()
-                    .map(PullRequest::getNumber)
-                    .collect(Collectors.toSet()));
-            }
+            if (fullReindex)
+                collectPullRequestIds(ghData, actualPrs);
 
             if (!fullReindex && savedThisChunk == 0)
                 break;
@@ -213,14 +215,94 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @MonitoredTask(name = "Check Outdated PRs(srv)", nameExtArgsIndexes = {0})
     protected String refreshOutdatedPrs(String srvId, Set<Integer> actualPrs) {
-        final long cnt = StreamSupport.stream(prCache.spliterator(), false)
+        List<Integer> outdatedPrs = StreamSupport.stream(prCache.spliterator(), false)
             .filter(entry -> entry.getKey() >> 32 == srvIdMaskHigh)
             .filter(entry -> PullRequest.OPEN.equals(entry.getValue().getState()))
             .filter(entry -> !actualPrs.contains(entry.getValue().getNumber()))
-            .peek(entry -> prCache.put(entry.getKey(), conn.getPullRequest(entry.getValue().getNumber())))
-            .count();
+            .map(entry -> entry.getValue().getNumber())
+            .collect(Collectors.toList());
 
-        return "PRs updated for " + srvId + ": " + cnt + " from " + prCache.size();
+        int cntUpdated = 0;
+        int cntRemoved = 0;
+
+        for (Integer prNum : outdatedPrs) {
+            PullRequest pr = getPullRequestOrRemoveIfNotFound(prNum);
+
+            if (pr == null)
+                cntRemoved++;
+            else {
+                prCache.put(prNumberToCacheKey(prNum), pr);
+                cntUpdated++;
+            }
+        }
+
+        return "PRs updated for " + srvId + ": " + cntUpdated + ", removed stale: " + cntRemoved +
+            " from " + prCache.size();
+    }
+
+    /**
+     * @param prs Pull requests.
+     * @param actualPrs Actual pull request ids.
+     */
+    private void collectPullRequestIds(List<PullRequest> prs, Set<Integer> actualPrs) {
+        actualPrs.addAll(prs.stream()
+            .map(PullRequest::getNumber)
+            .collect(Collectors.toSet()));
+    }
+
+    /**
+     * @param branches GitHub branches.
+     * @param actualPrs Actual pull request ids.
+     */
+    private void collectPullRequestIdsFromBranches(List<GitHubBranchShort> branches, Set<Integer> actualPrs) {
+        actualPrs.addAll(branches.stream()
+            .map(GitHubBranchShort::name)
+            .map(IGitHubConnection::convertBranchToPrId)
+            .filter(prId -> prId != null)
+            .collect(Collectors.toSet()));
+    }
+
+    /**
+     * @param prNum PR number.
+     */
+    @Nullable
+    private PullRequest getPullRequestOrRemoveIfNotFound(Integer prNum) {
+        try {
+            return conn.getPullRequest(prNum);
+        }
+        catch (UncheckedIOException e) {
+            if (!isNotFound(e))
+                throw e;
+
+            long cacheKey = prNumberToCacheKey(prNum);
+
+            logger.info("Removing stale GitHub PR from cache [srv={}, pr={}]", srvCode, prNum);
+
+            prCache.remove(cacheKey);
+
+            return null;
+        }
+    }
+
+    /**
+     * @param e Exception.
+     */
+    private boolean isNotFound(UncheckedIOException e) {
+        for (Throwable th = e; th != null; th = th.getCause()) {
+            if (th instanceof FileNotFoundException)
+                return true;
+
+            String msg = th.getMessage();
+
+            if (msg != null) {
+                String msgLc = msg.toLowerCase();
+
+                if (msgLc.contains("not found") || msgLc.contains("404"))
+                    return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -264,25 +346,45 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     protected String runActualizeBranches(String srvId, boolean fullReindex) {
         AtomicReference<String> outLinkNext = new AtomicReference<>();
 
-        List<GitHubBranchShort> ghData = conn.getBranchesPage(null, outLinkNext);
-
         Set<Integer> actualPrs = new HashSet<>();
 
-        int cntSaved = saveBranchesChunk(ghData);
-        int totalChecked = ghData.size();
-        while (outLinkNext.get() != null) {
-            String nextPageUrl = outLinkNext.get();
-            ghData = conn.getBranchesPage(nextPageUrl, outLinkNext);
-            int savedThisChunk = saveBranchesChunk(ghData);
-            cntSaved += savedThisChunk;
-            totalChecked += ghData.size();
+        int cntSaved = 0;
+        int totalChecked = 0;
+        int page = 1;
+        String nextPageUrl = null;
 
-            if (!fullReindex && savedThisChunk == 0)
-                break;
+        try {
+            List<GitHubBranchShort> ghData = conn.getBranchesPage(null, outLinkNext);
+
+            cntSaved = saveBranchesChunk(ghData);
+            totalChecked = ghData.size();
+            if (fullReindex)
+                collectPullRequestIdsFromBranches(ghData, actualPrs);
+
+            while (outLinkNext.get() != null) {
+                nextPageUrl = outLinkNext.get();
+                page++;
+                ghData = conn.getBranchesPage(nextPageUrl, outLinkNext);
+                int savedThisChunk = saveBranchesChunk(ghData);
+                cntSaved += savedThisChunk;
+                totalChecked += ghData.size();
+
+                if (fullReindex)
+                    collectPullRequestIdsFromBranches(ghData, actualPrs);
+
+                if (!fullReindex && savedThisChunk == 0)
+                    break;
+            }
+
+            if (fullReindex)
+                refreshOutdatedPrs(srvId, actualPrs);
         }
-
-        if (fullReindex)
-            refreshOutdatedPrs(srvId, actualPrs);
+        catch (UncheckedIOException e) {
+            throw new UncheckedIOException("Failed to actualize GitHub branches [srv=" + srvId +
+                ", fullReindex=" + fullReindex + ", page=" + page + ", totalChecked=" + totalChecked +
+                ", cntSaved=" + cntSaved + ", actualPrs=" + actualPrs.size() +
+                ", nextPageUrl=" + nextPageUrl + ", cause=" + e.getMessage() + ']', e.getCause());
+        }
 
         return "Entries saved " + cntSaved + " Branches checked " + totalChecked;
     }
