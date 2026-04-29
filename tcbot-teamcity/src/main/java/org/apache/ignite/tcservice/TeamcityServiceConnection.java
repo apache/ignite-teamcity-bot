@@ -24,6 +24,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.UncheckedIOException;
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,6 +84,9 @@ public class TeamcityServiceConnection implements ITeamcity {
 
     /** Teamcity http connection. */
     @Inject private ITeamcityHttpConnection teamcityHttpConn;
+
+    /** TeamCity GET attempts for temporary transport failures. */
+    private static final int GET_ATTEMPTS = 3;
 
     @Inject private IDataSourcesConfigSupplier cfg;
 
@@ -283,19 +288,53 @@ public class TeamcityServiceConnection implements ITeamcity {
      * @throws UncheckedIOException in case communication failed.
      */
     private <T> T sendGetXmlParseJaxb(String url, Class<T> rootElem) {
-        try {
-            try (InputStream inputStream = teamcityHttpConn.sendGet(basicAuthTok, url)) {
-                final InputStreamReader reader = new InputStreamReader(inputStream);
+        for (int attempt = 1; attempt <= GET_ATTEMPTS; attempt++) {
+            try {
+                try (InputStream inputStream = teamcityHttpConn.sendGet(basicAuthTok, url)) {
+                    final InputStreamReader reader = new InputStreamReader(inputStream);
 
-                return loadXml(rootElem, reader);
+                    return loadXml(rootElem, reader);
+                }
+            }
+            catch (IOException e) {
+                if (shouldRetry(e, attempt)) {
+                    logger.warn("Failed to read TeamCity XML, will retry " +
+                        "[srv={}, url={}, root={}, attempt={}/{}]",
+                        srvCode, url, rootElem.getSimpleName(), attempt, GET_ATTEMPTS, e);
+
+                    continue;
+                }
+
+                throw new UncheckedIOException("Failed to read TeamCity XML [srv=" + srvCode +
+                    ", url=" + url + ", root=" + rootElem.getName() +
+                    ", attempt=" + attempt + '/' + GET_ATTEMPTS + ']', e);
+            }
+            catch (JAXBException e) {
+                throw ExceptionUtil.propagateException(e);
             }
         }
-        catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+        throw new IllegalStateException("Unreachable");
+    }
+
+    /**
+     * @param e Exception.
+     * @param attempt Attempt.
+     */
+    private boolean shouldRetry(IOException e, int attempt) {
+        return attempt < GET_ATTEMPTS && isTemporaryTransportFailure(e);
+    }
+
+    /**
+     * @param e Exception.
+     */
+    private boolean isTemporaryTransportFailure(Throwable e) {
+        for (Throwable th = e; th != null; th = th.getCause()) {
+            if (th instanceof ConnectException || th instanceof SocketTimeoutException)
+                return true;
         }
-        catch (JAXBException e) {
-            throw ExceptionUtil.propagateException(e);
-        }
+
+        return false;
     }
 
     @SuppressWarnings("WeakerAccess")

@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.tcignited.buildref;
 
+import java.io.UncheckedIOException;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
@@ -77,78 +78,92 @@ public class BuildRefSync {
         ITeamcityConn conn) {
 
         AtomicReference<String> outLinkNext = new AtomicReference<>();
-        List<BuildRef> tcDataFirstPage = conn.getBuildRefsPage(null, outLinkNext);
 
         long start = System.currentTimeMillis();
         int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
-        Set<Long> buildsUpdated = buildRefDao.saveChunk(srvIdMaskHigh, tcDataFirstPage);
-        int totalUpdated = buildsUpdated.size();
-        fatBuildSync.scheduleBuildsLoad(conn, cacheKeysToBuildIds(buildsUpdated));
-
-        int totalChecked = tcDataFirstPage.size();
+        int page = 1;
+        String nextPageUrl = null;
+        int totalUpdated = 0;
+        int totalChecked = 0;
         int neededToFind = 0;
-        if (mandatoryToReload != null) {
-            neededToFind = mandatoryToReload.size();
-
-            tcDataFirstPage.stream().map(BuildRef::getId).forEach(mandatoryToReload::remove);
-        }
-
-        if (syncMode == SyncMode.ULTRAFAST && isEmpty(mandatoryToReload)) {
-            return "Entries saved " +
-                totalUpdated +
-                " Builds checked " +
-                totalChecked +
-                " Needed to find " +
-                neededToFind +
-                " remained to find " +
-                mandatoryToReload.size();
-        }
-
         long lastTimeUpdateFound = System.currentTimeMillis();
-        long maxMsWithoutChanges = Duration.ofHours(1).toMillis();
-
-        //reason for end for full sync
         boolean timeoutForNewBuild = false;
-        //reason for end for incremental sync: decrementing counter of builds to find without modification to stop search.
-        int buildsCntrToStop = INCREMENTAL_BUILDS_WO_MODIFICATION_TO_STOP;
 
-        while (outLinkNext.get() != null) {
-            String nextPageUrl = outLinkNext.get();
-            outLinkNext.set(null);
-            List<BuildRef> tcDataNextPage = conn.getBuildRefsPage(nextPageUrl, outLinkNext);
-            Set<Long> curChunkBuildsSaved = buildRefDao.saveChunk(srvIdMaskHigh, tcDataNextPage);
-            totalUpdated += curChunkBuildsSaved.size();
-            fatBuildSync.scheduleBuildsLoad(conn, cacheKeysToBuildIds(curChunkBuildsSaved));
+        try {
+            List<BuildRef> tcDataFirstPage = conn.getBuildRefsPage(null, outLinkNext);
+            Set<Long> buildsUpdated = buildRefDao.saveChunk(srvIdMaskHigh, tcDataFirstPage);
+            totalUpdated = buildsUpdated.size();
+            fatBuildSync.scheduleBuildsLoad(conn, cacheKeysToBuildIds(buildsUpdated));
 
-            int savedCurChunk = curChunkBuildsSaved.size();
+            totalChecked = tcDataFirstPage.size();
+            if (mandatoryToReload != null) {
+                neededToFind = mandatoryToReload.size();
 
-            totalChecked += tcDataNextPage.size();
-            if (savedCurChunk != 0) {
-                lastTimeUpdateFound = System.currentTimeMillis();
-
-                buildsCntrToStop = INCREMENTAL_BUILDS_WO_MODIFICATION_TO_STOP;
-            } else
-                buildsCntrToStop -= tcDataNextPage.size();
-
-            if (syncMode == SyncMode.ULTRAFAST && isEmpty(mandatoryToReload))
-                break;
-            else if (syncMode==SyncMode.FULL_REINDEX) {
-                timeoutForNewBuild = System.currentTimeMillis() > lastTimeUpdateFound + maxMsWithoutChanges;
-                if (timeoutForNewBuild
-                    && totalChecked > MAX_INCREMENTAL_BUILDS_TO_CHECK)
-                    break;
+                tcDataFirstPage.stream().map(BuildRef::getId).forEach(mandatoryToReload::remove);
             }
-            else {
-                boolean noMandatoryBuildsLeft = isEmpty(mandatoryToReload);
-                if (!noMandatoryBuildsLeft)
-                    tcDataNextPage.stream().map(BuildRef::getId).forEach(mandatoryToReload::remove);
 
-                if (buildsCntrToStop <= 0
-                    && (noMandatoryBuildsLeft || totalChecked > MAX_INCREMENTAL_BUILDS_TO_CHECK)) {
-                    // There are no modification at current page, hopefully no modifications at all
+            if (syncMode == SyncMode.ULTRAFAST && isEmpty(mandatoryToReload)) {
+                return "Entries saved " +
+                    totalUpdated +
+                    " Builds checked " +
+                    totalChecked +
+                    " Needed to find " +
+                    neededToFind +
+                    " remained to find " +
+                    mandatoryToReload.size();
+            }
+
+            long maxMsWithoutChanges = Duration.ofHours(1).toMillis();
+
+            //reason for end for incremental sync: decrementing counter of builds to find without modification to stop search.
+            int buildsCntrToStop = INCREMENTAL_BUILDS_WO_MODIFICATION_TO_STOP;
+
+            while (outLinkNext.get() != null) {
+                nextPageUrl = outLinkNext.get();
+                page++;
+                outLinkNext.set(null);
+                List<BuildRef> tcDataNextPage = conn.getBuildRefsPage(nextPageUrl, outLinkNext);
+                Set<Long> curChunkBuildsSaved = buildRefDao.saveChunk(srvIdMaskHigh, tcDataNextPage);
+                totalUpdated += curChunkBuildsSaved.size();
+                fatBuildSync.scheduleBuildsLoad(conn, cacheKeysToBuildIds(curChunkBuildsSaved));
+
+                int savedCurChunk = curChunkBuildsSaved.size();
+
+                totalChecked += tcDataNextPage.size();
+                if (savedCurChunk != 0) {
+                    lastTimeUpdateFound = System.currentTimeMillis();
+
+                    buildsCntrToStop = INCREMENTAL_BUILDS_WO_MODIFICATION_TO_STOP;
+                } else
+                    buildsCntrToStop -= tcDataNextPage.size();
+
+                if (syncMode == SyncMode.ULTRAFAST && isEmpty(mandatoryToReload))
                     break;
+                else if (syncMode==SyncMode.FULL_REINDEX) {
+                    timeoutForNewBuild = System.currentTimeMillis() > lastTimeUpdateFound + maxMsWithoutChanges;
+                    if (timeoutForNewBuild
+                        && totalChecked > MAX_INCREMENTAL_BUILDS_TO_CHECK)
+                        break;
+                }
+                else {
+                    boolean noMandatoryBuildsLeft = isEmpty(mandatoryToReload);
+                    if (!noMandatoryBuildsLeft)
+                        tcDataNextPage.stream().map(BuildRef::getId).forEach(mandatoryToReload::remove);
+
+                    if (buildsCntrToStop <= 0
+                        && (noMandatoryBuildsLeft || totalChecked > MAX_INCREMENTAL_BUILDS_TO_CHECK)) {
+                        // There are no modification at current page, hopefully no modifications at all
+                        break;
+                    }
                 }
             }
+        }
+        catch (UncheckedIOException e) {
+            throw new UncheckedIOException("Failed to actualize TeamCity build refs [srv=" + srvId +
+                ", syncMode=" + syncMode + ", page=" + page + ", totalChecked=" + totalChecked +
+                ", totalUpdated=" + totalUpdated + ", neededToFind=" + neededToFind +
+                ", remainedToFind=" + (mandatoryToReload == null ? 0 : mandatoryToReload.size()) +
+                ", nextPageUrl=" + nextPageUrl + ", cause=" + e.getMessage() + ']', e.getCause());
         }
 
         StringBuilder sb = new StringBuilder();
