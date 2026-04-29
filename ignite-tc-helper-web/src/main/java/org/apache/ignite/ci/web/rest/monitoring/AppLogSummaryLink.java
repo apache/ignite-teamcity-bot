@@ -16,13 +16,12 @@
  */
 package org.apache.ignite.ci.web.rest.monitoring;
 
+/** App log summary link parameters. */
 @SuppressWarnings("WeakerAccess")
-public class TaskResult {
-    public String name;
-    public String start;
+public class AppLogSummaryLink {
+    /** Start timestamp. */
     public Long startTs;
-    public Integer count;
-    public String end;
-    public Long endTs;
-    public String result;
+
+    /** Link title. */
+    public String name;
 }

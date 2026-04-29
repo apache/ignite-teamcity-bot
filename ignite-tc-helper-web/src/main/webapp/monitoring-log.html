@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Apache Ignite Teamcity Bot - Application log summary</title>
+
+    <link rel="icon" href="img/leaf-icon-png-7066.png">
+    <link rel="stylesheet" href="css/style-1.5.css">
+
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="js/common-1.6.js"></script>
+</head>
+<body>
+<script>
+    $(document).ready(function() {
+        loadLogSummary();
+    });
+
+    function queryParam(name) {
+        var params = new URLSearchParams(window.location.search);
+
+        return params.get(name);
+    }
+
+    function escapeHtml(str) {
+        return String(str || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function loadLogSummary() {
+        var startTs = queryParam("startTs");
+        var endTs = queryParam("endTs") || "0";
+        var name = queryParam("name") || "";
+
+        $("#taskName").text(name);
+        $("#loadStatus").html("&#8987; Please wait");
+
+        $.ajax({
+            url: "rest/monitoring/taskLog",
+            data: {
+                startTs: startTs,
+                endTs: endTs
+            },
+            success: function(result) {
+                $("#loadStatus").html("");
+                showLogSummary(result);
+            },
+            error: showErrInLoadStatus
+        });
+    }
+
+    function showLogSummary(result) {
+        $("#summary").text("Warnings/errors found: " + result.length);
+
+        if (result.length === 0) {
+            $("#logEntries").html("<p>No WARN/ERROR records found for the selected interval.</p>");
+
+            return;
+        }
+
+        var res = "";
+
+        for (var i = 0; i < result.length; i++) {
+            var entry = result[i];
+
+            res += "<h3>" + escapeHtml(entry.timestamp) + " " + escapeHtml(entry.level) +
+                " [" + escapeHtml(entry.file) + "]</h3>";
+            res += "<pre>" + escapeHtml(entry.text) + "</pre>";
+        }
+
+        $("#logEntries").html(res);
+    }
+</script>
+
+<h2>Application Log Warnings/Errors</h2>
+<b>Task:</b> <span id="taskName"></span>
+<br>
+<b id="summary"></b>
+<div id="loadStatus"></div>
+<div id="logEntries" style="font-family: monospace"></div>
+
+</body>
+</html>

@@ -17,6 +17,15 @@
 package org.apache.ignite.ci.web.rest.monitoring;
 
 import com.google.common.base.Strings;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.CacheMetrics;
@@ -25,6 +34,7 @@ import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfilingInterceptor;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTaskInterceptor;
+import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
@@ -38,15 +48,25 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Path("monitoring")
 @Produces(MediaType.APPLICATION_JSON)
 public class MonitoringService {
+    /** Log line start. */
+    private static final Pattern LOG_ENTRY_START = Pattern.compile(
+        "^(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3})\\s+(\\S+)\\s+.*");
+
+    /** Log timestamp format. */
+    private static final DateTimeFormatter LOG_TS_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+
     /** Context. */
     @Context
     private ServletContext ctx;
@@ -63,11 +83,130 @@ public class MonitoringService {
             final TaskResult res = new TaskResult();
             res.name = invocation.name();
             res.start = invocation.start();
+            res.startTs = invocation.startTs();
             res.end = invocation.end();
+            res.endTs = invocation.endTs();
             res.result = invocation.result();
             res.count = invocation.count();
             return res;
         }).collect(Collectors.toList());
+    }
+
+    @GET
+    @PermitAll
+    @Path("appLogSummaryLink")
+    public AppLogSummaryLink getAppLogSummaryLink() {
+        MonitoredTaskInterceptor instance = CtxListener.getInjector(ctx).getInstance(MonitoredTaskInterceptor.class);
+
+        AppLogSummaryLink res = new AppLogSummaryLink();
+        res.startTs = instance.startedTs();
+        res.name = "Application log since startup";
+
+        return res;
+    }
+
+    @GET
+    @PermitAll
+    @Path("taskLog")
+    public List<AppLogEntry> getTaskLog(@QueryParam("startTs") long startTs, @QueryParam("endTs") long endTs) {
+        if (startTs <= 0)
+            return new ArrayList<>();
+
+        long actualEndTs = endTs > 0 ? endTs : System.currentTimeMillis();
+
+        if (actualEndTs < startTs)
+            actualEndTs = startTs;
+
+        File[] files = appLogFiles(startTs);
+
+        List<AppLogEntry> res = new ArrayList<>();
+
+        for (File file : files)
+            readLogEntries(file, startTs, actualEndTs, res);
+
+        return res;
+    }
+
+    /**
+     * @param startTs Task start timestamp.
+     */
+    private File[] appLogFiles(long startTs) {
+        File tcbotLogs = new File(TcBotWorkDir.resolveWorkDir(), "tcbot_logs");
+
+        File[] files = tcbotLogs.listFiles(file -> file.isFile()
+            && file.getName().endsWith(".log")
+            && !file.getName().startsWith("monitoring")
+            && file.lastModified() >= startTs - 60 * 60 * 1000L);
+
+        if (files == null)
+            return new File[0];
+
+        Arrays.sort(files, Comparator.comparingLong(File::lastModified));
+
+        return files;
+    }
+
+    /**
+     * @param file Log file.
+     * @param startTs Start timestamp.
+     * @param endTs End timestamp.
+     * @param res Result.
+     */
+    private void readLogEntries(File file, long startTs, long endTs, List<AppLogEntry> res) {
+        try (BufferedReader reader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)) {
+            AppLogEntry cur = null;
+            boolean collect = false;
+
+            for (String line = reader.readLine(); line != null; line = reader.readLine()) {
+                Matcher matcher = LOG_ENTRY_START.matcher(line);
+
+                if (matcher.matches()) {
+                    cur = null;
+                    collect = false;
+
+                    long ts = logTimestamp(matcher.group(1));
+                    String level = matcher.group(2);
+
+                    if (ts >= startTs && ts <= endTs && isWarningOrError(level)) {
+                        cur = new AppLogEntry();
+                        cur.timestamp = matcher.group(1);
+                        cur.level = level;
+                        cur.file = file.getName();
+                        cur.text = line;
+
+                        res.add(cur);
+                        collect = true;
+                    }
+                }
+                else if (collect)
+                    cur.text += System.lineSeparator() + line;
+            }
+        }
+        catch (IOException ignored) {
+            // Monitoring page must remain available even if a log file is being rotated.
+        }
+    }
+
+    /**
+     * @param timestamp Timestamp.
+     */
+    private long logTimestamp(String timestamp) {
+        try {
+            return LocalDateTime.parse(timestamp, LOG_TS_FORMAT)
+                .atZone(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli();
+        }
+        catch (DateTimeParseException e) {
+            return 0;
+        }
+    }
+
+    /**
+     * @param level Log level.
+     */
+    private boolean isWarningOrError(String level) {
+        return "WARN".equals(level) || "ERROR".equals(level);
     }
 
 
