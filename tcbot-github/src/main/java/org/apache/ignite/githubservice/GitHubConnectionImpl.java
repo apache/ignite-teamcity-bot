@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
+import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -57,6 +58,9 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     /** Service (server) code. */
     private String srvCode;
+
+    /** GitHub read attempts. */
+    private static final int READ_ATTEMPTS = 3;
 
     private static AtomicLong lastRq = new AtomicLong();
 
@@ -106,15 +110,26 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
         String pr = gitApiUrl + "pulls/" + id;
 
-        try (InputStream is = sendGetToGit(pr, null)) {
-            InputStreamReader reader = new InputStreamReader(is);
+        for (int attempt = 1; attempt <= READ_ATTEMPTS; attempt++) {
+            try (InputStream is = sendGetToGit(pr, null)) {
+                InputStreamReader reader = new InputStreamReader(is);
 
-            return new Gson().fromJson(reader, PullRequest.class);
+                return new Gson().fromJson(reader, PullRequest.class);
+            }
+            catch (IOException e) {
+                if (shouldRetry(e, attempt)) {
+                    logger.warn("Failed to read GitHub pull request, will retry [srv={}, pr={}, url={}, attempt={}/{}]",
+                        srvCode, id, pr, attempt, READ_ATTEMPTS, e);
+
+                    continue;
+                }
+
+                throw new UncheckedIOException("Failed to read GitHub pull request [srv=" + srvCode +
+                    ", pr=" + id + ", url=" + pr + ", attempt=" + attempt + '/' + READ_ATTEMPTS + ']', e);
+            }
         }
-        catch (IOException e) {
-            throw new UncheckedIOException("Failed to read GitHub pull request [srv=" + srvCode +
-                ", pr=" + id + ", url=" + pr + ']', e);
-        }
+
+        throw new IllegalStateException("Unreachable");
     }
 
     /** {@inheritDoc} */
@@ -177,26 +192,61 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     public <T> List<T> readOnePage(@Nullable AtomicReference<String> outLinkNext,
         String url, HashMap<String, String> rspHeaders, TypeToken<ArrayList<T>> typeTok) {
-        try (InputStream stream = sendGetToGit(url, rspHeaders)) {
-            InputStreamReader reader = new InputStreamReader(stream);
-            List<T> list = new Gson().fromJson(reader, typeTok.getType());
-            String link = rspHeaders.get("Link");
+        for (int attempt = 1; attempt <= READ_ATTEMPTS; attempt++) {
+            if (rspHeaders.containsKey("Link"))
+                rspHeaders.put("Link", null);
 
-            if (link != null) {
-                String nextLink = parseNextLinkFromLinkRspHeader(link);
+            try (InputStream stream = sendGetToGit(url, rspHeaders)) {
+                InputStreamReader reader = new InputStreamReader(stream);
+                List<T> list = new Gson().fromJson(reader, typeTok.getType());
+                String link = rspHeaders.get("Link");
 
-                if (nextLink != null && outLinkNext != null)
-                    outLinkNext.set(nextLink);
+                if (link != null) {
+                    String nextLink = parseNextLinkFromLinkRspHeader(link);
+
+                    if (nextLink != null && outLinkNext != null)
+                        outLinkNext.set(nextLink);
+                }
+
+                logger.info("Processing Github link: " + link);
+
+                return list;
             }
+            catch (IOException e) {
+                if (shouldRetry(e, attempt)) {
+                    logger.warn("Failed to read GitHub page, will retry [srv={}, url={}, attempt={}/{}]",
+                        srvCode, url, attempt, READ_ATTEMPTS, e);
 
-            logger.info("Processing Github link: " + link);
+                    continue;
+                }
 
-            return list;
+                throw new UncheckedIOException("Failed to read GitHub page [srv=" + srvCode +
+                    ", url=" + url + ", link=" + rspHeaders.get("Link") +
+                    ", attempt=" + attempt + '/' + READ_ATTEMPTS + ']', e);
+            }
         }
-        catch (IOException e) {
-            throw new UncheckedIOException("Failed to read GitHub page [srv=" + srvCode +
-                ", url=" + url + ", link=" + rspHeaders.get("Link") + ']', e);
+
+        throw new IllegalStateException("Unreachable");
+    }
+
+    /**
+     * @param e Exception.
+     * @param attempt Attempt.
+     */
+    private boolean shouldRetry(IOException e, int attempt) {
+        return attempt < READ_ATTEMPTS && isSocketTimeout(e);
+    }
+
+    /**
+     * @param e Exception.
+     */
+    private boolean isSocketTimeout(Throwable e) {
+        for (Throwable th = e; th != null; th = th.getCause()) {
+            if (th instanceof SocketTimeoutException)
+                return true;
         }
+
+        return false;
     }
 
 
