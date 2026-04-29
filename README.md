@@ -11,20 +11,41 @@ Major use cases are the following:
 * Check branch/PR changes to new failures
 * MCTGA Bot for slack and for email notifications.
 
+User-facing bot rules and workflows are documented in [TeamCity bot user guide](docs/teamcity-bot-user-guide.md).
+
 This tool is available on [https://mtcga.gridgain.com/](https://mtcga.gridgain.com/) - requires apache CI credentials.
 
 Should you have any questions, please contact Ignite Developers at dev@ignite.apache.org or dpavlov@apache.org
 
 ## Development
 ### Project setup
-Locally code can be set up using IntelliJ idea and gradle project import.
-Locally it can be run using org.apache.ignite.ci.web.Launcher.main() method.
-The bot will create necessary configs in ~/.ignite-teamcity-helper - it is bot Home directory.
-In can be changed with TcBotSystemProperties.TEAMCITY_HELPER_HOME system property.
+Local code can be set up using IntelliJ IDEA and Gradle project import.
+
+For local development, run `org.apache.ignite.ci.web.Launcher.main()` from the project root.
+The launcher starts Jetty on `http://localhost:8080/` and serves static web resources directly from
+`ignite-tc-helper-web/src/main/webapp`.
+
+The bot creates its working directory at `~/.ignite-teamcity-helper` by default. The directory contains
+runtime data and local configuration files. The location can be changed with the
+`teamcity.helper.home` system property (`TcBotSystemProperties.TEAMCITY_HELPER_HOME`), for example:
+
+```
+-Dteamcity.helper.home=/path/to/local/tc-bot-work
+```
 
 Examples of configs can be found in [conf](conf) directory. 
 Main config file is [conf/branches.json](conf/branches.json). This file needs to be placed to work directory, (under user home by default).
 Extra setup is required using security-sensitive information using PasswordEncoder. No TeamCity credentials are required because TC bot asks users to enter creds.
+
+Minimal local run checklist:
+* Import the Gradle project into IntelliJ IDEA.
+* Copy `conf/branches.json` to the bot working directory, or prepare another `branches.json` there.
+* Adjust TeamCity, JIRA, GitHub, and notification settings in the copied config.
+* Run `org.apache.ignite.ci.web.Launcher.main()`.
+* Open `http://localhost:8080/`, log in with actual TeamCity credentials, and add service credentials on the user page when a configured service requires them.
+* Use the `Authorize Server` action in the top menu when you need background jobs, triggering, JIRA comments, notifications, or queue checks to run under your current TeamCity credentials.
+
+Server authorization is kept in memory. If the local process is restarted, log in and authorize the server again.
 
 ### Code inspections, styles and abbreviation rules.
 [Code style](https://cwiki.apache.org/confluence/display/IGNITE/Coding+Guidelines) is inherited from Apache Ignite.
@@ -47,6 +68,36 @@ because the Bot uses strong AES cryptography, but default java distribution may 
 
 Resulting distribution can be found in projectRoot\jetty-launcher\build\distributions.
 Distribution will contain start script in \bin folder.
+
+### Running in production
+Production mode is started from the `jetty-launcher` distribution. Build the distribution first:
+
+```
+gradle clean build
+```
+
+Unpack the archive from `jetty-launcher/build/distributions` on the target host. The production launcher
+is `org.apache.ignite.ci.TcHelperJettyLauncher`; it starts the same web application from the packaged WAR.
+The generated start scripts set the default working directory to `../work` via
+`-Dteamcity.helper.home=../work`, so place production `branches.json` and other required configuration
+files into that `work` directory, or override `teamcity.helper.home` with the desired production path.
+
+When the bot is installed as a service, start or restart `tc-bot-service` after deploying a new build or
+changing configuration:
+
+```
+systemctl start tc-bot-service
+systemctl restart tc-bot-service
+systemctl status tc-bot-service
+```
+
+After `tc-bot-service` is up, open the production bot URL, log in with TeamCity credentials, and click
+`Authorize Server` in the top menu. This step is required for background operations that need TeamCity
+access, including background checks, queue checks, build triggering, JIRA notifications, and cleanup.
+
+Server authorization is not stored in `branches.json`; it is taken from the authenticated user session and
+kept by the running bot process. Re-authorize the server after each service restart, deployment, or process
+crash.
 
 ### Internal Design
 Main bot logic is placed in [ignite-tc-helper-web](ignite-tc-helper-web) module. 
