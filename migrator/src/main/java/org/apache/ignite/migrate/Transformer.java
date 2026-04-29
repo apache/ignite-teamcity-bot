@@ -19,6 +19,7 @@ package org.apache.ignite.migrate;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -63,13 +64,16 @@ public final class Transformer {
     Transformer(boolean verb) {
         verbose = verb;
         newKeysCachedConstruct = findNewKeysConstruct();
+
+        if (newKeysCachedConstruct == null)
+            throw new IllegalStateException("New keys type " + NEW_KEYS_TYPE + " is not available.");
     }
 
     /**
      * Recursively transforms a value.
      * <p>
      * Rules:
-     * - BinaryObject of OLD_KEYS_TYPE -> build NEW_KEYS_TYPE or fallback to int[].
+     * - BinaryObject of OLD_KEYS_TYPE -> build NEW_KEYS_TYPE.
      * - Java object of OLD_KEYS_TYPE -> same replacement.
      * - BinaryObject (other type) -> rebuild only if some field changed.
      * - List/Set/Map/Object[] -> rebuild container only if any element changed.
@@ -227,23 +231,28 @@ public final class Transformer {
                 log.info("Deserialize fallback: {}", t.toString());
         }
 
-        // Hardcode ("arr") based on GridIntList fields
+        // Hardcode ("arr", "idx") based on GridIntList fields.
         Collection<String> childFields = oldKeys.type().fieldNames();
-        if (childFields.contains("arr")) {
+        if (childFields.contains("arr") && childFields.contains("idx")) {
             int[] arr = oldKeys.field("arr");
+            Integer idx = oldKeys.field("idx");
 
-            if (arr != null)
-                return arr;
+            if (arr != null && idx != null) {
+                if (idx < 0 || idx > arr.length) {
+                    throw new IllegalStateException("Invalid GridIntList size " + idx +
+                        " for array length " + arr.length);
+                }
+
+                return Arrays.copyOf(arr, idx);
+            }
         }
 
-        log.warn("Can't extract ints from {} fields={}", oldKeys.type().typeName(), childFields);
-
-        return new int[0]; // best effort fallback
+        throw new IllegalStateException("Can't extract ints from " + oldKeys.type().typeName() +
+            " fields=" + childFields);
     }
 
     /**
-     * Builds an instance of the new GridIntList (org.apache.ignite.tcbot.common.util.GridIntList),
-     * or falls back to int[] if the class is not on the classpath.
+     * Builds an instance of the new GridIntList (org.apache.ignite.tcbot.common.util.GridIntList).
      */
     private Object buildNewKeys(int[] ints) {
         if (newKeysCachedConstruct != null) {
@@ -251,14 +260,11 @@ public final class Transformer {
                 return newKeysCachedConstruct.newInstance((Object)ints);
             }
             catch (ReflectiveOperationException ignored) {
-                // fall through to fallback
+                throw new IllegalStateException("Failed to build " + NEW_KEYS_TYPE, ignored);
             }
         }
 
-        if (verbose)
-            log.warn("NEW_KEYS_TYPE {} is not available; falling back to raw int[]", NEW_KEYS_TYPE);
-
-        return ints; // best effort fallback
+        throw new IllegalStateException("New keys type " + NEW_KEYS_TYPE + " is not available.");
     }
 
     /**
