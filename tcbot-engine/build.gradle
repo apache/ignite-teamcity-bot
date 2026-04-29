@@ -18,12 +18,12 @@
 apply plugin: 'java'
 
 dependencies {
-    compile (project(":tcbot-teamcity-ignited"));
-    compile (project(":tcbot-github-ignited"));
-    compile (project(":tcbot-jira-ignited"));
-    compile (project(":tcbot-notify"));
+    api project(":tcbot-teamcity-ignited")
+    api project(":tcbot-github-ignited")
+    api project(":tcbot-jira-ignited")
+    api project(":tcbot-notify")
 
-    testCompile group: 'junit', name: 'junit', version: junitVer
-    testCompile group: 'org.mockito', name: 'mockito-core', version: mockitoVer
+    testImplementation group: 'junit', name: 'junit', version: junitVer
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVer
 }
  

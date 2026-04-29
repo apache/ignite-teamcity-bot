@@ -26,7 +26,7 @@ import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.tcbot.common.conf.TcBotSystemProperties;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.webapp.WebAppContext;
+import org.eclipse.jetty.ee8.webapp.WebAppContext;
 
 /**
  * Launcher for server note and web application: all in one.

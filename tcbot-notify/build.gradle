@@ -18,9 +18,9 @@
 apply plugin: 'java'
 
 dependencies {
-    compile (project(":tcbot-common"));
+    api project(":tcbot-common")
 
-    compile group: 'javax.mail', name: 'mail', version: '1.4.7'
+    api group: 'com.sun.mail', name: 'javax.mail', version: mailVer
 
-    compile group: 'com.ullink.slack', name: 'simpleslackapi', version: '1.4.0'
+    api group: 'com.ullink.slack', name: 'simpleslackapi', version: '1.4.0'
 }
