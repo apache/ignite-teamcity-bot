@@ -32,6 +32,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -87,6 +90,12 @@ public class TeamcityServiceConnection implements ITeamcity {
 
     /** TeamCity GET attempts for temporary transport failures. */
     private static final int GET_ATTEMPTS = 3;
+
+    /** Initial retry backoff. */
+    private static final long INITIAL_RETRY_BACKOFF_MS = 500;
+
+    /** Retry jitter. */
+    private static final long RETRY_JITTER_MS = 250;
 
     @Inject private IDataSourcesConfigSupplier cfg;
 
@@ -298,9 +307,13 @@ public class TeamcityServiceConnection implements ITeamcity {
             }
             catch (IOException e) {
                 if (shouldRetry(e, attempt)) {
+                    long backoffMs = retryBackoffMs(attempt);
+
                     logger.warn("Failed to read TeamCity XML, will retry " +
-                        "[srv={}, url={}, root={}, attempt={}/{}]",
-                        srvCode, url, rootElem.getSimpleName(), attempt, GET_ATTEMPTS, e);
+                        "[srv={}, url={}, root={}, attempt={}/{}, backoffMs={}]",
+                        srvCode, url, rootElem.getSimpleName(), attempt, GET_ATTEMPTS, backoffMs, e);
+
+                    LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(backoffMs));
 
                     continue;
                 }
@@ -323,6 +336,15 @@ public class TeamcityServiceConnection implements ITeamcity {
      */
     private boolean shouldRetry(IOException e, int attempt) {
         return attempt < GET_ATTEMPTS && isTemporaryTransportFailure(e);
+    }
+
+    /**
+     * @param attempt Attempt.
+     */
+    private long retryBackoffMs(int attempt) {
+        long base = INITIAL_RETRY_BACKOFF_MS << (attempt - 1);
+
+        return base + ThreadLocalRandom.current().nextLong(RETRY_JITTER_MS + 1);
     }
 
     /**

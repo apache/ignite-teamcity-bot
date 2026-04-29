@@ -291,15 +291,6 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
         for (Throwable th = e; th != null; th = th.getCause()) {
             if (th instanceof FileNotFoundException)
                 return true;
-
-            String msg = th.getMessage();
-
-            if (msg != null) {
-                String msgLc = msg.toLowerCase();
-
-                if (msgLc.contains("not found") || msgLc.contains("404"))
-                    return true;
-            }
         }
 
         return false;
