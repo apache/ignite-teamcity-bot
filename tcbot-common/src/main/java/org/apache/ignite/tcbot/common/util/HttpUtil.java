@@ -132,7 +132,7 @@ public class HttpUtil {
         logger.info(Thread.currentThread().getName() + ": Required: " + started.elapsed(TimeUnit.MILLISECONDS)
             + "ms : Sending 'GET' request to : " + url + " Response: " + resCode);
 
-        return getInputStream(con);
+        return getInputStream(con, gitHubAuthDiagnostic(githubAuthTok));
     }
 
     /**
@@ -192,6 +192,21 @@ public class HttpUtil {
      * @throws IllegalStateException if some unexpected HTTP error returned.
      */
     private static InputStream getInputStream(HttpURLConnection con) throws IOException {
+        return getInputStream(con, null);
+    }
+
+    /**
+     * Get input stream for successful connection. Throws exception if connection response wasn't successful.
+     *
+     * @param con Http connection.
+     * @param authDiagnostic Optional safe authentication diagnostic, without secrets.
+     * @return Input stream from connection.
+     * @throws IOException If communication failed.
+     * @throws FileNotFoundException If not found (404) was returned from service.
+     * @throws ServiceConflictException If conflict (409) was returned from service.
+     * @throws IllegalStateException if some unexpected HTTP error returned.
+     */
+    private static InputStream getInputStream(HttpURLConnection con, @Nullable String authDiagnostic) throws IOException {
         int resCode = con.getResponseCode();
 
         // Successful responses (with code 200+).
@@ -199,21 +214,72 @@ public class HttpUtil {
             return con.getInputStream();
 
         String detailsFromResponeText = readIsToString(con.getErrorStream());
+        String diagnostic = responseDiagnostic(con, authDiagnostic, detailsFromResponeText);
 
         if (resCode == 400)
-            throw new ServiceBadRequestException(detailsFromResponeText);
+            throw new ServiceBadRequestException(diagnostic);
 
         if (resCode == 401)
-            throw new ServiceUnauthorizedException("Service " + con.getURL() + " returned forbidden error.");
+            throw new ServiceUnauthorizedException("Service " + con.getURL() + " returned unauthorized error:\n"
+                + diagnostic);
 
         if (resCode == 404)
-            throw new FileNotFoundException("Service " + con.getURL() + " returned not found error. " + detailsFromResponeText);
+            throw new FileNotFoundException("Service " + con.getURL() + " returned not found error:\n" + diagnostic);
 
         if (resCode == 409)
-            throw new ServiceConflictException("Service " + con.getURL() + " returned Conflict Response Code :\n" + detailsFromResponeText);
+            throw new ServiceConflictException("Service " + con.getURL() + " returned Conflict Response Code:\n"
+                + diagnostic);
 
         throw new IllegalStateException("Service " + con.getURL() + " returned Invalid Response Code : " + resCode + ":\n"
-                + detailsFromResponeText);
+                + diagnostic);
+    }
+
+    /**
+     * @param githubAuthTok GitHub token, may be {@code null}.
+     */
+    private static String gitHubAuthDiagnostic(@Nullable String githubAuthTok) {
+        return "GitHub auth token present: " + (githubAuthTok != null && !githubAuthTok.isEmpty());
+    }
+
+    /**
+     * @param con HTTP connection.
+     * @param authDiagnostic Optional safe authentication diagnostic, without secrets.
+     * @param responseText Error response text.
+     */
+    private static String responseDiagnostic(HttpURLConnection con, @Nullable String authDiagnostic,
+        String responseText) {
+        StringBuilder res = new StringBuilder();
+
+        if (authDiagnostic != null)
+            res.append(authDiagnostic).append('\n');
+
+        appendHeaderIfPresent(res, con, "WWW-Authenticate");
+        appendHeaderIfPresent(res, con, "X-GitHub-Request-Id");
+        appendHeaderIfPresent(res, con, "X-RateLimit-Limit");
+        appendHeaderIfPresent(res, con, "X-RateLimit-Remaining");
+        appendHeaderIfPresent(res, con, "X-RateLimit-Reset");
+        appendHeaderIfPresent(res, con, "X-RateLimit-Used");
+        appendHeaderIfPresent(res, con, "X-RateLimit-Resource");
+        appendHeaderIfPresent(res, con, "Retry-After");
+        appendHeaderIfPresent(res, con, "X-OAuth-Scopes");
+        appendHeaderIfPresent(res, con, "X-Accepted-OAuth-Scopes");
+        appendHeaderIfPresent(res, con, "X-Accepted-GitHub-Permissions");
+
+        res.append("Response body:\n").append(responseText);
+
+        return res.toString();
+    }
+
+    /**
+     * @param res Destination.
+     * @param con HTTP connection.
+     * @param name Header name.
+     */
+    private static void appendHeaderIfPresent(StringBuilder res, HttpURLConnection con, String name) {
+        String val = con.getHeaderField(name);
+
+        if (val != null)
+            res.append(name).append(": ").append(val).append('\n');
     }
 
     /**
@@ -246,7 +312,7 @@ public class HttpUtil {
 
         logger.info("\nSending 'POST' request to URL : " + url + "\n" + body);
 
-        try (InputStream inputStream = getInputStream(con)){
+        try (InputStream inputStream = getInputStream(con, gitHubAuthDiagnostic(githubAuthTok))){
             return readIsToString(inputStream);
         }
     }
