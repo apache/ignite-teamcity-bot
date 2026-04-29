@@ -61,7 +61,7 @@ public class Launcher {
             File webResDir = new File(webApp);
             Preconditions.checkState(webResDir.exists(),
                 "Resource directory [" + webResDir.getAbsolutePath() + "] does not exist");
-            ctx.setDescriptor(ctx + "/WEB-INF/web.xml");
+            ctx.setDescriptor(webApp+"/WEB-INF/web.xml");
             ctx.setResourceBase(webResDir.getAbsolutePath());
             ctx.setContextPath("/");
             ctx.setParentLoaderPriority(true);
