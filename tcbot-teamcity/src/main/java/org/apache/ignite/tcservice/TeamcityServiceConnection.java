@@ -25,7 +25,10 @@ import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.UncheckedIOException;
 import java.net.ConnectException;
+import java.net.MalformedURLException;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +48,7 @@ import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.exeption.ServiceConflictException;
+import org.apache.ignite.tcbot.common.exeption.ServiceUnavailableException;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.util.HttpUtil;
 import org.apache.ignite.tcservice.http.ITeamcityHttpConnection;
@@ -307,11 +311,11 @@ public class TeamcityServiceConnection implements ITeamcity {
             }
             catch (IOException e) {
                 if (shouldRetry(e, attempt)) {
-                    long backoffMs = retryBackoffMs(attempt);
+                    long backoffMs = retryBackoffMs(attempt, -1);
 
                     logger.warn("Failed to read TeamCity XML, will retry " +
-                        "[srv={}, url={}, root={}, attempt={}/{}, backoffMs={}]",
-                        srvCode, url, rootElem.getSimpleName(), attempt, GET_ATTEMPTS, backoffMs, e);
+                        "[srv={}, host={}, url={}, root={}, attempt={}/{}, backoffMs={}]",
+                        srvCode, host(url), url, rootElem.getSimpleName(), attempt, GET_ATTEMPTS, backoffMs, e);
 
                     LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(backoffMs));
 
@@ -319,8 +323,27 @@ public class TeamcityServiceConnection implements ITeamcity {
                 }
 
                 throw new UncheckedIOException("Failed to read TeamCity XML [srv=" + srvCode +
-                    ", url=" + url + ", root=" + rootElem.getName() +
+                    ", host=" + host(url) + ", url=" + url + ", root=" + rootElem.getName() +
                     ", attempt=" + attempt + '/' + GET_ATTEMPTS + ']', e);
+            }
+            catch (ServiceUnavailableException e) {
+                if (shouldRetryServiceUnavailable(attempt)) {
+                    long backoffMs = retryBackoffMs(attempt, e.retryAfterMs());
+
+                    logger.warn("TeamCity service unavailable, will retry " +
+                        "[srv={}, host={}, url={}, root={}, attempt={}/{}, status={}, retryAfterMs={}, backoffMs={}]",
+                        srvCode, host(url), url, rootElem.getSimpleName(), attempt, GET_ATTEMPTS,
+                        e.responseCode(), e.retryAfterMs(), backoffMs, e);
+
+                    LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(backoffMs));
+
+                    continue;
+                }
+
+                throw new ServiceUnavailableException("Failed to read TeamCity XML after HTTP "
+                    + e.responseCode() + " [srv=" + srvCode + ", host=" + host(url) + ", url=" + url
+                    + ", root=" + rootElem.getName() + ", attempt=" + attempt + '/' + GET_ATTEMPTS + "]\n"
+                    + e.getMessage(), e.url(), e.responseCode(), e.retryAfterMs(), e);
             }
             catch (JAXBException e) {
                 throw ExceptionUtil.propagateException(e);
@@ -341,10 +364,19 @@ public class TeamcityServiceConnection implements ITeamcity {
     /**
      * @param attempt Attempt.
      */
-    private long retryBackoffMs(int attempt) {
-        long base = INITIAL_RETRY_BACKOFF_MS << (attempt - 1);
+    private boolean shouldRetryServiceUnavailable(int attempt) {
+        return attempt < GET_ATTEMPTS;
+    }
 
-        return base + ThreadLocalRandom.current().nextLong(RETRY_JITTER_MS + 1);
+    /**
+     * @param attempt Attempt.
+     * @param retryAfterMs Retry-After delay, or {@code -1}.
+     */
+    private long retryBackoffMs(int attempt, long retryAfterMs) {
+        long base = INITIAL_RETRY_BACKOFF_MS << (attempt - 1);
+        long backoff = base + ThreadLocalRandom.current().nextLong(RETRY_JITTER_MS + 1);
+
+        return retryAfterMs >= 0 ? Math.max(backoff, retryAfterMs) : backoff;
     }
 
     /**
@@ -352,11 +384,23 @@ public class TeamcityServiceConnection implements ITeamcity {
      */
     private boolean isTemporaryTransportFailure(Throwable e) {
         for (Throwable th = e; th != null; th = th.getCause()) {
-            if (th instanceof ConnectException || th instanceof SocketTimeoutException)
+            if (th instanceof ConnectException || th instanceof SocketException || th instanceof SocketTimeoutException)
                 return true;
         }
 
         return false;
+    }
+
+    /**
+     * @param url URL.
+     */
+    private String host(String url) {
+        try {
+            return new URL(url).getHost();
+        }
+        catch (MalformedURLException ignored) {
+            return "<unknown>";
+        }
     }
 
     @SuppressWarnings("WeakerAccess")

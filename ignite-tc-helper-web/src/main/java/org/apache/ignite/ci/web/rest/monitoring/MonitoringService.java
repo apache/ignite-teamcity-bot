@@ -20,6 +20,8 @@ import com.google.common.base.Strings;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.LocalDateTime;
@@ -63,6 +65,23 @@ public class MonitoringService {
     /** Log line start. */
     private static final Pattern LOG_ENTRY_START = Pattern.compile(
         "^(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3})\\s+(\\S+)\\s+.*");
+
+    /** Service URL in log text. */
+    private static final Pattern SERVICE_URL = Pattern.compile("(?:Service |Response URL: |url=)(https?://[^\\s,\\]]+)");
+
+    /** Service host in log text. */
+    private static final Pattern SERVICE_HOST = Pattern.compile("(?:host=|Response host: )([^\\s,\\]\\)]+)");
+
+    /** HTTP response code in log text. */
+    private static final Pattern RESPONSE_CODE = Pattern.compile(
+        "(?:Invalid Response Code|Service Unavailable Response Code)\\s*:\\s*(\\d{3})|HTTP\\s+(\\d{3})|Response:\\s*(\\d{3})");
+
+    /** Exception summary in log text. */
+    private static final Pattern EXCEPTION_SUMMARY = Pattern.compile(
+        "(?m)^(?:Caused by: )?([\\w.$]+(?:Exception|Error): .+)$");
+
+    /** Max summary length. */
+    private static final int SUMMARY_LIMIT = 240;
 
     /** Log timestamp format. */
     private static final DateTimeFormatter LOG_TS_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
@@ -161,6 +180,8 @@ public class MonitoringService {
                 Matcher matcher = LOG_ENTRY_START.matcher(line);
 
                 if (matcher.matches()) {
+                    enrichLogEntry(cur);
+
                     cur = null;
                     collect = false;
 
@@ -181,10 +202,132 @@ public class MonitoringService {
                 else if (collect)
                     cur.text += System.lineSeparator() + line;
             }
+
+            enrichLogEntry(cur);
         }
         catch (IOException ignored) {
             // Monitoring page must remain available even if a log file is being rotated.
         }
+    }
+
+    /**
+     * @param entry Log entry.
+     */
+    private void enrichLogEntry(AppLogEntry entry) {
+        if (entry == null || entry.text == null)
+            return;
+
+        entry.serviceUrl = serviceUrl(entry.text);
+        entry.serviceHost = serviceHost(entry.text, entry.serviceUrl);
+        entry.responseCode = responseCode(entry.text);
+        entry.summary = summary(entry);
+    }
+
+    /**
+     * @param text Log text.
+     */
+    private String serviceUrl(String text) {
+        Matcher matcher = SERVICE_URL.matcher(text);
+
+        if (!matcher.find())
+            return null;
+
+        return trimUrl(matcher.group(1));
+    }
+
+    /**
+     * @param text Log text.
+     * @param serviceUrl Service URL.
+     */
+    private String serviceHost(String text, String serviceUrl) {
+        if (!Strings.isNullOrEmpty(serviceUrl)) {
+            try {
+                return new URL(serviceUrl).getHost();
+            }
+            catch (MalformedURLException ignored) {
+                // Try explicit host fields below.
+            }
+        }
+
+        Matcher matcher = SERVICE_HOST.matcher(text);
+
+        return matcher.find() ? matcher.group(1) : null;
+    }
+
+    /**
+     * @param text Log text.
+     */
+    private Integer responseCode(String text) {
+        Matcher matcher = RESPONSE_CODE.matcher(text);
+
+        if (!matcher.find())
+            return null;
+
+        for (int i = 1; i <= matcher.groupCount(); i++) {
+            if (matcher.group(i) != null)
+                return Integer.valueOf(matcher.group(i));
+        }
+
+        return null;
+    }
+
+    /**
+     * @param entry Log entry.
+     */
+    private String summary(AppLogEntry entry) {
+        String msg = exceptionSummary(entry.text);
+
+        if (Strings.isNullOrEmpty(msg))
+            msg = firstLine(entry.text);
+
+        if (entry.responseCode != null && !Strings.isNullOrEmpty(entry.serviceHost))
+            msg = "HTTP " + entry.responseCode + " from " + entry.serviceHost + ": " + msg;
+        else if (!Strings.isNullOrEmpty(entry.serviceHost))
+            msg = "Host " + entry.serviceHost + ": " + msg;
+
+        return limit(msg);
+    }
+
+    /**
+     * @param text Log text.
+     */
+    private String exceptionSummary(String text) {
+        Matcher matcher = EXCEPTION_SUMMARY.matcher(text);
+        String res = null;
+
+        while (matcher.find())
+            res = matcher.group(1);
+
+        return res;
+    }
+
+    /**
+     * @param text Text.
+     */
+    private String firstLine(String text) {
+        int end = text.indexOf(System.lineSeparator());
+
+        return end >= 0 ? text.substring(0, end) : text;
+    }
+
+    /**
+     * @param url URL.
+     */
+    private String trimUrl(String url) {
+        while (url.endsWith(":") || url.endsWith(".") || url.endsWith(";"))
+            url = url.substring(0, url.length() - 1);
+
+        return url;
+    }
+
+    /**
+     * @param text Text.
+     */
+    private String limit(String text) {
+        if (text == null || text.length() <= SUMMARY_LIMIT)
+            return text;
+
+        return text.substring(0, SUMMARY_LIMIT - 3) + "...";
     }
 
     /**

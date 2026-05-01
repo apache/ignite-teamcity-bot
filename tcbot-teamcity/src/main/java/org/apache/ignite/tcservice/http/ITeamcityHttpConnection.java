@@ -18,6 +18,7 @@
 package org.apache.ignite.tcservice.http;
 
 import org.apache.ignite.tcbot.common.exeption.ServiceConflictException;
+import org.apache.ignite.tcbot.common.exeption.ServiceUnavailableException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -29,6 +30,7 @@ public interface ITeamcityHttpConnection {
      * @param url Url.
      * @throws FileNotFoundException If not found (404) was returned from service.
      * @throws ServiceConflictException If conflict (409) was returned from service.
+     * @throws ServiceUnavailableException If service unavailable (503) was returned from service.
      * @throws IllegalStateException if some unexpected HTTP error returned.
      */
     public InputStream sendGet(String basicAuthTok, String url) throws IOException;

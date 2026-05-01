@@ -66,15 +66,64 @@
 
         for (var i = 0; i < result.length; i++) {
             var entry = result[i];
+            var summary = entry.summary || firstLine(entry.text);
 
             res += "<h3>" + escapeHtml(entry.timestamp) + " " + escapeHtml(entry.level) +
                 " [" + escapeHtml(entry.file) + "]</h3>";
+            res += "<div class='log-meta'>" + logMeta(entry) + "</div>";
+            res += "<details>";
+            res += "<summary>" + escapeHtml(summary) + "</summary>";
             res += "<pre>" + escapeHtml(entry.text) + "</pre>";
+            res += "</details>";
         }
 
         $("#logEntries").html(res);
     }
+
+    function logMeta(entry) {
+        var meta = [];
+
+        if (entry.responseCode)
+            meta.push("HTTP " + escapeHtml(entry.responseCode));
+
+        if (entry.serviceHost)
+            meta.push("Host: " + escapeHtml(entry.serviceHost));
+
+        if (entry.serviceUrl)
+            meta.push("<a target='_blank' href='" + escapeHtml(entry.serviceUrl) + "'>" +
+                escapeHtml(entry.serviceUrl) + "</a>");
+
+        return meta.join(" | ");
+    }
+
+    function firstLine(text) {
+        var lines = String(text || "").split(/\r?\n/);
+
+        return lines.length > 0 ? lines[0] : "";
+    }
 </script>
+<style>
+    details {
+        margin-bottom: 16px;
+    }
+
+    summary {
+        cursor: pointer;
+        font-weight: bold;
+        overflow-wrap: anywhere;
+    }
+
+    pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    .log-meta {
+        color: #555;
+        margin: 0 0 4px 0;
+        overflow-wrap: anywhere;
+    }
+</style>
 
 <h2>Application Log Warnings/Errors</h2>
 <b>Task:</b> <span id="taskName"></span>
