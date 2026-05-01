@@ -123,7 +123,7 @@ public class Ignite2Configurer {
         return regConf;
     }
 
-    static DataStorageConfiguration getDataStorageConfiguration(DataRegionConfiguration regConf) {
+     public static DataStorageConfiguration getDataStorageConfiguration(DataRegionConfiguration regConf) {
         return new DataStorageConfiguration()
             // .setWalCompactionEnabled(true)
             .setWalMode(WALMode.LOG_ONLY)
