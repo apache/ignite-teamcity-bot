@@ -35,3 +35,8 @@ hs_err_pid*
 /conf/branches-prom.json
 /ignite-tc-helper-web/ignite/**
 /ignite-tc-helper-web/src/test/tmp/**
+/migrator/src/test/work/**
+
+
+/ignite-tc-helper-web/ignite/**
+/ignite-tc-helper-web/src/test/tmp/**

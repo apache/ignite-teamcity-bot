@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Apache Ignite Teamcity Bot - Server monitoriong page</title>
+    <title>Apache Ignite Teamcity Bot - Server monitoring page</title>
 
     <link rel="icon" href="img/leaf-icon-png-7066.png">
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
@@ -66,6 +66,12 @@
             error: showErrInLoadStatus
         });
 
+        $.ajax({
+            url: "rest/monitoring/appLogSummaryLink",
+            success: showAppLogSummaryLink,
+            error: showErrInLoadStatus
+        });
+
         loadPofilingData();
         loadRequestData();
 
@@ -91,19 +97,33 @@
         res += "<th>Count</th>";
         res += "<th>End</th>";
         res += "<th>Result</th>";
+        res += "<th>Actions</th>";
         res += "</tr>";
         for (var i = 0; i < result.length; i++) {
             var task = result[i];
+            var logUrl = "monitoring-log.html?startTs=" + encodeURIComponent(task.startTs)
+                + "&endTs=" + encodeURIComponent(task.endTs || 0)
+                + "&name=" + encodeURIComponent(task.name);
+
             res += "<tr>";
-            res += "<td>" + task.name + "</td>";
-            res += "<td>" + task.start + "</td>";
-            res += "<td>" + task.count + "</td>";
-            res += "<td>" + task.end + "</td>";
-            res += "<td>" + task.result + "</td>";
+            res += "<td>" + escapeHtml(task.name) + "</td>";
+            res += "<td>" + escapeHtml(task.start) + "</td>";
+            res += "<td>" + escapeHtml(task.count) + "</td>";
+            res += "<td>" + escapeHtml(task.end) + "</td>";
+            res += "<td>" + escapeHtml(task.result) + "</td>";
+            res += "<td><a target='_blank' href='" + logUrl + "'>Warnings/errors</a></td>";
             res += "</tr>";
         }
         res += "</table>";
         $("#tasks").html(res);
+    }
+
+    function showAppLogSummaryLink(result) {
+        var logUrl = "monitoring-log.html?startTs=" + encodeURIComponent(result.startTs)
+            + "&endTs=0"
+            + "&name=" + encodeURIComponent(result.name);
+
+        $("#appLogSummary").html("<a target='_blank' href='" + logUrl + "'>Application warnings/errors since start</a>");
     }
 
     /**
@@ -120,10 +140,10 @@
         for (var i = 0; i < result.length; i++) {
             var inv = result[i];
             res += "<tr>";
-            res += "<td>" + inv.method + "</td>";
-            res += "<td>" + inv.duration + "</td>";
-            res += "<td>" + inv.count + "</td>";
-            res += "<td>" + inv.avgDuration + "</td>";
+            res += "<td>" + escapeHtml(inv.method) + "</td>";
+            res += "<td>" + escapeHtml(inv.duration) + "</td>";
+            res += "<td>" + escapeHtml(inv.count) + "</td>";
+            res += "<td>" + escapeHtml(inv.avgDuration) + "</td>";
             res += "</tr>";
         }
         res += "</table>";
@@ -174,9 +194,9 @@
         for (var i = 0; i < result.length; i++) {
             var inv = result[i];
             res += "<tr>";
-            res += "<td>" + inv.name + "</td>";
-            res += "<td>" + inv.size + "</td>";
-            res += "<td>" + inv.parts + "</td>";
+            res += "<td>" + escapeHtml(inv.name) + "</td>";
+            res += "<td>" + escapeHtml(inv.size) + "</td>";
+            res += "<td>" + escapeHtml(inv.parts) + "</td>";
             res += "</tr>";
         }
         $("#caches").html(res);
@@ -235,9 +255,19 @@
         return false;
     }
 
+    function escapeHtml(str) {
+        return String(str || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
 </script>
 
 Tasks Monitoring Data:
+<div id="appLogSummary" style="font-family: monospace"></div>
 <div id="tasks" style="font-family: monospace"></div>
 <br>
 

@@ -42,6 +42,8 @@ import static org.apache.ignite.tcbot.common.util.TimeUtil.timestampForLogsSimpl
 public class MonitoredTaskInterceptor implements MethodInterceptor, AutoCloseable {
     private final ConcurrentMap<String, Invocation> totalTime = new ConcurrentSkipListMap<>();
 
+    private final long startedTs = System.currentTimeMillis();
+
     private FileWriter fileWriter;
 
     private final AtomicBoolean init = new AtomicBoolean();
@@ -77,7 +79,7 @@ public class MonitoredTaskInterceptor implements MethodInterceptor, AutoCloseabl
 
         private final AtomicInteger callsCnt = new AtomicInteger();
         /** Name and full key for monitored task. */
-        private String name;
+        private final String name;
 
         Invocation(String name) {
             this.name = name;
@@ -102,6 +104,20 @@ public class MonitoredTaskInterceptor implements MethodInterceptor, AutoCloseabl
 
         public int count() {
             return callsCnt.get();
+        }
+
+        /**
+         * @return Last observed start timestamp.
+         */
+        public long startTs() {
+            return lastStartTs.get();
+        }
+
+        /**
+         * @return Last observed end timestamp.
+         */
+        public long endTs() {
+            return lastEndTs.get();
         }
 
         /**
@@ -250,10 +266,7 @@ public class MonitoredTaskInterceptor implements MethodInterceptor, AutoCloseabl
                 }
             }
 
-            if (annotation.log())
-                log = true;
-            else
-                log = false;
+            log = annotation.log();
 
         }
         else {
@@ -267,5 +280,12 @@ public class MonitoredTaskInterceptor implements MethodInterceptor, AutoCloseabl
 
     public Collection<Invocation> getList() {
         return Collections.unmodifiableCollection(totalTime.values());
+    }
+
+    /**
+     * @return Interceptor creation timestamp, close enough to app startup for monitoring purposes.
+     */
+    public long startedTs() {
+        return startedTs;
     }
 }
