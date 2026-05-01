@@ -95,6 +95,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
      * @param sortOption Sort mode.
      * @param maxDetailsChars Max chars to include for every test details block. Non-positive means no limit.
      * @param testName Full test name to include.
+     * @param suiteId Suite id to include.
      */
     @Nonnull public String getTrackedBranchFailuresAiPrompt(
         @Nullable String branch,
@@ -104,7 +105,8 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         @Nullable String tagForHistSelected,
         @Nullable SortOption sortOption,
         @Nullable Integer maxDetailsChars,
-        @Nullable String testName) {
+        @Nullable String testName,
+        @Nullable String suiteId) {
         long reqId = aiPromptMonitor.start("trackedBranch", branch, null, null, testName);
         StringBuilder res = new StringBuilder();
 
@@ -149,7 +151,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
                     aiPromptMonitor.stage(reqId, "building prompt: " + srvCodeOrAlias + "/" + suiteIdMandatory);
 
                     res.append(new TestFailuresAiPromptBuilder(compactor)
-                        .buildPrompt(tcIgnited, ctx, baseBranchTc, maxDetails, testName));
+                        .buildPrompt(tcIgnited, ctx, baseBranchTc, maxDetails, testName, suiteId));
                 });
 
             aiPromptMonitor.finish(reqId, "chars=" + res.length());

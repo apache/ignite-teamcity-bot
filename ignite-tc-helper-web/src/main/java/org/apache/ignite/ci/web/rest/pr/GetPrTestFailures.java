@@ -130,6 +130,7 @@ public class GetPrTestFailures {
      * @param baseBranchForTc Base branch name in TC identification.
      * @param maxDetailsChars Max chars per TeamCity failure details block. Non-positive means no limit.
      * @param testName Optional full test name filter.
+     * @param promptSuiteId Optional suite id filter.
      */
     @GET
     @Path("results/aiPrompt")
@@ -142,7 +143,8 @@ public class GetPrTestFailures {
         @Nullable @QueryParam("count") Integer cnt,
         @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
         @Nullable @QueryParam("maxDetailsChars") Integer maxDetailsChars,
-        @Nullable @QueryParam("testName") String testName) {
+        @Nullable @QueryParam("testName") String testName,
+        @Nullable @QueryParam("promptSuiteId") String promptSuiteId) {
         final Injector injector = CtxListener.getInjector(ctx);
 
         return injector.getInstance(PrChainsProcessor.class).getPrFailuresAiPrompt(
@@ -154,7 +156,8 @@ public class GetPrTestFailures {
             cnt,
             baseBranchForTc,
             maxDetailsChars == null ? TestFailuresAiPromptBuilder.DFLT_MAX_DETAILS_CHARS : maxDetailsChars,
-            testName);
+            testName,
+            promptSuiteId);
     }
 
     @POST

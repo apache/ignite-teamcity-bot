@@ -132,7 +132,19 @@ function aiPromptUrlForTest(testName) {
     return "rest/pr/results/aiPrompt" + parmsForRest() + "&testName=" + encodeURIComponent(testName);
 }
 
+function aiPromptUrlForSuite(suiteId) {
+    return "rest/pr/results/aiPrompt" + parmsForRest() + "&promptSuiteId=" + encodeURIComponent(suiteId);
+}
+
 function openAiPromptForTest(testName) {
+    openAiPrompt(aiPromptUrlForTest(testName));
+}
+
+function openAiPromptForSuite(suiteId) {
+    openAiPrompt(aiPromptUrlForSuite(suiteId));
+}
+
+function openAiPrompt(url) {
     let promptWindow = window.open("about:blank", "_blank");
     if (promptWindow) {
         promptWindow.document.title = "AI prompt";
@@ -140,7 +152,7 @@ function openAiPromptForTest(testName) {
     }
 
     $.ajax({
-        url: aiPromptUrlForTest(testName),
+        url: url,
         timeout: 300000,
         success: function (result) {
             writeAiPromptWindow(promptWindow, result);

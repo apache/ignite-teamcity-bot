@@ -720,6 +720,13 @@ function showSuiteData(suite, settings, prNum) {
 
     res += "</a> ]";
 
+    if (isDefinedAndFilled(suite.suiteId) && isSuiteProblematic(suite) && typeof openAiPromptForSuite === "function") {
+        res += " <a href='javascript:void(0);' ";
+        res += "onClick='openAiPromptForSuite(decodeURIComponent(";
+        res += JSON.stringify(encodeURIComponent(suite.suiteId)) + "))' ";
+        res += "title='Open AI prompt with TeamCity context for this suite'>[AI Prompt]</a>";
+    }
+
     if(isDefinedAndFilled(suite.tags)) {
         for (let i = 0; i < suite.tags.length; i++) {
             const tag = suite.tags[i];
@@ -819,6 +826,25 @@ function showSuiteData(suite, settings, prNum) {
     res += "</tr></table>"
 
     return res;
+}
+
+function isSuiteProblematic(suite) {
+    if (isDefinedAndFilled(suite.success) && suite.success === true)
+        return false;
+
+    if (isDefinedAndFilled(suite.failedTests) && suite.failedTests > 0)
+        return true;
+
+    if (isDefinedAndFilled(suite.result) && suite.result !== "")
+        return true;
+
+    if (isDefinedAndFilled(suite.hasCriticalProblem) && suite.hasCriticalProblem)
+        return true;
+
+    if (isDefinedAndFilled(suite.blockerComment) && suite.blockerComment !== "")
+        return true;
+
+    return false;
 }
 
 function failureRateToColor(failureRate) {

@@ -451,6 +451,7 @@ public class PrChainsProcessor {
      * @param tcBaseBranchParm Base branch name in TC identification.
      * @param maxDetailsChars Max chars to include for every test details block. Non-positive means no limit.
      * @param testName Optional full test name filter.
+     * @param promptSuiteId Optional suite id filter.
      * @return AI prompt with PR failure context.
      */
     @AutoProfiling
@@ -463,7 +464,8 @@ public class PrChainsProcessor {
         Integer cnt,
         @Nullable String tcBaseBranchParm,
         int maxDetailsChars,
-        @Nullable String testName) {
+        @Nullable String testName,
+        @Nullable String promptSuiteId) {
         long reqId = aiPromptMonitor.start("pr", branchForTc, srvCodeOrAlias, suiteId, testName);
 
         try {
@@ -495,7 +497,7 @@ public class PrChainsProcessor {
             aiPromptMonitor.stage(reqId, "building prompt: " + srvCodeOrAlias + "/" + suiteId);
 
             String res = new TestFailuresAiPromptBuilder(compactor)
-                .buildPrompt(tcIgnited, ctx, baseBranchForTc, maxDetailsChars, testName);
+                .buildPrompt(tcIgnited, ctx, baseBranchForTc, maxDetailsChars, testName, promptSuiteId);
 
             aiPromptMonitor.finish(reqId, "chars=" + res.length());
 

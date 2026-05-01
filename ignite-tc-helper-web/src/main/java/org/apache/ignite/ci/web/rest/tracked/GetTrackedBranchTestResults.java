@@ -104,7 +104,8 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("sortOption") String sortOption,
         @Nullable @QueryParam("count") Integer mergeCnt,
         @Nullable @QueryParam("maxDetailsChars") Integer maxDetailsChars,
-        @Nullable @QueryParam("testName") String testName) {
+        @Nullable @QueryParam("testName") String testName,
+        @Nullable @QueryParam("promptSuiteId") String promptSuiteId) {
         int actualMergeBuilds = (mergeCnt == null || mergeCnt < 1) ? 1 : mergeCnt;
 
         return CtxListener.getInjector(ctx)
@@ -116,7 +117,8 @@ public class GetTrackedBranchTestResults {
                 tagForHistSelected,
                 SortOption.parseStringValue(sortOption),
                 maxDetailsChars,
-                testName);
+                testName,
+                promptSuiteId);
     }
 
     @GET

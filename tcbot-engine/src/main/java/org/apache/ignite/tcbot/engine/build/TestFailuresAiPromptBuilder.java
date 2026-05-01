@@ -70,7 +70,7 @@ public class TestFailuresAiPromptBuilder {
      */
     @Nonnull public String buildPrompt(ITeamcityIgnited tcIgnited, FullChainRunCtx ctx,
         @Nullable String baseBranchTc, int maxDetailsChars) {
-        return buildPrompt(tcIgnited, ctx, baseBranchTc, maxDetailsChars, null);
+        return buildPrompt(tcIgnited, ctx, baseBranchTc, maxDetailsChars, null, null);
     }
 
     /**
@@ -82,6 +82,20 @@ public class TestFailuresAiPromptBuilder {
      */
     @Nonnull public String buildPrompt(ITeamcityIgnited tcIgnited, FullChainRunCtx ctx,
         @Nullable String baseBranchTc, int maxDetailsChars, @Nullable String testNameFilter) {
+        return buildPrompt(tcIgnited, ctx, baseBranchTc, maxDetailsChars, testNameFilter, null);
+    }
+
+    /**
+     * @param tcIgnited TeamCity facade.
+     * @param ctx Full chain context.
+     * @param baseBranchTc Base branch for failure-rate history.
+     * @param maxDetailsChars Max chars to include for every test details block. Non-positive means no limit.
+     * @param testNameFilter Optional full test name filter.
+     * @param suiteIdFilter Optional suite id filter.
+     */
+    @Nonnull public String buildPrompt(ITeamcityIgnited tcIgnited, FullChainRunCtx ctx,
+        @Nullable String baseBranchTc, int maxDetailsChars, @Nullable String testNameFilter,
+        @Nullable String suiteIdFilter) {
         StringBuilder res = new StringBuilder();
 
         String normalizedBaseBranch = normalizeBranch(baseBranchTc);
@@ -95,6 +109,7 @@ public class TestFailuresAiPromptBuilder {
         List<MultBuildRunCtx> failedSuites = ctx.suites()
             .filter(suite -> !suite.isComposite())
             .filter(MultBuildRunCtx::isFailed)
+            .filter(suite -> suiteIdFilter == null || suiteIdFilter.equals(suite.suiteId()))
             .filter(suite -> testNameFilter == null
                 || suite.getFailedTests().stream().anyMatch(test -> testNameFilter.equals(test.getName())))
             .collect(Collectors.toList());
@@ -112,7 +127,7 @@ public class TestFailuresAiPromptBuilder {
                 .collect(Collectors.toList());
 
             if (failedTests.isEmpty())
-                res.append("No failed non-muted tests were reported for this suite.\n\n");
+                appendSuiteFailure(res, suite);
             else {
                 for (TestCompactedMult test : failedTests) {
                     testCnt.incrementAndGet();
@@ -138,9 +153,7 @@ public class TestFailuresAiPromptBuilder {
         @Nullable String normalizedBaseBranch) {
         res.append("# AI Prompt: Investigate TeamCity Failure\n\n");
         res.append("You are in the local checkout of the project that produced this TeamCity failure. ");
-        res.append("Use the failure text first, then the log snippets and history, to find a likely root cause. ");
-        res.append("Propose a minimal fix, name concrete files/classes to inspect, and say whether this looks flaky, ");
-        res.append("environmental, or caused by the current change.\n\n");
+        res.append("Use this compact investigation brief to find the likely root cause with minimal assumptions.\n\n");
 
         res.append("## Run Context\n");
         appendLine(res, "TeamCity server", tcIgnited.serverCode());
@@ -153,11 +166,6 @@ public class TestFailuresAiPromptBuilder {
         appendLine(res, "Duration", ctx.getDurationPrintable(suite -> true));
         res.append('\n');
 
-        res.append("## Investigation Hints\n");
-        res.append("- Start from the first exception/assertion and the nearest project frame in the failure details.\n");
-        res.append("- Search the checkout for the failing class, method, assertion text, and error message.\n");
-        res.append("- Use the log snippets for nearby Ignite errors, timeouts, deadlocks, OOM/crash markers, and the last started test.\n");
-        res.append("- Use history only to decide whether this is new, flaky, or likely environmental.\n\n");
     }
 
     /**
@@ -170,7 +178,8 @@ public class TestFailuresAiPromptBuilder {
         @Nullable Integer baseBranchId) {
         IRunHistory baseHist = suite.history(tcIgnited, baseBranchId, null);
 
-        res.append("## Suite Context: ").append(nullToUnknown(suite.suiteName())).append('\n');
+        res.append("## Run Context\n");
+        res.append("Suite: ").append(nullToUnknown(suite.suiteName())).append('\n');
         appendLine(res, "Suite id", suite.suiteId());
         appendLine(res, "Build id", String.valueOf(suite.getBuildId()));
         appendLine(res, "Build", tcIgnited.host() + "viewLog.html?buildId=" + suite.getBuildId());
@@ -189,8 +198,6 @@ public class TestFailuresAiPromptBuilder {
 
         String blockerComment = suite.getPossibleBlockerComment(compactor, baseHist, tcIgnited.config());
         appendLine(res, "Possible blocker note", blockerComment);
-
-        appendProblems(res, suite);
 
         res.append('\n');
     }
@@ -259,14 +266,38 @@ public class TestFailuresAiPromptBuilder {
         String fullName = test.getName();
         IRunHistory testHist = test.history(tcIgnited, baseBranchId);
 
-        res.append("## Failed Test: ").append(nullToUnknown(fullName)).append('\n');
-        appendLine(res, "Short suite", ShortTestFailureUi.extractSuite(Strings.nullToEmpty(fullName).split("\\:")[0]));
+        res.append("## Failure Signal\n");
+        appendLine(res, "Full test name", fullName);
+        appendLine(res, "Suite before colon", testSuitePart(fullName));
+        appendLine(res, "Test after colon", testCasePart(fullName));
+        appendProblems(res, suite);
+
+        AtomicInteger invocationIdx = new AtomicInteger();
+
+        test.getInvocationsStream()
+            .filter(Objects::nonNull)
+            .filter(invocation -> invocation.isFailedButNotMuted(compactor))
+            .forEach(invocation -> appendInvocation(res, tcIgnited, suite, invocation, fullName,
+                invocationIdx.incrementAndGet(), maxDetailsChars));
+
+        appendRelevantLogChecks(res, suite, fullName);
+
+        res.append("\n## Changed Files / PR Context\n");
+        res.append("Changed files and patches are not available in this cached TeamCity bot context. ");
+        res.append("Inspect the local checkout diff/PR metadata if needed, then compare changed packages with the failing test/module.\n");
+
+        res.append("\n## Test Context\n");
+        appendLine(res, "Full test name", fullName);
+        appendLine(res, "Suite before colon", testSuitePart(fullName));
+        appendLine(res, "Test after colon", testCasePart(fullName));
+        appendLine(res, "Short suite", ShortTestFailureUi.extractSuite(Strings.nullToEmpty(testSuitePart(fullName))));
         appendLine(res, "Short test", extractShortTest(fullName));
         appendLine(res, "Failures in loaded context", String.valueOf(test.failuresCount()));
         appendLine(res, "Investigated in TeamCity", String.valueOf(test.isInvestigated()));
         appendLine(res, "Possible blocker note", test.getPossibleBlockerComment(testHist));
 
         if (testHist != null) {
+            res.append("\n## History\n");
             appendLine(res, "Base branch test failure rate", testHist.getFailPercentPrintable() + "%");
             appendLine(res, "Base branch flaky", String.valueOf(testHist.isFlaky()));
             appendLine(res, "Base branch latest runs", String.valueOf(testHist.getLatestRunResults()));
@@ -274,15 +305,35 @@ public class TestFailuresAiPromptBuilder {
             appendLine(res, "Recent execution history", recentHistory(testHist, 12));
         }
 
-        appendRelevantLogChecks(res, suite, fullName);
+        appendInvestigationInstructions(res);
 
-        AtomicInteger invocationIdx = new AtomicInteger();
+        res.append('\n');
+    }
 
-        test.getInvocationsStream()
-            .filter(Objects::nonNull)
-            .filter(invocation -> invocation.isFailedButNotMuted(compactor))
-            .forEach(invocation -> appendInvocation(res, tcIgnited, suite, invocation, invocationIdx.incrementAndGet(),
-                maxDetailsChars));
+    /**
+     * @param res Result builder.
+     * @param suite Suite context.
+     */
+    private void appendSuiteFailure(StringBuilder res, MultBuildRunCtx suite) {
+        res.append("## Failure Signal\n");
+        res.append("No failed non-muted test was reported for this suite. Investigate this as a suite/build-level failure.\n");
+        appendProblems(res, suite);
+        appendEmptyDetailsDiagnosis(res, suite);
+
+        res.append("\n## Log Context\n");
+        appendLogChecks(res, suite);
+
+        res.append("\n## Changed Files / PR Context\n");
+        res.append("Changed files and patches are not available in this cached TeamCity bot context. ");
+        res.append("Inspect the local checkout diff/PR metadata if needed, then compare changed packages with the failed suite/module.\n");
+
+        res.append("\n## Test Context\n");
+        appendLine(res, "Suite id", suite.suiteId());
+        appendLine(res, "Suite name", suite.suiteName());
+        appendLine(res, "Failed tests reported", String.valueOf(suite.failedTests()));
+        appendLine(res, "Total tests", String.valueOf(suite.totalTests()));
+
+        appendInvestigationInstructions(res);
 
         res.append('\n');
     }
@@ -296,10 +347,11 @@ public class TestFailuresAiPromptBuilder {
      * @param maxDetailsChars Max details chars.
      */
     private void appendInvocation(StringBuilder res, ITeamcityIgnited tcIgnited, MultBuildRunCtx suite,
-        ITest invocation, int idx, int maxDetailsChars) {
+        ITest invocation, @Nullable String fullName, int idx, int maxDetailsChars) {
         int actualBuildId = invocation.getActualBuildId() > 0 ? invocation.getActualBuildId() : suite.getBuildId();
 
         res.append("Invocation ").append(idx).append(":\n");
+        appendLine(res, "Full test name", fullName);
         appendLine(res, "Status", compactor.getStringFromId(invocation.status()));
         Integer duration = invocation.getDuration();
 
@@ -316,11 +368,18 @@ public class TestFailuresAiPromptBuilder {
         String details = invocation.getDetailsText();
 
         if (Strings.isNullOrEmpty(details))
-            res.append("TeamCity failure details: <empty>\n");
+            appendEmptyDetailsDiagnosis(res, suite);
         else {
+            String cleanedDetails = cleanDetails(details);
+
+            res.append("First real failure signal:\n");
+            res.append("```text\n");
+            res.append(limit(firstFailureSignal(cleanedDetails), 6000));
+            res.append("\n```\n");
+
             res.append("Failure details text from TeamCity:\n");
             res.append("```text\n");
-            res.append(limit(cleanDetails(details), maxDetailsChars));
+            res.append(limit(cleanedDetails, maxDetailsChars));
             res.append("\n```\n");
         }
     }
@@ -350,12 +409,15 @@ public class TestFailuresAiPromptBuilder {
             });
 
         if (snippets.isEmpty()) {
-            res.append("Log grep from processed build log: <no warning snippets found for this test>\n");
+            res.append("\n## Log Context\n");
+            res.append("Cached build log analysis has no warning snippets for this test. ");
+            res.append("Raw 200-500 line windows around test start/end are not available in the current bot cache.\n");
 
             return;
         }
 
-        res.append("Log grep from processed build log:\n");
+        res.append("\n## Log Context\n");
+        res.append("Cached log grep from processed build log:\n");
         res.append("```text\n");
 
         for (String snippet : snippets)
@@ -393,6 +455,36 @@ public class TestFailuresAiPromptBuilder {
             return null;
 
         return ShortTestFailureUi.extractTest(split[1]);
+    }
+
+    /**
+     * @param fullName Full test name.
+     */
+    @Nullable private String testSuitePart(@Nullable String fullName) {
+        if (fullName == null)
+            return null;
+
+        int colon = fullName.indexOf(':');
+
+        if (colon < 0)
+            return fullName;
+
+        return fullName.substring(0, colon).trim();
+    }
+
+    /**
+     * @param fullName Full test name.
+     */
+    @Nullable private String testCasePart(@Nullable String fullName) {
+        if (fullName == null)
+            return null;
+
+        int colon = fullName.indexOf(':');
+
+        if (colon < 0 || colon + 1 >= fullName.length())
+            return null;
+
+        return fullName.substring(colon + 1).trim();
     }
 
     /**
@@ -447,6 +539,89 @@ public class TestFailuresAiPromptBuilder {
         return details.trim()
             .replace(" ------- Stdout: ------- ", "\n\n------- Stdout: -------\n")
             .replace(" ------- Stderr: ------- ", "\n\n------- Stderr: -------\n");
+    }
+
+    /**
+     * @param details Details from TeamCity.
+     */
+    private String firstFailureSignal(String details) {
+        String normalized = details
+            .replace(" Caused by: ", "\nCaused by: ")
+            .replace(" at ", "\n    at ");
+
+        String[] lines = normalized.split("\\r?\\n");
+        int start = -1;
+
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+
+            if (line.contains("Exception")
+                || line.contains("Assertion")
+                || line.contains("Error")
+                || line.contains("Caused by:")
+                || line.contains("Test failed")
+                || line.contains("Failed")) {
+                start = i;
+
+                break;
+            }
+        }
+
+        if (start < 0)
+            return limit(normalized, 6000);
+
+        StringBuilder res = new StringBuilder();
+
+        for (int i = start; i < lines.length && i < start + 80; i++)
+            res.append(lines[i]).append('\n');
+
+        return res.toString().trim();
+    }
+
+    /**
+     * @param res Result builder.
+     * @param suite Suite context.
+     */
+    private void appendEmptyDetailsDiagnosis(StringBuilder res, MultBuildRunCtx suite) {
+        res.append("TeamCity failure details: <empty>\n");
+        res.append("Likely empty-details category: ");
+
+        if (suite.hasTimeoutProblem())
+            res.append("timeout or test process killed before reporting a stack trace");
+        else if (suite.hasJvmCrashProblem())
+            res.append("JVM crash");
+        else if (suite.hasOomeProblem())
+            res.append("OOM / process killed");
+        else if (suite.hasExitCodeProblem())
+            res.append("test process exited with non-zero code");
+        else if (suite.hasProblemNonByFailedTest())
+            res.append("build problem without a test stack");
+        else if (suite.failedTests() == 0)
+            res.append("orphaned test/reporting issue");
+        else
+            res.append("reporting issue or TeamCity did not persist details");
+
+        res.append(".\n");
+    }
+
+    /**
+     * @param res Result builder.
+     */
+    private void appendInvestigationInstructions(StringBuilder res) {
+        res.append("\n## Investigation Instructions\n");
+        res.append("- Start from the First real failure signal and nearest project frame.\n");
+        res.append("- Search for the failing class, method, assertion text, and error message in the checkout.\n");
+        res.append("- Compare test history and suite history separately before calling it flaky.\n");
+        res.append("- Classify the cause as exactly one of: caused by current change; pre-existing flaky test; ");
+        res.append("environmental/infra; product bug exposed by test; inconclusive.\n");
+
+        res.append("\n## Required Final Answer\n");
+        res.append("- Likely root cause.\n");
+        res.append("- Confidence level.\n");
+        res.append("- Files/classes/methods to inspect.\n");
+        res.append("- Minimal fix or mitigation.\n");
+        res.append("- Whether retry is justified.\n");
+        res.append("- Extra artifact/log that would confirm the diagnosis.\n");
     }
 
     /**
