@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.ci.web.rest.monitoring;
 
-apply plugin: 'java'
- 
-dependencies {
-    api project(":tcbot-teamcity")
-    api project(":tcbot-persistence")
+/** App log summary link parameters. */
+@SuppressWarnings("WeakerAccess")
+public class AppLogSummaryLink {
+    /** Start timestamp. */
+    public Long startTs;
 
-    testImplementation group: 'junit', name: 'junit', version: junitVer;
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVer;
+    /** Link title. */
+    public String name;
 }
- 

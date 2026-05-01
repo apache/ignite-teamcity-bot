@@ -20,7 +20,7 @@ import java.time.format.DateTimeFormatter;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 import javax.annotation.Nullable;
-import java.util.Collection; 
+import java.util.Collection;
 
 /**
  * Teamcity Server configuration.
@@ -35,44 +35,44 @@ public interface ITcServerConfig {
      * @return Another TC Server (service) config name to use settings from. Filled only for server aliases.
      */
     @Nullable
-    public String reference();
+    String reference();
 
     /**
      * @return ID of additional server (service code), that user should have access to.
      */
-    @Nullable public String additionalServiceToCheckAccess();
+    @Nullable String additionalServiceToCheckAccess();
 
     /**
      * @return Normalized Host address, ends with '/'.
      */
-    @NonNull public String host();
+    @NonNull String host();
 
     /**
      * @return Directory for downloading build logs (will contain ZIP files).
      */
-    @NonNull public String logsDirectory();
+    @NonNull String logsDirectory();
 
     /**
      * @return internal naming of default tracked branch for this server.
      */
-    @NonNull public String defaultTrackedBranch();
+    @NonNull String defaultTrackedBranch();
 
     /**
      * Suite id to be used for VISAs (to avoid search using defaultTrackedBranch())
      */
-    @Nullable public String defaultVisaSuiteId();
+    @Nullable String defaultVisaSuiteId();
 
     /**
      * Provides build parameters, whichi could be used for filtering builds in RunHist/Invocations and tagging in UI.
      *
      * @return set of build parameters specifications.
      */
-    @NonNull public Collection<? extends IBuildParameterSpec> filteringParameters();
+    @NonNull Collection<? extends IBuildParameterSpec> filteringParameters();
 
     /**
      * @return set of suite codes (build type IDs), failures in which should be threated as critical and notified.
      */
-    @NonNull public Collection<String> trustedSuites();
+    @NonNull Collection<String> trustedSuites();
 
     /**
      * @return Time as auto-triggering build is disabled. {@link DateTimeFormatter.ISO_LOCAL_TIME} must be used.

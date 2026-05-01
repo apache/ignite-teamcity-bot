@@ -21,11 +21,12 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.internal.SingletonScope;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.ci.db.TcHelperDb;
@@ -52,6 +53,7 @@ import org.apache.ignite.tcignited.buildlog.BuildLogCheckResultDao;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.tcignited.history.BuildStartTimeStorage;
 import org.apache.ignite.tcignited.history.SuiteInvocationHistoryDao;
+import org.apache.ignite.tcservice.model.vcs.Revision;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -78,8 +80,6 @@ public class BoardServiceTest {
     private static IssuesStorage issuesStorage;
     private static ChangeDao changeDao;
     private static BoardService boardService;
-
-    private static AtomicInteger defectCounter = new AtomicInteger();
 
     private final static String tc1 = "apache";
     private final static String tc2 = "private";
@@ -116,10 +116,10 @@ public class BoardServiceTest {
     private static ChangeCompacted change4 = createChange(commit4);
 
     //revision
-    private static RevisionCompacted revision1 = createRevision(commit1);
-    private static RevisionCompacted revision2 = createRevision(commit2);
-    private static RevisionCompacted revision3 = createRevision(commit3);
-    private static RevisionCompacted revision4 = createRevision(commit4);
+    private static RevisionCompacted revision1;
+    private static RevisionCompacted revision2;
+    private static RevisionCompacted revision3;
+    private static RevisionCompacted revision4;
 
     //changes
     private static Map<Integer, ChangeCompacted> emptyBuildChanges = new HashMap<>();
@@ -130,37 +130,16 @@ public class BoardServiceTest {
     private static List<RevisionCompacted> buildRevisions2 = new ArrayList<>();
     private static List<RevisionCompacted> buildRevisions3 = new ArrayList<>();
 
-    private static FatBuildCompacted fatBuildCompacted1 = mock(FatBuildCompacted.class);
-    private static FatBuildCompacted fatBuildCompacted2 = mock(FatBuildCompacted.class);
-    private static FatBuildCompacted fatBuildCompacted3 = mock(FatBuildCompacted.class);
+    private static FatBuildCompacted fatBuildCompacted1;
+    private static FatBuildCompacted fatBuildCompacted2;
+    private static FatBuildCompacted fatBuildCompacted3;
     //fatBuildCompacted4 with the same revisions as the fatBuildCompacted1
-    private static FatBuildCompacted fatBuildCompacted4 = mock(FatBuildCompacted.class);
+    private static FatBuildCompacted fatBuildCompacted4;
 
     static {
         buildChanges1.put(1, change1);
 
         buildChanges1.put(2, change2);
-
-        buildRevisions1.add(revision1);
-        buildRevisions1.add(revision2);
-
-        buildRevisions2.add(revision3);
-        buildRevisions2.add(revision4);
-
-        buildRevisions3.add(revision3);
-        buildRevisions3.add(revision4);
-
-        when(fatBuildCompacted1.revisions()).thenReturn(buildRevisions1);
-        when(fatBuildCompacted1.id()).thenReturn(1);
-
-        when(fatBuildCompacted2.revisions()).thenReturn(buildRevisions2);
-        when(fatBuildCompacted2.id()).thenReturn(2);
-
-        when(fatBuildCompacted3.revisions()).thenReturn(buildRevisions3);
-        when(fatBuildCompacted3.id()).thenReturn(3);
-
-        when(fatBuildCompacted4.revisions()).thenReturn(buildRevisions1);
-        when(fatBuildCompacted4.id()).thenReturn(4);
     }
 
     @BeforeClass
@@ -187,6 +166,24 @@ public class BoardServiceTest {
         changeDao = injector.getInstance(ChangeDao.class);
         boardService = injector.getInstance(BoardService.class);
         IStringCompactor compactor = injector.getInstance(IStringCompactor.class);
+        revision1 = createRevision(compactor, commit1);
+        revision2 = createRevision(compactor, commit2);
+        revision3 = createRevision(compactor, commit3);
+        revision4 = createRevision(compactor, commit4);
+
+        buildRevisions1.add(revision1);
+        buildRevisions1.add(revision2);
+
+        buildRevisions2.add(revision3);
+        buildRevisions2.add(revision4);
+
+        buildRevisions3.add(revision3);
+        buildRevisions3.add(revision4);
+
+        fatBuildCompacted1 = createFatBuild(1, buildRevisions1);
+        fatBuildCompacted2 = createFatBuild(2, buildRevisions2);
+        fatBuildCompacted3 = createFatBuild(3, buildRevisions3);
+        fatBuildCompacted4 = createFatBuild(4, buildRevisions1);
 
         fatBuildDao.init();
         injector.getInstance(SuiteInvocationHistoryDao.class).init();
@@ -241,10 +238,42 @@ public class BoardServiceTest {
         return change;
     }
 
-    private static RevisionCompacted createRevision(byte[] commit) {
-        RevisionCompacted revision = mock(RevisionCompacted.class);
-        when(revision.revision()).thenReturn(commit);
-        return revision;
+    private static RevisionCompacted createRevision(IStringCompactor compactor, byte[] commit) {
+        Revision revision = new Revision()
+            .version(hex(commit))
+            .vcsBranchName(branch1);
+
+        return new RevisionCompacted(compactor, revision);
+    }
+
+    private static FatBuildCompacted createFatBuild(int id, List<RevisionCompacted> revisions) {
+        FatBuildCompacted build = new FatBuildCompacted();
+
+        build.setId(id);
+        setField(build, "revisions", revisions.toArray(new RevisionCompacted[0]));
+
+        return build;
+    }
+
+    private static void setField(Object target, String fieldName, Object value) {
+        try {
+            Field field = target.getClass().getDeclaredField(fieldName);
+
+            field.setAccessible(true);
+            field.set(target, value);
+        }
+        catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private static String hex(byte[] bytes) {
+        StringBuilder res = new StringBuilder(bytes.length * 2);
+
+        for (byte b : bytes)
+            res.append(String.format("%02x", b & 0xff));
+
+        return res.toString();
     }
 
     /**
@@ -256,15 +285,15 @@ public class BoardServiceTest {
 
         boardService.issuesToDefects();
 
-        DefectCompacted defect = defectsStorage.load(defectCounter.incrementAndGet());
+        DefectCompacted defect = singleDefect();
 
         assertEquals(1, defect.buildsInvolved().size());
-        assertEquals((int)issue1.issueKey().getBuildId(), defect.buildsInvolved().get(issue1.issueKey().getBuildId()).build().id());
+        assertEquals((int)issue1.issueKey().getBuildId(), defect.buildsInvolved().get((int)issue1.issueKey().getBuildId()).build().id());
         assertEquals(1, defectsStorage.loadAllDefects().size());
 
         boardService.issuesToDefects();
 
-        defect = defectsStorage.load(defectCounter.get());
+        defect = singleDefect();
 
         assertEquals(1, defect.buildsInvolved().size());
         assertEquals((int)issue1.issueKey().buildId, defect.buildsInvolved().get((int)issue1.issueKey().buildId).build().id());
@@ -282,10 +311,10 @@ public class BoardServiceTest {
 
         boardService.issuesToDefects();
 
-        DefectCompacted defect = defectsStorage.load(defectCounter.incrementAndGet());
+        DefectCompacted defect = singleDefect();
 
         assertEquals(1, defect.buildsInvolved().size());
-        assertEquals((int)issue2.issueKey().buildId, defect.buildsInvolved().get(issue2.issueKey().buildId).build().id());
+        assertEquals((int)issue2.issueKey().buildId, defect.buildsInvolved().get((int)issue2.issueKey().buildId).build().id());
         assertEquals(1, defectsStorage.loadAllDefects().size());
 
     }
@@ -300,11 +329,11 @@ public class BoardServiceTest {
 
         boardService.issuesToDefects();
 
-        DefectCompacted defect = defectsStorage.load(defectCounter.incrementAndGet());
+        DefectCompacted defect = singleDefect();
 
         assertEquals(2, defect.buildsInvolved().size());
-        assertEquals((int)issue2.issueKey().buildId, defect.buildsInvolved().get(issue2.issueKey().buildId).build().id());
-        assertEquals((int)issue3.issueKey().buildId, defect.buildsInvolved().get(issue3.issueKey().buildId).build().id());
+        assertEquals((int)issue2.issueKey().buildId, defect.buildsInvolved().get((int)issue2.issueKey().buildId).build().id());
+        assertEquals((int)issue3.issueKey().buildId, defect.buildsInvolved().get((int)issue3.issueKey().buildId).build().id());
         assertEquals(1, defectsStorage.loadAllDefects().size());
 
     }
@@ -324,11 +353,11 @@ public class BoardServiceTest {
 
         boardService.issuesToDefects();
 
-        DefectCompacted defect = defectsStorage.load(defectCounter.incrementAndGet());
+        DefectCompacted defect = singleDefect();
 
         assertEquals(2, defect.buildsInvolved().size());
-        assertEquals((int)issue4.issueKey().buildId, defect.buildsInvolved().get(issue4.issueKey().buildId).build().id());
-        assertEquals((int)issue5.issueKey().buildId, defect.buildsInvolved().get(issue5.issueKey().buildId).build().id());
+        assertEquals((int)issue4.issueKey().buildId, defect.buildsInvolved().get((int)issue4.issueKey().buildId).build().id());
+        assertEquals((int)issue5.issueKey().buildId, defect.buildsInvolved().get((int)issue5.issueKey().buildId).build().id());
         assertEquals(1, defectsStorage.loadAllDefects().size());
     }
 
@@ -347,16 +376,35 @@ public class BoardServiceTest {
 
         boardService.issuesToDefects();
 
-        DefectCompacted defect1 = defectsStorage.load(defectCounter.incrementAndGet());
-        DefectCompacted defect2 = defectsStorage.load(defectCounter.incrementAndGet());
+        Collection<DefectCompacted> defects = defectsStorage.loadAllDefects();
 
-        assertEquals(2, defectsStorage.loadAllDefects().size());
+        assertEquals(2, defects.size());
+
+        DefectCompacted defect1 = defectForBuild(defects, issue1.issueKey().buildId);
+        DefectCompacted defect2 = defectForBuild(defects, issue4.issueKey().buildId);
 
         assertEquals(1, defect1.buildsInvolved().size());
-        assertEquals((int)issue1.issueKey().buildId, defect1.buildsInvolved().get(issue1.issueKey().buildId).build().id());
+        assertEquals((int)issue1.issueKey().buildId, defect1.buildsInvolved().get((int)issue1.issueKey().buildId).build().id());
 
         assertEquals(1, defect2.buildsInvolved().size());
-        assertEquals((int)issue4.issueKey().buildId, defect2.buildsInvolved().get(issue4.issueKey().buildId).build().id());
+        assertEquals((int)issue4.issueKey().buildId, defect2.buildsInvolved().get((int)issue4.issueKey().buildId).build().id());
+    }
+
+    private DefectCompacted singleDefect() {
+        Collection<DefectCompacted> defects = defectsStorage.loadAllDefects();
+
+        assertEquals(1, defects.size());
+
+        return defects.iterator().next();
+    }
+
+    private DefectCompacted defectForBuild(Collection<DefectCompacted> defects, long buildId) {
+        for (DefectCompacted defect : defects) {
+            if (defect.buildsInvolved().containsKey((int)buildId))
+                return defect;
+        }
+
+        throw new AssertionError("Defect for build " + buildId + " was not found");
     }
 
     private static class IgniteTestModule extends AbstractModule {

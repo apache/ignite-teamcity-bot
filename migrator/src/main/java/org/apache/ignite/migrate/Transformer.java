@@ -222,8 +222,12 @@ public final class Transformer {
 
             if (obj instanceof org.apache.ignite.internal.util.GridIntList) {
                 org.apache.ignite.internal.util.GridIntList g = (org.apache.ignite.internal.util.GridIntList)obj;
+                int[] ints = new int[g.size()];
 
-                return g.array();
+                for (int i = 0; i < ints.length; i++)
+                    ints[i] = g.get(i);
+
+                return ints;
             }
         }
         catch (Throwable t) {

@@ -16,13 +16,35 @@
  */
 package org.apache.ignite.ci.web.rest.monitoring;
 
+/**
+ * Single REST request timing.
+ */
 @SuppressWarnings("WeakerAccess")
-public class TaskResult {
-    public String name;
-    public String start;
-    public Long startTs;
-    public Integer count;
-    public String end;
-    public Long endTs;
-    public String result;
+public class RequestTiming {
+    public String method;
+    public String path;
+    public int status;
+    public long durationMs;
+    public long timestamp;
+
+    /**
+     * Default constructor.
+     */
+    public RequestTiming() {
+    }
+
+    /**
+     * @param method HTTP method.
+     * @param path Request path with query.
+     * @param status Response status.
+     * @param durationMs Request duration in millis.
+     * @param timestamp Completion timestamp.
+     */
+    public RequestTiming(String method, String path, int status, long durationMs, long timestamp) {
+        this.method = method;
+        this.path = path;
+        this.status = status;
+        this.durationMs = durationMs;
+        this.timestamp = timestamp;
+    }
 }

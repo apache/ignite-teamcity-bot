@@ -19,6 +19,7 @@ package org.apache.ignite.tcbot.engine.pr;
 
 import com.google.common.base.Strings;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -91,6 +92,17 @@ public class BranchTicketMatcher {
      */
     @Nullable public Ticket resolveTicketIdForPrBasedContrib(Collection<Ticket> tickets,
         IJiraServerConfig jiraCfg, String prTitle) {
+        return resolveTicketIdForPrBasedContrib(tickets, null, jiraCfg, prTitle);
+    }
+
+    /**
+     * @param tickets Tickets.
+     * @param ticketsByKey Optional ticket lookup by full JIRA key.
+     * @param jiraCfg Jira config.
+     * @param prTitle PR title or branch name.
+     */
+    @Nullable public Ticket resolveTicketIdForPrBasedContrib(Collection<Ticket> tickets,
+        @Nullable Map<String, Ticket> ticketsByKey, IJiraServerConfig jiraCfg, String prTitle) {
         String branchNumPrefix = jiraCfg.branchNumPrefix();
 
         if (Strings.isNullOrEmpty(branchNumPrefix)) {
@@ -98,6 +110,12 @@ public class BranchTicketMatcher {
             String jiraPrefix = jiraCfg.projectCodeForVisa() + Ticket.PROJECT_DELIM;
 
             final String ticketKey = findFixPrefixedNumber(prTitle, jiraPrefix);
+
+            if (ticketsByKey != null) {
+                Ticket ticket = ticketsByKey.get(ticketKey);
+
+                return ticket != null ? ticket : new Ticket(ticketKey);
+            }
 
             return tickets.stream()
                 .filter(t -> Objects.equals(t.key, ticketKey))
@@ -110,7 +128,7 @@ public class BranchTicketMatcher {
         if (branchNum == null) // PR does not mention
             return null;
 
-        return findTicketMentions(tickets, branchNum);
+        return findTicketMentions(tickets, ticketsByKey, branchNum);
     }
 
     /**
@@ -129,8 +147,25 @@ public class BranchTicketMatcher {
      * @param branchNum Branch number to be checked.
      */
     @Nullable private Ticket findTicketMentions(Collection<Ticket> tickets, @Nullable String branchNum) {
+        return findTicketMentions(tickets, null, branchNum);
+    }
+
+    /**
+     * @param tickets Tickets.
+     * @param ticketsByKey Optional ticket lookup by full JIRA key.
+     * @param branchNum Branch number to be checked.
+     */
+    @Nullable private Ticket findTicketMentions(Collection<Ticket> tickets,
+        @Nullable Map<String, Ticket> ticketsByKey, @Nullable String branchNum) {
         if (Strings.isNullOrEmpty(branchNum))
             return null;
+
+        if (ticketsByKey != null) {
+            Ticket ticket = ticketsByKey.get(branchNum);
+
+            if (ticket != null)
+                return ticket;
+        }
 
         return tickets.stream()
             .filter(t -> Objects.equals(t.key, branchNum))

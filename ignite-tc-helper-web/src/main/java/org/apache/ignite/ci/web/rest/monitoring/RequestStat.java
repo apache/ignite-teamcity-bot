@@ -14,14 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.ci.web.rest.monitoring;
 
-apply plugin: 'java'
- 
-dependencies {
-    api project(":tcbot-teamcity")
-    api project(":tcbot-persistence")
-
-    testImplementation group: 'junit', name: 'junit', version: junitVer;
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVer;
+/**
+ * Aggregated REST request timing.
+ */
+@SuppressWarnings("WeakerAccess")
+public class RequestStat {
+    public String method;
+    public String path;
+    public long count;
+    public long totalMs;
+    public long avgMs;
+    public long maxMs;
+    public long lastMs;
+    public int lastStatus;
+    public String lastRequest;
 }
- 
