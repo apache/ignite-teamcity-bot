@@ -181,4 +181,27 @@ public class MonitoringService {
         }
         return res;
     }
+
+    @GET
+    @PermitAll
+    @Path("requests")
+    public List<RequestStat> getRequestStats() {
+        return RestRequestTimingStorage.stats();
+    }
+
+    @GET
+    @PermitAll
+    @Path("recentRequests")
+    public List<RequestTiming> getRecentRequests() {
+        return RestRequestTimingStorage.recent();
+    }
+
+    @POST
+    @PermitAll
+    @Path("resetRequests")
+    public SimpleResult resetRequestStats() {
+        RestRequestTimingStorage.reset();
+
+        return new SimpleResult("Ok");
+    }
 }

@@ -57,16 +57,19 @@ public class RestRequestTimingFilter implements ContainerRequestFilter, Containe
 
         long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - (Long)startObj);
 
+        String rawQry = reqCtx.getUriInfo().getRequestUri().getRawQuery();
+        String path = reqCtx.getUriInfo().getPath();
+        String pathWithQuery = path;
+
+        if (rawQry != null)
+            pathWithQuery += "?" + rawQry;
+
+        RestRequestTimingStorage.record(reqCtx.getMethod(), path, pathWithQuery, respCtx.getStatus(), elapsedMs);
+
         if (elapsedMs < SLOW_REQUEST_WARN_MS)
             return;
 
-        String rawQry = reqCtx.getUriInfo().getRequestUri().getRawQuery();
-        String path = reqCtx.getUriInfo().getPath();
-
-        if (rawQry != null)
-            path += "?" + rawQry;
-
         logger.warn("Slow REST request: method={}, path={}, status={}, durationMs={}",
-            reqCtx.getMethod(), path, respCtx.getStatus(), elapsedMs);
+            reqCtx.getMethod(), pathWithQuery, respCtx.getStatus(), elapsedMs);
     }
 }
