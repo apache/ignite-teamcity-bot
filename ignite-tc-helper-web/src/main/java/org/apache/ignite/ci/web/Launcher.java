@@ -26,7 +26,7 @@ import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.tcbot.common.conf.TcBotSystemProperties;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.webapp.WebAppContext;
+import org.eclipse.jetty.ee8.webapp.WebAppContext;
 
 /**
  * Launcher for server note and web application: all in one.
@@ -61,7 +61,7 @@ public class Launcher {
             File webResDir = new File(webApp);
             Preconditions.checkState(webResDir.exists(),
                 "Resource directory [" + webResDir.getAbsolutePath() + "] does not exist");
-            ctx.setDescriptor(ctx + "/WEB-INF/web.xml");
+            ctx.setDescriptor(webApp+"/WEB-INF/web.xml");
             ctx.setResourceBase(webResDir.getAbsolutePath());
             ctx.setContextPath("/");
             ctx.setParentLoaderPriority(true);

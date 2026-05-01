@@ -20,37 +20,34 @@ apply plugin: 'war'
 
 // https://www.apache.org/legal/resolved.html#category-a
 dependencies {
-    compile (project(":tcbot-engine"));
+    api project(":tcbot-engine")
     implementation project(':migrator')
 
-    compile group: 'org.apache.ignite', name: 'ignite-core', version: ignVer
-    compile group: 'org.apache.ignite', name: 'ignite-slf4j', version: ignVer
-    compile group: 'org.apache.ignite', name: 'ignite-direct-io', version: ignVer
+    api group: 'org.apache.ignite', name: 'ignite-core', version: ignVer
+    api group: 'org.apache.ignite', name: 'ignite-slf4j', version: ignVer
+    api group: 'org.apache.ignite', name: 'ignite-direct-io', version: ignVer
 
-    compile group: 'org.slf4j', name: 'slf4j-api', version: slf4jVer
-    compile group: 'org.slf4j', name: 'jul-to-slf4j', version: slf4jVer
+    api group: 'org.slf4j', name: 'slf4j-api', version: slf4jVer
+    api group: 'org.slf4j', name: 'jul-to-slf4j', version: slf4jVer
 
-    compile group: 'ch.qos.logback', name: 'logback-core', version: logbackVer
-    compile group: 'ch.qos.logback', name: 'logback-classic', version: logbackVer
+    api group: 'ch.qos.logback', name: 'logback-core', version: logbackVer
+    api group: 'ch.qos.logback', name: 'logback-classic', version: logbackVer
 
-    compile group: 'org.eclipse.jetty', name: 'jetty-util', version: jettyVer
-    compile group: 'org.eclipse.jetty', name: 'jetty-server', version: jettyVer
-    compile group: 'org.eclipse.jetty', name: 'jetty-webapp', version: jettyVer
+    api group: 'org.eclipse.jetty', name: 'jetty-util', version: jettyVer
+    api group: 'org.eclipse.jetty', name: 'jetty-server', version: jettyVer
+    api group: 'org.eclipse.jetty.ee8', name: 'jetty-ee8-webapp', version: jettyVer
 
-    // problematic    def jerseyVer = '2.27'
-    // Newer version is  def jerseyVer = '2.28';  Current:    def jerseyVer = '2.25.1'
-    def jerseyVer = '2.28'
-    compile group: 'org.glassfish.jersey.containers', name: 'jersey-container-servlet-core', version: jerseyVer
+    api group: 'org.glassfish.jersey.containers', name: 'jersey-container-servlet-core', version: jerseyVer
 
-    compile group: 'org.glassfish.jersey.core', name: 'jersey-client', version: jerseyVer
+    api group: 'org.glassfish.jersey.core', name: 'jersey-client', version: jerseyVer
     //
-    compile group: 'org.glassfish.jersey.inject', name: 'jersey-hk2', version:  jerseyVer
+    api group: 'org.glassfish.jersey.inject', name: 'jersey-hk2', version:  jerseyVer
 
-    compile group: 'org.glassfish.jersey.media', name: 'jersey-media-json-jackson', version: jerseyVer
-    compile group: 'org.glassfish.jersey.media', name: 'jersey-media-multipart', version: jerseyVer
+    api group: 'org.glassfish.jersey.media', name: 'jersey-media-json-jackson', version: jerseyVer
+    api group: 'org.glassfish.jersey.media', name: 'jersey-media-multipart', version: jerseyVer
 
-    testCompile group: 'junit', name: 'junit', version: junitVer
-    testCompile group: 'org.mockito', name: 'mockito-core', version: mockitoVer
+    testImplementation group: 'junit', name: 'junit', version: junitVer
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVer
 }
 
 processResources {
@@ -61,11 +58,5 @@ processResources {
 
 test {
     // set JVM arguments for the test JVM(s)
-    jvmArgs "-XX:+IgnoreUnrecognizedVMOptions",
-        "--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED",
-        "--add-exports=java.base/sun.nio.ch=ALL-UNNAMED",
-        "--add-exports=java.management/com.sun.jmx.mbeanserver=ALL-UNNAMED",
-        "--add-exports=jdk.internal.jvmstat/sun.jvmstat.monitor=ALL-UNNAMED",
-        "--add-exports=java.base/sun.reflect.generics.reflectiveObjects=ALL-UNNAMED",
-        "--illegal-access=permit"
+    jvmArgs igniteJava17JvmArgs
 }
