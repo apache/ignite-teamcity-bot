@@ -341,17 +341,26 @@ function openAiPromptForTest(testName) {
 
     $.ajax({
         url: aiPromptUrlForTest(testName),
+        timeout: 300000,
         success: function (result) {
-            if (promptWindow) {
-                promptWindow.document.body.innerHTML = "";
-
-                let pre = promptWindow.document.createElement("pre");
-                pre.textContent = result;
-                promptWindow.document.body.appendChild(pre);
-            }
+            writeAiPromptWindow(promptWindow, result);
         },
-        error: showErrInLoadStatus
+        error: function (xhr, status, error) {
+            showErrInLoadStatus(xhr, status, error);
+            writeAiPromptWindow(promptWindow, "AI prompt request failed: " + status + "\n\n" + xhr.responseText);
+        }
     });
+}
+
+function writeAiPromptWindow(promptWindow, text) {
+    if (!promptWindow)
+        return;
+
+    promptWindow.document.body.innerHTML = "";
+
+    let pre = promptWindow.document.createElement("pre");
+    pre.textContent = text;
+    promptWindow.document.body.appendChild(pre);
 }
 
 </script>

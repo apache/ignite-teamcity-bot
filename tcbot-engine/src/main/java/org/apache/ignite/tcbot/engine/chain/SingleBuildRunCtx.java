@@ -267,6 +267,10 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return tags;
     }
 
+    @Nullable public ParametersCompacted buildParameters() {
+        return buildCompacted.parameters();
+    }
+
     public static Set<String> getBuildTagsFromParameters(ITcServerConfig tcCfg,
         IStringCompactor compactor, FatBuildCompacted fatBuildCompacted) {
         ParametersCompacted parameters = fatBuildCompacted.parameters();

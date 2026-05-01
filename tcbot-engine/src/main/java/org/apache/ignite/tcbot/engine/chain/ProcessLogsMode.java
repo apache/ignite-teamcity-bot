@@ -26,6 +26,9 @@ public enum ProcessLogsMode {
     /** Parse logs if suite not completed. */
     SUITE_NOT_COMPLETE,
 
+    /** Use cached log analysis only, never download logs from TeamCity. */
+    CACHED_ONLY,
+
     /** Always parse logs. */
     ALL
 }

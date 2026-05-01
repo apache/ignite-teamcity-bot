@@ -25,6 +25,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
@@ -136,17 +139,9 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
 
                     aiPromptMonitor.stage(reqId, "loading chain context: " + srvCodeOrAlias + "/" + suiteIdMandatory);
 
-                    FullChainRunCtx ctx = chainProc.loadFullChainContext(
-                        tcIgnited,
-                        chains,
-                        rebuild,
-                        ProcessLogsMode.ALL,
-                        buildResMergeCnt == 1,
-                        baseBranchTc,
-                        syncMode,
-                        sortOption,
-                        requireParamVal
-                    );
+                    FullChainRunCtx ctx = loadAiPromptContextBestEffort(reqId, tcIgnited, chains, rebuild,
+                        buildResMergeCnt == 1, baseBranchTc, syncMode, sortOption, requireParamVal,
+                        srvCodeOrAlias + "/" + suiteIdMandatory);
 
                     if (res.length() > 0)
                         res.append("\n\n");
@@ -166,6 +161,66 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
 
             throw e;
         }
+    }
+
+    /**
+     * @param reqId Monitor request id.
+     * @param tcIgnited TeamCity facade.
+     * @param chains Entry builds.
+     * @param rebuild Rebuild mode.
+     * @param includeScheduledInfo Include scheduled info.
+     * @param baseBranchTc Base branch.
+     * @param liveSyncMode Live sync mode.
+     * @param sortOption Sort option.
+     * @param requireParamVal Required parameter values.
+     * @param stageSuffix Stage suffix.
+     */
+    private FullChainRunCtx loadAiPromptContextBestEffort(
+        long reqId,
+        ITeamcityIgnited tcIgnited,
+        List<Integer> chains,
+        LatestRebuildMode rebuild,
+        boolean includeScheduledInfo,
+        String baseBranchTc,
+        SyncMode liveSyncMode,
+        @Nullable SortOption sortOption,
+        @Nullable Map<Integer, Integer> requireParamVal,
+        String stageSuffix) {
+        CompletableFuture<FullChainRunCtx> live = CompletableFuture.supplyAsync(() -> chainProc.loadFullChainContext(
+            tcIgnited,
+            chains,
+            rebuild,
+            ProcessLogsMode.CACHED_ONLY,
+            includeScheduledInfo,
+            baseBranchTc,
+            liveSyncMode,
+            sortOption,
+            requireParamVal
+        ));
+
+        try {
+            aiPromptMonitor.stage(reqId, "trying fresh context for up to 1s: " + stageSuffix);
+
+            return live.get(1, TimeUnit.SECONDS);
+        }
+        catch (TimeoutException e) {
+            aiPromptMonitor.stage(reqId, "fresh context timed out, using stale cache: " + stageSuffix);
+        }
+        catch (Exception e) {
+            aiPromptMonitor.stage(reqId, "fresh context failed, using stale cache: " + stageSuffix + " - " + e.getMessage());
+        }
+
+        return chainProc.loadFullChainContext(
+            tcIgnited,
+            chains,
+            rebuild,
+            ProcessLogsMode.CACHED_ONLY,
+            false,
+            baseBranchTc,
+            SyncMode.NONE,
+            sortOption,
+            requireParamVal
+        );
     }
 
     /** {@inheritDoc} */

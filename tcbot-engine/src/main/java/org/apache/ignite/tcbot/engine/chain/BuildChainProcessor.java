@@ -199,7 +199,8 @@ public class BuildChainProcessor {
 
             final MultBuildRunCtx ctx = new MultBuildRunCtx(ref, compactor);
 
-            buildsForSuite.forEach(buildCompacted -> ctx.addBuild(loadChanges(buildCompacted, tcIgn)));
+            buildsForSuite.forEach(buildCompacted -> ctx.addBuild(loadChanges(buildCompacted, tcIgn,
+                mode == SyncMode.NONE)));
 
             //ask for history for the suite in parallel
             tcUpdatePool.getService().submit(() -> {
@@ -308,9 +309,22 @@ public class BuildChainProcessor {
      */
     public SingleBuildRunCtx loadChanges(@Nonnull FatBuildCompacted buildCompacted,
         ITeamcityIgnited tcIgnited) {
+        return loadChanges(buildCompacted, tcIgnited, false);
+    }
+
+    /**
+     * @param buildCompacted Build ref from history with references to tests.
+     * @param tcIgnited TC connection.
+     * @param cachedOnly Use only data already present in the fat build cache.
+     * @return Full context.
+     */
+    public SingleBuildRunCtx loadChanges(@Nonnull FatBuildCompacted buildCompacted,
+        ITeamcityIgnited tcIgnited,
+        boolean cachedOnly) {
         SingleBuildRunCtx ctx = new SingleBuildRunCtx(buildCompacted, compactor);
 
-        ctx.setChanges(tcIgnited.getAllChanges(buildCompacted.changes()));
+        if (!cachedOnly)
+            ctx.setChanges(tcIgnited.getAllChanges(buildCompacted.changes()));
 
         ctx.addTags(SingleBuildRunCtx.getBuildTagsFromParameters(tcIgnited.config(), compactor, buildCompacted));
 
@@ -450,7 +464,14 @@ public class BuildChainProcessor {
                                 ProcessLogsMode procLog) {
         for (SingleBuildRunCtx ctx : outCtx.getBuilds()) {
             boolean incompleteFailure = ctx.hasSuiteIncompleteFailure();
-            if ((procLog == ProcessLogsMode.SUITE_NOT_COMPLETE && incompleteFailure)
+            if (procLog == ProcessLogsMode.CACHED_ONLY) {
+                ILogCheckResult logCheckRes = buildLogProcessor.getCachedBuildLogAnalysis(teamcity.serverCode(),
+                    ctx.buildId());
+
+                if (logCheckRes != null)
+                    ctx.setLogCheckResFut(CompletableFuture.completedFuture(logCheckRes));
+            }
+            else if ((procLog == ProcessLogsMode.SUITE_NOT_COMPLETE && incompleteFailure)
                     || procLog == ProcessLogsMode.ALL)
                 ctx.setLogCheckResFut(
                         CompletableFuture.supplyAsync(

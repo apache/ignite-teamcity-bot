@@ -35,6 +35,7 @@ import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.githubignited.IGitHubConnIgnited;
 import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.githubservice.IGitHubConnection;
+import org.apache.ignite.tcbot.engine.build.TestFailuresAiPromptBuilder;
 import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.UpdateInfo;
@@ -118,6 +119,42 @@ public class GetPrTestFailures {
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
 
         return getPrFailsWithSyncMode(srvId, suiteId, branchForTc, act, cnt, baseBranchForTc, checkAllLogs, SyncMode.RELOAD_QUEUED);
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param suiteId Suite id.
+     * @param branchForTc Branch name in TC identification.
+     * @param act Action.
+     * @param cnt Count.
+     * @param baseBranchForTc Base branch name in TC identification.
+     * @param maxDetailsChars Max chars per TeamCity failure details block. Non-positive means no limit.
+     * @param testName Optional full test name filter.
+     */
+    @GET
+    @Path("results/aiPrompt")
+    @Produces(MediaType.TEXT_PLAIN)
+    @NotNull public String getPrFailuresAiPrompt(
+        @Nullable @QueryParam("serverId") String srvId,
+        @Nonnull @QueryParam("suiteId") String suiteId,
+        @Nonnull @QueryParam("branchForTc") String branchForTc,
+        @Nonnull @QueryParam("action") String act,
+        @Nullable @QueryParam("count") Integer cnt,
+        @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
+        @Nullable @QueryParam("maxDetailsChars") Integer maxDetailsChars,
+        @Nullable @QueryParam("testName") String testName) {
+        final Injector injector = CtxListener.getInjector(ctx);
+
+        return injector.getInstance(PrChainsProcessor.class).getPrFailuresAiPrompt(
+            ITcBotUserCreds.get(req),
+            srvId,
+            suiteId,
+            branchForTc,
+            act,
+            cnt,
+            baseBranchForTc,
+            maxDetailsChars == null ? TestFailuresAiPromptBuilder.DFLT_MAX_DETAILS_CHARS : maxDetailsChars,
+            testName);
     }
 
     @POST

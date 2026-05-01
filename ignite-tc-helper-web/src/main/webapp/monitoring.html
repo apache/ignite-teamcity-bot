@@ -22,6 +22,7 @@
         $( document ).tooltip();
 
         loadData();
+        setInterval(loadAiPromptsData, 5000);
     });
 
     function loadPofilingData() {
@@ -66,6 +67,10 @@
             error: showErrInLoadStatus
         });
 
+        loadAiPromptsData();
+    }
+
+    function loadAiPromptsData() {
         $.ajax({
             url: "rest/monitoring/aiPrompts",
             success: function(result) {
