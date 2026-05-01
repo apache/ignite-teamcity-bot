@@ -10,8 +10,25 @@ dependencies {
     implementation "org.apache.ignite:ignite-core:$ignVer"
     implementation 'ch.qos.logback:logback-classic:1.2.3'
     implementation project(':tcbot-common')
+
+    testImplementation project(':ignite-tc-helper-web')
+    testImplementation project(':tcbot-persistence')
+    testImplementation project(':tcbot-teamcity-ignited')
+    testImplementation "org.apache.ignite:ignite-slf4j:$ignVer"
+    testImplementation group: 'junit', name: 'junit', version: junitVer
 }
 
 application {
     mainClass = 'org.apache.ignite.migrate.GridIntListMigrator'
+}
+
+test {
+    jvmArgs igniteJava17JvmArgs
+    maxHeapSize = '1536m'
+    systemProperty 'compat.work.dir', file('src/test/work/ignite-db-compat').absolutePath
+
+    testLogging {
+        events 'passed', 'failed', 'skipped', 'standardOut', 'standardError'
+        showStandardStreams = true
+    }
 }
