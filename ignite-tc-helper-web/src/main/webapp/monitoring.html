@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Apache Ignite Teamcity Bot - Server monitoriong page</title>
+    <title>Apache Ignite Teamcity Bot - Server monitoring page</title>
 
     <link rel="icon" href="img/leaf-icon-png-7066.png">
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
@@ -22,6 +22,7 @@
         $( document ).tooltip();
 
         loadData();
+        setInterval(loadAiPromptsData, 5000);
     });
 
     function loadPofilingData() {
@@ -54,6 +55,12 @@
             error: showErrInLoadStatus
         });
 
+        $.ajax({
+            url: "rest/monitoring/appLogSummaryLink",
+            success: showAppLogSummaryLink,
+            error: showErrInLoadStatus
+        });
+
         loadPofilingData();
 
         $.ajax({
@@ -62,6 +69,20 @@
                 $("#loadStatus").html("");
 
                 showCacheMetrics(result);
+            },
+            error: showErrInLoadStatus
+        });
+
+        loadAiPromptsData();
+    }
+
+    function loadAiPromptsData() {
+        $.ajax({
+            url: "rest/monitoring/aiPrompts",
+            success: function(result) {
+                $("#loadStatus").html("");
+
+                showAiPrompts(result);
             },
             error: showErrInLoadStatus
         });
@@ -78,19 +99,33 @@
         res += "<th>Count</th>";
         res += "<th>End</th>";
         res += "<th>Result</th>";
+        res += "<th>Actions</th>";
         res += "</tr>";
         for (var i = 0; i < result.length; i++) {
             var task = result[i];
+            var logUrl = "monitoring-log.html?startTs=" + encodeURIComponent(task.startTs)
+                + "&endTs=" + encodeURIComponent(task.endTs || 0)
+                + "&name=" + encodeURIComponent(task.name);
+
             res += "<tr>";
-            res += "<td>" + task.name + "</td>";
-            res += "<td>" + task.start + "</td>";
-            res += "<td>" + task.count + "</td>";
-            res += "<td>" + task.end + "</td>";
-            res += "<td>" + task.result + "</td>";
+            res += "<td>" + escapeHtml(task.name) + "</td>";
+            res += "<td>" + escapeHtml(task.start) + "</td>";
+            res += "<td>" + escapeHtml(task.count) + "</td>";
+            res += "<td>" + escapeHtml(task.end) + "</td>";
+            res += "<td>" + escapeHtml(task.result) + "</td>";
+            res += "<td><a target='_blank' href='" + logUrl + "'>Warnings/errors</a></td>";
             res += "</tr>";
         }
         res += "</table>";
         $("#tasks").html(res);
+    }
+
+    function showAppLogSummaryLink(result) {
+        var logUrl = "monitoring-log.html?startTs=" + encodeURIComponent(result.startTs)
+            + "&endTs=0"
+            + "&name=" + encodeURIComponent(result.name);
+
+        $("#appLogSummary").html("<a target='_blank' href='" + logUrl + "'>Application warnings/errors since start</a>");
     }
 
     /**
@@ -107,10 +142,10 @@
         for (var i = 0; i < result.length; i++) {
             var inv = result[i];
             res += "<tr>";
-            res += "<td>" + inv.method + "</td>";
-            res += "<td>" + inv.duration + "</td>";
-            res += "<td>" + inv.count + "</td>";
-            res += "<td>" + inv.avgDuration + "</td>";
+            res += "<td>" + escapeHtml(inv.method) + "</td>";
+            res += "<td>" + escapeHtml(inv.duration) + "</td>";
+            res += "<td>" + escapeHtml(inv.count) + "</td>";
+            res += "<td>" + escapeHtml(inv.avgDuration) + "</td>";
             res += "</tr>";
         }
         res += "</table>";
@@ -127,12 +162,49 @@
         for (var i = 0; i < result.length; i++) {
             var inv = result[i];
             res += "<tr>";
-            res += "<td>" + inv.name + "</td>";
-            res += "<td>" + inv.size + "</td>";
-            res += "<td>" + inv.parts + "</td>";
+            res += "<td>" + escapeHtml(inv.name) + "</td>";
+            res += "<td>" + escapeHtml(inv.size) + "</td>";
+            res += "<td>" + escapeHtml(inv.parts) + "</td>";
             res += "</tr>";
         }
         $("#caches").html(res);
+    }
+
+    function showAiPrompts(result) {
+        var res = "<table class='stat'>" ;
+        res += "<tr>";
+        res += "<th>Id</th>";
+        res += "<th>Kind</th>";
+        res += "<th>Branch</th>";
+        res += "<th>Server</th>";
+        res += "<th>Suite</th>";
+        res += "<th>Test</th>";
+        res += "<th>Stage</th>";
+        res += "<th>Start</th>";
+        res += "<th>End</th>";
+        res += "<th>Duration</th>";
+        res += "<th>Running</th>";
+        res += "<th>Result</th>";
+        res += "</tr>";
+        for (var i = 0; i < result.length; i++) {
+            var req = result[i];
+            res += "<tr>";
+            res += "<td>" + req.id + "</td>";
+            res += "<td>" + req.kind + "</td>";
+            res += "<td>" + req.branch + "</td>";
+            res += "<td>" + req.server + "</td>";
+            res += "<td>" + req.suite + "</td>";
+            res += "<td>" + req.test + "</td>";
+            res += "<td>" + req.stage + "</td>";
+            res += "<td>" + req.start + "</td>";
+            res += "<td>" + req.end + "</td>";
+            res += "<td>" + req.duration + "</td>";
+            res += "<td>" + req.running + "</td>";
+            res += "<td>" + req.result + "</td>";
+            res += "</tr>";
+        }
+        res += "</table>";
+        $("#aiPrompts").html(res);
     }
 
     function resetProfiling() {
@@ -177,10 +249,25 @@
         return false;
     }
 
+    function escapeHtml(str) {
+        return String(str || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
 </script>
 
 Tasks Monitoring Data:
+<div id="appLogSummary" style="font-family: monospace"></div>
 <div id="tasks" style="font-family: monospace"></div>
+<br>
+
+<hr>
+<b>AI Prompt Requests:</b>
+<div id="aiPrompts" style="font-family: monospace"></div>
 <br>
 
 <hr>

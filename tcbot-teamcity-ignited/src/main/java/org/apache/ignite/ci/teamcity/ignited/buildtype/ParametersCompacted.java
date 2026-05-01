@@ -154,6 +154,9 @@ public class ParametersCompacted {
     }
 
     public void forEach(BiConsumer<Integer, Integer> consumer) {
+        if (keys == null || values == null)
+            return;
+
         int size = keys.size();
 
         for (int i = 0; i < size; i++) {

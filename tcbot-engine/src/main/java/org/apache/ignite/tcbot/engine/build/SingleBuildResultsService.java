@@ -21,6 +21,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -48,11 +51,75 @@ public class SingleBuildResultsService {
     @Inject BranchEquivalence branchEquivalence;
     @Inject IStringCompactor compactor;
     @Inject UpdateCountersStorage updateCounters;
+    @Inject AiPromptRequestMonitor aiPromptMonitor;
 
     @Nonnull public DsSummaryUi getSingleBuildResults(String srvCodeOrAlias, Integer buildId,
         @Nullable Boolean checkAllLogs, SyncMode syncMode, ICredentialsProv prov) {
         DsSummaryUi res = new DsSummaryUi();
 
+        FullChainRunCtx ctx = loadSingleBuildContext(srvCodeOrAlias, buildId, checkAllLogs, syncMode, prov);
+
+        ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, prov);
+
+        String failRateBranch = ITeamcity.DEFAULT;
+
+        DsChainUi chainStatus = new DsChainUi(srvCodeOrAlias, tcIgnited.serverCode(), ctx.branchName());
+
+        chainStatus.initFromContext(tcIgnited, ctx, failRateBranch, compactor, false, null, null, -1, null, false, false);
+
+        res.addChainOnServer(chainStatus);
+
+        res.initCounters(getBranchCntrs(srvCodeOrAlias, buildId, prov));
+        return res;
+    }
+
+    /**
+     * @param srvCodeOrAlias Server id or alias.
+     * @param buildId Build id.
+     * @param maxDetailsChars Max chars to include for every test details block. Non-positive means no limit.
+     * @param syncMode Synchronization mode.
+     * @param prov Credentials provider.
+     */
+    @Nonnull public String getSingleBuildFailuresAiPrompt(String srvCodeOrAlias, Integer buildId,
+        @Nullable Integer maxDetailsChars, SyncMode syncMode, ICredentialsProv prov) {
+        long reqId = aiPromptMonitor.start("singleBuild", null, srvCodeOrAlias, String.valueOf(buildId), null);
+
+        try {
+            aiPromptMonitor.stage(reqId, "loading build context");
+
+            FullChainRunCtx ctx = loadSingleBuildContextBestEffort(reqId, srvCodeOrAlias, buildId, syncMode, prov);
+
+            ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, prov);
+
+            int maxDetails = maxDetailsChars == null
+                ? TestFailuresAiPromptBuilder.DFLT_MAX_DETAILS_CHARS
+                : maxDetailsChars;
+
+            aiPromptMonitor.stage(reqId, "building prompt");
+
+            String res = new TestFailuresAiPromptBuilder(compactor)
+                .buildPrompt(tcIgnited, ctx, ITeamcity.DEFAULT, maxDetails);
+
+            aiPromptMonitor.finish(reqId, "chars=" + res.length());
+
+            return res;
+        }
+        catch (RuntimeException e) {
+            aiPromptMonitor.fail(reqId, e);
+
+            throw e;
+        }
+    }
+
+    /**
+     * @param srvCodeOrAlias Server id or alias.
+     * @param buildId Build id.
+     * @param checkAllLogs Check all logs.
+     * @param syncMode Synchronization mode.
+     * @param prov Credentials provider.
+     */
+    private FullChainRunCtx loadSingleBuildContext(String srvCodeOrAlias, Integer buildId,
+        @Nullable Boolean checkAllLogs, SyncMode syncMode, ICredentialsProv prov) {
         tcIgnitedProv.checkAccess(srvCodeOrAlias, prov);
 
         ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, prov);
@@ -72,16 +139,63 @@ public class SingleBuildResultsService {
             null,
             null);
 
-        DsChainUi chainStatus = new DsChainUi(srvCodeOrAlias, tcIgnited.serverCode(), ctx.branchName());
-
-        chainStatus.initFromContext(tcIgnited, ctx, failRateBranch, compactor, false, null, null, -1, null, false, false);
-
-        res.addChainOnServer(chainStatus);
-
-        res.initCounters(getBranchCntrs(srvCodeOrAlias, buildId, prov));
-        return res;
+        return ctx;
     }
 
+    /**
+     * @param reqId Monitor request id.
+     * @param srvCodeOrAlias Server id or alias.
+     * @param buildId Build id.
+     * @param liveSyncMode Live sync mode.
+     * @param prov Credentials provider.
+     */
+    private FullChainRunCtx loadSingleBuildContextBestEffort(long reqId, String srvCodeOrAlias, Integer buildId,
+        SyncMode liveSyncMode, ICredentialsProv prov) {
+        CompletableFuture<FullChainRunCtx> live = CompletableFuture.supplyAsync(() ->
+            loadSingleBuildContext(srvCodeOrAlias, buildId, null, liveSyncMode, prov, ProcessLogsMode.CACHED_ONLY));
+
+        try {
+            aiPromptMonitor.stage(reqId, "trying fresh context for up to 1s");
+
+            return live.get(1, TimeUnit.SECONDS);
+        }
+        catch (TimeoutException e) {
+            aiPromptMonitor.stage(reqId, "fresh context timed out, using stale cache");
+        }
+        catch (Exception e) {
+            aiPromptMonitor.stage(reqId, "fresh context failed, using stale cache: " + e.getMessage());
+        }
+
+        return loadSingleBuildContext(srvCodeOrAlias, buildId, null, SyncMode.NONE, prov, ProcessLogsMode.CACHED_ONLY);
+    }
+
+    /**
+     * @param srvCodeOrAlias Server id or alias.
+     * @param buildId Build id.
+     * @param checkAllLogs Check all logs.
+     * @param syncMode Synchronization mode.
+     * @param prov Credentials provider.
+     * @param procLogs Process logs mode override.
+     */
+    private FullChainRunCtx loadSingleBuildContext(String srvCodeOrAlias, Integer buildId,
+        @Nullable Boolean checkAllLogs, SyncMode syncMode, ICredentialsProv prov, ProcessLogsMode procLogs) {
+        tcIgnitedProv.checkAccess(srvCodeOrAlias, prov);
+
+        ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, prov);
+
+        String failRateBranch = ITeamcity.DEFAULT;
+
+        return buildChainProcessor.loadFullChainContext(
+            tcIgnited,
+            Collections.singletonList(buildId),
+            LatestRebuildMode.NONE,
+            procLogs,
+            false,
+            failRateBranch,
+            syncMode,
+            null,
+            null);
+    }
 
 
     public Map<Integer, Integer> getBranchCntrs(String srvCodeOrAlias,

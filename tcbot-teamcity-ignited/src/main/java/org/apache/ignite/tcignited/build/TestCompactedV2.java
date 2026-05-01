@@ -260,28 +260,11 @@ public class TestCompactedV2 implements ITest {
     public void setDetails(String details, @Nullable ILogProductSpecific logSpecific) {
         this.details = null;
 
-        if (Strings.isNullOrEmpty(details) || logSpecific == null)
+        if (Strings.isNullOrEmpty(details))
             return;
 
-        StringBuilder sb = new StringBuilder();
-
-        //todo check integration with JIRA
-        for (String s : details.split("\n")) {
-            if(s.isEmpty())
-                continue;
-
-            if (logSpecific.needWarn(s)
-                || s.contains("http://issues.apache.org/jira/browse/")
-                || s.contains("https://issues.apache.org/jira/browse/")) {
-                sb.append(s);
-                sb.append("\n");
-            }
-        }
-
-        if (sb.length() > 0) {
-            this.details = new StringFieldCompacted();
-            this.details.setValue(sb.toString());
-        }
+        this.details = new StringFieldCompacted();
+        this.details.setValue(details);
     }
 
     public Boolean getIgnoredFlag() {

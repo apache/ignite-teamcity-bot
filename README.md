@@ -24,6 +24,24 @@ Local code can be set up using IntelliJ IDEA and Gradle project import.
 For local development, run `org.apache.ignite.ci.web.Launcher.main()` from the project root.
 The launcher starts Jetty on `http://localhost:8080/` and serves static web resources directly from
 `ignite-tc-helper-web/src/main/webapp`.
+When running this main class directly from an IDE on Java 17, use the same module options as the
+`igniteJava17JvmArgs` Gradle property:
+
+```
+-XX:+IgnoreUnrecognizedVMOptions
+--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED
+--add-exports=java.base/sun.nio.ch=ALL-UNNAMED
+--add-exports=java.management/com.sun.jmx.mbeanserver=ALL-UNNAMED
+--add-exports=jdk.internal.jvmstat/sun.jvmstat.monitor=ALL-UNNAMED
+--add-exports=java.base/sun.reflect.generics.reflectiveObjects=ALL-UNNAMED
+--add-opens=java.base/java.io=ALL-UNNAMED
+--add-opens=java.base/java.lang=ALL-UNNAMED
+--add-opens=java.base/java.nio=ALL-UNNAMED
+--add-opens=java.base/java.time=ALL-UNNAMED
+--add-opens=java.base/java.util=ALL-UNNAMED
+--add-opens=java.base/java.util.concurrent=ALL-UNNAMED
+--add-opens=java.base/sun.nio.ch=ALL-UNNAMED
+```
 
 The bot creates its working directory at `~/.ignite-teamcity-helper` by default. The directory contains
 runtime data and local configuration files. The location can be changed with the
@@ -59,7 +77,7 @@ A build can be done using following commands
 - gradle clean
 - gradle build
 
-It is recommended to use Java 11 for development.
+It is recommended to use Java 17 for development and production.
 
 It may be required to install 
 [Java Cryptography Extension JCE Unlimited Strength Jurisdiction Policy Files 8 Download](https://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html)
@@ -81,6 +99,9 @@ is `org.apache.ignite.ci.TcHelperJettyLauncher`; it starts the same web applicat
 The generated start scripts set the default working directory to `../work` via
 `-Dteamcity.helper.home=../work`, so place production `branches.json` and other required configuration
 files into that `work` directory, or override `teamcity.helper.home` with the desired production path.
+The generated scripts also include the Java 17 module options required by Ignite 2.18. When installing the
+bot as an OS service, point the service to the generated `jetty-launcher/bin/jetty-launcher` script, or keep
+the service JVM options in sync with the `igniteJava17JvmArgs` list from the root Gradle build.
 
 When the bot is installed as a service, start or restart `tc-bot-service` after deploying a new build or
 changing configuration:

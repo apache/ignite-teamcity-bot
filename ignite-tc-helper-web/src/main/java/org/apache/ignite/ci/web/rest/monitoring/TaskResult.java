@@ -20,7 +20,9 @@ package org.apache.ignite.ci.web.rest.monitoring;
 public class TaskResult {
     public String name;
     public String start;
+    public Long startTs;
     public Integer count;
     public String end;
+    public Long endTs;
     public String result;
 }

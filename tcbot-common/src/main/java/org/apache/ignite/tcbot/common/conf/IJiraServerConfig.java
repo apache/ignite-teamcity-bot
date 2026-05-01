@@ -29,45 +29,45 @@ public interface IJiraServerConfig {
     /**
      * @return Service ID or server code, internally identified, any string configured.
      */
-    public String getCode();
+    String getCode();
 
     /**
      * Return JIRA URL, e.g. https://issues.apache.org/jira/
      */
-    public String getUrl();
+    String getUrl();
 
     /**
      * Returns JIRA API version.
      *
      * @return JIRA API version.
      */
-    public JiraApiVersion getApiVersion();
+    JiraApiVersion getApiVersion();
 
     /**
      * JIRA project code for filtering out tickets and for adding VISA (JIRA comments).
      */
-    public String projectCodeForVisa();
+    String projectCodeForVisa();
 
     /**
      * @return PR name and branch name matching number prefix
      */
-    @Nullable public String branchNumPrefix();
+    @Nullable String branchNumPrefix();
 
     /**
      * Extracted JIRA basic authorization token from properties.
      *
      * @return Null or decoded auth token for JIRA.
      */
-    @Nullable public String decodedHttpAuthToken();
+    @Nullable String decodedHttpAuthToken();
 
     /**
      * @return {@code True} if JIRA authorization token is available.
      */
-    public default boolean isJiraTokenAvailable() {
+    default boolean isJiraTokenAvailable() {
         return !Strings.isNullOrEmpty(decodedHttpAuthToken());
     }
 
-    public default String restApiUrl() {
+    default String restApiUrl() {
         String jiraUrl = getUrl();
 
         if (isNullOrEmpty(jiraUrl))

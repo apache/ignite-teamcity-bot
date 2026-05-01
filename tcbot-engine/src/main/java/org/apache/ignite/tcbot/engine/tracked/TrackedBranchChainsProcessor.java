@@ -25,6 +25,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
@@ -40,6 +43,8 @@ import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
 import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
 import org.apache.ignite.tcbot.engine.chain.SortOption;
+import org.apache.ignite.tcbot.engine.build.AiPromptRequestMonitor;
+import org.apache.ignite.tcbot.engine.build.TestFailuresAiPromptBuilder;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
@@ -77,6 +82,148 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
 
     /** Update Counters for branch-related changes storage. */
     @Inject private UpdateCountersStorage countersStorage;
+
+    /** AI prompt monitor. */
+    @Inject private AiPromptRequestMonitor aiPromptMonitor;
+
+    /**
+     * @param branch Branch.
+     * @param buildResMergeCnt Build results merge count.
+     * @param creds Credentials.
+     * @param syncMode Sync mode.
+     * @param tagForHistSelected Selected tag for filtering history.
+     * @param sortOption Sort mode.
+     * @param maxDetailsChars Max chars to include for every test details block. Non-positive means no limit.
+     * @param testName Full test name to include.
+     * @param suiteId Suite id to include.
+     */
+    @Nonnull public String getTrackedBranchFailuresAiPrompt(
+        @Nullable String branch,
+        int buildResMergeCnt,
+        ICredentialsProv creds,
+        SyncMode syncMode,
+        @Nullable String tagForHistSelected,
+        @Nullable SortOption sortOption,
+        @Nullable Integer maxDetailsChars,
+        @Nullable String testName,
+        @Nullable String suiteId) {
+        long reqId = aiPromptMonitor.start("trackedBranch", branch, null, null, testName);
+        StringBuilder res = new StringBuilder();
+
+        try {
+            final String branchNn = isNullOrEmpty(branch) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
+            final ITrackedBranch tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);
+            final int maxDetails = maxDetailsChars == null
+                ? TestFailuresAiPromptBuilder.DFLT_MAX_DETAILS_CHARS
+                : maxDetailsChars;
+
+            tracked.chainsStream()
+                .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverCode(), creds))
+                .forEach(chainTracked -> {
+                    String srvCodeOrAlias = chainTracked.serverCode();
+                    String branchForTc = chainTracked.tcBranch();
+                    String baseBranchTc = chainTracked.tcBaseBranch().orElse(branchForTc);
+                    String suiteIdMandatory = chainTracked.tcSuiteId();
+
+                    aiPromptMonitor.stage(reqId, "loading history: " + srvCodeOrAlias + "/" + suiteIdMandatory);
+
+                    ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, creds);
+
+                    Map<Integer, Integer> requireParamVal = new HashMap<>();
+
+                    if (!Strings.isNullOrEmpty(tagForHistSelected))
+                        requireParamVal.putAll(reverseTagToParametersRequired(tagForHistSelected, srvCodeOrAlias));
+
+                    List<Integer> chains = tcIgnited.getLastNBuildsFromHistory(suiteIdMandatory, branchForTc,
+                        Math.max(buildResMergeCnt, 1));
+
+                    LatestRebuildMode rebuild = buildResMergeCnt > 1 ? LatestRebuildMode.ALL : LatestRebuildMode.LATEST;
+
+                    aiPromptMonitor.stage(reqId, "loading chain context: " + srvCodeOrAlias + "/" + suiteIdMandatory);
+
+                    FullChainRunCtx ctx = loadAiPromptContextBestEffort(reqId, tcIgnited, chains, rebuild,
+                        buildResMergeCnt == 1, baseBranchTc, syncMode, sortOption, requireParamVal,
+                        srvCodeOrAlias + "/" + suiteIdMandatory);
+
+                    if (res.length() > 0)
+                        res.append("\n\n");
+
+                    aiPromptMonitor.stage(reqId, "building prompt: " + srvCodeOrAlias + "/" + suiteIdMandatory);
+
+                    res.append(new TestFailuresAiPromptBuilder(compactor)
+                        .buildPrompt(tcIgnited, ctx, baseBranchTc, maxDetails, testName, suiteId));
+                });
+
+            aiPromptMonitor.finish(reqId, "chars=" + res.length());
+
+            return res.toString();
+        }
+        catch (RuntimeException e) {
+            aiPromptMonitor.fail(reqId, e);
+
+            throw e;
+        }
+    }
+
+    /**
+     * @param reqId Monitor request id.
+     * @param tcIgnited TeamCity facade.
+     * @param chains Entry builds.
+     * @param rebuild Rebuild mode.
+     * @param includeScheduledInfo Include scheduled info.
+     * @param baseBranchTc Base branch.
+     * @param liveSyncMode Live sync mode.
+     * @param sortOption Sort option.
+     * @param requireParamVal Required parameter values.
+     * @param stageSuffix Stage suffix.
+     */
+    private FullChainRunCtx loadAiPromptContextBestEffort(
+        long reqId,
+        ITeamcityIgnited tcIgnited,
+        List<Integer> chains,
+        LatestRebuildMode rebuild,
+        boolean includeScheduledInfo,
+        String baseBranchTc,
+        SyncMode liveSyncMode,
+        @Nullable SortOption sortOption,
+        @Nullable Map<Integer, Integer> requireParamVal,
+        String stageSuffix) {
+        CompletableFuture<FullChainRunCtx> live = CompletableFuture.supplyAsync(() -> chainProc.loadFullChainContext(
+            tcIgnited,
+            chains,
+            rebuild,
+            ProcessLogsMode.CACHED_ONLY,
+            includeScheduledInfo,
+            baseBranchTc,
+            liveSyncMode,
+            sortOption,
+            requireParamVal
+        ));
+
+        try {
+            aiPromptMonitor.stage(reqId, "trying fresh context for up to 1s: " + stageSuffix);
+
+            return live.get(1, TimeUnit.SECONDS);
+        }
+        catch (TimeoutException e) {
+            aiPromptMonitor.stage(reqId, "fresh context timed out, using stale cache: " + stageSuffix);
+        }
+        catch (Exception e) {
+            aiPromptMonitor.stage(reqId, "fresh context failed, using stale cache: " + stageSuffix + " - " + e.getMessage());
+        }
+
+        return chainProc.loadFullChainContext(
+            tcIgnited,
+            chains,
+            rebuild,
+            ProcessLogsMode.CACHED_ONLY,
+            false,
+            baseBranchTc,
+            SyncMode.NONE,
+            sortOption,
+            requireParamVal
+        );
+    }
 
     /** {@inheritDoc} */
     @AutoProfiling

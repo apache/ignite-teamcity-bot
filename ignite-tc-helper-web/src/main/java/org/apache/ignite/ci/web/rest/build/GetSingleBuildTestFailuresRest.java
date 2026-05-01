@@ -86,6 +86,19 @@ public class GetSingleBuildTestFailuresRest {
     }
 
     @GET
+    @Path("failures/aiPrompt")
+    @Produces(MediaType.TEXT_PLAIN)
+    public String getTestFailsAiPrompt(
+        @QueryParam("serverId") String srvCodeOrAlias,
+        @QueryParam("buildId") Integer buildId,
+        @Nullable @QueryParam("maxDetailsChars") Integer maxDetailsChars) throws ServiceUnauthorizedException {
+        return CtxListener.getInjector(ctx)
+            .getInstance(SingleBuildResultsService.class)
+            .getSingleBuildFailuresAiPrompt(srvCodeOrAlias, buildId, maxDetailsChars, SyncMode.RELOAD_QUEUED,
+                ITcBotUserCreds.get(req));
+    }
+
+    @GET
     @Path("failuresNoSync")
     public DsSummaryUi getBuildTestFailsNoSync(
         @QueryParam("serverId") String srvId,

@@ -28,48 +28,48 @@ import java.util.Collection;
  */
 public interface ITcBotConfig extends IDataSourcesConfigSupplier {
     /** Default server code. */
-    public String DEFAULT_SERVER_CODE = "apache";
+    String DEFAULT_SERVER_CODE = "apache";
 
     /** Default flaky rate. */
-    public Integer DEFAULT_FLAKY_RATE = 20;
+    Integer DEFAULT_FLAKY_RATE = 20;
 
     /** Default confidence. */
-    public Double DEFAULT_CONFIDENCE = 0.95;
+    Double DEFAULT_CONFIDENCE = 0.95;
 
     /** */
-    public String primaryServerCode();
+    String primaryServerCode();
 
     /** */
-    public Integer flakyRate();
+    Integer flakyRate();
 
     /** */
-    public Double confidence();
+    Double confidence();
 
     /** */
-    public Boolean alwaysFailedTestDetection();
+    Boolean alwaysFailedTestDetection();
 
     /**
      * @return Tracked branches configuration for TC Bot.
      */
-    public ITrackedBranchesConfig getTrackedBranches();
+    ITrackedBranchesConfig getTrackedBranches();
 
     /**
      * @return list of servers (services) identifiers involved into tracked branches processing.
      */
-    public default Collection<String> getServerIds() {
+    default Collection<String> getServerIds() {
         return getTrackedBranches().getServerIds();
     }
 
-    public ITcServerConfig getTeamcityConfig(String srvCode);
+    ITcServerConfig getTeamcityConfig(String srvCode);
 
-    public IJiraServerConfig getJiraConfig(String srvCode);
+    IJiraServerConfig getJiraConfig(String srvCode);
 
-    public IGitHubConfig getGitConfig(String srvCode);
+    IGitHubConfig getGitConfig(String srvCode);
 
     /**
      * @return notification settings config.
      */
-    public NotificationsConfig notifications();
+    NotificationsConfig notifications();
 
-    public ICleanerConfig getCleanerConfig();
+    ICleanerConfig getCleanerConfig();
 }

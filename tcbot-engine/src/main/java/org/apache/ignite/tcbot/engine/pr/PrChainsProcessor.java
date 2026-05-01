@@ -24,6 +24,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -41,6 +44,8 @@ import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
 import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
 import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
+import org.apache.ignite.tcbot.engine.build.AiPromptRequestMonitor;
+import org.apache.ignite.tcbot.engine.build.TestFailuresAiPromptBuilder;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
@@ -95,6 +100,9 @@ public class PrChainsProcessor {
     @Inject private UpdateCountersStorage countersStorage;
 
     @Inject private NewTestsStorage newTestsStorage;
+
+    /** AI prompt request monitor. */
+    @Inject private AiPromptRequestMonitor aiPromptMonitor;
 
     /**
      * @param creds Credentials.
@@ -431,5 +439,124 @@ public class PrChainsProcessor {
         allRelatedBranchCodes.addAll(branchEquivalence.branchIdsForQuery(baseBranchForTc, compactor));
 
         return countersStorage.getCounters(allRelatedBranchCodes);
+    }
+
+    /**
+     * @param creds Credentials.
+     * @param srvCodeOrAlias Server code or alias.
+     * @param suiteId Suite id.
+     * @param branchForTc Branch name in TC identification.
+     * @param act Action.
+     * @param cnt Count.
+     * @param tcBaseBranchParm Base branch name in TC identification.
+     * @param maxDetailsChars Max chars to include for every test details block. Non-positive means no limit.
+     * @param testName Optional full test name filter.
+     * @param promptSuiteId Optional suite id filter.
+     * @return AI prompt with PR failure context.
+     */
+    @AutoProfiling
+    public String getPrFailuresAiPrompt(
+        ICredentialsProv creds,
+        String srvCodeOrAlias,
+        String suiteId,
+        String branchForTc,
+        String act,
+        Integer cnt,
+        @Nullable String tcBaseBranchParm,
+        int maxDetailsChars,
+        @Nullable String testName,
+        @Nullable String promptSuiteId) {
+        long reqId = aiPromptMonitor.start("pr", branchForTc, srvCodeOrAlias, suiteId, testName);
+
+        try {
+            ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvCodeOrAlias, creds);
+
+            LatestRebuildMode rebuild;
+            if (Action.HISTORY.equals(act))
+                rebuild = LatestRebuildMode.ALL;
+            else if (Action.CHAIN.equals(act))
+                rebuild = LatestRebuildMode.NONE;
+            else
+                rebuild = LatestRebuildMode.LATEST;
+
+            int buildResMergeCnt = rebuild == LatestRebuildMode.ALL ? cnt == null ? 10 : cnt : 1;
+
+            aiPromptMonitor.stage(reqId, "loading history: " + srvCodeOrAlias + "/" + suiteId);
+
+            List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(suiteId, branchForTc, buildResMergeCnt);
+
+            String baseBranchForTc = Strings.isNullOrEmpty(tcBaseBranchParm)
+                ? dfltBaseTcBranch(srvCodeOrAlias)
+                : tcBaseBranchParm;
+
+            aiPromptMonitor.stage(reqId, "loading chain context: " + srvCodeOrAlias + "/" + suiteId);
+
+            FullChainRunCtx ctx = loadAiPromptContextBestEffort(reqId, tcIgnited, hist, rebuild,
+                buildResMergeCnt == 1, baseBranchForTc, srvCodeOrAlias + "/" + suiteId);
+
+            aiPromptMonitor.stage(reqId, "building prompt: " + srvCodeOrAlias + "/" + suiteId);
+
+            String res = new TestFailuresAiPromptBuilder(compactor)
+                .buildPrompt(tcIgnited, ctx, baseBranchForTc, maxDetailsChars, testName, promptSuiteId);
+
+            aiPromptMonitor.finish(reqId, "chars=" + res.length());
+
+            return res;
+        }
+        catch (RuntimeException e) {
+            aiPromptMonitor.fail(reqId, e);
+
+            throw e;
+        }
+    }
+
+    /**
+     * @param reqId Monitor request id.
+     * @param tcIgnited TeamCity facade.
+     * @param hist Entry builds.
+     * @param rebuild Rebuild mode.
+     * @param includeScheduledInfo Include scheduled info.
+     * @param baseBranchForTc Base branch.
+     * @param stageSuffix Stage suffix.
+     */
+    private FullChainRunCtx loadAiPromptContextBestEffort(
+        long reqId,
+        ITeamcityIgnited tcIgnited,
+        List<Integer> hist,
+        LatestRebuildMode rebuild,
+        boolean includeScheduledInfo,
+        String baseBranchForTc,
+        String stageSuffix) {
+        CompletableFuture<FullChainRunCtx> live = CompletableFuture.supplyAsync(() -> buildChainProcessor.loadFullChainContext(
+            tcIgnited,
+            hist,
+            rebuild,
+            ProcessLogsMode.CACHED_ONLY,
+            includeScheduledInfo,
+            baseBranchForTc,
+            SyncMode.RELOAD_QUEUED,
+            null, null));
+
+        try {
+            aiPromptMonitor.stage(reqId, "trying fresh context for up to 1s: " + stageSuffix);
+
+            return live.get(1, TimeUnit.SECONDS);
+        }
+        catch (TimeoutException e) {
+            aiPromptMonitor.stage(reqId, "fresh context timed out, using stale cache: " + stageSuffix);
+        }
+        catch (Exception e) {
+            aiPromptMonitor.stage(reqId, "fresh context failed, using stale cache: " + stageSuffix + " - " + e.getMessage());
+        }
+
+        return buildChainProcessor.loadFullChainContext(
+            tcIgnited,
+            hist,
+            rebuild,
+            ProcessLogsMode.CACHED_ONLY,
+            false,
+            baseBranchForTc,
+            SyncMode.NONE,
+            null, null);
     }
 }

@@ -14,14 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.ci.web.rest.monitoring;
 
-apply plugin: 'java'
- 
-dependencies {
-    api project(":tcbot-teamcity")
-    api project(":tcbot-persistence")
+/** Application log entry. */
+@SuppressWarnings("WeakerAccess")
+public class AppLogEntry {
+    /** Timestamp. */
+    public String timestamp;
 
-    testImplementation group: 'junit', name: 'junit', version: junitVer;
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVer;
+    /** Level. */
+    public String level;
+
+    /** Source file. */
+    public String file;
+
+    /** Full log text, including stacktrace continuation lines. */
+    public String text;
+
+    /** Short log summary. */
+    public String summary;
+
+    /** Service URL detected in log text. */
+    public String serviceUrl;
+
+    /** Service host detected in log text. */
+    public String serviceHost;
+
+    /** HTTP response code detected in log text. */
+    public Integer responseCode;
 }
- 

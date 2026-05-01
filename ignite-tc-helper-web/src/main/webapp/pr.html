@@ -128,6 +128,53 @@ function parmsForRest() {
     return curReqParms;
 }
 
+function aiPromptUrlForTest(testName) {
+    return "rest/pr/results/aiPrompt" + parmsForRest() + "&testName=" + encodeURIComponent(testName);
+}
+
+function aiPromptUrlForSuite(suiteId) {
+    return "rest/pr/results/aiPrompt" + parmsForRest() + "&promptSuiteId=" + encodeURIComponent(suiteId);
+}
+
+function openAiPromptForTest(testName) {
+    openAiPrompt(aiPromptUrlForTest(testName));
+}
+
+function openAiPromptForSuite(suiteId) {
+    openAiPrompt(aiPromptUrlForSuite(suiteId));
+}
+
+function openAiPrompt(url) {
+    let promptWindow = window.open("about:blank", "_blank");
+    if (promptWindow) {
+        promptWindow.document.title = "AI prompt";
+        promptWindow.document.body.innerHTML = "<pre>Loading AI prompt...</pre>";
+    }
+
+    $.ajax({
+        url: url,
+        timeout: 300000,
+        success: function (result) {
+            writeAiPromptWindow(promptWindow, result);
+        },
+        error: function (xhr, status, error) {
+            showErrInLoadStatus(xhr, status, error);
+            writeAiPromptWindow(promptWindow, "AI prompt request failed: " + status + "\n\n" + xhr.responseText);
+        }
+    });
+}
+
+function writeAiPromptWindow(promptWindow, text) {
+    if (!promptWindow)
+        return;
+
+    promptWindow.document.body.innerHTML = "";
+
+    let pre = promptWindow.document.createElement("pre");
+    pre.textContent = text;
+    promptWindow.document.body.appendChild(pre);
+}
+
 function checkForUpdate() {
     var curFailuresUrl = "rest/pr/updates" + parmsForRest();
 
