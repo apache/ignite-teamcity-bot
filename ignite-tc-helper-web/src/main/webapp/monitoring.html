@@ -65,6 +65,16 @@
             },
             error: showErrInLoadStatus
         });
+
+        $.ajax({
+            url: "rest/monitoring/aiPrompts",
+            success: function(result) {
+                $("#loadStatus").html("");
+
+                showAiPrompts(result);
+            },
+            error: showErrInLoadStatus
+        });
     }
 
     /**
@@ -135,6 +145,43 @@
         $("#caches").html(res);
     }
 
+    function showAiPrompts(result) {
+        var res = "<table class='stat'>" ;
+        res += "<tr>";
+        res += "<th>Id</th>";
+        res += "<th>Kind</th>";
+        res += "<th>Branch</th>";
+        res += "<th>Server</th>";
+        res += "<th>Suite</th>";
+        res += "<th>Test</th>";
+        res += "<th>Stage</th>";
+        res += "<th>Start</th>";
+        res += "<th>End</th>";
+        res += "<th>Duration</th>";
+        res += "<th>Running</th>";
+        res += "<th>Result</th>";
+        res += "</tr>";
+        for (var i = 0; i < result.length; i++) {
+            var req = result[i];
+            res += "<tr>";
+            res += "<td>" + req.id + "</td>";
+            res += "<td>" + req.kind + "</td>";
+            res += "<td>" + req.branch + "</td>";
+            res += "<td>" + req.server + "</td>";
+            res += "<td>" + req.suite + "</td>";
+            res += "<td>" + req.test + "</td>";
+            res += "<td>" + req.stage + "</td>";
+            res += "<td>" + req.start + "</td>";
+            res += "<td>" + req.end + "</td>";
+            res += "<td>" + req.duration + "</td>";
+            res += "<td>" + req.running + "</td>";
+            res += "<td>" + req.result + "</td>";
+            res += "</tr>";
+        }
+        res += "</table>";
+        $("#aiPrompts").html(res);
+    }
+
     function resetProfiling() {
         $.ajax({
             url: "rest/monitoring/resetProfiling",
@@ -181,6 +228,11 @@
 
 Tasks Monitoring Data:
 <div id="tasks" style="font-family: monospace"></div>
+<br>
+
+<hr>
+<b>AI Prompt Requests:</b>
+<div id="aiPrompts" style="font-family: monospace"></div>
 <br>
 
 <hr>

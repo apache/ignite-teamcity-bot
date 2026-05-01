@@ -328,20 +328,27 @@ function showData(result) {
     //        + " <a href='"+ txtUrl + "'>txt</a>");
 }
 
-function codexPromptUrlForTest(testName) {
-    return "rest/tracked/results/codexPrompt" + parmsForRest() + "&testName=" + encodeURIComponent(testName);
+function aiPromptUrlForTest(testName) {
+    return "rest/tracked/results/aiPrompt" + parmsForRest() + "&testName=" + encodeURIComponent(testName);
 }
 
-function openCodexPromptForTest(testName) {
+function openAiPromptForTest(testName) {
+    let promptWindow = window.open("about:blank", "_blank");
+    if (promptWindow) {
+        promptWindow.document.title = "AI prompt";
+        promptWindow.document.body.innerHTML = "<pre>Loading AI prompt...</pre>";
+    }
+
     $.ajax({
-        url: codexPromptUrlForTest(testName),
+        url: aiPromptUrlForTest(testName),
         success: function (result) {
-            let blob = new Blob([result], {type: "text/plain"});
-            let url = URL.createObjectURL(blob);
-            window.open(url, "_blank");
-            setTimeout(function () {
-                URL.revokeObjectURL(url);
-            }, 60000);
+            if (promptWindow) {
+                promptWindow.document.body.innerHTML = "";
+
+                let pre = promptWindow.document.createElement("pre");
+                pre.textContent = result;
+                promptWindow.document.body.appendChild(pre);
+            }
         },
         error: showErrInLoadStatus
     });

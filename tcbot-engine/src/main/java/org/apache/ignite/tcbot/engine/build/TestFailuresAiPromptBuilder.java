@@ -40,9 +40,9 @@ import static org.apache.ignite.tcbot.common.util.TimeUtil.millisToDurationPrint
 import static org.apache.ignite.tcignited.buildref.BranchEquivalence.normalizeBranch;
 
 /**
- * Builds a prompt with TeamCity failure context for local Codex investigation.
+ * Builds an AI prompt with TeamCity failure context.
  */
-public class TestFailuresCodexPromptBuilder {
+public class TestFailuresAiPromptBuilder {
     /** Default limit for a single TeamCity failure details block. */
     public static final int DFLT_MAX_DETAILS_CHARS = 20000;
 
@@ -52,7 +52,7 @@ public class TestFailuresCodexPromptBuilder {
     /**
      * @param compactor String compactor.
      */
-    public TestFailuresCodexPromptBuilder(IStringCompactor compactor) {
+    public TestFailuresAiPromptBuilder(IStringCompactor compactor) {
         this.compactor = compactor;
     }
 
@@ -130,7 +130,7 @@ public class TestFailuresCodexPromptBuilder {
      */
     private void appendHeader(StringBuilder res, ITeamcityIgnited tcIgnited, FullChainRunCtx ctx,
         @Nullable String normalizedBaseBranch) {
-        res.append("# Codex Prompt: Investigate TeamCity Test Failures\n\n");
+        res.append("# AI Prompt: Investigate TeamCity Test Failures\n\n");
         res.append("You are working in the local checkout of the project that produced these TeamCity failures. ");
         res.append("Use the TeamCity context below to identify likely root causes and propose a minimal fix. ");
         res.append("Prefer concrete code locations, explain uncertainty, and mention whether the failure ");

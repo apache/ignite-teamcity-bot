@@ -25,6 +25,7 @@ import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfilingInterceptor;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTaskInterceptor;
+import org.apache.ignite.tcbot.engine.build.AiPromptRequestMonitor;
 import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
@@ -68,6 +69,13 @@ public class MonitoringService {
             res.count = invocation.count();
             return res;
         }).collect(Collectors.toList());
+    }
+
+    @GET
+    @PermitAll
+    @Path("aiPrompts")
+    public List<AiPromptRequestMonitor.Request> getAiPromptMonitoring() {
+        return CtxListener.getInjector(ctx).getInstance(AiPromptRequestMonitor.class).getRequests();
     }
 
 

@@ -48,6 +48,7 @@ public class SingleBuildResultsService {
     @Inject BranchEquivalence branchEquivalence;
     @Inject IStringCompactor compactor;
     @Inject UpdateCountersStorage updateCounters;
+    @Inject AiPromptRequestMonitor aiPromptMonitor;
 
     @Nonnull public DsSummaryUi getSingleBuildResults(String srvCodeOrAlias, Integer buildId,
         @Nullable Boolean checkAllLogs, SyncMode syncMode, ICredentialsProv prov) {
@@ -76,18 +77,35 @@ public class SingleBuildResultsService {
      * @param syncMode Synchronization mode.
      * @param prov Credentials provider.
      */
-    @Nonnull public String getSingleBuildFailuresCodexPrompt(String srvCodeOrAlias, Integer buildId,
+    @Nonnull public String getSingleBuildFailuresAiPrompt(String srvCodeOrAlias, Integer buildId,
         @Nullable Integer maxDetailsChars, SyncMode syncMode, ICredentialsProv prov) {
-        FullChainRunCtx ctx = loadSingleBuildContext(srvCodeOrAlias, buildId, true, syncMode, prov);
+        long reqId = aiPromptMonitor.start("singleBuild", null, srvCodeOrAlias, String.valueOf(buildId), null);
 
-        ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, prov);
+        try {
+            aiPromptMonitor.stage(reqId, "loading build context");
 
-        int maxDetails = maxDetailsChars == null
-            ? TestFailuresCodexPromptBuilder.DFLT_MAX_DETAILS_CHARS
-            : maxDetailsChars;
+            FullChainRunCtx ctx = loadSingleBuildContext(srvCodeOrAlias, buildId, true, syncMode, prov);
 
-        return new TestFailuresCodexPromptBuilder(compactor)
-            .buildPrompt(tcIgnited, ctx, ITeamcity.DEFAULT, maxDetails);
+            ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, prov);
+
+            int maxDetails = maxDetailsChars == null
+                ? TestFailuresAiPromptBuilder.DFLT_MAX_DETAILS_CHARS
+                : maxDetailsChars;
+
+            aiPromptMonitor.stage(reqId, "building prompt");
+
+            String res = new TestFailuresAiPromptBuilder(compactor)
+                .buildPrompt(tcIgnited, ctx, ITeamcity.DEFAULT, maxDetails);
+
+            aiPromptMonitor.finish(reqId, "chars=" + res.length());
+
+            return res;
+        }
+        catch (RuntimeException e) {
+            aiPromptMonitor.fail(reqId, e);
+
+            throw e;
+        }
     }
 
     /**

@@ -40,7 +40,8 @@ import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
 import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
 import org.apache.ignite.tcbot.engine.chain.SortOption;
-import org.apache.ignite.tcbot.engine.build.TestFailuresCodexPromptBuilder;
+import org.apache.ignite.tcbot.engine.build.AiPromptRequestMonitor;
+import org.apache.ignite.tcbot.engine.build.TestFailuresAiPromptBuilder;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
@@ -79,6 +80,9 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
     /** Update Counters for branch-related changes storage. */
     @Inject private UpdateCountersStorage countersStorage;
 
+    /** AI prompt monitor. */
+    @Inject private AiPromptRequestMonitor aiPromptMonitor;
+
     /**
      * @param branch Branch.
      * @param buildResMergeCnt Build results merge count.
@@ -89,7 +93,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
      * @param maxDetailsChars Max chars to include for every test details block. Non-positive means no limit.
      * @param testName Full test name to include.
      */
-    @Nonnull public String getTrackedBranchFailuresCodexPrompt(
+    @Nonnull public String getTrackedBranchFailuresAiPrompt(
         @Nullable String branch,
         int buildResMergeCnt,
         ICredentialsProv creds,
@@ -98,54 +102,70 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         @Nullable SortOption sortOption,
         @Nullable Integer maxDetailsChars,
         @Nullable String testName) {
+        long reqId = aiPromptMonitor.start("trackedBranch", branch, null, null, testName);
         StringBuilder res = new StringBuilder();
 
-        final String branchNn = isNullOrEmpty(branch) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
-        final ITrackedBranch tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);
-        final int maxDetails = maxDetailsChars == null
-            ? TestFailuresCodexPromptBuilder.DFLT_MAX_DETAILS_CHARS
-            : maxDetailsChars;
+        try {
+            final String branchNn = isNullOrEmpty(branch) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
+            final ITrackedBranch tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);
+            final int maxDetails = maxDetailsChars == null
+                ? TestFailuresAiPromptBuilder.DFLT_MAX_DETAILS_CHARS
+                : maxDetailsChars;
 
-        tracked.chainsStream()
-            .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverCode(), creds))
-            .forEach(chainTracked -> {
-                String srvCodeOrAlias = chainTracked.serverCode();
-                String branchForTc = chainTracked.tcBranch();
-                String baseBranchTc = chainTracked.tcBaseBranch().orElse(branchForTc);
-                String suiteIdMandatory = chainTracked.tcSuiteId();
+            tracked.chainsStream()
+                .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverCode(), creds))
+                .forEach(chainTracked -> {
+                    String srvCodeOrAlias = chainTracked.serverCode();
+                    String branchForTc = chainTracked.tcBranch();
+                    String baseBranchTc = chainTracked.tcBaseBranch().orElse(branchForTc);
+                    String suiteIdMandatory = chainTracked.tcSuiteId();
 
-                ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, creds);
+                    aiPromptMonitor.stage(reqId, "loading history: " + srvCodeOrAlias + "/" + suiteIdMandatory);
 
-                Map<Integer, Integer> requireParamVal = new HashMap<>();
+                    ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, creds);
 
-                if (!Strings.isNullOrEmpty(tagForHistSelected))
-                    requireParamVal.putAll(reverseTagToParametersRequired(tagForHistSelected, srvCodeOrAlias));
+                    Map<Integer, Integer> requireParamVal = new HashMap<>();
 
-                List<Integer> chains = tcIgnited.getLastNBuildsFromHistory(suiteIdMandatory, branchForTc,
-                    Math.max(buildResMergeCnt, 1));
+                    if (!Strings.isNullOrEmpty(tagForHistSelected))
+                        requireParamVal.putAll(reverseTagToParametersRequired(tagForHistSelected, srvCodeOrAlias));
 
-                LatestRebuildMode rebuild = buildResMergeCnt > 1 ? LatestRebuildMode.ALL : LatestRebuildMode.LATEST;
+                    List<Integer> chains = tcIgnited.getLastNBuildsFromHistory(suiteIdMandatory, branchForTc,
+                        Math.max(buildResMergeCnt, 1));
 
-                FullChainRunCtx ctx = chainProc.loadFullChainContext(
-                    tcIgnited,
-                    chains,
-                    rebuild,
-                    ProcessLogsMode.ALL,
-                    buildResMergeCnt == 1,
-                    baseBranchTc,
-                    syncMode,
-                    sortOption,
-                    requireParamVal
-                );
+                    LatestRebuildMode rebuild = buildResMergeCnt > 1 ? LatestRebuildMode.ALL : LatestRebuildMode.LATEST;
 
-                if (res.length() > 0)
-                    res.append("\n\n");
+                    aiPromptMonitor.stage(reqId, "loading chain context: " + srvCodeOrAlias + "/" + suiteIdMandatory);
 
-                res.append(new TestFailuresCodexPromptBuilder(compactor)
-                    .buildPrompt(tcIgnited, ctx, baseBranchTc, maxDetails, testName));
-            });
+                    FullChainRunCtx ctx = chainProc.loadFullChainContext(
+                        tcIgnited,
+                        chains,
+                        rebuild,
+                        ProcessLogsMode.ALL,
+                        buildResMergeCnt == 1,
+                        baseBranchTc,
+                        syncMode,
+                        sortOption,
+                        requireParamVal
+                    );
 
-        return res.toString();
+                    if (res.length() > 0)
+                        res.append("\n\n");
+
+                    aiPromptMonitor.stage(reqId, "building prompt: " + srvCodeOrAlias + "/" + suiteIdMandatory);
+
+                    res.append(new TestFailuresAiPromptBuilder(compactor)
+                        .buildPrompt(tcIgnited, ctx, baseBranchTc, maxDetails, testName));
+                });
+
+            aiPromptMonitor.finish(reqId, "chars=" + res.length());
+
+            return res.toString();
+        }
+        catch (RuntimeException e) {
+            aiPromptMonitor.fail(reqId, e);
+
+            throw e;
+        }
     }
 
     /** {@inheritDoc} */

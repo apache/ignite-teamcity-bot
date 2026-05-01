@@ -961,11 +961,11 @@ function showTestFailData(testFail, isFailureShown, settings) {
     else
         res += testFail.name;
 
-    if (isDefinedAndFilled(testFail.name) && typeof openCodexPromptForTest === "function") {
+    if (isDefinedAndFilled(testFail.name) && typeof openAiPromptForTest === "function") {
         res += " <a href='javascript:void(0);' ";
-        res += "onClick='openCodexPromptForTest(decodeURIComponent(";
+        res += "onClick='openAiPromptForTest(decodeURIComponent(";
         res += JSON.stringify(encodeURIComponent(testFail.name)) + "))' ";
-        res += "title='Open Codex prompt with TeamCity context for this test'>[Codex]</a>";
+        res += "title='Open AI prompt with TeamCity context for this test'>[AI Prompt]</a>";
     }
 
     var histContent = "";

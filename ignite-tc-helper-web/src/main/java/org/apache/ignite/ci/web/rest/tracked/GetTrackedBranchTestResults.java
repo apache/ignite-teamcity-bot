@@ -97,9 +97,9 @@ public class GetTrackedBranchTestResults {
     }
 
     @GET
-    @Path("results/codexPrompt")
+    @Path("results/aiPrompt")
     @Produces(MediaType.TEXT_PLAIN)
-    public String getTestFailsCodexPrompt(@Nullable @QueryParam("branch") String branchOrNull,
+    public String getTestFailsAiPrompt(@Nullable @QueryParam("branch") String branchOrNull,
         @Nullable @QueryParam("tagForHistSelected") String tagForHistSelected,
         @Nullable @QueryParam("sortOption") String sortOption,
         @Nullable @QueryParam("count") Integer mergeCnt,
@@ -109,7 +109,7 @@ public class GetTrackedBranchTestResults {
 
         return CtxListener.getInjector(ctx)
             .getInstance(TrackedBranchChainsProcessor.class)
-            .getTrackedBranchFailuresCodexPrompt(branchOrNull,
+            .getTrackedBranchFailuresAiPrompt(branchOrNull,
                 actualMergeBuilds,
                 ITcBotUserCreds.get(req),
                 SyncMode.RELOAD_QUEUED,

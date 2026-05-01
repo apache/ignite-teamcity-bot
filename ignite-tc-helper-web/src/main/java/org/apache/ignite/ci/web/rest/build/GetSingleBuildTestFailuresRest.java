@@ -86,15 +86,15 @@ public class GetSingleBuildTestFailuresRest {
     }
 
     @GET
-    @Path("failures/codexPrompt")
+    @Path("failures/aiPrompt")
     @Produces(MediaType.TEXT_PLAIN)
-    public String getTestFailsCodexPrompt(
+    public String getTestFailsAiPrompt(
         @QueryParam("serverId") String srvCodeOrAlias,
         @QueryParam("buildId") Integer buildId,
         @Nullable @QueryParam("maxDetailsChars") Integer maxDetailsChars) throws ServiceUnauthorizedException {
         return CtxListener.getInjector(ctx)
             .getInstance(SingleBuildResultsService.class)
-            .getSingleBuildFailuresCodexPrompt(srvCodeOrAlias, buildId, maxDetailsChars, SyncMode.RELOAD_QUEUED,
+            .getSingleBuildFailuresAiPrompt(srvCodeOrAlias, buildId, maxDetailsChars, SyncMode.RELOAD_QUEUED,
                 ITcBotUserCreds.get(req));
     }
 
