@@ -15,15 +15,8 @@
  * limitations under the License.
  */
 
-buildscript {
-    repositories {
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
-    }
-    dependencies {
-        classpath "gradle.plugin.nl.javadude.gradle.plugins:license-gradle-plugin:0.14.0"
-    }
+plugins {
+    id "com.github.hierynomus.license" version "0.16.1" apply false
 }
 
 subprojects {
@@ -38,39 +31,62 @@ subprojects {
 }
 
 allprojects {
-    apply plugin: 'java'
+    apply plugin: 'java-library'
 
     java {
         toolchain {
-            languageVersion = JavaLanguageVersion.of(11)
+            languageVersion = JavaLanguageVersion.of(17)
         }
     }
 
     ext {
 
-        jettyVer = '9.4.12.v20180830'
+        jettyVer = '12.1.8'
 
-        ignVer = '2.17.0'
+        ignVer = '2.18.0'
 
-        guavaVer = '26.0-jre'
+        guavaVer = '33.6.0-jre'
 
         //dual-licensed under the EPL v1.0 (Category B list.) and the LGPL 2.1 (category X).
-        logbackVer = '1.2.3'
+        logbackVer = '1.5.32'
 
         // MIT/X11 license, category A;
-        slf4jVer = '1.7.25'
+        slf4jVer = '2.0.17'
 
-        gsonVer = '2.8.2'
+        gsonVer = '2.14.0'
 
-        junitVer = '4.12'
-        mockitoVer = '2.22.0'
+        junitVer = '4.13.2'
+        mockitoVer = '5.23.0'
+        jerseyVer = '2.48'
+        guiceVer = '5.1.0'
+        snappyVer = '1.1.10.8'
+        jaxbVer = '2.3.9'
+        mailVer = '1.6.2'
+        checkerQualVer = '4.0.0'
+        jsr305Ver = '3.0.2'
+
+        igniteJava17JvmArgs = [
+            "-XX:+IgnoreUnrecognizedVMOptions",
+            "--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED",
+            "--add-exports=java.base/sun.nio.ch=ALL-UNNAMED",
+            "--add-exports=java.management/com.sun.jmx.mbeanserver=ALL-UNNAMED",
+            "--add-exports=jdk.internal.jvmstat/sun.jvmstat.monitor=ALL-UNNAMED",
+            "--add-exports=java.base/sun.reflect.generics.reflectiveObjects=ALL-UNNAMED",
+            "--add-opens=java.base/java.io=ALL-UNNAMED",
+            "--add-opens=java.base/java.lang=ALL-UNNAMED",
+            "--add-opens=java.base/java.nio=ALL-UNNAMED",
+            "--add-opens=java.base/java.time=ALL-UNNAMED",
+            "--add-opens=java.base/java.util=ALL-UNNAMED",
+            "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED",
+            "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED"
+        ]
     }
 
     repositories {
         //uncomment for RC testing
-        maven {
-            url "https://repository.apache.org/content/repositories/orgapacheignite-1552/"
-        }
+        //    maven {
+        //      url "https://repository.apache.org/content/repositories/orgapacheignite-1552/"
+        //    }
 
         mavenCentral()
         mavenLocal()

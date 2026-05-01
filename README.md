@@ -59,7 +59,7 @@ A build can be done using following commands
 - gradle clean
 - gradle build
 
-It is recommended to use Java 11 for development.
+It is recommended to use Java 17 for development and production.
 
 It may be required to install 
 [Java Cryptography Extension JCE Unlimited Strength Jurisdiction Policy Files 8 Download](https://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html)
@@ -81,6 +81,9 @@ is `org.apache.ignite.ci.TcHelperJettyLauncher`; it starts the same web applicat
 The generated start scripts set the default working directory to `../work` via
 `-Dteamcity.helper.home=../work`, so place production `branches.json` and other required configuration
 files into that `work` directory, or override `teamcity.helper.home` with the desired production path.
+The generated scripts also include the Java 17 module options required by Ignite 2.18. When installing the
+bot as an OS service, point the service to the generated `jetty-launcher/bin/jetty-launcher` script, or keep
+the service JVM options in sync with the `igniteJava17JvmArgs` list from the root Gradle build.
 
 When the bot is installed as a service, start or restart `tc-bot-service` after deploying a new build or
 changing configuration:
