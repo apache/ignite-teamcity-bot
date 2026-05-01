@@ -97,6 +97,29 @@ public class GetTrackedBranchTestResults {
     }
 
     @GET
+    @Path("results/codexPrompt")
+    @Produces(MediaType.TEXT_PLAIN)
+    public String getTestFailsCodexPrompt(@Nullable @QueryParam("branch") String branchOrNull,
+        @Nullable @QueryParam("tagForHistSelected") String tagForHistSelected,
+        @Nullable @QueryParam("sortOption") String sortOption,
+        @Nullable @QueryParam("count") Integer mergeCnt,
+        @Nullable @QueryParam("maxDetailsChars") Integer maxDetailsChars,
+        @Nullable @QueryParam("testName") String testName) {
+        int actualMergeBuilds = (mergeCnt == null || mergeCnt < 1) ? 1 : mergeCnt;
+
+        return CtxListener.getInjector(ctx)
+            .getInstance(TrackedBranchChainsProcessor.class)
+            .getTrackedBranchFailuresCodexPrompt(branchOrNull,
+                actualMergeBuilds,
+                ITcBotUserCreds.get(req),
+                SyncMode.RELOAD_QUEUED,
+                tagForHistSelected,
+                SortOption.parseStringValue(sortOption),
+                maxDetailsChars,
+                testName);
+    }
+
+    @GET
     @Path("resultsNoSync")
     public DsSummaryUi getTestFailsResultsNoSync(
         @Nullable @QueryParam("branch") String branch,

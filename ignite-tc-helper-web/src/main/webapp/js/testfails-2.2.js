@@ -961,6 +961,13 @@ function showTestFailData(testFail, isFailureShown, settings) {
     else
         res += testFail.name;
 
+    if (isDefinedAndFilled(testFail.name) && typeof openCodexPromptForTest === "function") {
+        res += " <a href='javascript:void(0);' ";
+        res += "onClick='openCodexPromptForTest(decodeURIComponent(";
+        res += JSON.stringify(encodeURIComponent(testFail.name)) + "))' ";
+        res += "title='Open Codex prompt with TeamCity context for this test'>[Codex]</a>";
+    }
+
     var histContent = "";
 
     //see class TestHistory

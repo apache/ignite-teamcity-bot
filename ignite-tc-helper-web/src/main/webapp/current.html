@@ -328,6 +328,25 @@ function showData(result) {
     //        + " <a href='"+ txtUrl + "'>txt</a>");
 }
 
+function codexPromptUrlForTest(testName) {
+    return "rest/tracked/results/codexPrompt" + parmsForRest() + "&testName=" + encodeURIComponent(testName);
+}
+
+function openCodexPromptForTest(testName) {
+    $.ajax({
+        url: codexPromptUrlForTest(testName),
+        success: function (result) {
+            let blob = new Blob([result], {type: "text/plain"});
+            let url = URL.createObjectURL(blob);
+            window.open(url, "_blank");
+            setTimeout(function () {
+                URL.revokeObjectURL(url);
+            }, 60000);
+        },
+        error: showErrInLoadStatus
+    });
+}
+
 </script>
 
 

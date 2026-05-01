@@ -40,6 +40,7 @@ import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
 import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
 import org.apache.ignite.tcbot.engine.chain.SortOption;
+import org.apache.ignite.tcbot.engine.build.TestFailuresCodexPromptBuilder;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
@@ -77,6 +78,75 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
 
     /** Update Counters for branch-related changes storage. */
     @Inject private UpdateCountersStorage countersStorage;
+
+    /**
+     * @param branch Branch.
+     * @param buildResMergeCnt Build results merge count.
+     * @param creds Credentials.
+     * @param syncMode Sync mode.
+     * @param tagForHistSelected Selected tag for filtering history.
+     * @param sortOption Sort mode.
+     * @param maxDetailsChars Max chars to include for every test details block. Non-positive means no limit.
+     * @param testName Full test name to include.
+     */
+    @Nonnull public String getTrackedBranchFailuresCodexPrompt(
+        @Nullable String branch,
+        int buildResMergeCnt,
+        ICredentialsProv creds,
+        SyncMode syncMode,
+        @Nullable String tagForHistSelected,
+        @Nullable SortOption sortOption,
+        @Nullable Integer maxDetailsChars,
+        @Nullable String testName) {
+        StringBuilder res = new StringBuilder();
+
+        final String branchNn = isNullOrEmpty(branch) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
+        final ITrackedBranch tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);
+        final int maxDetails = maxDetailsChars == null
+            ? TestFailuresCodexPromptBuilder.DFLT_MAX_DETAILS_CHARS
+            : maxDetailsChars;
+
+        tracked.chainsStream()
+            .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverCode(), creds))
+            .forEach(chainTracked -> {
+                String srvCodeOrAlias = chainTracked.serverCode();
+                String branchForTc = chainTracked.tcBranch();
+                String baseBranchTc = chainTracked.tcBaseBranch().orElse(branchForTc);
+                String suiteIdMandatory = chainTracked.tcSuiteId();
+
+                ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, creds);
+
+                Map<Integer, Integer> requireParamVal = new HashMap<>();
+
+                if (!Strings.isNullOrEmpty(tagForHistSelected))
+                    requireParamVal.putAll(reverseTagToParametersRequired(tagForHistSelected, srvCodeOrAlias));
+
+                List<Integer> chains = tcIgnited.getLastNBuildsFromHistory(suiteIdMandatory, branchForTc,
+                    Math.max(buildResMergeCnt, 1));
+
+                LatestRebuildMode rebuild = buildResMergeCnt > 1 ? LatestRebuildMode.ALL : LatestRebuildMode.LATEST;
+
+                FullChainRunCtx ctx = chainProc.loadFullChainContext(
+                    tcIgnited,
+                    chains,
+                    rebuild,
+                    ProcessLogsMode.ALL,
+                    buildResMergeCnt == 1,
+                    baseBranchTc,
+                    syncMode,
+                    sortOption,
+                    requireParamVal
+                );
+
+                if (res.length() > 0)
+                    res.append("\n\n");
+
+                res.append(new TestFailuresCodexPromptBuilder(compactor)
+                    .buildPrompt(tcIgnited, ctx, baseBranchTc, maxDetails, testName));
+            });
+
+        return res.toString();
+    }
 
     /** {@inheritDoc} */
     @AutoProfiling

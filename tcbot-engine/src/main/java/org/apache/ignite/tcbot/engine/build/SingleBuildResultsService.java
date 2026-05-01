@@ -53,6 +53,52 @@ public class SingleBuildResultsService {
         @Nullable Boolean checkAllLogs, SyncMode syncMode, ICredentialsProv prov) {
         DsSummaryUi res = new DsSummaryUi();
 
+        FullChainRunCtx ctx = loadSingleBuildContext(srvCodeOrAlias, buildId, checkAllLogs, syncMode, prov);
+
+        ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, prov);
+
+        String failRateBranch = ITeamcity.DEFAULT;
+
+        DsChainUi chainStatus = new DsChainUi(srvCodeOrAlias, tcIgnited.serverCode(), ctx.branchName());
+
+        chainStatus.initFromContext(tcIgnited, ctx, failRateBranch, compactor, false, null, null, -1, null, false, false);
+
+        res.addChainOnServer(chainStatus);
+
+        res.initCounters(getBranchCntrs(srvCodeOrAlias, buildId, prov));
+        return res;
+    }
+
+    /**
+     * @param srvCodeOrAlias Server id or alias.
+     * @param buildId Build id.
+     * @param maxDetailsChars Max chars to include for every test details block. Non-positive means no limit.
+     * @param syncMode Synchronization mode.
+     * @param prov Credentials provider.
+     */
+    @Nonnull public String getSingleBuildFailuresCodexPrompt(String srvCodeOrAlias, Integer buildId,
+        @Nullable Integer maxDetailsChars, SyncMode syncMode, ICredentialsProv prov) {
+        FullChainRunCtx ctx = loadSingleBuildContext(srvCodeOrAlias, buildId, true, syncMode, prov);
+
+        ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, prov);
+
+        int maxDetails = maxDetailsChars == null
+            ? TestFailuresCodexPromptBuilder.DFLT_MAX_DETAILS_CHARS
+            : maxDetailsChars;
+
+        return new TestFailuresCodexPromptBuilder(compactor)
+            .buildPrompt(tcIgnited, ctx, ITeamcity.DEFAULT, maxDetails);
+    }
+
+    /**
+     * @param srvCodeOrAlias Server id or alias.
+     * @param buildId Build id.
+     * @param checkAllLogs Check all logs.
+     * @param syncMode Synchronization mode.
+     * @param prov Credentials provider.
+     */
+    private FullChainRunCtx loadSingleBuildContext(String srvCodeOrAlias, Integer buildId,
+        @Nullable Boolean checkAllLogs, SyncMode syncMode, ICredentialsProv prov) {
         tcIgnitedProv.checkAccess(srvCodeOrAlias, prov);
 
         ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, prov);
@@ -72,16 +118,8 @@ public class SingleBuildResultsService {
             null,
             null);
 
-        DsChainUi chainStatus = new DsChainUi(srvCodeOrAlias, tcIgnited.serverCode(), ctx.branchName());
-
-        chainStatus.initFromContext(tcIgnited, ctx, failRateBranch, compactor, false, null, null, -1, null, false, false);
-
-        res.addChainOnServer(chainStatus);
-
-        res.initCounters(getBranchCntrs(srvCodeOrAlias, buildId, prov));
-        return res;
+        return ctx;
     }
-
 
 
     public Map<Integer, Integer> getBranchCntrs(String srvCodeOrAlias,
