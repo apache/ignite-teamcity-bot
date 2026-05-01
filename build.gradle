@@ -91,6 +91,10 @@ allprojects {
         mavenCentral()
         mavenLocal()
     }
+
+    tasks.withType(JavaExec).configureEach {
+        jvmArgs igniteJava17JvmArgs
+    }
 }
 
 /*
