@@ -24,6 +24,24 @@ Local code can be set up using IntelliJ IDEA and Gradle project import.
 For local development, run `org.apache.ignite.ci.web.Launcher.main()` from the project root.
 The launcher starts Jetty on `http://localhost:8080/` and serves static web resources directly from
 `ignite-tc-helper-web/src/main/webapp`.
+When running this main class directly from an IDE on Java 17, use the same module options as the
+`igniteJava17JvmArgs` Gradle property:
+
+```
+-XX:+IgnoreUnrecognizedVMOptions
+--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED
+--add-exports=java.base/sun.nio.ch=ALL-UNNAMED
+--add-exports=java.management/com.sun.jmx.mbeanserver=ALL-UNNAMED
+--add-exports=jdk.internal.jvmstat/sun.jvmstat.monitor=ALL-UNNAMED
+--add-exports=java.base/sun.reflect.generics.reflectiveObjects=ALL-UNNAMED
+--add-opens=java.base/java.io=ALL-UNNAMED
+--add-opens=java.base/java.lang=ALL-UNNAMED
+--add-opens=java.base/java.nio=ALL-UNNAMED
+--add-opens=java.base/java.time=ALL-UNNAMED
+--add-opens=java.base/java.util=ALL-UNNAMED
+--add-opens=java.base/java.util.concurrent=ALL-UNNAMED
+--add-opens=java.base/sun.nio.ch=ALL-UNNAMED
+```
 
 The bot creates its working directory at `~/.ignite-teamcity-helper` by default. The directory contains
 runtime data and local configuration files. The location can be changed with the

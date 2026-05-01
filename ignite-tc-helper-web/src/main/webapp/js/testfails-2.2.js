@@ -24,14 +24,11 @@ var g_srv_to_notify_git;
 
 //@param results - TestFailuresSummary
 function showChainOnServersResults(result) {
-    var minFailRateP = findGetParameter("minFailRate");
-    var minFailRate = minFailRateP == null ? 0 : parseFloat(minFailRateP);
+    var minFailRate = parseFloat(findGetParameter("minFailRate") || 0);
 
-    var maxFailRateP = findGetParameter("maxFailRate");
-    var maxFailRate = maxFailRateP == null ? 100 : parseFloat(maxFailRateP);
+    var maxFailRate = parseFloat(findGetParameter("maxFailRate") || 100);
 
-    var hideFlakyFailuresP = findGetParameter("hideFlakyFailures");
-    var hideFlakyFailures = hideFlakyFailuresP == null ? false : "true"===hideFlakyFailuresP;
+    var hideFlakyFailures = findGetParameter("hideFlakyFailures") === "true";
 
     return showChainResultsWithSettings(result, new Settings(minFailRate, maxFailRate, result.javaFlags, hideFlakyFailures));
 }

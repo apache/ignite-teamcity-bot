@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
@@ -49,14 +50,23 @@ import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.tcservice.model.mute.MuteInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.ignite.tcignited.TeamcityIgnitedImpl.DEFAULT_PROJECT_ID;
 
 @Path(GetTrackedBranchTestResults.TRACKED)
 @Produces(MediaType.APPLICATION_JSON)
 public class GetTrackedBranchTestResults {
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(GetTrackedBranchTestResults.class);
+
     public static final String TRACKED = "tracked";
     public static final int DEFAULT_COUNT = 10;
+
+    /** Slow tracked branch request threshold. */
+    private static final long SLOW_TRACKED_RESULTS_WARN_MS =
+        Long.getLong("tcbot.tracked.slowResultsWarnMs", 1000L);
 
     /** Servlet Context. */
     @Context
@@ -171,6 +181,8 @@ public class GetTrackedBranchTestResults {
         @Nullable Integer showTestLongerThan,
         @Nullable Boolean showMuted,
         @Nullable Boolean showIgnored) {
+        long startNanos = System.nanoTime();
+
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
 
         Injector injector = CtxListener.getInjector(ctx);
@@ -179,7 +191,7 @@ public class GetTrackedBranchTestResults {
 
         int maxDurationSec = (showTestLongerThan == null || showTestLongerThan < 1) ? 0 : showTestLongerThan;
 
-        return injector.getInstance(IDetailedStatusForTrackedBranch.class)
+        DsSummaryUi res = injector.getInstance(IDetailedStatusForTrackedBranch.class)
             .getTrackedBranchTestFailures(branch,
                 checkAllLogs,
                 actualMergeBuilds,
@@ -193,6 +205,10 @@ public class GetTrackedBranchTestResults {
                 maxDurationSec,
                 Boolean.TRUE.equals(showMuted),
                 Boolean.TRUE.equals(showIgnored));
+
+        logSlowTrackedResult(startNanos, "latest", branch, actualMergeBuilds, mode, res);
+
+        return res;
     }
 
     @GET
@@ -226,14 +242,33 @@ public class GetTrackedBranchTestResults {
         @QueryParam("count") Integer cnt,
         @QueryParam("checkAllLogs") @Nullable Boolean checkAllLogs,
         SyncMode mode) {
+        long startNanos = System.nanoTime();
+
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
         int cntLimit = cnt == null ? DEFAULT_COUNT : cnt;
         Injector injector = CtxListener.getInjector(ctx);
 
-        return injector.getInstance(TrackedBranchChainsProcessor.class)
+        DsSummaryUi res = injector.getInstance(TrackedBranchChainsProcessor.class)
             .getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, creds, mode,
                 false, null, null, DisplayMode.OnlyFailures, null,
                 -1, false, false);
+
+        logSlowTrackedResult(startNanos, "merged", branchOpt, cntLimit, mode, res);
+
+        return res;
+    }
+
+    /**
+     * Logs slow tracked branch request.
+     */
+    private void logSlowTrackedResult(long startNanos, String op, @Nullable String branch, int cnt, SyncMode mode,
+        DsSummaryUi res) {
+        long totalMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+
+        if (totalMs >= SLOW_TRACKED_RESULTS_WARN_MS) {
+            logger.warn("Slow tracked branch result: op={}, branch={}, count={}, mode={}, totalMs={}, chains={}",
+                op, branch, cnt, mode, totalMs, res == null ? 0 : res.servers.size());
+        }
     }
 
     /**

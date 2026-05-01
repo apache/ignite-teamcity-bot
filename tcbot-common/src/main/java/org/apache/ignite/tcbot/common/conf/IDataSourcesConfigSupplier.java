@@ -21,9 +21,9 @@ package org.apache.ignite.tcbot.common.conf;
  * 3rd party data sources (services/servers) configurations.
  */
 public interface IDataSourcesConfigSupplier {
-    public ITcServerConfig getTeamcityConfig(String srvCode);
+    ITcServerConfig getTeamcityConfig(String srvCode);
 
-    public IGitHubConfig getGitConfig(String srvCode);
+    IGitHubConfig getGitConfig(String srvCode);
 
-    public IJiraServerConfig getJiraConfig(String srvCode);
+    IJiraServerConfig getJiraConfig(String srvCode);
 }

@@ -26,11 +26,11 @@ public interface IGitHubConfig {
     /**
      * @return server (service) code.
      */
-    public String code();
+    String code();
 
     /** Git branch prefix for search ticket-related TC runs in PR-less contributions. */
     @Nonnull
-    public String gitBranchPrefix();
+    String gitBranchPrefix();
 
     /**
      * Extracts and returns GitHub authorization token from properties.
@@ -38,13 +38,13 @@ public interface IGitHubConfig {
      * @return Null or decoded auth token for Github.
      */
     @Nullable
-    public String gitAuthTok();
+    String gitAuthTok();
 
     /**
      * @return GitHub Api URL, if specified always ends with '/'
      */
     @Nullable
-    public String gitApiUrl();
+    String gitApiUrl();
 
     default boolean isGitTokenAvailable() {
         return gitAuthTok() != null;
