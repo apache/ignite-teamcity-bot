@@ -17,6 +17,17 @@
 package org.apache.ignite.ci.web.rest.monitoring;
 
 import com.google.common.base.Strings;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.CacheMetrics;
@@ -25,6 +36,7 @@ import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfilingInterceptor;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTaskInterceptor;
+import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.apache.ignite.tcbot.engine.build.AiPromptRequestMonitor;
 import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
@@ -39,15 +51,42 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Path("monitoring")
 @Produces(MediaType.APPLICATION_JSON)
 public class MonitoringService {
+    /** Log line start. */
+    private static final Pattern LOG_ENTRY_START = Pattern.compile(
+        "^(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3})\\s+(\\S+)\\s+.*");
+
+    /** Service URL in log text. */
+    private static final Pattern SERVICE_URL = Pattern.compile("(?:Service |Response URL: |url=)(https?://[^\\s,\\]]+)");
+
+    /** Service host in log text. */
+    private static final Pattern SERVICE_HOST = Pattern.compile("(?:host=|Response host: )([^\\s,\\]\\)]+)");
+
+    /** HTTP response code in log text. */
+    private static final Pattern RESPONSE_CODE = Pattern.compile(
+        "(?:Invalid Response Code|Service Unavailable Response Code)\\s*:\\s*(\\d{3})|HTTP\\s+(\\d{3})|Response:\\s*(\\d{3})");
+
+    /** Exception summary in log text. */
+    private static final Pattern EXCEPTION_SUMMARY = Pattern.compile(
+        "(?m)^(?:Caused by: )?([\\w.$]+(?:Exception|Error): .+)$");
+
+    /** Max summary length. */
+    private static final int SUMMARY_LIMIT = 240;
+
+    /** Log timestamp format. */
+    private static final DateTimeFormatter LOG_TS_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+
     /** Context. */
     @Context
     private ServletContext ctx;
@@ -64,18 +103,13 @@ public class MonitoringService {
             final TaskResult res = new TaskResult();
             res.name = invocation.name();
             res.start = invocation.start();
+            res.startTs = invocation.startTs();
             res.end = invocation.end();
+            res.endTs = invocation.endTs();
             res.result = invocation.result();
             res.count = invocation.count();
             return res;
         }).collect(Collectors.toList());
-    }
-
-    @GET
-    @PermitAll
-    @Path("aiPrompts")
-    public List<AiPromptRequestMonitor.Request> getAiPromptMonitoring() {
-        return CtxListener.getInjector(ctx).getInstance(AiPromptRequestMonitor.class).getRequests();
     }
 
 

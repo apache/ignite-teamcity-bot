@@ -16,13 +16,30 @@
  */
 package org.apache.ignite.ci.web.rest.monitoring;
 
+/** Application log entry. */
 @SuppressWarnings("WeakerAccess")
-public class TaskResult {
-    public String name;
-    public String start;
-    public Long startTs;
-    public Integer count;
-    public String end;
-    public Long endTs;
-    public String result;
+public class AppLogEntry {
+    /** Timestamp. */
+    public String timestamp;
+
+    /** Level. */
+    public String level;
+
+    /** Source file. */
+    public String file;
+
+    /** Full log text, including stacktrace continuation lines. */
+    public String text;
+
+    /** Short log summary. */
+    public String summary;
+
+    /** Service URL detected in log text. */
+    public String serviceUrl;
+
+    /** Service host detected in log text. */
+    public String serviceHost;
+
+    /** HTTP response code detected in log text. */
+    public Integer responseCode;
 }
