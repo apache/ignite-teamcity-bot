@@ -31,12 +31,17 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.time.Duration;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.ignite.tcbot.common.exeption.ServiceUnauthorizedException;
 import org.apache.ignite.tcbot.common.exeption.ServiceBadRequestException;
 import org.apache.ignite.tcbot.common.exeption.ServiceConflictException;
+import org.apache.ignite.tcbot.common.exeption.ServiceUnavailableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,7 +96,14 @@ public class HttpUtil {
         con.setRequestProperty("Keep-Alive", "header");
         con.setRequestProperty("accept-charset", StandardCharsets.UTF_8.toString());
 
-        int resCode = con.getResponseCode();
+        int resCode;
+
+        try {
+            resCode = con.getResponseCode();
+        }
+        catch (IOException e) {
+            throw new IOException("Failed GET request [host=" + obj.getHost() + ", url=" + url + ']', e);
+        }
 
         logger.info(Thread.currentThread().getName() + ": Required: " + started.elapsed(TimeUnit.MILLISECONDS)
             + "ms : Sending 'GET' request to : " + url + " Response: " + resCode);
@@ -230,6 +242,11 @@ public class HttpUtil {
             throw new ServiceConflictException("Service " + con.getURL() + " returned Conflict Response Code:\n"
                 + diagnostic);
 
+        if (resCode == 503)
+            throw new ServiceUnavailableException("Service " + con.getURL() + " (host=" + con.getURL().getHost()
+                + ") returned Service Unavailable Response Code : " + resCode + ":\n" + diagnostic,
+                con.getURL().toString(), resCode, retryAfterMs(con.getHeaderField("Retry-After")));
+
         throw new IllegalStateException("Service " + con.getURL() + " returned Invalid Response Code : " + resCode + ":\n"
                 + diagnostic);
     }
@@ -252,6 +269,9 @@ public class HttpUtil {
 
         if (authDiagnostic != null)
             res.append(authDiagnostic).append('\n');
+
+        res.append("Response URL: ").append(con.getURL()).append('\n');
+        res.append("Response host: ").append(con.getURL().getHost()).append('\n');
 
         appendHeaderIfPresent(res, con, "WWW-Authenticate");
         appendHeaderIfPresent(res, con, "X-GitHub-Request-Id");
@@ -280,6 +300,33 @@ public class HttpUtil {
 
         if (val != null)
             res.append(name).append(": ").append(val).append('\n');
+    }
+
+    /**
+     * @param retryAfter Retry-After header value.
+     */
+    private static long retryAfterMs(@Nullable String retryAfter) {
+        if (retryAfter == null || retryAfter.trim().isEmpty())
+            return -1;
+
+        String trimmed = retryAfter.trim();
+
+        try {
+            return TimeUnit.SECONDS.toMillis(Long.parseLong(trimmed));
+        }
+        catch (NumberFormatException ignored) {
+            // Retry-After also allows HTTP-date.
+        }
+
+        try {
+            Duration delay = Duration.between(ZonedDateTime.now(),
+                ZonedDateTime.parse(trimmed, DateTimeFormatter.RFC_1123_DATE_TIME));
+
+            return Math.max(0, delay.toMillis());
+        }
+        catch (DateTimeParseException ignored) {
+            return -1;
+        }
     }
 
     /**

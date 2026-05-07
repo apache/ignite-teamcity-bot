@@ -36,11 +36,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
+import java.net.ConnectException;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.StringTokenizer;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
@@ -57,6 +62,18 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     /** Service (server) code. */
     private String srvCode;
+
+    /** GitHub read attempts. */
+    private static final int READ_ATTEMPTS = 3;
+
+    /** Initial retry backoff. */
+    private static final long INITIAL_RETRY_BACKOFF_MS = 500;
+
+    /** Retry jitter. */
+    private static final long RETRY_JITTER_MS = 250;
+
+    /** Max retry backoff. */
+    private static final long MAX_RETRY_BACKOFF_MS = TimeUnit.SECONDS.toMillis(30);
 
     private static AtomicLong lastRq = new AtomicLong();
 
@@ -106,14 +123,31 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
         String pr = gitApiUrl + "pulls/" + id;
 
-        try (InputStream is = sendGetToGit(pr, null)) {
-            InputStreamReader reader = new InputStreamReader(is);
+        for (int attempt = 1; attempt <= READ_ATTEMPTS; attempt++) {
+            try (InputStream is = sendGetToGit(pr, null)) {
+                InputStreamReader reader = new InputStreamReader(is);
 
-            return new Gson().fromJson(reader, PullRequest.class);
+                return new Gson().fromJson(reader, PullRequest.class);
+            }
+            catch (IOException e) {
+                if (shouldRetry(e, attempt)) {
+                    long backoffMs = retryBackoffMs(attempt);
+
+                    logger.warn("Failed to read GitHub pull request, will retry " +
+                        "[srv={}, pr={}, url={}, attempt={}/{}, backoffMs={}]",
+                        srvCode, id, pr, attempt, READ_ATTEMPTS, backoffMs, e);
+
+                    LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(backoffMs));
+
+                    continue;
+                }
+
+                throw new UncheckedIOException("Failed to read GitHub pull request [srv=" + srvCode +
+                    ", pr=" + id + ", url=" + pr + ", attempt=" + attempt + '/' + READ_ATTEMPTS + ']', e);
+            }
         }
-        catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+
+        throw new IllegalStateException("Unreachable");
     }
 
     /** {@inheritDoc} */
@@ -176,25 +210,75 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     public <T> List<T> readOnePage(@Nullable AtomicReference<String> outLinkNext,
         String url, HashMap<String, String> rspHeaders, TypeToken<ArrayList<T>> typeTok) {
-        try (InputStream stream = sendGetToGit(url, rspHeaders)) {
-            InputStreamReader reader = new InputStreamReader(stream);
-            List<T> list = new Gson().fromJson(reader, typeTok.getType());
-            String link = rspHeaders.get("Link");
+        for (int attempt = 1; attempt <= READ_ATTEMPTS; attempt++) {
+            if (rspHeaders.containsKey("Link"))
+                rspHeaders.put("Link", null);
 
-            if (link != null) {
-                String nextLink = parseNextLinkFromLinkRspHeader(link);
+            try (InputStream stream = sendGetToGit(url, rspHeaders)) {
+                InputStreamReader reader = new InputStreamReader(stream);
+                List<T> list = new Gson().fromJson(reader, typeTok.getType());
+                String link = rspHeaders.get("Link");
 
-                if (nextLink != null && outLinkNext != null)
-                    outLinkNext.set(nextLink);
+                if (link != null) {
+                    String nextLink = parseNextLinkFromLinkRspHeader(link);
+
+                    if (nextLink != null && outLinkNext != null)
+                        outLinkNext.set(nextLink);
+                }
+
+                logger.info("Processing Github link: " + link);
+
+                return list;
             }
+            catch (IOException e) {
+                if (shouldRetry(e, attempt)) {
+                    long backoffMs = retryBackoffMs(attempt);
 
-            logger.info("Processing Github link: " + link);
+                    logger.warn("Failed to read GitHub page, will retry [srv={}, url={}, attempt={}/{}, backoffMs={}]",
+                        srvCode, url, attempt, READ_ATTEMPTS, backoffMs, e);
 
-            return list;
+                    LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(backoffMs));
+
+                    continue;
+                }
+
+                throw new UncheckedIOException("Failed to read GitHub page [srv=" + srvCode +
+                    ", url=" + url + ", link=" + rspHeaders.get("Link") +
+                    ", attempt=" + attempt + '/' + READ_ATTEMPTS + ']', e);
+            }
         }
-        catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+        throw new IllegalStateException("Unreachable");
+    }
+
+    /**
+     * @param e Exception.
+     * @param attempt Attempt.
+     */
+    private boolean shouldRetry(IOException e, int attempt) {
+        return attempt < READ_ATTEMPTS && isTemporaryTransportFailure(e);
+    }
+
+    /**
+     * @param e Exception.
+     */
+    private boolean isTemporaryTransportFailure(Throwable e) {
+        for (Throwable th = e; th != null; th = th.getCause()) {
+            if (th instanceof ConnectException || th instanceof SocketException || th instanceof SocketTimeoutException)
+                return true;
         }
+
+        return false;
+    }
+
+    /**
+     * @param attempt Attempt.
+     */
+    private long retryBackoffMs(int attempt) {
+        long base = INITIAL_RETRY_BACKOFF_MS << (attempt - 1);
+        long backoff = base + ThreadLocalRandom.current().nextLong(RETRY_JITTER_MS + 1);
+
+        return Math.min(backoff, MAX_RETRY_BACKOFF_MS);
     }
 
 

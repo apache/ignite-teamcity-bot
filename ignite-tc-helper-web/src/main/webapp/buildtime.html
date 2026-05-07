@@ -65,7 +65,7 @@ function loadAnalytics() {
 function loadData() {
     $("#loadStatus").html("&#8987; Please wait");
 
-    $("#version").html(" " + "<a href=\"monitoring.html\">TC Bot Moniroting Page</a> <br>");
+    $("#version").html(" " + "<a href=\"monitoring.html\">TC Bot Monitoring Page</a> <br>");
     $.ajax({
         url: "rest/branches/version",
         success: showVersionInfo,
