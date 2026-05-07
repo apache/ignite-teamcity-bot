@@ -48,6 +48,19 @@ distributions {
     }
 }
 
+tasks.register('prepareLocalWarRun') {
+    dependsOn tasks.named('installDist')
+
+    doLast {
+        def workDir = layout.buildDirectory.dir('install/jetty-launcher/work').get().asFile
+        copy {
+            from rootProject.file('conf/branches.json')
+            into workDir
+        }
+        mkdir new File(workDir, 'tcbot_logs')
+    }
+}
+
 dependencies {
     implementation (project(":ignite-tc-helper-web"))  {
         transitive = false
