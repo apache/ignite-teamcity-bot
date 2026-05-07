@@ -70,8 +70,10 @@ public class Launcher {
             ctx.setContextPath("/");
             String war = "../war/ignite-tc-helper-web.war";
             File file = new File(war);
-            Preconditions.checkState(file.exists(), "War file can not be found [" + file.getCanonicalPath() + "]");
-            ctx.setWar(war);
+            File warFile = file.getCanonicalFile();
+            Preconditions.checkState(warFile.exists(), "War file can not be found [" + warFile + "]");
+
+            ctx.setWarResource(ctx.getResourceFactory().newJarFileResource(warFile.toURI()));
         }
         srv.setHandler(ctx);
 
