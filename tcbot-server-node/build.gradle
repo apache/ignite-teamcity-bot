@@ -26,6 +26,7 @@ repositories {
 application {
     mainClass = 'org.apache.ignite.ci.TcBotIgniteServerLauncher'
     applicationDefaultJvmArgs = igniteJava17JvmArgs + ["-Dteamcity.helper.home=../work",
+                                                       "-Dfile.encoding=UTF-8",
                                                        "-Dteamcity.bot.regionsize=16", // 16g Durable Memory region
                                                        "-server",
                                                        "-Xmx2g",
