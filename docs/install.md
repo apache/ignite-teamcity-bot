@@ -1,30 +1,27 @@
 # Build and installation
 
-Use Java 17 for development and production. A build can be done using following commands:
+Use Java 17. Build everything through the Gradle wrapper:
 
 ```
-gradle clean
-gradle build
+./gradlew clean build --no-daemon
+./gradlew :jetty-launcher:clean :jetty-launcher:distZip --no-daemon
+./gradlew :tcbot-server-node:clean :tcbot-server-node:distZip --no-daemon
 ```
 
-Build the production archives explicitly when preparing a server deployment:
+On Windows use the same commands with `gradlew.bat`:
 
 ```
-gradle :jetty-launcher:clean :jetty-launcher:distZip
-gradle :tcbot-server-node:clean :tcbot-server-node:distZip
+gradlew.bat clean build --no-daemon
+gradlew.bat :jetty-launcher:clean :jetty-launcher:distZip --no-daemon
+gradlew.bat :tcbot-server-node:clean :tcbot-server-node:distZip --no-daemon
 ```
 
-Use `clean` when rebuilding production archives after dependency or JVM option changes. The generated scripts and
-runtime classpath are part of the archive.
+The web distribution is `jetty-launcher/build/distributions/jetty-launcher.zip`. It contains `bin`, `lib`, and
+`war/ignite-tc-helper-web.war`.
 
-Resulting distributions can be found in `jetty-launcher/build/distributions` and
-`tcbot-server-node/build/distributions`. The `jetty-launcher` archive contains the start scripts, runtime libraries,
-and `war/ignite-tc-helper-web.war`.
+## Linux service
 
-## Linux production service
-
-Production mode is started from the `jetty-launcher` distribution. Copy
-`jetty-launcher/build/distributions/jetty-launcher.zip` to the Linux server and unpack it:
+Unpack the distribution and put production config into `work`:
 
 ```
 sudo mkdir -p /opt/ignite-teamcity-bot/releases /opt/ignite-teamcity-bot/work
@@ -33,14 +30,12 @@ sudo ln -sfn /opt/ignite-teamcity-bot/releases/jetty-launcher /opt/ignite-teamci
 sudo cp branches.json /opt/ignite-teamcity-bot/work/branches.json
 ```
 
-Create `/etc/systemd/system/tc-bot-service.service`. Use the generated `bin/jetty-launcher` script because it already
-contains the required Java 17 module options for Ignite 2.18 and Guice:
+`/etc/systemd/system/tc-bot-service.service`:
 
 ```
 [Unit]
 Description=Ignite TeamCity Bot
 After=network-online.target
-Wants=network-online.target
 
 [Service]
 Type=simple
@@ -56,42 +51,28 @@ Restart=on-failure
 WantedBy=multi-user.target
 ```
 
-Start or restart `tc-bot-service` after deploying a new build or changing configuration:
+Start it:
 
 ```
 sudo systemctl daemon-reload
 sudo systemctl enable tc-bot-service
-sudo systemctl start tc-bot-service
 sudo systemctl restart tc-bot-service
 sudo systemctl status tc-bot-service
-sudo journalctl -u tc-bot-service -f
 ```
 
-After `tc-bot-service` is up, open the production bot URL, log in with TeamCity credentials, and click
-`Authorize Server` in the top menu. This step is required for background operations that need TeamCity
-access, including background checks, queue checks, build triggering, JIRA notifications, and cleanup.
-
-Server authorization is not stored in `branches.json`; it is taken from the authenticated user session and
-kept by the running bot process. Re-authorize the server after each service restart, deployment, or process
-crash.
+Use generated `bin/jetty-launcher`; it already contains the Java 17 module options required by Ignite and Guice.
 
 ## Windows production check
 
-Use these commands to verify a clean checkout and run the bot from the generated production distribution on Windows.
-Set `PR_REF` only when checking a pull request:
+Use a separate clean checkout. Set `PR_REF` only for PR checks:
 
 ```
-set "SCRIPT_DIR=%~dp0"
-set "REPO=%SCRIPT_DIR%ignite-teamcity-bot-check"
+set "REPO=C:\Tmp\ignite-teamcity-bot-check"
 set "DIST=C:\Tmp\tc-bot-prod-check"
-
 set "PR_REF="
-rem set PR_REF=pull/200/head
+rem set "PR_REF=pull/200/head"
 
-if not exist "%REPO%\.git" (
-    git clone https://github.com/apache/ignite-teamcity-bot.git "%REPO%" || exit /b 1
-)
-
+if not exist "%REPO%\.git" git clone https://github.com/apache/ignite-teamcity-bot.git "%REPO%" || exit /b 1
 cd /d "%REPO%" || exit /b 1
 git fetch origin master || exit /b 1
 git switch master || exit /b 1
@@ -104,7 +85,6 @@ if not "%PR_REF%"=="" (
     git switch pr-check || exit /b 1
 )
 
-java -version || exit /b 1
 call gradlew.bat clean build --no-daemon || exit /b 1
 call gradlew.bat :jetty-launcher:clean :jetty-launcher:distZip --no-daemon || exit /b 1
 
