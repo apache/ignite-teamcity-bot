@@ -1,0 +1,21 @@
+<configuration>
+    <property name="TCBOT_LOG_DIR" value="${teamcity.helper.home:-../work}/tcbot_logs"/>
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${TCBOT_LOG_DIR}/logfile-.log</file>
+        <append>true</append>
+        <encoder>
+            <pattern>%-12date{YYYY-MM-dd HH:mm:ss.SSS} %-5level [%t] - %msg%n</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${TCBOT_LOG_DIR}/logfile-%d{yyyy-MM-dd_HH}.log</fileNamePattern>
+            <maxHistory>336</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <logger name="org.eclipse.jetty" level="INFO"/>
+
+    <root level="INFO">
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>

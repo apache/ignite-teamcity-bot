@@ -33,6 +33,9 @@ package org.apache.ignite.ci.web.model;
     /** Java version, where Web App is running. */
     public String javaVer;
 
+    /** Server version. */
+    public String serverVer;
+
     /** TC Bot Version. */
     public String version = VERSION;
 
