@@ -67,6 +67,9 @@ function showErrInLoadStatus(jqXHR, exception) {
     } else if (jqXHR.status === 401) {
         $("#loadStatus").html('Unauthorized [401]');
 
+        if (window.location.pathname === "/login.html")
+            return;
+
         setTimeout(function() {
             window.location.href = "/login.html" + "?backref=" + encodeURIComponent(window.location.href);
         }, 1000);
