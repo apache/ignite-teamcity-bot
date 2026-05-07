@@ -59,6 +59,7 @@ dependencies {
 
     implementation group: 'com.google.guava', name: 'guava', version: guavaVer
 
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: slf4jVer
     implementation group: 'ch.qos.logback', name: 'logback-core', version: logbackVer
     implementation group: 'ch.qos.logback', name: 'logback-classic', version: logbackVer
 }
