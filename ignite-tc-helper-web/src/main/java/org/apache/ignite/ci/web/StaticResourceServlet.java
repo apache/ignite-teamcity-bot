@@ -19,7 +19,10 @@ package org.apache.ignite.ci.web;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.URLDecoder;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -41,19 +44,45 @@ public class StaticResourceServlet extends HttpServlet {
         if (ctx != null && !ctx.isEmpty() && uri.startsWith(ctx))
             path = uri.substring(ctx.length());
 
-        if (path == null || path.isEmpty() || "/".equals(path))
-            return "index.html";
-
         if (path.startsWith("/"))
             path = path.substring(1);
 
-        return path;
+        path = URLDecoder.decode(path, StandardCharsets.UTF_8);
+
+        if (path.contains("..") || path.contains("\\") || path.startsWith("/"))
+            return path;
+
+        String normalized = URI.create("/" + path).normalize().getPath();
+
+        if (normalized.startsWith("/"))
+            normalized = normalized.substring(1);
+
+        return normalized;
     }
 
     /** {@inheritDoc} */
     @Override protected void doGet(HttpServletRequest req, HttpServletResponse resp)
         throws ServletException, IOException {
-        String path = resourcePath(req);
+        String path;
+
+        try {
+            path = resourcePath(req);
+        }
+        catch (IllegalArgumentException e) {
+            resp.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+
+        if (path.isEmpty())
+            path = "index.html";
+
+        if (path.contains("..") || path.contains("\\") || path.startsWith("/")) {
+            resp.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+
+        if (path.endsWith("/"))
+            path += "index.html";
 
         String resPath = STATIC_ROOT + path;
 

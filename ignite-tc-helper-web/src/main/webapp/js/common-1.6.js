@@ -87,7 +87,7 @@ function showErrInLoadStatus(jqXHR, exception) {
             return;
 
         setTimeout(function() {
-            window.location.href = "/login.html" + "?backref=" + currentBackref();
+            window.location.href = "/login.html?backref=" + encodeURIComponent(currentBackref());
         }, 1000);
     } else if (jqXHR.status === 403) {
         $("#loadStatus").html('Forbidden [403]');
