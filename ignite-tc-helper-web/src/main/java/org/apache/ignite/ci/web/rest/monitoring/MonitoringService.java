@@ -37,6 +37,7 @@ import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfilingInterceptor;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTaskInterceptor;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
+import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.apache.ignite.tcbot.engine.build.AiPromptRequestMonitor;
 import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
@@ -81,6 +82,15 @@ public class MonitoringService {
     private static final Pattern EXCEPTION_SUMMARY = Pattern.compile(
         "(?m)^(?:Caused by: )?([\\w.$]+(?:Exception|Error): .+)$");
 
+    /** Secret-like values in log text. */
+    private static final Pattern SECRET_VALUE = Pattern.compile(
+        "(?i)(authorization:\\s*(?:basic|bearer|token)\\s+|(?:access_token|auth_token|token|password|passwd|pwd|secret)=)" +
+            "([^\\s&\"'<>]+)");
+
+    /** JSON secret-like values in log text. */
+    private static final Pattern JSON_SECRET_VALUE = Pattern.compile(
+        "(?i)(\"(?:access_token|auth_token|token|password|passwd|pwd|secret)\"\\s*:\\s*\")([^\"]+)(\")");
+
     /** Max summary length. */
     private static final int SUMMARY_LIMIT = 240;
 
@@ -110,6 +120,255 @@ public class MonitoringService {
             res.count = invocation.count();
             return res;
         }).collect(Collectors.toList());
+    }
+
+    @GET
+    @Path("appLogSummaryLink")
+    public AppLogSummaryLink getAppLogSummaryLink() {
+        MonitoredTaskInterceptor instance = CtxListener.getInjector(ctx).getInstance(MonitoredTaskInterceptor.class);
+
+        AppLogSummaryLink res = new AppLogSummaryLink();
+        res.startTs = instance.startedTs();
+        res.name = "Application log since startup";
+
+        return res;
+    }
+
+    @GET
+    @Path("taskLog")
+    public List<AppLogEntry> getTaskLog(@QueryParam("startTs") long startTs, @QueryParam("endTs") long endTs) {
+        if (startTs <= 0)
+            return new ArrayList<>();
+
+        long actualEndTs = endTs > 0 ? endTs : System.currentTimeMillis();
+
+        if (actualEndTs < startTs)
+            actualEndTs = startTs;
+
+        File[] files = appLogFiles(startTs);
+
+        List<AppLogEntry> res = new ArrayList<>();
+
+        for (File file : files)
+            readLogEntries(file, startTs, actualEndTs, res);
+
+        return res;
+    }
+
+    /**
+     * @param startTs Task start timestamp.
+     */
+    private File[] appLogFiles(long startTs) {
+        File tcbotLogs = new File(TcBotWorkDir.resolveWorkDir(), "tcbot_logs");
+
+        File[] files = tcbotLogs.listFiles(file -> file.isFile()
+            && file.getName().endsWith(".log")
+            && !file.getName().startsWith("monitoring")
+            && file.lastModified() >= startTs - 60 * 60 * 1000L);
+
+        if (files == null)
+            return new File[0];
+
+        Arrays.sort(files, Comparator.comparingLong(File::lastModified));
+
+        return files;
+    }
+
+    /**
+     * @param file Log file.
+     * @param startTs Start timestamp.
+     * @param endTs End timestamp.
+     * @param res Result.
+     */
+    private void readLogEntries(File file, long startTs, long endTs, List<AppLogEntry> res) {
+        try (BufferedReader reader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)) {
+            AppLogEntry cur = null;
+            boolean collect = false;
+
+            for (String line = reader.readLine(); line != null; line = reader.readLine()) {
+                Matcher matcher = LOG_ENTRY_START.matcher(line);
+
+                if (matcher.matches()) {
+                    enrichLogEntry(cur);
+
+                    cur = null;
+                    collect = false;
+
+                    long ts = logTimestamp(matcher.group(1));
+                    String level = matcher.group(2);
+
+                    if (ts >= startTs && ts <= endTs && isWarningOrError(level)) {
+                        cur = new AppLogEntry();
+                        cur.timestamp = matcher.group(1);
+                        cur.level = level;
+                        cur.file = file.getName();
+                        cur.text = line;
+
+                        res.add(cur);
+                        collect = true;
+                    }
+                }
+                else if (collect)
+                    cur.text += System.lineSeparator() + line;
+            }
+
+            enrichLogEntry(cur);
+        }
+        catch (IOException ignored) {
+            // Monitoring page must remain available even if a log file is being rotated.
+        }
+    }
+
+    /**
+     * @param entry Log entry.
+     */
+    private void enrichLogEntry(AppLogEntry entry) {
+        if (entry == null || entry.text == null)
+            return;
+
+        entry.text = sanitizeLogText(entry.text);
+        entry.serviceUrl = serviceUrl(entry.text);
+        entry.serviceHost = serviceHost(entry.text, entry.serviceUrl);
+        entry.responseCode = responseCode(entry.text);
+        entry.summary = summary(entry);
+    }
+
+    /**
+     * @param text Log text.
+     */
+    private String sanitizeLogText(String text) {
+        String sanitized = SECRET_VALUE.matcher(text).replaceAll("$1<redacted>");
+
+        return JSON_SECRET_VALUE.matcher(sanitized).replaceAll("$1<redacted>$3");
+    }
+
+    /**
+     * @param text Log text.
+     */
+    private String serviceUrl(String text) {
+        Matcher matcher = SERVICE_URL.matcher(text);
+
+        if (!matcher.find())
+            return null;
+
+        return trimUrl(matcher.group(1));
+    }
+
+    /**
+     * @param text Log text.
+     * @param serviceUrl Service URL.
+     */
+    private String serviceHost(String text, String serviceUrl) {
+        if (!Strings.isNullOrEmpty(serviceUrl)) {
+            try {
+                return new URL(serviceUrl).getHost();
+            }
+            catch (MalformedURLException ignored) {
+                // Try explicit host fields below.
+            }
+        }
+
+        Matcher matcher = SERVICE_HOST.matcher(text);
+
+        return matcher.find() ? matcher.group(1) : null;
+    }
+
+    /**
+     * @param text Log text.
+     */
+    private Integer responseCode(String text) {
+        Matcher matcher = RESPONSE_CODE.matcher(text);
+
+        if (!matcher.find())
+            return null;
+
+        for (int i = 1; i <= matcher.groupCount(); i++) {
+            if (matcher.group(i) != null)
+                return Integer.valueOf(matcher.group(i));
+        }
+
+        return null;
+    }
+
+    /**
+     * @param entry Log entry.
+     */
+    private String summary(AppLogEntry entry) {
+        String msg = exceptionSummary(entry.text);
+
+        if (Strings.isNullOrEmpty(msg))
+            msg = firstLine(entry.text);
+
+        if (entry.responseCode != null && !Strings.isNullOrEmpty(entry.serviceHost))
+            msg = "HTTP " + entry.responseCode + " from " + entry.serviceHost + ": " + msg;
+        else if (!Strings.isNullOrEmpty(entry.serviceHost))
+            msg = "Host " + entry.serviceHost + ": " + msg;
+
+        return limit(msg);
+    }
+
+    /**
+     * @param text Log text.
+     */
+    private String exceptionSummary(String text) {
+        Matcher matcher = EXCEPTION_SUMMARY.matcher(text);
+        String res = null;
+
+        while (matcher.find())
+            res = matcher.group(1);
+
+        return res;
+    }
+
+    /**
+     * @param text Text.
+     */
+    private String firstLine(String text) {
+        int end = text.indexOf(System.lineSeparator());
+
+        return end >= 0 ? text.substring(0, end) : text;
+    }
+
+    /**
+     * @param url URL.
+     */
+    private String trimUrl(String url) {
+        while (url.endsWith(":") || url.endsWith(".") || url.endsWith(";"))
+            url = url.substring(0, url.length() - 1);
+
+        return url;
+    }
+
+    /**
+     * @param text Text.
+     */
+    private String limit(String text) {
+        if (text == null || text.length() <= SUMMARY_LIMIT)
+            return text;
+
+        return text.substring(0, SUMMARY_LIMIT - 3) + "...";
+    }
+
+    /**
+     * @param timestamp Timestamp.
+     */
+    private long logTimestamp(String timestamp) {
+        try {
+            return LocalDateTime.parse(timestamp, LOG_TS_FORMAT)
+                .atZone(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli();
+        }
+        catch (DateTimeParseException e) {
+            return 0;
+        }
+    }
+
+    /**
+     * @param level Log level.
+     */
+    private boolean isWarningOrError(String level) {
+        return "WARN".equals(level) || "ERROR".equals(level);
     }
 
 

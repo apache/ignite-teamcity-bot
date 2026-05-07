@@ -21,6 +21,7 @@ import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.web.model.Version;
 import org.apache.ignite.lang.IgniteProductVersion;
+import org.eclipse.jetty.server.Server;
 
 /**
  * Service for general requests processing, which are not related to builds/JIRA/GitHub.
@@ -34,6 +35,7 @@ public class TcBotGeneralService {
      */
     public Version version() {
         Version ver = new Version();
+        ver.serverVer = Server.getVersion();
 
         try {
             IgniteProductVersion ignProdVer = igniteProvider.get().version();

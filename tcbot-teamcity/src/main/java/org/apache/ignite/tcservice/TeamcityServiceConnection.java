@@ -101,6 +101,9 @@ public class TeamcityServiceConnection implements ITeamcity {
     /** Retry jitter. */
     private static final long RETRY_JITTER_MS = 250;
 
+    /** Max retry backoff. */
+    private static final long MAX_RETRY_BACKOFF_MS = TimeUnit.SECONDS.toMillis(30);
+
     @Inject private IDataSourcesConfigSupplier cfg;
 
     private String srvCode;
@@ -349,59 +352,6 @@ public class TeamcityServiceConnection implements ITeamcity {
                 throw ExceptionUtil.propagateException(e);
             }
         }
-
-        throw new IllegalStateException("Unreachable");
-    }
-
-    /**
-     * @param e Exception.
-     * @param attempt Attempt.
-     */
-    private boolean shouldRetry(IOException e, int attempt) {
-        return attempt < GET_ATTEMPTS && isTemporaryTransportFailure(e);
-    }
-
-    /**
-     * @param attempt Attempt.
-     */
-    private boolean shouldRetryServiceUnavailable(int attempt) {
-        return attempt < GET_ATTEMPTS;
-    }
-
-    /**
-     * @param attempt Attempt.
-     * @param retryAfterMs Retry-After delay, or {@code -1}.
-     */
-    private long retryBackoffMs(int attempt, long retryAfterMs) {
-        long base = INITIAL_RETRY_BACKOFF_MS << (attempt - 1);
-        long backoff = base + ThreadLocalRandom.current().nextLong(RETRY_JITTER_MS + 1);
-
-        return retryAfterMs >= 0 ? Math.max(backoff, retryAfterMs) : backoff;
-    }
-
-    /**
-     * @param e Exception.
-     */
-    private boolean isTemporaryTransportFailure(Throwable e) {
-        for (Throwable th = e; th != null; th = th.getCause()) {
-            if (th instanceof ConnectException || th instanceof SocketException || th instanceof SocketTimeoutException)
-                return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * @param url URL.
-     */
-    private String host(String url) {
-        try {
-            return new URL(url).getHost();
-        }
-        catch (MalformedURLException ignored) {
-            return "<unknown>";
-        }
-    }
 
     @SuppressWarnings("WeakerAccess")
     @AutoProfiling
