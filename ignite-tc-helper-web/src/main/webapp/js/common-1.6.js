@@ -58,6 +58,22 @@ function rgbToHex(r, g, b) {
     return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
 }
 
+function isLoginUrl(url) {
+    try {
+        return new URL(url, window.location.origin).pathname === "/login.html";
+    }
+    catch (e) {
+        return false;
+    }
+}
+
+function currentBackref() {
+    if (isLoginUrl(window.location.href))
+        return "/";
+
+    return window.location.href;
+}
+
 //requires element on page: <div id="loadStatus"></div>
 function showErrInLoadStatus(jqXHR, exception) {
     if (jqXHR.status === 0) {
@@ -71,7 +87,7 @@ function showErrInLoadStatus(jqXHR, exception) {
             return;
 
         setTimeout(function() {
-            window.location.href = "/login.html" + "?backref=" + encodeURIComponent(window.location.href);
+            window.location.href = "/login.html" + "?backref=" + currentBackref();
         }, 1000);
     } else if (jqXHR.status === 403) {
         $("#loadStatus").html('Forbidden [403]');

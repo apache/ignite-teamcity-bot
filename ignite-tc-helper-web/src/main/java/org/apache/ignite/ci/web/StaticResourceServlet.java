@@ -32,23 +32,28 @@ public class StaticResourceServlet extends HttpServlet {
     /** Static resources classpath root. */
     private static final String STATIC_ROOT = "static/";
 
+    private static String resourcePath(HttpServletRequest req) {
+        String ctx = req.getContextPath();
+        String uri = req.getRequestURI();
+
+        String path = uri;
+
+        if (ctx != null && !ctx.isEmpty() && uri.startsWith(ctx))
+            path = uri.substring(ctx.length());
+
+        if (path == null || path.isEmpty() || "/".equals(path))
+            return "index.html";
+
+        if (path.startsWith("/"))
+            path = path.substring(1);
+
+        return path;
+    }
+
     /** {@inheritDoc} */
     @Override protected void doGet(HttpServletRequest req, HttpServletResponse resp)
         throws ServletException, IOException {
-        String path = req.getPathInfo();
-
-        if (path == null || path.equals("/") || path.isEmpty())
-            path = "index.html";
-        else
-            path = path.substring(1);
-
-        if (path.endsWith("/"))
-            path += "index.html";
-
-        if (path.contains("..") || path.startsWith("/")) {
-            resp.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return;
-        }
+        String path = resourcePath(req);
 
         String resPath = STATIC_ROOT + path;
 
