@@ -81,28 +81,37 @@ Use these commands to verify a clean checkout and run the bot from the generated
 Set `PR_REF` only when checking a pull request:
 
 ```
-set REPO=C:\projects\ignite-teamcity-bot-check
-set PR_REF=
+set "SCRIPT_DIR=%~dp0"
+set "REPO=%SCRIPT_DIR%ignite-teamcity-bot-check"
+set "DIST=C:\Tmp\tc-bot-prod-check"
+
+set "PR_REF="
 rem set PR_REF=pull/200/head
 
-if not exist %REPO% git clone https://github.com/apache/ignite-teamcity-bot.git %REPO%
-cd /d %REPO%
-git fetch origin master
-git switch master
-git reset --hard origin/master
-git clean -fdx
+if not exist "%REPO%\.git" (
+    git clone https://github.com/apache/ignite-teamcity-bot.git "%REPO%" || exit /b 1
+)
 
-if not "%PR_REF%"=="" git branch -D pr-check 2>NUL
-if not "%PR_REF%"=="" git fetch origin %PR_REF%:refs/heads/pr-check
-if not "%PR_REF%"=="" git switch pr-check
+cd /d "%REPO%" || exit /b 1
+git fetch origin master || exit /b 1
+git switch master || exit /b 1
+git reset --hard origin/master || exit /b 1
+git clean -fdx || exit /b 1
 
-java -version
-gradlew.bat clean build --no-daemon
-gradlew.bat :jetty-launcher:clean :jetty-launcher:distZip --no-daemon
+if not "%PR_REF%"=="" (
+    git branch -D pr-check 2>NUL
+    git fetch origin %PR_REF%:refs/heads/pr-check || exit /b 1
+    git switch pr-check || exit /b 1
+)
 
-powershell -NoProfile -Command "Remove-Item -LiteralPath C:\Tmp\tc-bot-prod-check -Recurse -Force -ErrorAction SilentlyContinue; Expand-Archive -LiteralPath jetty-launcher\build\distributions\jetty-launcher.zip -DestinationPath C:\Tmp\tc-bot-prod-check"
-powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path C:\Tmp\tc-bot-prod-check\jetty-launcher\work | Out-Null"
-copy conf\branches.json C:\Tmp\tc-bot-prod-check\jetty-launcher\work\branches.json
-cd /d C:\Tmp\tc-bot-prod-check\jetty-launcher\bin
-jetty-launcher.bat
+java -version || exit /b 1
+call gradlew.bat clean build --no-daemon || exit /b 1
+call gradlew.bat :jetty-launcher:clean :jetty-launcher:distZip --no-daemon || exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Remove-Item -LiteralPath '%DIST%' -Recurse -Force -ErrorAction SilentlyContinue; Expand-Archive -LiteralPath 'jetty-launcher\build\distributions\jetty-launcher.zip' -DestinationPath '%DIST%' -Force" || exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "New-Item -ItemType Directory -Force -Path '%DIST%\jetty-launcher\work' | Out-Null" || exit /b 1
+copy /Y "conf\branches.json" "%DIST%\jetty-launcher\work\branches.json" || exit /b 1
+
+cd /d "%DIST%\jetty-launcher\bin" || exit /b 1
+call jetty-launcher.bat
 ```
