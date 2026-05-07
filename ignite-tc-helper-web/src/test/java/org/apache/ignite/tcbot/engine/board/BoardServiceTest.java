@@ -228,8 +228,8 @@ public class BoardServiceTest {
             defectsStorage.save(defect0);
         });
 
-        issuesStorage.removeOldIssues(System.currentTimeMillis(), Integer.MAX_VALUE);
-        defectsStorage.removeOldDefects(System.currentTimeMillis(), Integer.MAX_VALUE);
+        issuesStorage.removeOldIssues(Long.MAX_VALUE, Integer.MAX_VALUE);
+        defectsStorage.removeOldDefects(Long.MAX_VALUE, Integer.MAX_VALUE);
     }
 
     private static ChangeCompacted createChange(byte[] commit) {
