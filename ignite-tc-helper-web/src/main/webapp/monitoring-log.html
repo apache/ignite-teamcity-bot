@@ -90,7 +90,7 @@
             meta.push("Host: " + escapeHtml(entry.serviceHost));
 
         if (entry.serviceUrl)
-            meta.push("<a target='_blank' href='" + escapeHtml(entry.serviceUrl) + "'>" +
+            meta.push("<a target='_blank' rel='noopener noreferrer' href='" + escapeHtml(entry.serviceUrl) + "'>" +
                 escapeHtml(entry.serviceUrl) + "</a>");
 
         return meta.join(" | ");

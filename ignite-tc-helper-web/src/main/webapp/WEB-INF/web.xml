@@ -28,11 +28,7 @@
         <url-pattern>/rest/*</url-pattern>
     </servlet-mapping>
 
-    <servlet>
-        <servlet-name>default</servlet-name>
-        <init-param>
-            <param-name>useFileMappedBuffer</param-name>
-            <param-value>false</param-value>
-        </init-param>
-    </servlet>
+    <welcome-file-list>
+        <welcome-file>index.html</welcome-file>
+    </welcome-file-list>
 </web-app>

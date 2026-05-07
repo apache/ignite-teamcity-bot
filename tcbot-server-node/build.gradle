@@ -25,20 +25,21 @@ repositories {
 
 application {
     mainClass = 'org.apache.ignite.ci.TcBotIgniteServerLauncher'
-    applicationDefaultJvmArgs = ["-Dteamcity.helper.home=../work",
-                                 "-Dteamcity.bot.regionsize=16", // 16g Durable Memory region
-                                 "-server",
-                                 "-Xmx2g",
-                                 "-XX:+AlwaysPreTouch",
-                                 "-XX:+UseG1GC",
-                                 "-XX:+ScavengeBeforeFullGC",
-                                 "-XX:+UseStringDeduplication",
-                                 "-Djava.rmi.server.hostname=app02",
-                                 "-Dcom.sun.management.jmxremote",
-                                 "-Dcom.sun.management.jmxremote.port=9011",
-                                 "-Dcom.sun.management.jmxremote.local.only=false",
-                                 "-Dcom.sun.management.jmxremote.authenticate=false",
-                                 "-Dcom.sun.management.jmxremote.ssl=false"] + igniteJava17JvmArgs
+    applicationDefaultJvmArgs = igniteJava17JvmArgs + ["-Dteamcity.helper.home=../work",
+                                                       "-Dfile.encoding=UTF-8",
+                                                       "-Dteamcity.bot.regionsize=16", // 16g Durable Memory region
+                                                       "-server",
+                                                       "-Xmx2g",
+                                                       "-XX:+AlwaysPreTouch",
+                                                       "-XX:+UseG1GC",
+                                                       "-XX:+ScavengeBeforeFullGC",
+                                                       "-XX:+UseStringDeduplication",
+                                                       "-Djava.rmi.server.hostname=app02",
+                                                       "-Dcom.sun.management.jmxremote",
+                                                       "-Dcom.sun.management.jmxremote.port=9011",
+                                                       "-Dcom.sun.management.jmxremote.local.only=false",
+                                                       "-Dcom.sun.management.jmxremote.authenticate=false",
+                                                       "-Dcom.sun.management.jmxremote.ssl=false"]
 }
 
 distributions {
@@ -46,20 +47,20 @@ distributions {
 }
 
 dependencies {
-    api (project(":tcbot-common")) {
+    implementation (project(":tcbot-common")) {
         transitive = false
     }
 
-    api (project(":ignite-tc-helper-web"))  {
+    implementation (project(":ignite-tc-helper-web"))  {
         transitive = false
     }
 
-    api group: 'com.google.guava', name: 'guava', version: guavaVer
+    implementation group: 'com.google.guava', name: 'guava', version: guavaVer
 
-    api group: 'ch.qos.logback', name: 'logback-core', version: logbackVer
-    api group: 'ch.qos.logback', name: 'logback-classic', version: logbackVer
+    implementation group: 'ch.qos.logback', name: 'logback-core', version: logbackVer
+    implementation group: 'ch.qos.logback', name: 'logback-classic', version: logbackVer
 
-    api group: 'org.apache.ignite', name: 'ignite-core', version: ignVer
-    api group: 'org.apache.ignite', name: 'ignite-slf4j', version: ignVer
-    api group: 'org.apache.ignite', name: 'ignite-direct-io', version: ignVer
+    implementation group: 'org.apache.ignite', name: 'ignite-core', version: ignVer
+    implementation group: 'org.apache.ignite', name: 'ignite-slf4j', version: ignVer
+    implementation group: 'org.apache.ignite', name: 'ignite-direct-io', version: ignVer
 }

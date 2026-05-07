@@ -36,12 +36,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
+import java.net.ConnectException;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.StringTokenizer;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
@@ -61,6 +66,15 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     /** GitHub read attempts. */
     private static final int READ_ATTEMPTS = 3;
+
+    /** Initial retry backoff. */
+    private static final long INITIAL_RETRY_BACKOFF_MS = 500;
+
+    /** Retry jitter. */
+    private static final long RETRY_JITTER_MS = 250;
+
+    /** Max retry backoff. */
+    private static final long MAX_RETRY_BACKOFF_MS = TimeUnit.SECONDS.toMillis(30);
 
     private static AtomicLong lastRq = new AtomicLong();
 
@@ -118,8 +132,13 @@ class GitHubConnectionImpl implements IGitHubConnection {
             }
             catch (IOException e) {
                 if (shouldRetry(e, attempt)) {
-                    logger.warn("Failed to read GitHub pull request, will retry [srv={}, pr={}, url={}, attempt={}/{}]",
-                        srvCode, id, pr, attempt, READ_ATTEMPTS, e);
+                    long backoffMs = retryBackoffMs(attempt);
+
+                    logger.warn("Failed to read GitHub pull request, will retry " +
+                        "[srv={}, pr={}, url={}, attempt={}/{}, backoffMs={}]",
+                        srvCode, id, pr, attempt, READ_ATTEMPTS, backoffMs, e);
+
+                    LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(backoffMs));
 
                     continue;
                 }
@@ -214,8 +233,12 @@ class GitHubConnectionImpl implements IGitHubConnection {
             }
             catch (IOException e) {
                 if (shouldRetry(e, attempt)) {
-                    logger.warn("Failed to read GitHub page, will retry [srv={}, url={}, attempt={}/{}]",
-                        srvCode, url, attempt, READ_ATTEMPTS, e);
+                    long backoffMs = retryBackoffMs(attempt);
+
+                    logger.warn("Failed to read GitHub page, will retry [srv={}, url={}, attempt={}/{}, backoffMs={}]",
+                        srvCode, url, attempt, READ_ATTEMPTS, backoffMs, e);
+
+                    LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(backoffMs));
 
                     continue;
                 }
@@ -234,19 +257,29 @@ class GitHubConnectionImpl implements IGitHubConnection {
      * @param attempt Attempt.
      */
     private boolean shouldRetry(IOException e, int attempt) {
-        return attempt < READ_ATTEMPTS && isSocketTimeout(e);
+        return attempt < READ_ATTEMPTS && isTemporaryTransportFailure(e);
     }
 
     /**
      * @param e Exception.
      */
-    private boolean isSocketTimeout(Throwable e) {
+    private boolean isTemporaryTransportFailure(Throwable e) {
         for (Throwable th = e; th != null; th = th.getCause()) {
-            if (th instanceof SocketTimeoutException)
+            if (th instanceof ConnectException || th instanceof SocketException || th instanceof SocketTimeoutException)
                 return true;
         }
 
         return false;
+    }
+
+    /**
+     * @param attempt Attempt.
+     */
+    private long retryBackoffMs(int attempt) {
+        long base = INITIAL_RETRY_BACKOFF_MS << (attempt - 1);
+        long backoff = base + ThreadLocalRandom.current().nextLong(RETRY_JITTER_MS + 1);
+
+        return Math.min(backoff, MAX_RETRY_BACKOFF_MS);
     }
 
 

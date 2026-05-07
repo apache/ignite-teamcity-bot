@@ -80,6 +80,15 @@ public class MonitoringService {
     private static final Pattern EXCEPTION_SUMMARY = Pattern.compile(
         "(?m)^(?:Caused by: )?([\\w.$]+(?:Exception|Error): .+)$");
 
+    /** Secret-like values in log text. */
+    private static final Pattern SECRET_VALUE = Pattern.compile(
+        "(?i)(authorization:\\s*(?:basic|bearer|token)\\s+|(?:access_token|auth_token|token|password|passwd|pwd|secret)=)" +
+            "([^\\s&\"'<>]+)");
+
+    /** JSON secret-like values in log text. */
+    private static final Pattern JSON_SECRET_VALUE = Pattern.compile(
+        "(?i)(\"(?:access_token|auth_token|token|password|passwd|pwd|secret)\"\\s*:\\s*\")([^\"]+)(\")");
+
     /** Max summary length. */
     private static final int SUMMARY_LIMIT = 240;
 
@@ -112,7 +121,6 @@ public class MonitoringService {
     }
 
     @GET
-    @PermitAll
     @Path("appLogSummaryLink")
     public AppLogSummaryLink getAppLogSummaryLink() {
         MonitoredTaskInterceptor instance = CtxListener.getInjector(ctx).getInstance(MonitoredTaskInterceptor.class);
@@ -125,7 +133,6 @@ public class MonitoringService {
     }
 
     @GET
-    @PermitAll
     @Path("taskLog")
     public List<AppLogEntry> getTaskLog(@QueryParam("startTs") long startTs, @QueryParam("endTs") long endTs) {
         if (startTs <= 0)
@@ -217,10 +224,20 @@ public class MonitoringService {
         if (entry == null || entry.text == null)
             return;
 
+        entry.text = sanitizeLogText(entry.text);
         entry.serviceUrl = serviceUrl(entry.text);
         entry.serviceHost = serviceHost(entry.text, entry.serviceUrl);
         entry.responseCode = responseCode(entry.text);
         entry.summary = summary(entry);
+    }
+
+    /**
+     * @param text Log text.
+     */
+    private String sanitizeLogText(String text) {
+        String sanitized = SECRET_VALUE.matcher(text).replaceAll("$1<redacted>");
+
+        return JSON_SECRET_VALUE.matcher(sanitized).replaceAll("$1<redacted>$3");
     }
 
     /**

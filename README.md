@@ -72,53 +72,9 @@ Please install following components for development using IntelliJ IDEA
 * Apply [Code Inspection Profile](https://cwiki.apache.org/confluence/display/IGNITE/Coding+Guidelines#CodingGuidelines-C.CodeInspection)
 * Configure [IDEA Codestyle](https://cwiki.apache.org/confluence/display/IGNITE/Coding+Guidelines#CodingGuidelines-A.ConfigureIntelliJIDEAcodestyle)
 
-### Build
-A build can be done using following commands
-- gradle clean
-- gradle build
-
-It is recommended to use Java 17 for development and production.
-
-It may be required to install 
-[Java Cryptography Extension JCE Unlimited Strength Jurisdiction Policy Files 8 Download](https://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html)
-because the Bot uses strong AES cryptography, but default java distribution may limit AES256 usage.
-
-
-Resulting distribution can be found in projectRoot\jetty-launcher\build\distributions.
-Distribution will contain start script in \bin folder.
-
-### Running in production
-Production mode is started from the `jetty-launcher` distribution. Build the distribution first:
-
-```
-gradle clean build
-```
-
-Unpack the archive from `jetty-launcher/build/distributions` on the target host. The production launcher
-is `org.apache.ignite.ci.TcHelperJettyLauncher`; it starts the same web application from the packaged WAR.
-The generated start scripts set the default working directory to `../work` via
-`-Dteamcity.helper.home=../work`, so place production `branches.json` and other required configuration
-files into that `work` directory, or override `teamcity.helper.home` with the desired production path.
-The generated scripts also include the Java 17 module options required by Ignite 2.18. When installing the
-bot as an OS service, point the service to the generated `jetty-launcher/bin/jetty-launcher` script, or keep
-the service JVM options in sync with the `igniteJava17JvmArgs` list from the root Gradle build.
-
-When the bot is installed as a service, start or restart `tc-bot-service` after deploying a new build or
-changing configuration:
-
-```
-systemctl start tc-bot-service
-systemctl restart tc-bot-service
-systemctl status tc-bot-service
-```
-
-After `tc-bot-service` is up, open the production bot URL, log in with TeamCity credentials, and click
-`Authorize Server` in the top menu. This step is required for background operations that need TeamCity
-access, including background checks, queue checks, build triggering, JIRA notifications, and cleanup.
-
-Server authorization is not stored in `branches.json`; it is taken from the authenticated user session and
-kept by the running bot process. Re-authorize the server after each service restart, deployment, or process
-crash.
+### Build and installation
+Build, production installation, Linux service setup, and Windows production-check commands are documented in
+[Build and installation](docs/install.md).
 
 ### Internal Design
 Main bot logic is placed in [ignite-tc-helper-web](ignite-tc-helper-web) module. 
