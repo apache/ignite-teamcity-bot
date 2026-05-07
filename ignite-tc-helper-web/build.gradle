@@ -56,6 +56,13 @@ processResources {
     }
 }
 
+war {
+    into('WEB-INF/classes/static') {
+        from 'src/main/webapp'
+        exclude 'WEB-INF/**'
+    }
+}
+
 test {
     // set JVM arguments for the test JVM(s)
     jvmArgs igniteJava17JvmArgs
