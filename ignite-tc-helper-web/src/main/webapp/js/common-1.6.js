@@ -115,6 +115,10 @@ function showVersionInfo(result) {
         res += ", Java Version: " + result.javaVer;
     }
 
+    if (isDefinedAndFilled(result.serverVer)) {
+        res += ", Server Version: " + result.serverVer;
+    }
+
     res += "<br>";
     res += "Managed by the <a href='https://ignite.apache.org/our-community.html'>Apache Ignite Development Project.</a>";
 

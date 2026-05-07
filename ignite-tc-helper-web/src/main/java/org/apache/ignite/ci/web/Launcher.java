@@ -73,7 +73,7 @@ public class Launcher {
             File warFile = file.getCanonicalFile();
             Preconditions.checkState(warFile.exists(), "War file can not be found [" + warFile + "]");
 
-            ctx.setWarResource(ctx.getResourceFactory().newJarFileResource(warFile.toURI()));
+            ctx.setWar(warFile.toURI().toString());
         }
         srv.setHandler(ctx);
 
