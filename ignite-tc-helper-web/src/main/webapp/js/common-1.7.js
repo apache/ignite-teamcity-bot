@@ -67,6 +67,15 @@ function isLoginUrl(url) {
     }
 }
 
+function escapeHtml(str) {
+    return String(str == null ? "" : str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 function currentBackref() {
     if (isLoginUrl(window.location.href))
         return "/";
@@ -208,7 +217,11 @@ function showMenu(menuData) {
 
         res += "<a href='/monitoring.html'>Server state</a>";
 
-        res += "<a id='userName' href='/user.html'>" + userName + "</a>";
+        if (menuData.admin) {
+            res += adminUsersMenu(menuData.users);
+        }
+
+        res += "<a id='userName' href='/user.html'>" + escapeHtml(userName) + "</a>";
         var logout = "/login.html" + "?exit=true&backref=" + encodeURIComponent(window.location.href);
         res += "<a href='" + logout + "'>Logout</a>";
 
@@ -217,6 +230,30 @@ function showMenu(menuData) {
     }
 
     $(document.body).prepend(res);
+}
+
+function adminUsersMenu(users) {
+    if (!Array.isArray(users) || users.length === 0)
+        return "";
+
+    var res = "<div class='dropdown'>";
+    res += "<button class='dropbtn'>Users</button>";
+    res += "<div class='dropdown-content'>";
+
+    for (var i = 0; i < users.length; i++) {
+        var user = users[i];
+        var label = escapeHtml(user.displayName || user.username);
+
+        if (user.admin)
+            label += " <span class='admin-marker'>admin</span>";
+
+        res += "<a href='/user.html?login=" + encodeURIComponent(user.username) + "'>" + label + "</a>";
+    }
+
+    res += "</div>";
+    res += "</div>";
+
+    return res;
 }
 
 

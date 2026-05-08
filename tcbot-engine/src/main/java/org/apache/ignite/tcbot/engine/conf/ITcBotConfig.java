@@ -22,6 +22,7 @@ import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 
 import java.util.Collection;
+import java.util.Collections;
 
 /**
  * Teamcity Bot configuration access interface.
@@ -35,6 +36,9 @@ public interface ITcBotConfig extends IDataSourcesConfigSupplier {
 
     /** Default confidence. */
     Double DEFAULT_CONFIDENCE = 0.95;
+
+    /** Default TeamCity group whose members are allowed to administer bot settings. */
+    String DEFAULT_BOT_ADMIN_GROUP = "IGNITE_COMMITTERS";
 
     /** */
     String primaryServerCode();
@@ -65,6 +69,13 @@ public interface ITcBotConfig extends IDataSourcesConfigSupplier {
     IJiraServerConfig getJiraConfig(String srvCode);
 
     IGitHubConfig getGitConfig(String srvCode);
+
+    /**
+     * @return TeamCity group keys/names whose members are bot admins.
+     */
+    default Collection<String> botAdminGroups() {
+        return Collections.singleton(DEFAULT_BOT_ADMIN_GROUP);
+    }
 
     /**
      * @return notification settings config.

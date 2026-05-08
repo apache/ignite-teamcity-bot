@@ -33,6 +33,7 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.CacheMetrics;
 import org.apache.ignite.cache.affinity.Affinity;
 import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.ci.web.auth.AuthenticationFilter;
 import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfilingInterceptor;
@@ -45,7 +46,7 @@ import org.apache.ignite.tcbot.notify.IEmailSender;
 import org.apache.ignite.tcbot.notify.ISendEmailConfig;
 import org.apache.ignite.tcbot.notify.ISlackSender;
 
-import javax.annotation.security.PermitAll;
+import javax.annotation.security.RolesAllowed;
 import javax.servlet.ServletContext;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
@@ -101,7 +102,6 @@ public class MonitoringService {
     private ServletContext ctx;
 
     @GET
-    @PermitAll
     @Path("tasks")
     public List<TaskResult> getTaskMonitoring() {
         MonitoredTaskInterceptor instance = CtxListener.getInjector(ctx).getInstance(MonitoredTaskInterceptor.class);
@@ -122,6 +122,7 @@ public class MonitoringService {
     }
 
     @GET
+    @RolesAllowed(AuthenticationFilter.ADMIN_ROLE)
     @Path("appLogSummaryLink")
     public AppLogSummaryLink getAppLogSummaryLink() {
         MonitoredTaskInterceptor instance = CtxListener.getInjector(ctx).getInstance(MonitoredTaskInterceptor.class);
@@ -134,6 +135,7 @@ public class MonitoringService {
     }
 
     @GET
+    @RolesAllowed(AuthenticationFilter.ADMIN_ROLE)
     @Path("taskLog")
     public List<AppLogEntry> getTaskLog(@QueryParam("startTs") long startTs, @QueryParam("endTs") long endTs) {
         if (startTs <= 0)
@@ -372,7 +374,6 @@ public class MonitoringService {
 
 
     @GET
-    @PermitAll
     @Path("profiling")
     public List<HotSpot> getHotMethods() {
         AutoProfilingInterceptor instance = CtxListener.getInjector(ctx).getInstance(AutoProfilingInterceptor.class);
@@ -394,6 +395,7 @@ public class MonitoringService {
     }
 
     @POST
+    @RolesAllowed(AuthenticationFilter.ADMIN_ROLE)
     @Path("resetProfiling")
     public SimpleResult resetProfiling() {
         AutoProfilingInterceptor instance = CtxListener.getInjector(ctx).getInstance(AutoProfilingInterceptor.class);
@@ -404,7 +406,7 @@ public class MonitoringService {
     }
 
     @POST
-    @PermitAll
+    @RolesAllowed(AuthenticationFilter.ADMIN_ROLE)
     @Path("testSlackNotification")
     public SimpleResult testSlackNotification() {
         ISlackSender slackSender = CtxListener.getInjector(ctx).getInstance(ISlackSender.class);
@@ -427,6 +429,7 @@ public class MonitoringService {
     }
 
     @POST
+    @RolesAllowed(AuthenticationFilter.ADMIN_ROLE)
     @Path("testEmailNotification")
     public SimpleResult testEmailNotification(@FormParam("address") String address) {
         IEmailSender emailSender = CtxListener.getInjector(ctx).getInstance(IEmailSender.class);
@@ -450,7 +453,6 @@ public class MonitoringService {
 
 
     @GET
-    @PermitAll
     @Path("cacheMetrics")
     public List<CacheMetricsUi> getCacheStat() {
         Ignite ignite = CtxListener.getInjector(ctx).getInstance(Ignite.class);
@@ -495,6 +497,7 @@ public class MonitoringService {
     }
 
     @POST
+    @RolesAllowed(AuthenticationFilter.ADMIN_ROLE)
     @Path("resetRequests")
     public SimpleResult resetRequestStats() {
         RestRequestTimingStorage.reset();

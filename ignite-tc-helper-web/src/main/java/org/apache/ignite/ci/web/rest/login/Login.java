@@ -39,6 +39,7 @@ import javax.ws.rs.core.Context;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 @Path("login")
 @Produces("application/json")
@@ -79,7 +80,7 @@ public class Login {
         String primarySrvCode = cfg.primaryServerCode();
 
         try {
-            return doLogin(username, pwd, users, primarySrvCode, cfg.getServerIds(), tcLogin);
+            return doLogin(username, pwd, users, primarySrvCode, cfg.getServerIds(), tcLogin, cfg.botAdminGroups());
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
@@ -92,6 +93,17 @@ public class Login {
                                  String primarySrvId,
                                  Collection<String> srvIds,
                                  ITcLogin tcLogin) {
+        return doLogin(username, pwd, users, primarySrvId, srvIds, tcLogin,
+            Collections.singleton(ITcBotConfig.DEFAULT_BOT_ADMIN_GROUP));
+    }
+
+    public LoginResponse doLogin(@FormParam("uname") String username,
+                                 @FormParam("psw") String pwd,
+        IUserStorage users,
+                                 String primarySrvId,
+                                 Collection<String> srvIds,
+                                 ITcLogin tcLogin,
+                                 Collection<String> botAdminGroups) {
         SecureRandom random = new SecureRandom();
         byte[] tokBytes = random.generateSeed(TOKEN_LEN);
         String tok = Base64Util.encodeBytesToString(tokBytes);
@@ -127,9 +139,6 @@ public class Login {
             //todo new registration should be checked on server first
             user.userKeyKcv = userKeyCandidateKcv;
 
-            user.email = tcUser.email;
-            user.fullName = tcUser.name;
-
             user.getOrCreateCreds(primarySrvId).setLogin(username).setPassword(pwd, userKeyCandidate);
 
             user.enrichUserData(tcUser);
@@ -145,12 +154,15 @@ public class Login {
                     }
                 }
             }
-
-            users.putUser(username, user);
         } else {
             if (!Arrays.equals(userKeyCandidateKcv, user.userKeyKcv))
                 return loginRes; //password validation failed
         }
+
+        user.enrichUserData(tcUser);
+        user.setAdmin(tcUser != null && tcUser.belongsToAnyGroup(botAdminGroups));
+
+        users.putUser(username, user);
 
         //todo may be enrich user data here as well.
         userSes.userKeyUnderToken = CryptUtil.aesEncrypt(tokBytes, userKeyCandidate);

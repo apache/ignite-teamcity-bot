@@ -23,6 +23,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.ws.rs.container.ContainerRequestContext;
 import org.apache.ignite.tcbot.engine.user.UserAndSessionsStorage;
+import org.apache.ignite.tcservice.model.user.GroupRef;
+import org.apache.ignite.tcservice.model.user.Groups;
 import org.apache.ignite.tcservice.model.user.User;
 import org.apache.ignite.tcservice.login.ITcLogin;
 import org.apache.ignite.tcbot.common.util.Base64Util;
@@ -105,6 +107,48 @@ public class LoginAuthTest {
         }).when(ctx).setProperty(anyString(), any(Object.class));
 
         return ctx;
+    }
+
+    @Test
+    public void testAdminFlagLoadedFromTeamcityGroups() {
+        UserAndSessionsStorage storage = mockOneSessionStor();
+
+        Login login = createLogin();
+
+        ITcLogin adminTcLogin = (serverId, username, password) -> {
+            User user = new User();
+            user.username = username;
+            user.setGroups(new Groups(new GroupRef("IGNITE_COMMITTERS", "Ignite Committers")));
+
+            return user;
+        };
+
+        LoginResponse loginResponse = login.doLogin("admin", "password", storage, "public", Collections.emptySet(),
+            adminTcLogin, Collections.singleton("IGNITE_COMMITTERS"));
+
+        assertNotNull(loginResponse.fullToken);
+        assertTrue(storage.getUser("admin").isAdmin());
+    }
+
+    @Test
+    public void testAdminFlagIsFalseWhenTeamcityGroupIsMissing() {
+        UserAndSessionsStorage storage = mockOneSessionStor();
+
+        Login login = createLogin();
+
+        ITcLogin regularTcLogin = (serverId, username, password) -> {
+            User user = new User();
+            user.username = username;
+            user.setGroups(new Groups(new GroupRef("OTHER_GROUP", "Other Group")));
+
+            return user;
+        };
+
+        LoginResponse loginResponse = login.doLogin("user", "password", storage, "public", Collections.emptySet(),
+            regularTcLogin, Collections.singleton("IGNITE_COMMITTERS"));
+
+        assertNotNull(loginResponse.fullToken);
+        assertFalse(storage.getUser("user").isAdmin());
     }
 
     @Test

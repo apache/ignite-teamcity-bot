@@ -56,6 +56,9 @@ import org.slf4j.LoggerFactory;
  */
 @Provider
 public class AuthenticationFilter implements ContainerRequestFilter {
+    /** Admin role name for {@link RolesAllowed}. */
+    public static final String ADMIN_ROLE = "ADMIN";
+
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(AuthenticationFilter.class);
 
@@ -139,18 +142,35 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             return;
         }
 
-        //Verify user access
-        if (mtd.isAnnotationPresent(RolesAllowed.class)) {
-            RolesAllowed rolesAnnotation = mtd.getAnnotation(RolesAllowed.class);
-            Set<String> rolesSet = new HashSet<String>(Arrays.asList(rolesAnnotation.value()));
+        RolesAllowed rolesAnnotation = rolesAllowed(mtd);
 
-            //Is user valid?
-            if (!isUserAllowed("", "", rolesSet)) {
+        //Verify user access
+        if (rolesAnnotation != null) {
+            Set<String> rolesSet = new HashSet<String>(Arrays.asList(rolesAnnotation.value()));
+            ITcBotUserCreds creds = (ITcBotUserCreds)reqCtx.getProperty(ITcBotUserCreds._KEY);
+            TcHelperUser user = users.getUser(creds.getPrincipalId());
+
+            if (!isUserAllowed(user, rolesSet)) {
                 reqCtx.abortWith(rspForbidden());
 
                 return;
             }
         }
+    }
+
+    /**
+     * @param mtd Resource method.
+     */
+    private RolesAllowed rolesAllowed(Method mtd) {
+        if (mtd.isAnnotationPresent(RolesAllowed.class))
+            return mtd.getAnnotation(RolesAllowed.class);
+
+        Class<?> resourceClass = resourceInfo.getResourceClass();
+
+        if (resourceClass != null && resourceClass.isAnnotationPresent(RolesAllowed.class))
+            return resourceClass.getAnnotation(RolesAllowed.class);
+
+        return null;
     }
 
     public boolean authenticate(ContainerRequestContext reqCtx,
@@ -260,21 +280,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         };
     }
 
-    private boolean isUserAllowed(final String username, final String pwd, final Set<String> rolesSet) {
-        boolean isAllowed = false;
-
-        //Step 1. Fetch encodedPassword from database and match with encodedPassword in argument
-        //If both match then get the defined role for user from database and continue; else return isAllowed [false]
-        //Access the database and do this part yourself
-        //String userRole = userMgr.getUserRole(username);
-
-        if (username.equals("howtodoinjava") && pwd.equals("encodedPassword")) {
-            String userRole = "ADMIN";
-
-            //Step 2. Verify user role
-            if (rolesSet.contains(userRole))
-                isAllowed = true;
-        }
-        return isAllowed;
+    private boolean isUserAllowed(TcHelperUser user, Set<String> rolesSet) {
+        return user != null && rolesSet.contains(ADMIN_ROLE) && user.isAdmin();
     }
 }

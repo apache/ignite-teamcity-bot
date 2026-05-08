@@ -21,6 +21,8 @@ import com.google.common.base.Strings;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Properties;
 
@@ -131,6 +133,15 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
         Boolean alwaysFailedTestDetection = getConfig().alwaysFailedTestDetection();
 
         return alwaysFailedTestDetection != null && alwaysFailedTestDetection;
+    }
+
+    /** {@inheritDoc} */
+    @Override public Collection<String> botAdminGroups() {
+        Collection<String> botAdminGroups = getConfig().botAdminGroups();
+
+        return botAdminGroups == null || botAdminGroups.isEmpty()
+            ? Collections.singleton(ITcBotConfig.DEFAULT_BOT_ADMIN_GROUP)
+            : botAdminGroups;
     }
 
     @Override

@@ -24,6 +24,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import javax.annotation.security.PermitAll;
+import javax.annotation.security.RolesAllowed;
+import org.apache.ignite.ci.web.auth.AuthenticationFilter;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -36,6 +38,20 @@ public class MonitoringServiceSecurityTest {
         assertAuthRequired(MonitoringService.class.getMethod("getRecentRequests"));
         assertAuthRequired(MonitoringService.class.getMethod("resetRequestStats"));
         assertAuthRequired(MonitoringService.class.getMethod("getAiPromptRequests"));
+    }
+
+    @Test
+    public void logEndpointsRequireAdminRole() throws NoSuchMethodException {
+        assertAdminRequired(MonitoringService.class.getMethod("getAppLogSummaryLink"));
+        assertAdminRequired(MonitoringService.class.getMethod("getTaskLog", long.class, long.class));
+    }
+
+    @Test
+    public void mutationEndpointsRequireAdminRole() throws NoSuchMethodException {
+        assertAdminRequired(MonitoringService.class.getMethod("resetProfiling"));
+        assertAdminRequired(MonitoringService.class.getMethod("resetRequestStats"));
+        assertAdminRequired(MonitoringService.class.getMethod("testSlackNotification"));
+        assertAdminRequired(MonitoringService.class.getMethod("testEmailNotification", String.class));
     }
 
     @Test
@@ -52,6 +68,13 @@ public class MonitoringServiceSecurityTest {
 
     private static void assertAuthRequired(Method method) {
         assertFalse(method.isAnnotationPresent(PermitAll.class));
+    }
+
+    private static void assertAdminRequired(Method method) {
+        RolesAllowed rolesAllowed = method.getAnnotation(RolesAllowed.class);
+
+        assertTrue(rolesAllowed != null);
+        assertTrue(java.util.Arrays.asList(rolesAllowed.value()).contains(AuthenticationFilter.ADMIN_ROLE));
     }
 
     private static Path monitoringHtml() {

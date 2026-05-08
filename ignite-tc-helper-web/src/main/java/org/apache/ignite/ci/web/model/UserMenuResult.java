@@ -17,13 +17,30 @@
 
 package org.apache.ignite.ci.web.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class UserMenuResult extends SimpleResult {
     public String username;
     public boolean authorizedState;
+    public boolean admin;
+    public List<User> users = new ArrayList<>();
 
     public UserMenuResult(String result) {
         super(result);
 
         this.username = result;
+    }
+
+    public static class User {
+        public String username;
+        public String displayName;
+        public boolean admin;
+
+        public User(String username, String displayName, boolean admin) {
+            this.username = username;
+            this.displayName = displayName;
+            this.admin = admin;
+        }
     }
 }

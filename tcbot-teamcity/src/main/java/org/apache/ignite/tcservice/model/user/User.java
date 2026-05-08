@@ -18,6 +18,7 @@
 package org.apache.ignite.tcservice.model.user;
 
 
+import java.util.Collection;
 import org.apache.ignite.tcservice.model.conf.bt.Parameters;
 
 import javax.annotation.Nullable;
@@ -35,6 +36,9 @@ public class User extends UserRef {
     @XmlElement(name = "parameters")
     Parameters parameters;
 
+    @XmlElement(name = "groups")
+    private Groups groups;
+
     /**
      * @return space separated list of vcs user names
      */
@@ -44,5 +48,25 @@ public class User extends UserRef {
             return null;
 
         return parameters.getParameter("plugin:vcs:anyVcs:anyVcsRoot");
+    }
+
+    /**
+     * @param groups Groups.
+     */
+    public void setGroups(Groups groups) {
+        this.groups = groups;
+    }
+
+    /**
+     * @param groupKeysOrNames TeamCity group keys, ids, or names.
+     */
+    public boolean belongsToAnyGroup(Collection<String> groupKeysOrNames) {
+        if (groups == null || groupKeysOrNames == null || groupKeysOrNames.isEmpty())
+            return false;
+
+        return groups.getGroupRefs().stream().anyMatch(grp ->
+            groupKeysOrNames.stream().anyMatch(configured ->
+                configured != null &&
+                    (configured.equals(grp.key) || configured.equals(grp.id) || configured.equals(grp.name))));
     }
 }

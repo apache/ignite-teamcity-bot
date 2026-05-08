@@ -1,6 +1,8 @@
 {
   // Default server (service) code, internal identification
   "primaryServerCode": "apache",
+  // TeamCity group keys/names whose members can administer sensitive bot settings.
+  "botAdminGroups": ["IGNITE_COMMITTERS"],
   "confidence": 0.995,
   "cleanerConfig": {
     "numOfItemsToDel": 100000,

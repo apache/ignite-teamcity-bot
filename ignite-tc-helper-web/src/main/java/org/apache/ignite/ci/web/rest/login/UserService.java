@@ -20,10 +20,14 @@ package org.apache.ignite.ci.web.rest.login;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.inject.Injector;
+import java.util.Comparator;
+import java.util.Objects;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -87,6 +91,15 @@ public class UserService {
         UserMenuResult res = new UserMenuResult(user.getDisplayName());
 
         res.authorizedState = issueDetector.isAuthorized();
+        res.admin = user.isAdmin();
+
+        if (user.isAdmin()) {
+            users.allUsers()
+                .filter(next -> !Objects.equals(user.username, next.username))
+                .sorted(Comparator.comparing(TcHelperUser::getDisplayName, String.CASE_INSENSITIVE_ORDER))
+                .map(next -> new UserMenuResult.User(next.username, next.getDisplayName(), next.isAdmin()))
+                .forEach(res.users::add);
+        }
 
         return res;
     }
@@ -123,7 +136,12 @@ public class UserService {
         ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
 
         IUserStorage users = injector.getInstance(IUserStorage.class);
+        final TcHelperUser currUser = users.getUser(currUserLogin);
+        ensureCanAccessUser(currUser, currUserLogin, login);
+
         final TcHelperUser user = users.getUser(login);
+        if (user == null)
+            throw new NotFoundException("User not found: " + login);
 
         //todo can filter accessibliity
         final TcHelperUserUi tcHelperUserUi = new TcHelperUserUi(user,
@@ -154,10 +172,14 @@ public class UserService {
     public SimpleResult resetCredentials(@Nullable @FormParam("login") final String loginParm) {
         final String currUserLogin = ITcBotUserCreds.get(req).getPrincipalId();
         final String login = Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
-        //todo check admin
 
         final IUserStorage users = CtxListener.getInjector(ctx).getInstance(IUserStorage.class);
+        final TcHelperUser currUser = users.getUser(currUserLogin);
+        ensureCanAccessUser(currUser, currUserLogin, login);
+
         final TcHelperUser user = users.getUser(login);
+        if (user == null)
+            throw new NotFoundException("User not found: " + login);
 
         user.resetCredentials();
 
@@ -234,4 +256,13 @@ public class UserService {
         return new SimpleResult("");
     }
 
+    /**
+     * @param currUser Current user.
+     * @param currUserLogin Current user login.
+     * @param requestedLogin Requested user login.
+     */
+    private void ensureCanAccessUser(TcHelperUser currUser, String currUserLogin, String requestedLogin) {
+        if (!Objects.equals(currUserLogin, requestedLogin) && (currUser == null || !currUser.isAdmin()))
+            throw new ForbiddenException("Only bot admin can access other users");
+    }
 }

@@ -47,6 +47,9 @@ public class TcBotJsonConfig implements ITrackedBranchesConfig {
     /** Always failed test detection. */
     @Nullable private Boolean alwaysFailedTestDetection;
 
+    /** TeamCity groups allowed to administer bot settings. */
+    @Nullable private List<String> botAdminGroups;
+
     /** Additional list Servers to be used for validation of PRs, but not for tracking any branches. */
     private List<TcServerConfig> tcServers = new ArrayList<>();
 
@@ -113,6 +116,13 @@ public class TcBotJsonConfig implements ITrackedBranchesConfig {
      */
     @Nullable public Boolean alwaysFailedTestDetection() {
         return alwaysFailedTestDetection;
+    }
+
+    /**
+     * @return TeamCity groups allowed to administer bot settings.
+     */
+    @Nullable public List<String> botAdminGroups() {
+        return botAdminGroups;
     }
 
     public Optional<TcServerConfig> getTcConfig(String code) {

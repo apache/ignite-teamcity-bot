@@ -449,6 +449,14 @@ public class TeamcityServiceConnection implements ITeamcity {
         return getJaxbUsingHref("app/rest/latest/users", Users.class);
     }
 
+    /**
+     * @return Current TeamCity user for the configured auth token.
+     */
+    @AutoProfiling
+    public User getCurrentUser() {
+        return getJaxbUsingHref("app/rest/users/current", User.class);
+    }
+
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public User getUserByUsername(String username) {
