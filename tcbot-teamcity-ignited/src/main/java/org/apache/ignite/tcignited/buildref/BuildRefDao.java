@@ -18,6 +18,7 @@
 package org.apache.ignite.tcignited.buildref;
 
 import com.google.common.cache.CacheBuilder;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -27,7 +28,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -84,8 +84,8 @@ public class BuildRefDao {
     private final com.google.common.cache.Cache<RunHistKey, List<BuildRefCompacted>> buildRefsInMemCache
         = CacheBuilder.newBuilder()
         .maximumSize(Boolean.valueOf(System.getProperty(TcBotSystemProperties.DEV_MODE)) ? 1000 : 8000)
-        .expireAfterAccess(16, TimeUnit.MINUTES)
-        .expireAfterWrite(45, TimeUnit.MINUTES) //workaround for stale records, enforcing to ask persistence sometimes.
+        .expireAfterAccess(Duration.ofMinutes(16))
+        .expireAfterWrite(Duration.ofMinutes(45)) //workaround for stale records, enforcing to ask persistence sometimes.
         .softValues()
         .build();
 
@@ -94,8 +94,8 @@ public class BuildRefDao {
     private final com.google.common.cache.Cache<Long, List<BuildRefCompacted>> buildRefsInMemCacheForAllBranch
         = CacheBuilder.newBuilder()
         .maximumSize(Boolean.valueOf(System.getProperty(TcBotSystemProperties.DEV_MODE)) ? 200 : 2000)
-        .expireAfterAccess(2, TimeUnit.MINUTES)
-        .expireAfterWrite(4, TimeUnit.MINUTES) //workaround for stale records
+        .expireAfterAccess(Duration.ofMinutes(2))
+        .expireAfterWrite(Duration.ofMinutes(4)) //workaround for stale records
         .softValues()
         .build();
 
@@ -323,6 +323,7 @@ public class BuildRefDao {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public List<BuildRefCompacted> getBuildsForBranchNonCached(int srvId, int branchNameId) {
         List<BuildRefCompacted> list = new ArrayList<>();
 

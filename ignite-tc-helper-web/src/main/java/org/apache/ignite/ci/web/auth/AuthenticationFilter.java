@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.web.auth;
 
 import com.google.common.base.Throwables;
-import com.google.inject.Injector;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -69,7 +69,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     private ServletContext context;
 
     private static final String AUTHORIZATION_PROPERTY = "Authorization";
-    private static final String AUTHENTICATION_SCHEME = "Basic";
     private static final String TOKEN_SCHEME = "Token";
 
     private static Response rspUnathorized() {
@@ -84,8 +83,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     @Override public void filter(ContainerRequestContext reqCtx) {
         Method mtd = resourceInfo.getResourceMethod();
-
-        //todo uncomment for development
         //if(method!=null)
         //    return;
 
@@ -113,9 +110,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             return;
         }
 
-        //Get encoded username and encodedPassword
         String authStr = authorization.get(0);
-        if(!authStr.startsWith(TOKEN_SCHEME)) {
+        if (!authStr.startsWith(TOKEN_SCHEME)) {
             reqCtx.abortWith(rspForbidden());
 
             return;
@@ -123,11 +119,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         String tokFull = authStr.substring(TOKEN_SCHEME.length()).trim();
 
-        Injector injector = CtxListener.getInjector(context);
-        final IUserStorage users = injector.getInstance(IUserStorage.class);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(context);
+        final IUserStorage users = appCtx.getInstance(IUserStorage.class);
 
         try {
-            injector.getInstance(Ignite.class);
+            appCtx.getInstance(Ignite.class);
         } catch (Exception e) {
             ExceptionUtil.throwIfRest(e);
 
@@ -213,7 +209,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             userKey = CryptUtil.aesDecrypt(Base64Util.decodeString(tok), ses.userKeyUnderToken);
             byte[] userKeyKcv = CryptUtil.aesKcv(userKey);
 
-            if(!Arrays.equals(userKeyKcv, user.userKeyKcv)) {
+            if (!Arrays.equals(userKeyKcv, user.userKeyKcv)) {
                 logger.error("User provided " + ses.username + " invalid token ,failed at " + sessId + " enforcing login");
 
                 return false;

@@ -22,7 +22,10 @@ dependencies {
     // JIRA integration shares entries for pure and Ignited connection, so persistence module is here for interfaces/annotations
     api project(":tcbot-persistence")
 
-    testImplementation group: 'junit', name: 'junit', version: junitVer
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVer
-}
+    api "com.google.code.gson:gson:$gsonVer"
 
+    implementation 'javax.inject:javax.inject:1'
+
+    testImplementation "junit:junit:$junitVer"
+    testImplementation "org.mockito:mockito-core:$mockitoVer"
+}

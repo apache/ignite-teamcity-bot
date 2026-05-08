@@ -20,7 +20,7 @@ import com.google.common.collect.Lists;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import com.google.inject.internal.SingletonScope;
+import com.google.inject.Scopes;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,7 +66,7 @@ public class BuildChainProcessorTest {
     /** Injector. */
     private Injector injector = Guice.createInjector(new AbstractModule() {
         @Override protected void configure() {
-            bind(IStringCompactor.class).to(InMemoryStringCompactor.class).in(new SingletonScope());
+            bind(IStringCompactor.class).to(InMemoryStringCompactor.class).in(Scopes.SINGLETON);
 
             bind(IBuildLogProcessor.class).toInstance(Mockito.mock(IBuildLogProcessor.class));
         }

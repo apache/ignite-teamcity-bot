@@ -8,14 +8,14 @@ repositories {
 
 dependencies {
     implementation "org.apache.ignite:ignite-core:$ignVer"
-    implementation group: 'ch.qos.logback', name: 'logback-classic', version: logbackVer
+    implementation "ch.qos.logback:logback-classic:$logbackVer"
     implementation project(':tcbot-common')
 
     testImplementation project(':ignite-tc-helper-web')
     testImplementation project(':tcbot-persistence')
     testImplementation project(':tcbot-teamcity-ignited')
     testImplementation "org.apache.ignite:ignite-slf4j:$ignVer"
-    testImplementation group: 'junit', name: 'junit', version: junitVer
+    testImplementation "junit:junit:$junitVer"
 }
 
 application {

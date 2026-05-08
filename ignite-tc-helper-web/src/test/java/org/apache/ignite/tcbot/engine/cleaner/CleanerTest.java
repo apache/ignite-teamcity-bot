@@ -20,7 +20,7 @@ package org.apache.ignite.tcbot.engine.cleaner;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import com.google.inject.internal.SingletonScope;
+import com.google.inject.Scopes;
 import java.lang.reflect.Field;
 import java.util.Random;
 import org.apache.ignite.Ignite;
@@ -273,7 +273,7 @@ public class CleanerTest {
         /** {@inheritDoc} */
         @Override protected void configure() {
             bind(Ignite.class).toInstance(ignite);
-            bind(IScheduler.class).to(DirectExecNoWaitScheduler.class).in(new SingletonScope());
+            bind(IScheduler.class).to(DirectExecNoWaitScheduler.class).in(Scopes.SINGLETON);
 
             final IJiraIntegrationProvider jiraProv = Mockito.mock(IJiraIntegrationProvider.class);
             bind(IJiraIntegrationProvider.class).toInstance(jiraProv);

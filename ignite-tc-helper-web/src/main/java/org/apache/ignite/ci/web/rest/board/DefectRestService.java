@@ -47,7 +47,7 @@ public class DefectRestService {
     public void resolveDefect(@FormParam("id") Integer defectId, @FormParam("forceResolve") Boolean forceResolve) {
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
 
-        CtxListener.getInjector(ctx)
+        CtxListener.getApplicationContext(ctx)
                 .getInstance(BoardService.class)
                 .resolveDefect(defectId, creds, forceResolve);
     }

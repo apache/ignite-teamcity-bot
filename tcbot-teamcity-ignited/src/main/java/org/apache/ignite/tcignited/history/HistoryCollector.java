@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -94,8 +93,8 @@ public class HistoryCollector {
     private final com.google.common.cache.Cache<RunHistKey, SuiteHistory> runHistInMemCache
         = CacheBuilder.newBuilder()
         .maximumSize(Boolean.valueOf(System.getProperty(TcBotSystemProperties.DEV_MODE)) ? 1000 : 8000)
-        .expireAfterAccess(16, TimeUnit.MINUTES)
-        .expireAfterWrite(17, TimeUnit.MINUTES) //workaround for stale records
+        .expireAfterAccess(Duration.ofMinutes(16))
+        .expireAfterWrite(Duration.ofMinutes(17)) //workaround for stale records
         .softValues()
         .build();
 

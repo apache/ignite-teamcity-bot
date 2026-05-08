@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.web.rest.build;
 
 import com.google.common.collect.BiMap;
-import com.google.inject.Injector;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import java.text.ParseException;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -68,21 +68,11 @@ public class GetSingleBuildTestFailuresRest {
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) throws ServiceUnauthorizedException {
         UpdateInfo res = new UpdateInfo();
 
-        res.initCounters(CtxListener.getInjector(ctx)
+        res.initCounters(CtxListener.getApplicationContext(ctx)
             .getInstance(SingleBuildResultsService.class)
             .getBranchCntrs(srvCodeOrAlias, buildId, ITcBotUserCreds.get(req)));
 
         return res;
-    }
-
-    @GET
-    @Path("failures/txt")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String getTestFailsText(
-        @QueryParam("serverId") String srvCodeOrAlias,
-        @QueryParam("buildId") Integer buildId,
-        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) throws ServiceUnauthorizedException {
-        return getBuildTestFails(srvCodeOrAlias, buildId, checkAllLogs).toString();
     }
 
     @GET
@@ -92,7 +82,7 @@ public class GetSingleBuildTestFailuresRest {
         @QueryParam("serverId") String srvCodeOrAlias,
         @QueryParam("buildId") Integer buildId,
         @Nullable @QueryParam("maxDetailsChars") Integer maxDetailsChars) throws ServiceUnauthorizedException {
-        return CtxListener.getInjector(ctx)
+        return CtxListener.getApplicationContext(ctx)
             .getInstance(SingleBuildResultsService.class)
             .getSingleBuildFailuresAiPrompt(srvCodeOrAlias, buildId, maxDetailsChars, SyncMode.RELOAD_QUEUED,
                 ITcBotUserCreds.get(req));
@@ -120,7 +110,7 @@ public class GetSingleBuildTestFailuresRest {
         Integer buildId,
         @Nullable Boolean checkAllLogs,
         SyncMode syncMode) {
-        return CtxListener.getInjector(ctx)
+        return CtxListener.getApplicationContext(ctx)
             .getInstance(SingleBuildResultsService.class)
             .getSingleBuildResults(srvCodeOrAlias, buildId, checkAllLogs, syncMode,
                 ITcBotUserCreds.get(req));
@@ -142,16 +132,16 @@ public class GetSingleBuildTestFailuresRest {
         @QueryParam("isValid") Boolean isValid,
         @QueryParam("field") String field,
         @QueryParam("serverId") String srvIdOpt) {
-        Injector injector = CtxListener.getInjector(ctx);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
         String srvCode = isNullOrEmpty(srvIdOpt)
-            ? injector.getInstance(ITcBotConfig.class).primaryServerCode()
+            ? appCtx.getInstance(ITcBotConfig.class).primaryServerCode()
             : srvIdOpt;
 
         if (buildId == null || isValid == null)
             return null;
 
-        ITeamcityIgnitedProvider tcIgnitedProv = injector.getInstance(ITeamcityIgnitedProvider.class);
+        ITeamcityIgnitedProvider tcIgnitedProv = appCtx.getInstance(ITeamcityIgnitedProvider.class);
 
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
 
@@ -185,8 +175,8 @@ public class GetSingleBuildTestFailuresRest {
         @Nullable @QueryParam("untilDate") String untilDate,
         @Nullable @QueryParam("skipTests") String skipTests)  throws ParseException {
 
-        Injector injector = CtxListener.getInjector(ctx);
-        MasterTrendsService instance = injector.getInstance(MasterTrendsService.class);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        MasterTrendsService instance = appCtx.getInstance(MasterTrendsService.class);
 
 
         BuildsHistory buildsHist =

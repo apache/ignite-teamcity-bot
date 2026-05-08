@@ -49,7 +49,7 @@ public class BuildsLongRunningTestsReport {
     public LrTestsFullSummaryUi getBranch(@Nullable @QueryParam("branch") String branchOrNull) {
         final ITcBotUserCreds creds = ITcBotUserCreds.get(req);
 
-        final TrackedBranchChainsProcessor tbProc = CtxListener.getInjector(ctx).getInstance(TrackedBranchChainsProcessor.class);
+        final TrackedBranchChainsProcessor tbProc = CtxListener.getApplicationContext(ctx).getInstance(TrackedBranchChainsProcessor.class);
 
         return tbProc.getTrackedBranchLongRunningTestsSummary(branchOrNull, creds);
     }

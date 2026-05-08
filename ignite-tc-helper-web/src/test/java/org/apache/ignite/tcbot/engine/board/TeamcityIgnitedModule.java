@@ -18,7 +18,7 @@
 package org.apache.ignite.tcbot.engine.board;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.internal.SingletonScope;
+import com.google.inject.Scopes;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeDao;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefDao;
@@ -52,28 +52,28 @@ import static org.mockito.Mockito.mock;
 public class TeamcityIgnitedModule extends AbstractModule {
     /** {@inheritDoc} */
     @Override protected void configure() {
-        bind(BuildRefDao.class).in(new SingletonScope());
-        bind(BuildRefSync.class).in(new SingletonScope());
-        bind(BuildConditionDao.class).in(new SingletonScope());
-        bind(FatBuildDao.class).in(new SingletonScope());
-        bind(ProactiveFatBuildSync.class).in(new SingletonScope());
-        bind(ChangeSync.class).in(new SingletonScope());
+        bind(BuildRefDao.class).in(Scopes.SINGLETON);
+        bind(BuildRefSync.class).in(Scopes.SINGLETON);
+        bind(BuildConditionDao.class).in(Scopes.SINGLETON);
+        bind(FatBuildDao.class).in(Scopes.SINGLETON);
+        bind(ProactiveFatBuildSync.class).in(Scopes.SINGLETON);
+        bind(ChangeSync.class).in(Scopes.SINGLETON);
         bind(ChangeDao.class).toInstance(mock(ChangeDao.class));
-        bind(BuildTypeRefDao.class).in(new SingletonScope());
-        bind(BuildTypeDao.class).in(new SingletonScope());
-        bind(BuildTypeSync.class).in(new SingletonScope());
-        bind(BuildStartTimeStorage.class).in(new SingletonScope());
-        bind(MuteDao.class).in(new SingletonScope());
-        bind(MuteSync.class).in(new SingletonScope());
-        bind(BuildLogCheckResultDao.class).in(new SingletonScope());
-        bind(SuiteInvocationHistoryDao.class).in(new SingletonScope());
-        bind(HistoryCollector.class).in(new SingletonScope());
-        bind(ILogProductSpecific.class).to(LogIgniteSpecific.class).in(new SingletonScope());
-        bind(UpdateCountersStorage.class).in(new SingletonScope());
-        bind(Cleaner.class).in(new SingletonScope());
-        bind(DefectsStorage.class).in(new SingletonScope());
-        bind(IIssuesStorage.class).to(IssuesStorage.class).in(new SingletonScope());
-        bind(BoardService.class).in(new SingletonScope());
+        bind(BuildTypeRefDao.class).in(Scopes.SINGLETON);
+        bind(BuildTypeDao.class).in(Scopes.SINGLETON);
+        bind(BuildTypeSync.class).in(Scopes.SINGLETON);
+        bind(BuildStartTimeStorage.class).in(Scopes.SINGLETON);
+        bind(MuteDao.class).in(Scopes.SINGLETON);
+        bind(MuteSync.class).in(Scopes.SINGLETON);
+        bind(BuildLogCheckResultDao.class).in(Scopes.SINGLETON);
+        bind(SuiteInvocationHistoryDao.class).in(Scopes.SINGLETON);
+        bind(HistoryCollector.class).in(Scopes.SINGLETON);
+        bind(ILogProductSpecific.class).to(LogIgniteSpecific.class).in(Scopes.SINGLETON);
+        bind(UpdateCountersStorage.class).in(Scopes.SINGLETON);
+        bind(Cleaner.class).in(Scopes.SINGLETON);
+        bind(DefectsStorage.class).in(Scopes.SINGLETON);
+        bind(IIssuesStorage.class).to(IssuesStorage.class).in(Scopes.SINGLETON);
+        bind(BoardService.class).in(Scopes.SINGLETON);
         bind(ITeamcityIgnitedProvider.class).toInstance(mock(ITeamcityIgnitedProvider.class));
         bind(IUserStorage.class).toInstance(mock(IUserStorage.class));
 

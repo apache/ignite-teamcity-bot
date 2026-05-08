@@ -17,13 +17,13 @@
 
 package org.apache.ignite.ci.web.rest.login;
 
-import com.google.inject.Injector;
 import java.lang.reflect.Field;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Form;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.user.TcHelperUser;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.junit.Test;
 
@@ -68,11 +68,11 @@ public class UserServiceTest {
     }
 
     private static UserService service(IUserStorage users, ITcBotUserCreds creds) throws Exception {
-        Injector injector = mock(Injector.class);
-        when(injector.getInstance(IUserStorage.class)).thenReturn(users);
+        TcBotApplicationContext appCtx = mock(TcBotApplicationContext.class);
+        when(appCtx.getInstance(IUserStorage.class)).thenReturn(users);
 
         ServletContext ctx = mock(ServletContext.class);
-        when(ctx.getAttribute(anyString())).thenReturn(injector);
+        when(ctx.getAttribute(anyString())).thenReturn(appCtx);
 
         HttpServletRequest req = mock(HttpServletRequest.class);
         when(req.getAttribute(ITcBotUserCreds._KEY)).thenReturn(creds);

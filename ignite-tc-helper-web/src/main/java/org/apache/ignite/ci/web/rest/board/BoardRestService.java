@@ -58,7 +58,7 @@ public class BoardRestService {
     public BoardSummaryUi getSummary(@QueryParam("baseBranch") String baseBranch) {
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
 
-        return CtxListener.getInjector(ctx).getInstance(BoardService.class).summary(creds, baseBranch);
+        return CtxListener.getApplicationContext(ctx).getInstance(BoardService.class).summary(creds, baseBranch);
     }
 
     @PUT
@@ -73,7 +73,7 @@ public class BoardRestService {
         @FormParam("comment") String comment,
         @FormParam("userName") String userName,
         @FormParam("webUrl") String webUrl) {
-        CtxListener.getInjector(ctx).getInstance(BoardService.class)
+        CtxListener.getApplicationContext(ctx).getInstance(BoardService.class)
             .muteIssue(tcSrvId, nameId, branch, trackedBranch, issueType, jiraTicket, comment, userName, webUrl);
     }
 
@@ -86,7 +86,7 @@ public class BoardRestService {
         @FormParam("issueType") String issueType,
         @FormParam("jiraTicket") String jiraTicket,
         @FormParam("comment") String comment) {
-        CtxListener.getInjector(ctx).getInstance(BoardService.class)
+        CtxListener.getApplicationContext(ctx).getInstance(BoardService.class)
             .updateIssue(tcSrvId, nameId, branch, issueType, jiraTicket, comment);
     }
 
@@ -97,13 +97,13 @@ public class BoardRestService {
         @FormParam("nameId") int nameId,
         @FormParam("branch") String branch,
         @FormParam("issueType") String issueType) {
-        CtxListener.getInjector(ctx).getInstance(BoardService.class)
+        CtxListener.getApplicationContext(ctx).getInstance(BoardService.class)
             .unmuteIssue(tcSrvId, nameId, branch, issueType);
     }
 
     @GET
     @Path("mutedIssues")
     public Collection<MutedIssueUi> getMutedIssues(@QueryParam("baseBranch") String baseBranch) {
-        return CtxListener.getInjector(ctx).getInstance(BoardService.class).getAllMutedIssues(baseBranch);
+        return CtxListener.getApplicationContext(ctx).getInstance(BoardService.class).getAllMutedIssues(baseBranch);
     }
 }

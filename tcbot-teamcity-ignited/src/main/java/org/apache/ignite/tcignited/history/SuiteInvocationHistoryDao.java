@@ -61,6 +61,7 @@ public class SuiteInvocationHistoryDao {
     }
 
     @AutoProfiling
+    @SuppressWarnings("deprecation")
     public Map<Integer, SuiteInvocation> getSuiteRunHist(int srvId, int buildTypeId, int normalizedBranchName) {
         Map<Integer, SuiteInvocation> map = new HashMap<>();
 

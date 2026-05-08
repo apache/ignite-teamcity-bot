@@ -279,11 +279,10 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     public long getJavaLevelDeadlocksCount() {
-        List<ILogCheckResult> collect = getLogChecksIfFinished().collect(Collectors.toList());
-
-        return collect.stream().map(r -> r.getCustomProblems(compactor))
-                .filter(set -> set.contains(ProblemOccurrence.JAVA_LEVEL_DEADLOCK))
-                .count();
+        return getLogChecksIfFinished()
+            .map(r -> r.getCustomProblems(compactor))
+            .filter(set -> set.contains(ProblemOccurrence.JAVA_LEVEL_DEADLOCK))
+            .count();
     }
 
     public long getCancelledBuildsCount() {
@@ -308,7 +307,6 @@ public class MultBuildRunCtx implements ISuiteResults {
             .forEach(map -> {
                 map.forEach(
                     (testName, logCheckResult) -> {
-                        //todo may be it is better to find   avg
                         long bytes = (long)logCheckResult.getLogSizeBytes();
                         if (bytes > LOG_CONSUMER_BORDER_BYTES)
                             logSizeBytes.merge(testName, bytes, Math::max);
@@ -398,10 +396,7 @@ public class MultBuildRunCtx implements ISuiteResults {
             .mapToLong(l -> l)
             .average();
 
-        if (average.isPresent())
-            return (long)average.getAsDouble();
-
-        return null;
+        return average.isPresent() ? (long)average.getAsDouble() : null;
     }
 
     /**
@@ -412,10 +407,7 @@ public class MultBuildRunCtx implements ISuiteResults {
             .mapToLong(SingleBuildRunCtx::testsDuration)
             .average();
 
-        if (average.isPresent())
-            return (long)average.getAsDouble();
-
-        return null;
+        return average.isPresent() ? (long)average.getAsDouble() : null;
     }
 
     /**
@@ -459,11 +451,11 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     public Integer queuedBuildCount() {
-        return queuedBuildCount == null ? Integer.valueOf(0) : queuedBuildCount;
+        return queuedBuildCount == null ? 0 : queuedBuildCount;
     }
 
     public Integer runningBuildCount() {
-        return runningBuildCount == null ? Integer.valueOf(0) : runningBuildCount;
+        return runningBuildCount == null ? 0 : runningBuildCount;
     }
 
     /**
@@ -478,10 +470,9 @@ public class MultBuildRunCtx implements ISuiteResults {
 
                 final String vcsUsername = change.vcsUsername(compactor);
 
-                if (Strings.isNullOrEmpty(tcUserFullName))
-                    return vcsUsername;
-
-                return vcsUsername + " [" + tcUserFullName + "]";
+                return Strings.isNullOrEmpty(tcUserFullName)
+                    ? vcsUsername
+                    : vcsUsername + " [" + tcUserFullName + "]";
             });
     }
 

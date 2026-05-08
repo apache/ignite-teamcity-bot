@@ -16,25 +16,29 @@
  */
 package org.apache.ignite.githubservice;
 
+import java.time.Duration;
+
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import javax.inject.Inject;
-import javax.inject.Provider;
+import java.util.function.Supplier;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 
 class GitHubCachingProvider implements IGitHubConnectionProvider {
-    @Inject private Provider<IGitHubConnection> factory;
+    private final Supplier<IGitHubConnection> factory;
 
     private final Cache<String, IGitHubConnection> srvs
         = CacheBuilder.newBuilder()
         .maximumSize(100)
-        .expireAfterAccess(16, TimeUnit.MINUTES)
+        .expireAfterAccess(Duration.ofMinutes(16))
         .softValues()
         .build();
+
+    GitHubCachingProvider(Supplier<IGitHubConnection> factory) {
+        this.factory = factory;
+    }
 
     /** {@inheritDoc} */
     @Override public IGitHubConnection server(String srvCode) {

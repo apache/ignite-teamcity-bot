@@ -17,11 +17,7 @@
 
 package org.apache.ignite.ci.web.rest;
 
-import com.google.inject.Injector;
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -32,17 +28,12 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.ignite.githubservice.IGitHubConnection;
-import org.apache.ignite.githubservice.IGitHubConnectionProvider;
-import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
-import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.trigger.TriggerResult;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.SimpleResult;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -87,14 +78,14 @@ public class TriggerBuilds {
         @Nonnull @QueryParam("cleanRebuild") Boolean cleanRebuild
     ) {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
-        Injector injector = CtxListener.getInjector(ctx);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
-        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCodeOrAlias, prov);
+        appCtx.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCodeOrAlias, prov);
 
         if (isNullOrEmpty(suiteIdList))
             return new TriggerResult("Error: nothing to run.");
 
-        String jiraRes = injector
+        String jiraRes = appCtx
             .getInstance(TcBotTriggerAndSignOffService.class)
             .triggerBuildsAndObserve(srvCodeOrAlias, branchForTc, parentSuiteId, suiteIdList, top, observe, ticketId, prNum, baseBranchForTc, cleanRebuild, prov);
 
@@ -118,36 +109,12 @@ public class TriggerBuilds {
     ) {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
 
-        Injector injector = CtxListener.getInjector(ctx);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
-        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, prov);
+        appCtx.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, prov);
 
-        return injector
+        return appCtx
             .getInstance(TcBotTriggerAndSignOffService.class)
             .commentJiraEx(srvCode, branchForTc, suiteId, ticketId, baseBranchForTc, prov);
-    }
-
-    @GET
-    @Path("integrationUrls")
-    public Set<ServerIntegrationLinks> getIntegrationUrls(@NotNull @QueryParam("serverIds") String srvCodes) {
-        ITcBotUserCreds prov = ITcBotUserCreds.get(req);
-
-        Injector injector = CtxListener.getInjector(ctx);
-
-        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
-        ITeamcityIgnitedProvider tcIgnProv = injector.getInstance(ITeamcityIgnitedProvider.class);
-
-        String[] srvCodesArr = srvCodes.split(",");
-
-        return Arrays.stream(srvCodesArr).map(srvCode -> {
-            if (!tcIgnProv.hasAccess(srvCode, prov))
-                return null;
-
-            IGitHubConnection gh = injector.getInstance(IGitHubConnectionProvider.class).server(srvCode);
-
-            IJiraServerConfig jiraCfg = cfg.getJiraConfig(srvCode);
-
-            return new ServerIntegrationLinks(srvCode, gh.config().gitApiUrl(), jiraCfg.restApiUrl());
-        }).filter(Objects::nonNull).collect(Collectors.toSet());
     }
 }

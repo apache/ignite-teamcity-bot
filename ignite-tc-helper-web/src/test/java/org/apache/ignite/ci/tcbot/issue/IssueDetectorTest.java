@@ -125,12 +125,6 @@ public class IssueDetectorTest {
 
         System.out.println(masterStatus);
         assertTrue(masterStatus, masterStatus.contains("New issues found " + expIssuesCnt));
-
-        /* todo: https://issues.apache.org/jira/browse/IGNITE-10620
-
-        - Add examples of failed tests into history, validate notifications originated.
-
-         */
         issueDetector.sendNewNotificationsEx();
 
         issueDetector.stop();

@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.web.rest;
 
 import com.google.common.base.Strings;
-import com.google.inject.Injector;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -65,7 +65,14 @@ public class GetTrackedBranches {
     @Path("version")
     @PermitAll
     public Version version() {
-        return CtxListener.getInjector(ctx).getInstance(TcBotGeneralService.class).version();
+        return CtxListener.getApplicationContext(ctx).getInstance(TcBotGeneralService.class).version();
+    }
+
+    @GET
+    @Path("ready")
+    @PermitAll
+    public boolean ready() {
+        return CtxListener.getApplicationContext(ctx).isReady();
     }
 
     @GET
@@ -79,9 +86,9 @@ public class GetTrackedBranches {
 
     @NotNull public Stream<ITrackedBranch> accessibleTrackedBranches() {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
-        Injector injector = CtxListener.getInjector(ctx);
-        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
-        ITeamcityIgnitedProvider tcProv = injector.getInstance(ITeamcityIgnitedProvider.class);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        ITcBotConfig cfg = appCtx.getInstance(ITcBotConfig.class);
+        ITeamcityIgnitedProvider tcProv = appCtx.getInstance(ITeamcityIgnitedProvider.class);
 
         return cfg.getTrackedBranches().branchesStream()
             .filter(bt ->
@@ -108,9 +115,9 @@ public class GetTrackedBranches {
     @Path("suites")
     public Set<ChainAtServer> getSuites(@Nullable @QueryParam("server") String srvId) {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
-        Injector injector = CtxListener.getInjector(ctx);
-        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
-        ITeamcityIgnitedProvider tcProv = injector.getInstance(ITeamcityIgnitedProvider.class);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        ITcBotConfig cfg = appCtx.getInstance(ITcBotConfig.class);
+        ITeamcityIgnitedProvider tcProv = appCtx.getInstance(ITeamcityIgnitedProvider.class);
 
         return getSuitesUnique(cfg.getTrackedBranches())
             .stream()
@@ -128,9 +135,9 @@ public class GetTrackedBranches {
     @Path("getServerIds")
     public Set<String> getServerIds() {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
-        Injector injector = CtxListener.getInjector(ctx);
-        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
-        ITeamcityIgnitedProvider tcProv = injector.getInstance(ITeamcityIgnitedProvider.class);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        ITcBotConfig cfg = appCtx.getInstance(ITcBotConfig.class);
+        ITeamcityIgnitedProvider tcProv = appCtx.getInstance(ITeamcityIgnitedProvider.class);
 
         return cfg.getServerIds()
             .stream()
@@ -146,7 +153,7 @@ public class GetTrackedBranches {
     @GET
     @Path("tcBranches")
     public Set<String> tcBranches(@Nullable @QueryParam("srvCode") String srvCodeOrAlias) {
-        ITeamcityIgnited srv = CtxListener.getInjector(ctx)
+        ITeamcityIgnited srv = CtxListener.getApplicationContext(ctx)
             .getInstance(ITeamcityIgnitedProvider.class)
             .server(srvCodeOrAlias, ITcBotUserCreds.get(req));
 

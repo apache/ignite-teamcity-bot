@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.web.rest.tracked;
 
-import com.google.inject.Injector;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -62,7 +62,6 @@ public class GetTrackedBranchTestResults {
     private static final Logger logger = LoggerFactory.getLogger(GetTrackedBranchTestResults.class);
 
     public static final String TRACKED = "tracked";
-    public static final int DEFAULT_COUNT = 10;
 
     /** Slow tracked branch request threshold. */
     private static final long SLOW_TRACKED_RESULTS_WARN_MS =
@@ -81,29 +80,11 @@ public class GetTrackedBranchTestResults {
     public UpdateInfo getTestFailsUpdates(@Nullable @QueryParam("branch") String branchOrNull) {
         UpdateInfo info = new UpdateInfo();
 
-        Map<Integer, Integer> counters = CtxListener.getInjector(ctx).getInstance(IDetailedStatusForTrackedBranch.class)
+        Map<Integer, Integer> counters = CtxListener.getApplicationContext(ctx).getInstance(IDetailedStatusForTrackedBranch.class)
             .getTrackedBranchUpdateCounters(branchOrNull, ITcBotUserCreds.get(req));
         info.initCounters(counters);
 
         return info;
-    }
-
-    @GET
-    @Path("results/txt")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String getTestFailsText(@Nullable @QueryParam("branch") String branchOrNull,
-        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
-        @Nullable @QueryParam("trustedTests") Boolean trustedTests,
-        @Nullable @QueryParam("tagSelected") String tagSelected,
-        @Nullable @QueryParam("tagForHistSelected") String tagForHistSelected,
-        @Nullable @QueryParam("displayMode") String displayMode,
-        @Nullable @QueryParam("sortOption") String sortOption,
-        @Nullable @QueryParam("count") Integer mergeCnt,
-        @Nullable @QueryParam("showTestLongerThan") Integer showTestLongerThan,
-        @Nullable @QueryParam("muted") Boolean showMuted,
-        @Nullable @QueryParam("ignored") Boolean showIgnored) {
-        return getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected, tagForHistSelected,
-            displayMode, sortOption, mergeCnt, showTestLongerThan, showMuted, showIgnored).toString();
     }
 
     @GET
@@ -118,7 +99,7 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("promptSuiteId") String promptSuiteId) {
         int actualMergeBuilds = (mergeCnt == null || mergeCnt < 1) ? 1 : mergeCnt;
 
-        return CtxListener.getInjector(ctx)
+        return CtxListener.getApplicationContext(ctx)
             .getInstance(TrackedBranchChainsProcessor.class)
             .getTrackedBranchFailuresAiPrompt(branchOrNull,
                 actualMergeBuilds,
@@ -185,13 +166,13 @@ public class GetTrackedBranchTestResults {
 
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
 
-        Injector injector = CtxListener.getInjector(ctx);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
         int actualMergeBuilds = (mergeCnt == null || mergeCnt < 1) ? 1 : mergeCnt;
 
         int maxDurationSec = (showTestLongerThan == null || showTestLongerThan < 1) ? 0 : showTestLongerThan;
 
-        DsSummaryUi res = injector.getInstance(IDetailedStatusForTrackedBranch.class)
+        DsSummaryUi res = appCtx.getInstance(IDetailedStatusForTrackedBranch.class)
             .getTrackedBranchTestFailures(branch,
                 checkAllLogs,
                 actualMergeBuilds,
@@ -207,53 +188,6 @@ public class GetTrackedBranchTestResults {
                 Boolean.TRUE.equals(showIgnored));
 
         logSlowTrackedResult(startNanos, "latest", branch, actualMergeBuilds, mode, res);
-
-        return res;
-    }
-
-    @GET
-    @Path("mergedUpdates")
-    public UpdateInfo getAllTestFailsUpdates(@Nullable @QueryParam("branch") String branchOrNull) {
-        return new UpdateInfo().initCounters(
-            CtxListener.getInjector(ctx)
-                .getInstance(IDetailedStatusForTrackedBranch.class)
-                .getTrackedBranchUpdateCounters(branchOrNull, ITcBotUserCreds.get(req)));
-    }
-
-    @GET
-    @Path("mergedResultsNoSync")
-    public DsSummaryUi getAllTestFailsNoSync(@Nullable @QueryParam("branch") String branch,
-                                             @Nullable @QueryParam("count") Integer cnt,
-                                             @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        return mergedBuildsResults(branch, cnt, checkAllLogs, SyncMode.NONE);
-    }
-
-    @GET
-    @Path("mergedResults")
-    @NotNull
-    public DsSummaryUi getAllTestFailsForMergedBuidls(@Nullable @QueryParam("branch") String branchOpt,
-                                                      @QueryParam("count") Integer cnt,
-                                                      @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        return mergedBuildsResults(branchOpt, cnt, checkAllLogs, SyncMode.RELOAD_QUEUED);
-    }
-
-    @NotNull private DsSummaryUi mergedBuildsResults(
-        @QueryParam("branch") @Nullable String branchOpt,
-        @QueryParam("count") Integer cnt,
-        @QueryParam("checkAllLogs") @Nullable Boolean checkAllLogs,
-        SyncMode mode) {
-        long startNanos = System.nanoTime();
-
-        ITcBotUserCreds creds = ITcBotUserCreds.get(req);
-        int cntLimit = cnt == null ? DEFAULT_COUNT : cnt;
-        Injector injector = CtxListener.getInjector(ctx);
-
-        DsSummaryUi res = injector.getInstance(TrackedBranchChainsProcessor.class)
-            .getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, creds, mode,
-                false, null, null, DisplayMode.OnlyFailures, null,
-                -1, false, false);
-
-        logSlowTrackedResult(startNanos, "merged", branchOpt, cntLimit, mode, res);
 
         return res;
     }
@@ -284,8 +218,8 @@ public class GetTrackedBranchTestResults {
     ) {
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
 
-        Injector injector = CtxListener.getInjector(ctx);
-        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        ITcBotConfig cfg = appCtx.getInstance(ITcBotConfig.class);
 
         if (F.isEmpty(srvCode))
             srvCode = cfg.primaryServerCode();
@@ -293,9 +227,9 @@ public class GetTrackedBranchTestResults {
         if (F.isEmpty(projectId))
             projectId = DEFAULT_PROJECT_ID;
 
-        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, creds);
+        appCtx.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, creds);
 
-        return injector
+        return appCtx
             .getInstance(TcBotTriggerAndSignOffService.class)
             .getMutes(srvCode, projectId, creds);
     }
@@ -304,9 +238,9 @@ public class GetTrackedBranchTestResults {
     @Path("summary")
     public List<GuardBranchStatusUi> getIdsIfAccessible() {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
-        Injector injector = CtxListener.getInjector(ctx);
-        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
-        IDetailedStatusForTrackedBranch status = injector.getInstance(IDetailedStatusForTrackedBranch.class);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        ITcBotConfig cfg = appCtx.getInstance(ITcBotConfig.class);
+        IDetailedStatusForTrackedBranch status = appCtx.getInstance(IDetailedStatusForTrackedBranch.class);
 
         return cfg.getTrackedBranches().branchesStream()
             .map(bt -> status.getBranchSummary(bt.name(), prov)).filter(Objects::nonNull)

@@ -22,32 +22,39 @@ apply plugin: 'war'
 dependencies {
     implementation project(":tcbot-engine")
     implementation project(':migrator')
+    runtimeOnly project(":tcbot-app-guice")
 
-    implementation group: 'org.apache.ignite', name: 'ignite-core', version: ignVer
-    implementation group: 'org.apache.ignite', name: 'ignite-slf4j', version: ignVer
-    implementation group: 'org.apache.ignite', name: 'ignite-direct-io', version: ignVer
+    implementation "org.apache.ignite:ignite-core:$ignVer"
+    implementation "org.apache.ignite:ignite-slf4j:$ignVer"
+    implementation "org.apache.ignite:ignite-direct-io:$ignVer"
 
-    implementation group: 'org.slf4j', name: 'slf4j-api', version: slf4jVer
-    implementation group: 'org.slf4j', name: 'jul-to-slf4j', version: slf4jVer
+    implementation 'javax.inject:javax.inject:1'
 
-    implementation group: 'ch.qos.logback', name: 'logback-core', version: logbackVer
-    implementation group: 'ch.qos.logback', name: 'logback-classic', version: logbackVer
+    implementation "com.google.code.gson:gson:$gsonVer"
 
-    implementation group: 'org.eclipse.jetty', name: 'jetty-util', version: jettyVer
-    implementation group: 'org.eclipse.jetty', name: 'jetty-server', version: jettyVer
-    implementation group: 'org.eclipse.jetty.ee8', name: 'jetty-ee8-webapp', version: jettyVer
+    implementation "org.slf4j:slf4j-api:$slf4jVer"
+    implementation "org.slf4j:jul-to-slf4j:$slf4jVer"
 
-    implementation group: 'org.glassfish.jersey.containers', name: 'jersey-container-servlet-core', version: jerseyVer
+    implementation "ch.qos.logback:logback-core:$logbackVer"
+    implementation "ch.qos.logback:logback-classic:$logbackVer"
 
-    implementation group: 'org.glassfish.jersey.core', name: 'jersey-client', version: jerseyVer
+    implementation "org.eclipse.jetty:jetty-util:$jettyVer"
+    implementation "org.eclipse.jetty:jetty-server:$jettyVer"
+    implementation "org.eclipse.jetty.ee8:jetty-ee8-webapp:$jettyVer"
+
+    implementation "org.glassfish.jersey.containers:jersey-container-servlet-core:$jerseyVer"
+
+    implementation "org.glassfish.jersey.core:jersey-client:$jerseyVer"
     //
-    implementation group: 'org.glassfish.jersey.inject', name: 'jersey-hk2', version:  jerseyVer
+    implementation "org.glassfish.jersey.inject:jersey-hk2:$jerseyVer"
 
-    implementation group: 'org.glassfish.jersey.media', name: 'jersey-media-json-jackson', version: jerseyVer
-    implementation group: 'org.glassfish.jersey.media', name: 'jersey-media-multipart', version: jerseyVer
+    implementation "org.glassfish.jersey.media:jersey-media-json-jackson:$jerseyVer"
+    implementation "org.glassfish.jersey.media:jersey-media-multipart:$jerseyVer"
 
-    testImplementation group: 'junit', name: 'junit', version: junitVer
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVer
+    testImplementation "junit:junit:$junitVer"
+    testImplementation "org.mockito:mockito-core:$mockitoVer"
+    testImplementation project(":tcbot-app-guice")
+    testImplementation "com.google.inject:guice:$guiceVer"
 }
 
 processResources {

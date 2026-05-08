@@ -20,7 +20,6 @@ package org.apache.ignite.ci.tcbot.visa;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.inject.Provider;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -41,6 +40,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
+import javax.inject.Provider;
 import org.apache.ignite.ci.github.GitHubBranch;
 import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.PullRequest;
@@ -311,8 +311,6 @@ public class TcBotTriggerAndSignOffService {
         }
 
         String[] suiteIds = Objects.requireNonNull(suiteIdList).split(",");
-
-        //todo consult if there are change differences here https://ci.ignite.apache.org/app/rest/changes?locator=buildType:(id:IgniteTests24Java8_Cache7),pending:true,branch:pull%2F6224%2Fhead
         Build[] builds = new Build[suiteIds.length];
         Set<Integer> buildidsToSync = new HashSet<>();
 
@@ -599,7 +597,7 @@ public class TcBotTriggerAndSignOffService {
             contribution.prTitle = ticket.fields.summary();
             contribution.prHtmlUrl = "";
             contribution.prHeadCommit = "";
-            contribution.prTimeUpdate = ""; //todo ticket updateTime
+            contribution.prTimeUpdate = "";
 
             contribution.prAuthor = "";
             contribution.prAuthorAvatarUrl = "";
@@ -904,7 +902,6 @@ public class TcBotTriggerAndSignOffService {
 
         if (status.branchWithFinishedSuite != null)
             status.resolvedBranch = status.branchWithFinishedSuite;
-            //todo take into account running/queued
         else
             status.resolvedBranch = !builds.isEmpty() ? builds.get(0).branchName(compactor) : branchForTcDefault(prId, ghConn);
 

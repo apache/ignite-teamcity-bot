@@ -26,6 +26,7 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.transform.stream.StreamSource;
 
 /**
  */
@@ -35,7 +36,7 @@ public class XmlUtil {
 
     public static <T> T load(Class<T> tCls, Reader reader) throws JAXBException {
         Unmarshaller unmarshaller = getContext(tCls).createUnmarshaller();
-        T unmarshal = (T)unmarshaller.unmarshal(reader);
+        T unmarshal = unmarshaller.unmarshal(new StreamSource(reader), tCls).getValue();
 
         ObjectInterner.internFields(unmarshal);
 

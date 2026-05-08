@@ -23,7 +23,10 @@ dependencies {
     api project(":tcbot-jira-ignited")
     api project(":tcbot-notify")
 
-    testImplementation group: 'junit', name: 'junit', version: junitVer
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVer
+    implementation 'javax.inject:javax.inject:1'
+    implementation 'javax.xml.bind:jaxb-api:2.3.1'
+
+    testImplementation "junit:junit:$junitVer"
+    testImplementation "org.mockito:mockito-core:$mockitoVer"
 }
 

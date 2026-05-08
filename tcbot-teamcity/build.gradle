@@ -21,8 +21,11 @@ apply plugin: 'java'
 dependencies {
     api project(":tcbot-common")
 
-    /// JAXB replacement for Java 17, API is defined in common
-    api group: 'com.sun.xml.bind', name: 'jaxb-impl', version: jaxbVer
-    api group: 'com.sun.xml.bind', name: 'jaxb-core', version: '2.3.0'
+    /// JAXB replacement for Java 17.
+    api 'javax.xml.bind:jaxb-api:2.3.1'
+    runtimeOnly "com.sun.xml.bind:jaxb-impl:$jaxbVer"
+    runtimeOnly 'com.sun.xml.bind:jaxb-core:2.3.0'
+
+    implementation 'javax.inject:javax.inject:1'
 }
 

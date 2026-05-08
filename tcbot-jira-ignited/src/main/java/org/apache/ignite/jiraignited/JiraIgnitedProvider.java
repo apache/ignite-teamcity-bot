@@ -16,13 +16,14 @@
  */
 package org.apache.ignite.jiraignited;
 
+import java.time.Duration;
+
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.inject.Provider;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
+import javax.inject.Provider;
 import org.apache.ignite.jiraservice.IJiraIntegration;
 import org.apache.ignite.jiraservice.IJiraIntegrationProvider;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
@@ -41,7 +42,7 @@ public class JiraIgnitedProvider implements IJiraIgnitedProvider {
     private final Cache<String, IJiraIgnited> srvs
         = CacheBuilder.newBuilder()
         .maximumSize(100)
-        .expireAfterAccess(16, TimeUnit.MINUTES)
+        .expireAfterAccess(Duration.ofMinutes(16))
         .softValues()
         .build();
 

@@ -90,7 +90,7 @@ public class IssueDetector {
 
     private final AtomicBoolean init = new AtomicBoolean();
     private ITcBotUserCreds backgroundOpsCreds;
-    @Deprecated //todo use scheduler
+    @Deprecated
     private ScheduledExecutorService executorService;
 
     @Inject private Provider<CheckQueueJob> checkQueueJobProv;

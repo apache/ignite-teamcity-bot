@@ -5,7 +5,6 @@ Use Java 17. Build everything through the Gradle wrapper:
 ```
 ./gradlew clean build --no-daemon
 ./gradlew :jetty-launcher:clean :jetty-launcher:distZip --no-daemon
-./gradlew :tcbot-server-node:clean :tcbot-server-node:distZip --no-daemon
 ```
 
 On Windows use the same commands with `gradlew.bat`:
@@ -13,7 +12,6 @@ On Windows use the same commands with `gradlew.bat`:
 ```
 gradlew.bat clean build --no-daemon
 gradlew.bat :jetty-launcher:clean :jetty-launcher:distZip --no-daemon
-gradlew.bat :tcbot-server-node:clean :tcbot-server-node:distZip --no-daemon
 ```
 
 The web distribution is `jetty-launcher/build/distributions/jetty-launcher.zip`. It contains `bin`, `lib`, and

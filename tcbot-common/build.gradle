@@ -18,23 +18,14 @@
 apply plugin: 'java'
 
 dependencies {
-    api group: 'com.google.guava', name: 'guava', version: guavaVer
+    api "com.google.guava:guava:$guavaVer"
 
-    api group: 'org.slf4j', name: 'slf4j-api', version: slf4jVer
-    //Apache License Version 2.0
-    api group: 'com.google.code.gson', name: 'gson', version: gsonVer
+    api "org.slf4j:slf4j-api:$slf4jVer"
+    api "com.google.code.findbugs:jsr305:$jsr305Ver"
+    api "org.checkerframework:checker-qual:$checkerQualVer"
 
-    api group: 'javax.inject', name: 'javax.inject', version: '1'
-    api group: 'com.google.inject', name: 'guice', version: guiceVer
-    api group: 'com.google.code.findbugs', name: 'jsr305', version: jsr305Ver
-    api group: 'org.checkerframework', name: 'checker-qual', version: checkerQualVer
-
-    api group: 'org.xerial.snappy', name: 'snappy-java', version: snappyVer
-
-    api group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.1'
-    api group: 'com.sun.xml.bind', name: 'jaxb-impl', version: jaxbVer
-    api group: 'com.sun.xml.bind', name: 'jaxb-core', version: '2.3.0'
+    implementation 'javax.xml.bind:jaxb-api:2.3.1'
     
-    testImplementation group: 'junit', name: 'junit', version: junitVer;
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVer;
+    testImplementation "junit:junit:$junitVer";
+    testImplementation "org.mockito:mockito-core:$mockitoVer";
 }
