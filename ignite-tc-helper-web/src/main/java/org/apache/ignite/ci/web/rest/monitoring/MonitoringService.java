@@ -122,7 +122,6 @@ public class MonitoringService {
     }
 
     @GET
-    @PermitAll
     @Path("appLogSummaryLink")
     public AppLogSummaryLink getAppLogSummaryLink() {
         MonitoredTaskInterceptor instance = CtxListener.getInjector(ctx).getInstance(MonitoredTaskInterceptor.class);
@@ -135,7 +134,6 @@ public class MonitoringService {
     }
 
     @GET
-    @PermitAll
     @Path("taskLog")
     public List<AppLogEntry> getTaskLog(@QueryParam("startTs") long startTs, @QueryParam("endTs") long endTs) {
         if (startTs <= 0)
