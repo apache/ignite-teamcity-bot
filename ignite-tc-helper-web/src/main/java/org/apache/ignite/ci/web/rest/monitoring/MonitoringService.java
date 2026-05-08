@@ -480,4 +480,24 @@ public class MonitoringService {
         }
         return res;
     }
+
+    @GET
+    @Path("requests")
+    public List<RequestStat> getRequestStats() {
+        return RestRequestTimingStorage.stats();
+    }
+
+    @GET
+    @Path("recentRequests")
+    public List<RequestTiming> getRecentRequests() {
+        return RestRequestTimingStorage.recent();
+    }
+
+    @POST
+    @Path("resetRequests")
+    public SimpleResult resetRequestStats() {
+        RestRequestTimingStorage.reset();
+
+        return new SimpleResult("Ok");
+    }
 }

@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
@@ -54,6 +55,8 @@ import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.tcignited.build.UpdateCountersStorage;
 import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -61,6 +64,13 @@ import static com.google.common.base.Strings.isNullOrEmpty;
  * Process failures for some setup tracked branch, which may be triggered/monitored by TC Bot.
  */
 public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBranch {
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(TrackedBranchChainsProcessor.class);
+
+    /** Slow tracked branch operation threshold. */
+    private static final long SLOW_TRACKED_BRANCH_WARN_MS =
+        Long.getLong("tcbot.tracked.slowOperationWarnMs", 1000L);
+
     /** TC ignited server provider. */
     @Inject private ITeamcityIgnitedProvider tcIgnitedProv;
 
@@ -95,6 +105,15 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         int maxDurationSec,
         boolean showMuted,
         boolean showIgnored) {
+        long startNanos = System.nanoTime();
+        long chainTotalNanos = 0;
+        long serverResolveNanos = 0;
+        long tagFilterNanos = 0;
+        long historyNanos = 0;
+        long chainContextNanos = 0;
+        long uiInitNanos = 0;
+        long countersNanos;
+
         final DsSummaryUi res = new DsSummaryUi();
 
         final String branchNn = isNullOrEmpty(branch) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
@@ -102,70 +121,104 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
 
         final ITrackedBranch tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);
 
-        tracked.chainsStream()
+        List<ITrackedChain> accessibleChains = tracked.chainsStream()
             .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverCode(), creds))
-            .map(chainTracked -> {
-                final String srvCodeOrAlias = chainTracked.serverCode();
+            .collect(Collectors.toList());
 
-                final String branchForTc = chainTracked.tcBranch();
+        for (ITrackedChain chainTracked : accessibleChains) {
+            long chainStart = System.nanoTime();
+            final String srvCodeOrAlias = chainTracked.serverCode();
 
-                //branch is tracked, so fail rate should be taken from this branch data (otherwise it is specified).
-                final String baseBranchTc = chainTracked.tcBaseBranch().orElse(branchForTc);
+            final String branchForTc = chainTracked.tcBranch();
 
-                ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, creds);
+            //branch is tracked, so fail rate should be taken from this branch data (otherwise it is specified).
+            final String baseBranchTc = chainTracked.tcBaseBranch().orElse(branchForTc);
 
-                Map<Integer, Integer> requireParamVal = new HashMap<>();
+            long stepStart = System.nanoTime();
+            ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, creds);
+            serverResolveNanos += System.nanoTime() - stepStart;
 
-                if (!Strings.isNullOrEmpty(tagForHistSelected)) {
-                    requireParamVal.putAll(
-                        reverseTagToParametersRequired(tagForHistSelected, srvCodeOrAlias));
-                }
+            Map<Integer, Integer> requireParamVal = new HashMap<>();
 
-                DsChainUi chainStatus = new DsChainUi(srvCodeOrAlias,
-                    tcIgnited.serverCode(),
-                    branchForTc);
+            if (!Strings.isNullOrEmpty(tagForHistSelected)) {
+                stepStart = System.nanoTime();
+                requireParamVal.putAll(
+                    reverseTagToParametersRequired(tagForHistSelected, srvCodeOrAlias));
+                tagFilterNanos += System.nanoTime() - stepStart;
+            }
 
-                chainStatus.baseBranchForTc = baseBranchTc;
+            DsChainUi chainStatus = new DsChainUi(srvCodeOrAlias,
+                tcIgnited.serverCode(),
+                branchForTc);
 
-                String suiteIdMandatory = chainTracked.tcSuiteId();
+            chainStatus.baseBranchForTc = baseBranchTc;
 
-                List<Integer> chains = tcIgnited.getLastNBuildsFromHistory(suiteIdMandatory, branchForTc, buildResMergeCnt);
+            String suiteIdMandatory = chainTracked.tcSuiteId();
 
-                ProcessLogsMode logs;
-                if (buildResMergeCnt > 1)
-                    logs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.DISABLED;
-                else
-                    logs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
+            stepStart = System.nanoTime();
+            List<Integer> chains = tcIgnited.getLastNBuildsFromHistory(suiteIdMandatory, branchForTc, buildResMergeCnt);
+            historyNanos += System.nanoTime() - stepStart;
 
-                LatestRebuildMode rebuild = buildResMergeCnt > 1 ? LatestRebuildMode.ALL : LatestRebuildMode.LATEST;
+            ProcessLogsMode logs;
+            if (buildResMergeCnt > 1)
+                logs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.DISABLED;
+            else
+                logs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
 
-                boolean includeScheduled = buildResMergeCnt == 1;
+            LatestRebuildMode rebuild = buildResMergeCnt > 1 ? LatestRebuildMode.ALL : LatestRebuildMode.LATEST;
 
-                final FullChainRunCtx ctx = chainProc.loadFullChainContext(
-                    tcIgnited,
-                    chains,
-                    rebuild,
-                    logs,
-                    includeScheduled,
-                    baseBranchTc,
-                    syncMode,
-                    sortOption,
-                    requireParamVal
-                );
+            boolean includeScheduled = buildResMergeCnt == 1;
 
-                chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor, calcTrustedTests, tagSelected,
-                    displayMode, maxDurationSec, requireParamVal,
-                    showMuted, showIgnored);
+            stepStart = System.nanoTime();
+            final FullChainRunCtx ctx = chainProc.loadFullChainContext(
+                tcIgnited,
+                chains,
+                rebuild,
+                logs,
+                includeScheduled,
+                baseBranchTc,
+                syncMode,
+                sortOption,
+                requireParamVal
+            );
+            chainContextNanos += System.nanoTime() - stepStart;
 
-                return chainStatus;
-            })
-            .forEach(res::addChainOnServer);
+            stepStart = System.nanoTime();
+            chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor, calcTrustedTests, tagSelected,
+                displayMode, maxDurationSec, requireParamVal,
+                showMuted, showIgnored);
+            uiInitNanos += System.nanoTime() - stepStart;
+
+            res.addChainOnServer(chainStatus);
+            chainTotalNanos += System.nanoTime() - chainStart;
+        }
 
         res.servers.sort(Comparator.comparing(DsChainUi::serverName));
 
+        long stepStart = System.nanoTime();
         res.initCounters(getTrackedBranchUpdateCounters(branch, creds));
+        countersNanos = System.nanoTime() - stepStart;
+
+        long totalMs = nanosToMillis(System.nanoTime() - startNanos);
+
+        if (totalMs >= SLOW_TRACKED_BRANCH_WARN_MS) {
+            logger.warn("Slow tracked branch budget: branch={}, chains={}, count={}, syncMode={}, totalMs={}, " +
+                    "chainTotalMs={}, serverResolveMs={}, tagFilterMs={}, historyMs={}, chainContextMs={}, " +
+                    "uiInitMs={}, countersMs={}",
+                branchNn, accessibleChains.size(), buildResMergeCnt, syncMode, totalMs,
+                nanosToMillis(chainTotalNanos), nanosToMillis(serverResolveNanos), nanosToMillis(tagFilterNanos),
+                nanosToMillis(historyNanos), nanosToMillis(chainContextNanos), nanosToMillis(uiInitNanos),
+                nanosToMillis(countersNanos));
+        }
 
         return res;
+    }
+
+    /**
+     * @param nanos Nanoseconds.
+     */
+    private static long nanosToMillis(long nanos) {
+        return TimeUnit.NANOSECONDS.toMillis(nanos);
     }
 
     public Map<Integer, Integer> reverseTagToParametersRequired(@Nullable String tagForHistSelected,
