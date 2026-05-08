@@ -24,6 +24,24 @@ Local code can be set up using IntelliJ IDEA and Gradle project import.
 For local development, run `org.apache.ignite.ci.web.Launcher.main()` from the project root.
 The launcher starts Jetty on `http://localhost:8080/` and serves static web resources directly from
 `ignite-tc-helper-web/src/main/webapp`.
+When running this main class directly from an IDE on Java 17, use the same module options as the
+`igniteJava17JvmArgs` Gradle property:
+
+```
+-XX:+IgnoreUnrecognizedVMOptions
+--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED
+--add-exports=java.base/sun.nio.ch=ALL-UNNAMED
+--add-exports=java.management/com.sun.jmx.mbeanserver=ALL-UNNAMED
+--add-exports=jdk.internal.jvmstat/sun.jvmstat.monitor=ALL-UNNAMED
+--add-exports=java.base/sun.reflect.generics.reflectiveObjects=ALL-UNNAMED
+--add-opens=java.base/java.io=ALL-UNNAMED
+--add-opens=java.base/java.lang=ALL-UNNAMED
+--add-opens=java.base/java.nio=ALL-UNNAMED
+--add-opens=java.base/java.time=ALL-UNNAMED
+--add-opens=java.base/java.util=ALL-UNNAMED
+--add-opens=java.base/java.util.concurrent=ALL-UNNAMED
+--add-opens=java.base/sun.nio.ch=ALL-UNNAMED
+```
 
 The bot creates its working directory at `~/.ignite-teamcity-helper` by default. The directory contains
 runtime data and local configuration files. The location can be changed with the
@@ -54,50 +72,9 @@ Please install following components for development using IntelliJ IDEA
 * Apply [Code Inspection Profile](https://cwiki.apache.org/confluence/display/IGNITE/Coding+Guidelines#CodingGuidelines-C.CodeInspection)
 * Configure [IDEA Codestyle](https://cwiki.apache.org/confluence/display/IGNITE/Coding+Guidelines#CodingGuidelines-A.ConfigureIntelliJIDEAcodestyle)
 
-### Build
-A build can be done using following commands
-- gradle clean
-- gradle build
-
-It is recommended to use Java 11 for development.
-
-It may be required to install 
-[Java Cryptography Extension JCE Unlimited Strength Jurisdiction Policy Files 8 Download](https://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html)
-because the Bot uses strong AES cryptography, but default java distribution may limit AES256 usage.
-
-
-Resulting distribution can be found in projectRoot\jetty-launcher\build\distributions.
-Distribution will contain start script in \bin folder.
-
-### Running in production
-Production mode is started from the `jetty-launcher` distribution. Build the distribution first:
-
-```
-gradle clean build
-```
-
-Unpack the archive from `jetty-launcher/build/distributions` on the target host. The production launcher
-is `org.apache.ignite.ci.TcHelperJettyLauncher`; it starts the same web application from the packaged WAR.
-The generated start scripts set the default working directory to `../work` via
-`-Dteamcity.helper.home=../work`, so place production `branches.json` and other required configuration
-files into that `work` directory, or override `teamcity.helper.home` with the desired production path.
-
-When the bot is installed as a service, start or restart `tc-bot-service` after deploying a new build or
-changing configuration:
-
-```
-systemctl start tc-bot-service
-systemctl restart tc-bot-service
-systemctl status tc-bot-service
-```
-
-After `tc-bot-service` is up, open the production bot URL, log in with TeamCity credentials, and click
-`Authorize Server` in the top menu. This step is required for background operations that need TeamCity
-access, including background checks, queue checks, build triggering, JIRA notifications, and cleanup.
-
-Server authorization is not stored in `branches.json`; it is taken from the authenticated user session and
-kept by the running bot process. Re-authorize the server after each service restart, deployment, or process
-crash.
+### Build and installation
+Build, production installation, Linux service setup, and Windows production-check commands are documented in
+[Build and installation](docs/install.md).
 
 ### Internal Design
 Main bot logic is placed in [ignite-tc-helper-web](ignite-tc-helper-web) module. 

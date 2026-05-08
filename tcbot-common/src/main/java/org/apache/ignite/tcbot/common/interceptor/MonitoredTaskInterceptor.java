@@ -56,7 +56,7 @@ public class MonitoredTaskInterceptor implements MethodInterceptor, AutoCloseabl
                 timestampForLogsSimpleDate(System.currentTimeMillis())+".log");
 
             if (!tcbotLogs.exists())
-                file.mkdirs();
+                tcbotLogs.mkdirs();
 
             fileWriter = new FileWriter(file);
         }

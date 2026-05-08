@@ -34,9 +34,10 @@ import org.apache.ignite.cache.CacheMetrics;
 import org.apache.ignite.cache.affinity.Affinity;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.SimpleResult;
+import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfilingInterceptor;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTaskInterceptor;
-import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
+import org.apache.ignite.tcbot.engine.build.AiPromptRequestMonitor;
 import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
@@ -79,6 +80,15 @@ public class MonitoringService {
     /** Exception summary in log text. */
     private static final Pattern EXCEPTION_SUMMARY = Pattern.compile(
         "(?m)^(?:Caused by: )?([\\w.$]+(?:Exception|Error): .+)$");
+
+    /** Secret-like values in log text. */
+    private static final Pattern SECRET_VALUE = Pattern.compile(
+        "(?i)(authorization:\\s*(?:basic|bearer|token)\\s+|(?:access_token|auth_token|token|password|passwd|pwd|secret)=)" +
+            "([^\\s&\"'<>]+)");
+
+    /** JSON secret-like values in log text. */
+    private static final Pattern JSON_SECRET_VALUE = Pattern.compile(
+        "(?i)(\"(?:access_token|auth_token|token|password|passwd|pwd|secret)\"\\s*:\\s*\")([^\"]+)(\")");
 
     /** Max summary length. */
     private static final int SUMMARY_LIMIT = 240;
@@ -217,10 +227,20 @@ public class MonitoringService {
         if (entry == null || entry.text == null)
             return;
 
+        entry.text = sanitizeLogText(entry.text);
         entry.serviceUrl = serviceUrl(entry.text);
         entry.serviceHost = serviceHost(entry.text, entry.serviceUrl);
         entry.responseCode = responseCode(entry.text);
         entry.summary = summary(entry);
+    }
+
+    /**
+     * @param text Log text.
+     */
+    private String sanitizeLogText(String text) {
+        String sanitized = SECRET_VALUE.matcher(text).replaceAll("$1<redacted>");
+
+        return JSON_SECRET_VALUE.matcher(sanitized).replaceAll("$1<redacted>$3");
     }
 
     /**
@@ -462,5 +482,33 @@ public class MonitoringService {
             res.add(new CacheMetricsUi(next, size, affinity.partitions()));
         }
         return res;
+    }
+
+    @GET
+    @Path("requests")
+    public List<RequestStat> getRequestStats() {
+        return RestRequestTimingStorage.stats();
+    }
+
+    @GET
+    @Path("recentRequests")
+    public List<RequestTiming> getRecentRequests() {
+        return RestRequestTimingStorage.recent();
+    }
+
+    @POST
+    @Path("resetRequests")
+    public SimpleResult resetRequestStats() {
+        RestRequestTimingStorage.reset();
+
+        return new SimpleResult("Ok");
+    }
+
+    @GET
+    @Path("aiPrompts")
+    public List<AiPromptRequestMonitor.Request> getAiPromptRequests() {
+        AiPromptRequestMonitor monitor = CtxListener.getInjector(ctx).getInstance(AiPromptRequestMonitor.class);
+
+        return monitor.getRequests();
     }
 }

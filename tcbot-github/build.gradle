@@ -18,12 +18,12 @@
 apply plugin: 'java'
 
 dependencies {
-    compile (project(":tcbot-common"));
+    api project(":tcbot-common")
     // GitHub integration shares entries for pure and Ignited connection, so persistence module is here for interfaces/annotations
-    compile (project(":tcbot-persistence"));
+    api project(":tcbot-persistence")
     
-    testCompile group: 'junit', name: 'junit', version: junitVer
-    testCompile group: 'org.mockito', name: 'mockito-core', version: mockitoVer
+    testImplementation group: 'junit', name: 'junit', version: junitVer
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVer
 }
 
 
@@ -35,11 +35,5 @@ processResources {
 
 test {
     // set JVM arguments for the test JVM(s)
-    jvmArgs "-XX:+IgnoreUnrecognizedVMOptions",
-        "--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED",
-        "--add-exports=java.base/sun.nio.ch=ALL-UNNAMED",
-        "--add-exports=java.management/com.sun.jmx.mbeanserver=ALL-UNNAMED",
-        "--add-exports=jdk.internal.jvmstat/sun.jvmstat.monitor=ALL-UNNAMED",
-        "--add-exports=java.base/sun.reflect.generics.reflectiveObjects=ALL-UNNAMED",
-        "--illegal-access=permit"
+    jvmArgs igniteJava17JvmArgs
 }

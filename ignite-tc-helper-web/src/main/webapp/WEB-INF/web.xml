@@ -1,8 +1,8 @@
-<web-app id="TcHelper" version="2.4"
-         xmlns="http://java.sun.com/xml/ns/j2ee"
+<web-app id="TcHelper" version="4.0"
+         xmlns="http://xmlns.jcp.org/xml/ns/javaee"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee
-	http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee
+                             http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd">
     <display-name>Restful Web Application</display-name>
 
     <listener>
@@ -29,10 +29,12 @@
     </servlet-mapping>
 
     <servlet>
-        <servlet-name>default</servlet-name>
-        <init-param>
-            <param-name>useFileMappedBuffer</param-name>
-            <param-value>false</param-value>
-        </init-param>
+        <servlet-name>static-resources</servlet-name>
+        <servlet-class>org.apache.ignite.ci.web.StaticResourceServlet</servlet-class>
     </servlet>
+
+    <servlet-mapping>
+        <servlet-name>static-resources</servlet-name>
+        <url-pattern>/</url-pattern>
+    </servlet-mapping>
 </web-app>

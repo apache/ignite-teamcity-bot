@@ -31,8 +31,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
@@ -66,6 +70,7 @@ import org.apache.ignite.jiraservice.Ticket;
 import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
 import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.pr.BranchTicketMatcher;
 import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
@@ -94,6 +99,9 @@ import static org.apache.ignite.ci.observer.BuildsInfo.RUNNING_STATUS;
 public class TcBotTriggerAndSignOffService {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(TcBotTriggerAndSignOffService.class);
+
+    /** Slow visa operation threshold. */
+    private static final long SLOW_VISA_OPERATION_WARN_MS = Long.getLong("tcbot.visa.slowOperationWarnMs", 1000L);
 
     /** */
     private static final ThreadLocal<DateFormat> THREAD_FORMATTER = new ThreadLocal<DateFormat>() {
@@ -255,6 +263,7 @@ public class TcBotTriggerAndSignOffService {
         }
     }
 
+    @AutoProfiling
     @NotNull public String triggerBuildsAndObserve(
         @Nullable String srvCodeOrAlias,
         @Nullable String branchForTc,
@@ -267,15 +276,27 @@ public class TcBotTriggerAndSignOffService {
         @Nullable String baseBranchForTc,
         @Nonnull Boolean cleanRebuild,
         @Nullable ITcBotUserCreds prov) {
+        long startNanos = System.nanoTime();
+        long initNanos = 0;
+        long prLookupNanos = 0;
+        long triggerNanos = 0;
+        long syncNanos = 0;
+        long observeNanos = 0;
+        int triggeredBuilds = 0;
+
         String jiraRes = "";
 
+        long stepStart = System.nanoTime();
         ITeamcityIgnited teamcity = tcIgnitedProv.server(srvCodeOrAlias, prov);
 
         IGitHubConnIgnited ghIgn = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
+        initNanos = System.nanoTime() - stepStart;
 
         if(!Strings.isNullOrEmpty(prNum)) {
             try {
+                stepStart = System.nanoTime();
                 PullRequest pr = ghIgn.getPullRequest(Integer.parseInt(prNum));
+                prLookupNanos += System.nanoTime() - stepStart;
 
                 if(pr!=null) {
                     String shaShort = pr.lastCommitShaShort();
@@ -296,16 +317,34 @@ public class TcBotTriggerAndSignOffService {
         Set<Integer> buildidsToSync = new HashSet<>();
 
         for (int i = 0; i < suiteIds.length; i++) {
+            stepStart = System.nanoTime();
             T2<Build, Set<Integer>> objects = teamcity.triggerBuild(suiteIds[i], branchForTc, cleanRebuild, top != null && top, new HashMap<>(),
                 false, "");
+            triggerNanos += System.nanoTime() - stepStart;
+            triggeredBuilds++;
             buildidsToSync.addAll(objects.get2());
             builds[i] = objects.get1();
         }
 
+        stepStart = System.nanoTime();
         teamcity.fastBuildsSync(buildidsToSync);
+        syncNanos = System.nanoTime() - stepStart;
 
-        if (observe != null && observe)
+        if (observe != null && observe) {
+            stepStart = System.nanoTime();
             jiraRes += observeJira(srvCodeOrAlias, branchForTc, ticketId, prov, parentSuiteId, baseBranchForTc, builds);
+            observeNanos = System.nanoTime() - stepStart;
+        }
+
+        long totalMs = millisSince(startNanos);
+        if (totalMs >= SLOW_VISA_OPERATION_WARN_MS) {
+            logger.warn("Slow visa trigger budget: server={}, branch={}, parentSuite={}, suites={}, totalMs={}, " +
+                    "initMs={}, prLookupMs={}, triggerMs={}, fastSyncMs={}, observeMs={}, triggeredBuilds={}, " +
+                    "buildIdsToSync={}",
+                srvCodeOrAlias, branchForTc, parentSuiteId, suiteIdList, totalMs,
+                nanosToMillis(initNanos), nanosToMillis(prLookupNanos), nanosToMillis(triggerNanos),
+                nanosToMillis(syncNanos), nanosToMillis(observeNanos), triggeredBuilds, buildidsToSync.size());
+        }
 
         return jiraRes;
     }
@@ -399,28 +438,60 @@ public class TcBotTriggerAndSignOffService {
      * @param srvCodeOrAlias Server id.
      * @param credsProv Credentials
      */
+    @AutoProfiling
     public List<ContributionToCheck> getContributionsToCheck(String srvCodeOrAlias,
         ITcBotUserCreds credsProv) {
+        long startNanos = System.nanoTime();
+        long serviceResolveNanos;
+        long prsLoadNanos;
+        long ticketsLoadNanos;
+        long defaultBuildTypeNanos;
+        long prLoopNanos;
+        AtomicLong prTicketResolveNanos = new AtomicLong();
+        AtomicLong prBuildLookupNanos = new AtomicLong();
+        long branchesLoadNanos;
+        long activeTicketsFilterNanos;
+        long activeTicketsLoopNanos;
+        AtomicLong activeBranchResolveNanos = new AtomicLong();
+        AtomicLong activeBranchCheckNanos = new AtomicLong();
+        AtomicLong activeBuildLookupNanos = new AtomicLong();
+        AtomicInteger prBuildLookupCnt = new AtomicInteger();
+        AtomicInteger activeBuildLookupCnt = new AtomicInteger();
+
+        long stepStart = System.nanoTime();
         IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCodeOrAlias);
 
         IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
 
         ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvCodeOrAlias, credsProv);
+        serviceResolveNanos = System.nanoTime() - stepStart;
 
+        stepStart = System.nanoTime();
         List<PullRequest> prs = gitHubConnIgnited.getPullRequests();
+        prsLoadNanos = System.nanoTime() - stepStart;
 
+        stepStart = System.nanoTime();
         Set<Ticket> tickets = jiraIntegration.getTickets();
+        ticketsLoadNanos = System.nanoTime() - stepStart;
+
+        Map<String, Ticket> ticketsByKey = tickets.stream()
+            .filter(ticket -> ticket.key != null)
+            .collect(Collectors.toMap(ticket -> ticket.key, ticket -> ticket, (first, second) -> first));
 
         IJiraServerConfig jiraCfg = jiraIntegration.config();
         IGitHubConfig ghCfg = gitHubConnIgnited.config();
 
+        stepStart = System.nanoTime();
         String defBtForTcServ = findDefaultBuildType(srvCodeOrAlias);
+        defaultBuildTypeNanos = System.nanoTime() - stepStart;
 
         List<ContributionToCheck> contribsList = new ArrayList<>();
 
+        stepStart = System.nanoTime();
         if (prs != null) {
             prs.forEach(pr -> {
                 ContributionToCheck c = new ContributionToCheck();
+                String prHeadRef = pr.head() == null ? null : pr.head().ref();
 
                 c.prNumber = pr.getNumber();
                 c.prTitle = pr.getTitle();
@@ -438,11 +509,16 @@ public class TcBotTriggerAndSignOffService {
                     c.prAuthorAvatarUrl = "";
                 }
 
-                Ticket ticket = ticketMatcher.resolveTicketIdForPrBasedContrib(tickets, jiraCfg, pr.getTitle());
+                long ticketStart = System.nanoTime();
+                Ticket ticket = ticketMatcher.resolveTicketIdForPrBasedContrib(tickets, ticketsByKey, jiraCfg, pr.getTitle());
+                prTicketResolveNanos.addAndGet(System.nanoTime() - ticketStart);
 
                 if (ticket == null || ticket.id == 0) {
-                    if (pr.head() != null && pr.head().ref() != null)
-                        ticket = ticketMatcher.resolveTicketIdForPrBasedContrib(tickets, jiraCfg, pr.head().ref());
+                    if (prHeadRef != null) {
+                        ticketStart = System.nanoTime();
+                        ticket = ticketMatcher.resolveTicketIdForPrBasedContrib(tickets, ticketsByKey, jiraCfg, prHeadRef);
+                        prTicketResolveNanos.addAndGet(System.nanoTime() - ticketStart);
+                    }
                 }
 
                 c.jiraIssueId = ticket == null ? null : ticket.key;
@@ -452,34 +528,55 @@ public class TcBotTriggerAndSignOffService {
                         && jiraCfg.getUrl() != null)
                     c.jiraIssueUrl = jiraIntegration.generateTicketUrl(c.jiraIssueId);
 
-                findBuildsForPr(defBtForTcServ, Integer.toString(pr.getNumber()), gitHubConnIgnited, tcIgn)
+                long buildLookupStart = System.nanoTime();
+                findBuildsForPr(defBtForTcServ, Integer.toString(pr.getNumber()), prHeadRef, gitHubConnIgnited, tcIgn)
                         .stream()
                         .map(buildRefCompacted -> buildRefCompacted.branchName(compactor))
                         .findAny()
                         .ifPresent(bName -> c.tcBranchName = bName);
+                prBuildLookupNanos.addAndGet(System.nanoTime() - buildLookupStart);
+                prBuildLookupCnt.incrementAndGet();
 
                 contribsList.add(c);
             });
         }
+        prLoopNanos = System.nanoTime() - stepStart;
 
+        stepStart = System.nanoTime();
         List<String> branches = gitHubConnIgnited.getBranches();
+        Set<String> branchesSet = new HashSet<>(branches);
+        branchesLoadNanos = System.nanoTime() - stepStart;
 
+        stepStart = System.nanoTime();
         List<Ticket> activeTickets = tickets.stream()
             .filter(ticket -> JiraTicketStatusCode.isActiveContribution(ticket.status()))
             .collect(Collectors.toList());
+        activeTicketsFilterNanos = System.nanoTime() - stepStart;
 
+        stepStart = System.nanoTime();
         activeTickets.forEach(ticket -> {
+            long branchResolveStart = System.nanoTime();
             String branch = ticketMatcher.resolveTcBranchForPrLess(ticket,
                 jiraCfg,
                 ghCfg);
+            activeBranchResolveNanos.addAndGet(System.nanoTime() - branchResolveStart);
 
             if (Strings.isNullOrEmpty(branch))
                 return; // nothing to do if branch was not resolved
 
+            long branchCheckStart = System.nanoTime();
+            boolean branchExists = branchesSet.contains(branch);
+            activeBranchCheckNanos.addAndGet(System.nanoTime() - branchCheckStart);
 
-            if (!branches.contains(branch)
-                && tcIgn.getAllBuildsCompacted(defBtForTcServ, branch).isEmpty())
-                return; //Skipping contributions without builds
+            if (!branchExists) {
+                long buildLookupStart = System.nanoTime();
+                boolean buildsExist = !tcIgn.getAllBuildsCompacted(defBtForTcServ, branch).isEmpty();
+                activeBuildLookupNanos.addAndGet(System.nanoTime() - buildLookupStart);
+                activeBuildLookupCnt.incrementAndGet();
+
+                if (!buildsExist)
+                    return; //Skipping contributions without builds
+            }
 
             ContributionToCheck contribution = new ContributionToCheck();
 
@@ -509,6 +606,25 @@ public class TcBotTriggerAndSignOffService {
 
             contribsList.add(contribution);
         });
+        activeTicketsLoopNanos = System.nanoTime() - stepStart;
+
+        long totalMs = millisSince(startNanos);
+        if (totalMs >= SLOW_VISA_OPERATION_WARN_MS) {
+            logger.warn("Slow visa contributions budget: server={}, totalMs={}, result={}, prs={}, tickets={}, " +
+                    "activeTickets={}, branches={}, serviceResolveMs={}, prsLoadMs={}, ticketsLoadMs={}, " +
+                    "defaultBuildTypeMs={}, prLoopMs={}, prTicketResolveMs={}, prBuildLookupMs={}, " +
+                    "prBuildLookups={}, branchesLoadMs={}, activeFilterMs={}, activeLoopMs={}, " +
+                    "activeBranchResolveMs={}, activeBranchCheckMs={}, activeBuildLookupMs={}, activeBuildLookups={}",
+                srvCodeOrAlias, totalMs, contribsList.size(), prs == null ? 0 : prs.size(), tickets.size(),
+                activeTickets.size(), branches.size(), nanosToMillis(serviceResolveNanos), nanosToMillis(prsLoadNanos),
+                nanosToMillis(ticketsLoadNanos), nanosToMillis(defaultBuildTypeNanos), nanosToMillis(prLoopNanos),
+                nanosToMillis(prTicketResolveNanos.get()), nanosToMillis(prBuildLookupNanos.get()),
+                prBuildLookupCnt.get(),
+                nanosToMillis(branchesLoadNanos), nanosToMillis(activeTicketsFilterNanos),
+                nanosToMillis(activeTicketsLoopNanos), nanosToMillis(activeBranchResolveNanos.get()),
+                nanosToMillis(activeBranchCheckNanos.get()), nanosToMillis(activeBuildLookupNanos.get()),
+                activeBuildLookupCnt.get());
+        }
 
         return contribsList;
     }
@@ -524,9 +640,25 @@ public class TcBotTriggerAndSignOffService {
         String prId,
         IGitHubConnIgnited ghConn,
         ITeamcityIgnited srv) {
+        return findBuildsForPr(suiteId, prId, null, ghConn, srv);
+    }
+
+    /**
+     * @param suiteId Suite id.
+     * @param prId Pr id from {@link ContributionToCheck#prNumber}. Negative value imples branch number for PR-less.
+     * @param prHeadBranch PR head branch name, when it is already known by caller.
+     * @param ghConn Gh connection.
+     * @param srv TC Server connection.
+     */
+    @Nonnull
+    private List<BuildRefCompacted> findBuildsForPr(String suiteId,
+        String prId,
+        @Nullable String prHeadBranch,
+        IGitHubConnIgnited ghConn,
+        ITeamcityIgnited srv) {
 
         List<BuildRefCompacted> buildHist = srv.getAllBuildsCompacted(suiteId,
-                branchForTcDefault(prId, ghConn));
+                branchForTcDefault(prId, ghConn, prHeadBranch));
 
         if (!buildHist.isEmpty())
             return buildHist;
@@ -543,7 +675,7 @@ public class TcBotTriggerAndSignOffService {
         String bracnhToCheck =
                 ghConn.config().isPreferBranches()
                         ? branchForTcA(prId) // for prefer branches mode it was already checked in default
-                        : getPrBranch(ghConn, prNum);
+                        : prHeadBranch != null ? prHeadBranch : getPrBranch(ghConn, prNum);
 
         if (bracnhToCheck == null)
             return Collections.emptyList();
@@ -574,12 +706,22 @@ public class TcBotTriggerAndSignOffService {
      * @param ghConn Github integration.
      */
     private String branchForTcDefault(String prId, IGitHubConnIgnited ghConn) {
+        return branchForTcDefault(prId, ghConn, null);
+    }
+
+    /**
+     * @param prId Pr id from {@link ContributionToCheck#prNumber}. Negative value imples branch number to be used for
+     * PR-less contributions.
+     * @param ghConn Github integration.
+     * @param prHeadBranch PR head branch name, when it is already known by caller.
+     */
+    private String branchForTcDefault(String prId, IGitHubConnIgnited ghConn, @Nullable String prHeadBranch) {
         Integer prNum = Integer.valueOf(prId);
         if (prNum < 0)
             return ghConn.gitBranchPrefix() + (-prNum); // Checking "ignite-10930" builds only
 
         if (ghConn.config().isPreferBranches()) {
-            String ref = getPrBranch(ghConn, prNum);
+            String ref = prHeadBranch != null ? prHeadBranch : getPrBranch(ghConn, prNum);
             if (ref != null)
                 return ref;
         }
@@ -601,31 +743,61 @@ public class TcBotTriggerAndSignOffService {
      * @param prId Pr id from {@link ContributionToCheck#prNumber}. Negative value imples branch number (with
      * appropriate prefix from GH config).
      */
+    @AutoProfiling
     public Set<ContributionCheckStatus> contributionStatuses(String srvCodeOrAlias, ITcBotUserCreds prov,
         String prId) {
+        long startNanos = System.nanoTime();
+        long serviceResolveNanos;
+        long defaultBuildTypeNanos;
+        long buildTypesNanos;
+        long buildLookupNanos = 0;
+        long statusBuildNanos = 0;
+        int buildLookupCnt = 0;
+
         Set<ContributionCheckStatus> statuses = new LinkedHashSet<>();
 
+        long stepStart = System.nanoTime();
         ITeamcityIgnited teamcity = tcIgnitedProv.server(srvCodeOrAlias, prov);
 
-        String defaultBuildType = findDefaultBuildType(srvCodeOrAlias);
-
         IGitHubConnIgnited ghConn = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
+        serviceResolveNanos = System.nanoTime() - stepStart;
+
+        stepStart = System.nanoTime();
+        String defaultBuildType = findDefaultBuildType(srvCodeOrAlias);
+        defaultBuildTypeNanos = System.nanoTime() - stepStart;
 
         Preconditions.checkState(ghConn.config().code().equals(srvCodeOrAlias));
 
+        stepStart = System.nanoTime();
         List<String> compositeBuildTypeIds = findApplicableBuildTypes(srvCodeOrAlias, teamcity);
+        buildTypesNanos = System.nanoTime() - stepStart;
 
         for (String btId : compositeBuildTypeIds) {
+            stepStart = System.nanoTime();
             List<BuildRefCompacted> buildsForBt = findBuildsForPr(btId, prId, ghConn, teamcity);
+            buildLookupNanos += System.nanoTime() - stepStart;
+            buildLookupCnt++;
 
+            stepStart = System.nanoTime();
             ContributionCheckStatus contributionAgainstSuite = buildsForBt.isEmpty()
                 ? new ContributionCheckStatus(btId, branchForTcDefault(prId, ghConn))
                 : contributionStatus(srvCodeOrAlias, btId, buildsForBt, teamcity, ghConn, prId);
+            statusBuildNanos += System.nanoTime() - stepStart;
 
             if(Objects.equals(btId, defaultBuildType))
                 contributionAgainstSuite.defaultBuildType = true;
 
             statuses.add(contributionAgainstSuite);
+        }
+
+        long totalMs = millisSince(startNanos);
+        if (totalMs >= SLOW_VISA_OPERATION_WARN_MS) {
+            logger.warn("Slow visa contributionStatus budget: server={}, prId={}, totalMs={}, statuses={}, " +
+                    "serviceResolveMs={}, defaultBuildTypeMs={}, buildTypesMs={}, buildLookupMs={}, " +
+                    "statusBuildMs={}, buildLookups={}",
+                srvCodeOrAlias, prId, totalMs, statuses.size(), nanosToMillis(serviceResolveNanos),
+                nanosToMillis(defaultBuildTypeNanos), nanosToMillis(buildTypesNanos), nanosToMillis(buildLookupNanos),
+                nanosToMillis(statusBuildNanos), buildLookupCnt);
         }
 
         return statuses;
@@ -768,17 +940,24 @@ public class TcBotTriggerAndSignOffService {
         return teamcity.host() + "viewQueued.html?itemId=" + ref.id();
     }
 
+    @AutoProfiling
     public CurrentVisaStatus currentVisaStatus(String srvCode, ITcBotUserCreds prov, String buildTypeId,
                                                String tcBranch) {
+        long startNanos = System.nanoTime();
         CurrentVisaStatus status = new CurrentVisaStatus();
 
         List<ShortSuiteUi> suitesStatuses
             = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, tcBranch, srvCode, prov, SyncMode.NONE, null);
 
-        if (suitesStatuses == null)
+        if (suitesStatuses == null) {
+            logSlowVisaOperation(startNanos, "visaStatus", srvCode, buildTypeId, tcBranch, 0);
+
             return status;
+        }
 
         status.blockers = suitesStatuses.stream().mapToInt(ShortSuiteUi::totalBlockers).sum();
+
+        logSlowVisaOperation(startNanos, "visaStatus", srvCode, buildTypeId, tcBranch, suitesStatuses.size());
 
         return status;
     }
@@ -795,6 +974,7 @@ public class TcBotTriggerAndSignOffService {
      * @param baseBranchForTc Base branch in TC identification
      * @return {@link Visa} instance.
      */
+    @AutoProfiling
     public Visa notifyJira(
         String srvCodeOrAlias,
         ITcBotUserCreds prov,
@@ -802,14 +982,18 @@ public class TcBotTriggerAndSignOffService {
         String branchForTc,
         String ticket,
         @Nullable String baseBranchForTc) {
+        long startNanos = System.nanoTime();
         ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, prov);
 
         IJiraIgnited jira = jiraIgnProv.server(srvCodeOrAlias);
 
         List<Integer> builds = tcIgnited.getLastNBuildsFromHistory(buildTypeId, branchForTc, 1);
 
-        if (builds.isEmpty())
+        if (builds.isEmpty()) {
+            logSlowVisaOperation(startNanos, "notifyJiraNoBuilds", srvCodeOrAlias, buildTypeId, branchForTc, 0);
+
             return new Visa("JIRA wasn't commented - no finished builds to analyze.");
+        }
 
         Integer buildId = builds.get(0);
 
@@ -852,6 +1036,35 @@ public class TcBotTriggerAndSignOffService {
             return new Visa("JIRA wasn't commented - " + errMsg);
         }
 
+        logSlowVisaOperation(startNanos, "notifyJira", srvCodeOrAlias, buildTypeId, branchForTc, blockers);
+
         return new Visa(Visa.JIRA_COMMENTED, res, blockers);
+    }
+
+    /**
+     * @param nanos Nanoseconds.
+     */
+    private static long nanosToMillis(long nanos) {
+        return TimeUnit.NANOSECONDS.toMillis(nanos);
+    }
+
+    /**
+     * @param startNanos Start time.
+     */
+    private static long millisSince(long startNanos) {
+        return nanosToMillis(System.nanoTime() - startNanos);
+    }
+
+    /**
+     * Logs slow visa operation.
+     */
+    private void logSlowVisaOperation(long startNanos, String op, String srvCode, String buildTypeId, String tcBranch,
+        int resultSize) {
+        long totalMs = millisSince(startNanos);
+
+        if (totalMs >= SLOW_VISA_OPERATION_WARN_MS) {
+            logger.warn("Slow visa operation: op={}, server={}, buildType={}, branch={}, totalMs={}, resultSize={}",
+                op, srvCode, buildTypeId, tcBranch, totalMs, resultSize);
+        }
     }
 }

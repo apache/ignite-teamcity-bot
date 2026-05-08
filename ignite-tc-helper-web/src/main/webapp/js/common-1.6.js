@@ -58,6 +58,22 @@ function rgbToHex(r, g, b) {
     return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
 }
 
+function isLoginUrl(url) {
+    try {
+        return new URL(url, window.location.origin).pathname === "/login.html";
+    }
+    catch (e) {
+        return false;
+    }
+}
+
+function currentBackref() {
+    if (isLoginUrl(window.location.href))
+        return "/";
+
+    return window.location.href;
+}
+
 //requires element on page: <div id="loadStatus"></div>
 function showErrInLoadStatus(jqXHR, exception) {
     if (jqXHR.status === 0) {
@@ -67,8 +83,11 @@ function showErrInLoadStatus(jqXHR, exception) {
     } else if (jqXHR.status === 401) {
         $("#loadStatus").html('Unauthorized [401]');
 
+        if (window.location.pathname === "/login.html")
+            return;
+
         setTimeout(function() {
-            window.location.href = "/login.html" + "?backref=" + encodeURIComponent(window.location.href);
+            window.location.href = "/login.html?backref=" + encodeURIComponent(currentBackref());
         }, 1000);
     } else if (jqXHR.status === 403) {
         $("#loadStatus").html('Forbidden [403]');
@@ -113,6 +132,10 @@ function showVersionInfo(result) {
 
     if (isDefinedAndFilled(result.javaVer)) {
         res += ", Java Version: " + result.javaVer;
+    }
+
+    if (isDefinedAndFilled(result.serverVer)) {
+        res += ", Server Version: " + result.serverVer;
     }
 
     res += "<br>";

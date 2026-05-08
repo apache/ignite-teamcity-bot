@@ -18,52 +18,61 @@
 apply plugin: 'java'
 apply plugin: 'application'
 
-mainClassName = 'org.apache.ignite.ci.TcHelperJettyLauncher'
-applicationDefaultJvmArgs = ["-Dteamcity.helper.home=../work",
-                             "-Dteamcity.bot.regionsize=16", // 16g Durable Memory region
-                             "-Dhttp.maxConnections=30",
-                             "-server",
-                             "-Xmx16g",
-                             "-XX:+AlwaysPreTouch",
-                             "-XX:+UseG1GC",
-                             "-XX:+ScavengeBeforeFullGC",
-                             "-XX:+UseStringDeduplication",
-                             "-Djava.rmi.server.hostname=app02",
-                             "-Dcom.sun.management.jmxremote",
-                             "-Dcom.sun.management.jmxremote.port=9010",
-                             "-Dcom.sun.management.jmxremote.local.only=false",
-                             "-Dcom.sun.management.jmxremote.authenticate=false",
-                             "-Dcom.sun.management.jmxremote.ssl=false",
-
-                             // Options for running on Java 11
-                             "-XX:+IgnoreUnrecognizedVMOptions",
-                             "--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED",
-                             "--add-exports=java.base/sun.nio.ch=ALL-UNNAMED",
-                             "--add-exports=java.management/com.sun.jmx.mbeanserver=ALL-UNNAMED",
-                             "--add-exports=jdk.internal.jvmstat/sun.jvmstat.monitor=ALL-UNNAMED",
-                             "--add-exports=java.base/sun.reflect.generics.reflectiveObjects=ALL-UNNAMED",
-                             "--illegal-access=permit"]
+application {
+    mainClass = 'org.apache.ignite.ci.TcHelperJettyLauncher'
+    applicationDefaultJvmArgs = igniteJava17JvmArgs + ["-Dteamcity.helper.home=../work",
+                                                       "-Dfile.encoding=UTF-8",
+                                                       "-Dteamcity.bot.regionsize=16", // 16g Durable Memory region
+                                                       "-Dhttp.maxConnections=30",
+                                                       "-server",
+                                                       "-Xmx16g",
+                                                       "-XX:+AlwaysPreTouch",
+                                                       "-XX:+UseG1GC",
+                                                       "-XX:+ScavengeBeforeFullGC",
+                                                       "-XX:+UseStringDeduplication",
+                                                       "-Djava.rmi.server.hostname=app02",
+                                                       "-Dcom.sun.management.jmxremote",
+                                                       "-Dcom.sun.management.jmxremote.port=9010",
+                                                       "-Dcom.sun.management.jmxremote.local.only=false",
+                                                       "-Dcom.sun.management.jmxremote.authenticate=false",
+                                                       "-Dcom.sun.management.jmxremote.ssl=false"]
+}
 
 distributions {
     main {
         contents {
             into('war') {
-                from { new File(project(':ignite-tc-helper-web').getBuildDir(), "libs/ignite-tc-helper-web.war")}
-
-                fileMode = 0755
+                from project(':ignite-tc-helper-web').tasks.named('war')
             }
         }
     }
 }
 
+tasks.register('prepareLocalWarRun') {
+    dependsOn tasks.named('installDist')
+
+    doLast {
+        def workDir = layout.buildDirectory.dir('install/jetty-launcher/work').get().asFile
+        copy {
+            from rootProject.file('conf/branches.json')
+            into workDir
+        }
+        mkdir new File(workDir, 'tcbot_logs')
+    }
+}
+
 dependencies {
-    compile (project(":ignite-tc-helper-web"))  {
+    implementation (project(":ignite-tc-helper-web"))  {
         transitive = false
     }
 
-    compile group: 'org.eclipse.jetty', name: 'jetty-util', version: jettyVer
-    compile group: 'org.eclipse.jetty', name: 'jetty-server', version: jettyVer
-    compile group: 'org.eclipse.jetty', name: 'jetty-webapp', version: jettyVer
+    implementation group: 'org.eclipse.jetty', name: 'jetty-util', version: jettyVer
+    implementation group: 'org.eclipse.jetty', name: 'jetty-server', version: jettyVer
+    implementation group: 'org.eclipse.jetty.ee8', name: 'jetty-ee8-webapp', version: jettyVer
 
-    compile group: 'com.google.guava', name: 'guava', version: guavaVer
+    implementation group: 'com.google.guava', name: 'guava', version: guavaVer
+
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: slf4jVer
+    implementation group: 'ch.qos.logback', name: 'logback-core', version: logbackVer
+    implementation group: 'ch.qos.logback', name: 'logback-classic', version: logbackVer
 }

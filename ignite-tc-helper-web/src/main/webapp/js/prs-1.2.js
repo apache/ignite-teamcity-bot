@@ -262,7 +262,6 @@ function formatContributionDetails(row, srvId) {
         "                <td>Build Queued</td>\n" +
         "                <td>Results ready</td>\n" +
         "                <td>JIRA comment</td>\n" +
-        //todo  "                <td>Validity check</td>\n" +
         "            </tr>\n";
 
     //icon of stage
@@ -271,7 +270,6 @@ function formatContributionDetails(row, srvId) {
         "                <th title='Suite should be triggered'><span class='visaStage' id='visaStage_2_" + prId + "'></span></th>\n" +
         "                <th><span class='visaStage' id='visaStage_3_" + prId + "'></span></th>\n" +
          "               <th><span class='visaStage' id='visaStage_4_" + prId + "'></span></th>\n" +
-        //todo validityCheck;"                <th><span class='visaStage' id='visaStage_5_" + prId + "'></span></th>\n" +
         "            </tr>\n";
 
     //action for stage
@@ -322,7 +320,7 @@ function formatContributionDetails(row, srvId) {
                 for (let status of result) {
                     suites.set(status.suiteId, status);
 
-                    if (isDefinedAndFilled(status.defaultBuildType) && status.defaultBuildType === true)
+                    if (status.defaultBuildType === true)
                         isDefault.push(status);
                     else if (isDefinedAndFilled(status.branchWithFinishedSuite))
                         isCompleted.push(status);

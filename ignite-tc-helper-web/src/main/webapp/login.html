@@ -91,7 +91,7 @@
               window.localStorage.setItem("token", data.fullToken);
          } catch (e) {}
 
-        if (isDefinedAndFilled(backref)) {
+        if (isDefinedAndFilled(backref) && !isLoginUrl(backref)) {
              window.location.href = backref;
          } else {
              window.location.href = "/";

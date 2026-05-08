@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -170,6 +171,7 @@ public class BuildChainProcessor {
         Map<Integer, Future<FatBuildCompacted>> builds = loadAllBuildsInChains(entryPoints, mode, tcIgn);
 
         Map<String, List<Future<FatBuildCompacted>>> freshRebuilds = new ConcurrentHashMap<>();
+        Map<String, Map<String, ScheduledBuildsCount>> scheduledCountsByBranch = new ConcurrentHashMap<>();
 
         groupByBuildType(builds).forEach(
             (k, buildsForBt) -> {
@@ -199,7 +201,8 @@ public class BuildChainProcessor {
 
             final MultBuildRunCtx ctx = new MultBuildRunCtx(ref, compactor);
 
-            buildsForSuite.forEach(buildCompacted -> ctx.addBuild(loadChanges(buildCompacted, tcIgn)));
+            buildsForSuite.forEach(buildCompacted -> ctx.addBuild(loadChanges(buildCompacted, tcIgn,
+                mode == SyncMode.NONE)));
 
             //ask for history for the suite in parallel
             tcUpdatePool.getService().submit(() -> {
@@ -208,7 +211,7 @@ public class BuildChainProcessor {
 
             analyzeTests(ctx, tcIgn, procLog);
 
-            fillBuildCounts(ctx, tcIgn, includeScheduledInfo);
+            fillBuildCounts(ctx, tcIgn, includeScheduledInfo, scheduledCountsByBranch);
 
             contexts.add(ctx);
         });
@@ -308,9 +311,22 @@ public class BuildChainProcessor {
      */
     public SingleBuildRunCtx loadChanges(@Nonnull FatBuildCompacted buildCompacted,
         ITeamcityIgnited tcIgnited) {
+        return loadChanges(buildCompacted, tcIgnited, false);
+    }
+
+    /**
+     * @param buildCompacted Build ref from history with references to tests.
+     * @param tcIgnited TC connection.
+     * @param cachedOnly Use only data already present in the fat build cache.
+     * @return Full context.
+     */
+    public SingleBuildRunCtx loadChanges(@Nonnull FatBuildCompacted buildCompacted,
+        ITeamcityIgnited tcIgnited,
+        boolean cachedOnly) {
         SingleBuildRunCtx ctx = new SingleBuildRunCtx(buildCompacted, compactor);
 
-        ctx.setChanges(tcIgnited.getAllChanges(buildCompacted.changes()));
+        if (!cachedOnly)
+            ctx.setChanges(tcIgnited.getAllChanges(buildCompacted.changes()));
 
         ctx.addTags(SingleBuildRunCtx.getBuildTagsFromParameters(tcIgnited.config(), compactor, buildCompacted));
 
@@ -425,23 +441,64 @@ public class BuildChainProcessor {
     @AutoProfiling
     protected void fillBuildCounts(MultBuildRunCtx outCtx,
         ITeamcityIgnited teamcityIgnited, boolean includeScheduledInfo) {
+        fillBuildCounts(outCtx, teamcityIgnited, includeScheduledInfo, new ConcurrentHashMap<>());
+    }
+
+    @SuppressWarnings("WeakerAccess")
+    @AutoProfiling
+    protected void fillBuildCounts(MultBuildRunCtx outCtx,
+        ITeamcityIgnited teamcityIgnited,
+        boolean includeScheduledInfo,
+        Map<String, Map<String, ScheduledBuildsCount>> scheduledCountsByBranch) {
         if (includeScheduledInfo && !outCtx.hasScheduledBuildsInfo()) {
-            List<BuildRefCompacted> runAllBuilds = teamcityIgnited.getAllBuildsCompacted(outCtx.suiteId(), outCtx.branchName());
+            ScheduledBuildsCount counts = scheduledCountsByBranch
+                .computeIfAbsent(outCtx.branchName(), branch -> scheduledBuildCountsBySuite(teamcityIgnited, branch))
+                .get(outCtx.suiteId());
 
-            long cntRunning = runAllBuilds
-                .stream()
-                .filter(r -> r.isNotCancelled(compactor))
-                .filter(r -> r.isRunning(compactor)).count();
+            if (counts == null) {
+                outCtx.setRunningBuildCount(0);
+                outCtx.setQueuedBuildCount(0);
 
-            outCtx.setRunningBuildCount((int)cntRunning);
+                return;
+            }
 
-            long cntQueued = runAllBuilds
-                .stream()
-                .filter(r -> r.isNotCancelled(compactor))
-                .filter(r -> r.isQueued(compactor)).count();
-
-            outCtx.setQueuedBuildCount((int)cntQueued);
+            outCtx.setRunningBuildCount(counts.running);
+            outCtx.setQueuedBuildCount(counts.queued);
         }
+    }
+
+    /**
+     * @param teamcityIgnited TeamCity service.
+     * @param branch Branch.
+     */
+    private Map<String, ScheduledBuildsCount> scheduledBuildCountsBySuite(ITeamcityIgnited teamcityIgnited,
+        String branch) {
+        Map<String, ScheduledBuildsCount> res = new HashMap<>();
+
+        teamcityIgnited.getQueuedAndRunningBuildsCompacted(branch).stream()
+            .filter(ref -> ref.isNotCancelled(compactor))
+            .forEach(ref -> {
+                String suiteId = ref.buildTypeId(compactor);
+                ScheduledBuildsCount counts = res.computeIfAbsent(suiteId, k -> new ScheduledBuildsCount());
+
+                if (ref.isRunning(compactor))
+                    counts.running++;
+                else if (ref.isQueued(compactor))
+                    counts.queued++;
+            });
+
+        return res;
+    }
+
+    /**
+     * Queued and running builds count.
+     */
+    private static class ScheduledBuildsCount {
+        /** Running count. */
+        private int running;
+
+        /** Queued count. */
+        private int queued;
     }
 
     @SuppressWarnings("WeakerAccess")
@@ -450,7 +507,14 @@ public class BuildChainProcessor {
                                 ProcessLogsMode procLog) {
         for (SingleBuildRunCtx ctx : outCtx.getBuilds()) {
             boolean incompleteFailure = ctx.hasSuiteIncompleteFailure();
-            if ((procLog == ProcessLogsMode.SUITE_NOT_COMPLETE && incompleteFailure)
+            if (procLog == ProcessLogsMode.CACHED_ONLY) {
+                ILogCheckResult logCheckRes = buildLogProcessor.getCachedBuildLogAnalysis(teamcity.serverCode(),
+                    ctx.buildId());
+
+                if (logCheckRes != null)
+                    ctx.setLogCheckResFut(CompletableFuture.completedFuture(logCheckRes));
+            }
+            else if ((procLog == ProcessLogsMode.SUITE_NOT_COMPLETE && incompleteFailure)
                     || procLog == ProcessLogsMode.ALL)
                 ctx.setLogCheckResFut(
                         CompletableFuture.supplyAsync(

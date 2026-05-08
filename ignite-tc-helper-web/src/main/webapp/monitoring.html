@@ -22,6 +22,7 @@
         $( document ).tooltip();
 
         loadData();
+        setInterval(loadAiPromptsData, 5000);
     });
 
     function loadPofilingData() {
@@ -31,6 +32,18 @@
                 $("#loadStatus").html("");
 
                 showProfiling(result);
+            },
+            error: showErrInLoadStatus
+        });
+    }
+
+    function loadRequestData() {
+        $.ajax({
+            url: "rest/monitoring/requests",
+            success: function (result) {
+                $("#loadStatus").html("");
+
+                showRequests(result);
             },
             error: showErrInLoadStatus
         });
@@ -61,6 +74,7 @@
         });
 
         loadPofilingData();
+        loadRequestData();
 
         $.ajax({
             url: "rest/monitoring/cacheMetrics",
@@ -68,6 +82,20 @@
                 $("#loadStatus").html("");
 
                 showCacheMetrics(result);
+            },
+            error: showErrInLoadStatus
+        });
+
+        loadAiPromptsData();
+    }
+
+    function loadAiPromptsData() {
+        $.ajax({
+            url: "rest/monitoring/aiPrompts",
+            success: function(result) {
+                $("#loadStatus").html("");
+
+                showAiPrompts(result);
             },
             error: showErrInLoadStatus
         });
@@ -137,6 +165,40 @@
         $("#profiling").html(res);
     }
 
+    /**
+     * @param result org.apache.ignite.ci.web.rest.monitoring.RequestStat
+     */
+    function showRequests(result) {
+        var res = "<table class='stat'>" ;
+        res += "<tr>";
+        res += "<th>Method</th>";
+        res += "<th>Path</th>";
+        res += "<th>Count</th>";
+        res += "<th>Total, ms</th>";
+        res += "<th>Avg, ms</th>";
+        res += "<th>Max, ms</th>";
+        res += "<th>Last, ms</th>";
+        res += "<th>Last status</th>";
+        res += "<th>Last request</th>";
+        res += "</tr>";
+        for (var i = 0; i < result.length; i++) {
+            var inv = result[i];
+            res += "<tr>";
+            res += "<td>" + escapeHtml(inv.method) + "</td>";
+            res += "<td>" + escapeHtml(inv.path) + "</td>";
+            res += "<td>" + escapeHtml(inv.count) + "</td>";
+            res += "<td>" + escapeHtml(inv.totalMs) + "</td>";
+            res += "<td>" + escapeHtml(inv.avgMs) + "</td>";
+            res += "<td>" + escapeHtml(inv.maxMs) + "</td>";
+            res += "<td>" + escapeHtml(inv.lastMs) + "</td>";
+            res += "<td>" + escapeHtml(inv.lastStatus) + "</td>";
+            res += "<td>" + escapeHtml(inv.lastRequest) + "</td>";
+            res += "</tr>";
+        }
+        res += "</table>";
+        $("#requests").html(res);
+    }
+
     function showCacheMetrics(result) {
         var res = "<table class='stat'>" ;
         res += "<tr>";
@@ -155,12 +217,60 @@
         $("#caches").html(res);
     }
 
+    function showAiPrompts(result) {
+        var res = "<table class='stat'>" ;
+        res += "<tr>";
+        res += "<th>Id</th>";
+        res += "<th>Kind</th>";
+        res += "<th>Branch</th>";
+        res += "<th>Server</th>";
+        res += "<th>Suite</th>";
+        res += "<th>Test</th>";
+        res += "<th>Stage</th>";
+        res += "<th>Start</th>";
+        res += "<th>End</th>";
+        res += "<th>Duration</th>";
+        res += "<th>Running</th>";
+        res += "<th>Result</th>";
+        res += "</tr>";
+        for (var i = 0; i < result.length; i++) {
+            var req = result[i];
+            res += "<tr>";
+            res += "<td>" + escapeHtml(req.id) + "</td>";
+            res += "<td>" + escapeHtml(req.kind) + "</td>";
+            res += "<td>" + escapeHtml(req.branch) + "</td>";
+            res += "<td>" + escapeHtml(req.server) + "</td>";
+            res += "<td>" + escapeHtml(req.suite) + "</td>";
+            res += "<td>" + escapeHtml(req.test) + "</td>";
+            res += "<td>" + escapeHtml(req.stage) + "</td>";
+            res += "<td>" + escapeHtml(req.start) + "</td>";
+            res += "<td>" + escapeHtml(req.end) + "</td>";
+            res += "<td>" + escapeHtml(req.duration) + "</td>";
+            res += "<td>" + escapeHtml(req.running) + "</td>";
+            res += "<td>" + escapeHtml(req.result) + "</td>";
+            res += "</tr>";
+        }
+        res += "</table>";
+        $("#aiPrompts").html(res);
+    }
+
     function resetProfiling() {
         $.ajax({
             url: "rest/monitoring/resetProfiling",
             method: "post",
             success: function(result) {
                 loadPofilingData();
+            },
+            error: showErrInLoadStatus
+        });
+    }
+
+    function resetRequests() {
+        $.ajax({
+            url: "rest/monitoring/resetRequests",
+            method: "post",
+            success: function(result) {
+                loadRequestData();
             },
             error: showErrInLoadStatus
         });
@@ -198,7 +308,7 @@
     }
 
     function escapeHtml(str) {
-        return String(str || "")
+        return String(str == null ? "" : str)
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;")
@@ -211,6 +321,16 @@
 Tasks Monitoring Data:
 <div id="appLogSummary" style="font-family: monospace"></div>
 <div id="tasks" style="font-family: monospace"></div>
+<br>
+
+<hr>
+<b>AI Prompt Requests:</b>
+<div id="aiPrompts" style="font-family: monospace"></div>
+<br>
+
+<hr>
+<b>REST Request Timings:</b> <button onclick="resetRequests()">Reset</button>
+<div id="requests" style="font-family: monospace"></div>
 <br>
 
 <hr>

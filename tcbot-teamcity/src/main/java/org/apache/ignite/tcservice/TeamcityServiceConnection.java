@@ -101,6 +101,9 @@ public class TeamcityServiceConnection implements ITeamcity {
     /** Retry jitter. */
     private static final long RETRY_JITTER_MS = 250;
 
+    /** Max retry backoff. */
+    private static final long MAX_RETRY_BACKOFF_MS = TimeUnit.SECONDS.toMillis(30);
+
     @Inject private IDataSourcesConfigSupplier cfg;
 
     private String srvCode;
@@ -375,8 +378,9 @@ public class TeamcityServiceConnection implements ITeamcity {
     private long retryBackoffMs(int attempt, long retryAfterMs) {
         long base = INITIAL_RETRY_BACKOFF_MS << (attempt - 1);
         long backoff = base + ThreadLocalRandom.current().nextLong(RETRY_JITTER_MS + 1);
+        long retryDelay = retryAfterMs >= 0 ? Math.max(backoff, retryAfterMs) : backoff;
 
-        return retryAfterMs >= 0 ? Math.max(backoff, retryAfterMs) : backoff;
+        return Math.min(retryDelay, MAX_RETRY_BACKOFF_MS);
     }
 
     /**

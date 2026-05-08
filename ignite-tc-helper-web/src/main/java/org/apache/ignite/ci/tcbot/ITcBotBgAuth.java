@@ -24,13 +24,13 @@ import org.jetbrains.annotations.Nullable;
  */
 public interface ITcBotBgAuth {
     /** */
-    public void setServerAuthorizerCreds(ITcBotUserCreds creds);
+    void setServerAuthorizerCreds(ITcBotUserCreds creds);
 
     /** */
-    @Nullable public ITcBotUserCreds getServerAuthorizerCreds();
+    @Nullable ITcBotUserCreds getServerAuthorizerCreds();
 
     /** */
-    public default boolean isServerAuthorized() {
+    default boolean isServerAuthorized() {
         return getServerAuthorizerCreds() != null;
     }
 }
