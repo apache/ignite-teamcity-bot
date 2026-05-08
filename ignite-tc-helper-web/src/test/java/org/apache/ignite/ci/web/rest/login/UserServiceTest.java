@@ -20,6 +20,7 @@ package org.apache.ignite.ci.web.rest.login;
 import java.lang.reflect.Field;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.core.Form;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.user.TcHelperUser;
@@ -65,6 +66,39 @@ public class UserServiceTest {
 
         verify(users).putUser(eq("other"), same(other));
         verify(users, never()).putUser(eq("admin"), same(admin));
+    }
+
+    @Test
+    public void adminResetsRequestedUserCredentials() throws Exception {
+        TcHelperUser admin = user("admin", true);
+        TcHelperUser other = user("other", false);
+        other.getOrCreateCreds("apache").setLogin("other").setPassword("password", new byte[16]);
+
+        IUserStorage users = mock(IUserStorage.class);
+        when(users.getUser("admin")).thenReturn(admin);
+        when(users.getUser("other")).thenReturn(other);
+
+        UserService svc = service(users, creds("admin"));
+
+        svc.resetCredentials("other");
+
+        assertTrue(other.getCredentialsList().isEmpty());
+        assertEquals("Admin User", admin.fullName);
+
+        verify(users).putUser(eq("other"), same(other));
+        verify(users, never()).putUser(eq("admin"), same(admin));
+    }
+
+    @Test(expected = ForbiddenException.class)
+    public void nonAdminCannotResetOtherUserCredentials() throws Exception {
+        TcHelperUser user = user("user", false);
+        TcHelperUser other = user("other", false);
+
+        IUserStorage users = mock(IUserStorage.class);
+        when(users.getUser("user")).thenReturn(user);
+        when(users.getUser("other")).thenReturn(other);
+
+        service(users, creds("user")).resetCredentials("other");
     }
 
     private static UserService service(IUserStorage users, ITcBotUserCreds creds) throws Exception {
