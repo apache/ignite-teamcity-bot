@@ -297,8 +297,8 @@ function aiPromptProgressMessage(waitForTc, idx, elapsedMs) {
         if (idx === 1)
             return "Using cached chain context and cached log analysis only.";
 
-        return "Still building from cache (" + elapsedSec
-            + "s). Waiting for the bot server response; no new TeamCity/log wait was requested.";
+        return "No prompt response yet after " + elapsedSec
+            + "s. Bot is still building from cache; no new TeamCity/log wait was requested.";
     }
 
     if (idx === 0)
@@ -308,13 +308,19 @@ function aiPromptProgressMessage(waitForTc, idx, elapsedMs) {
         return "Bot is asking TeamCity for build history and chain context.";
 
     if (idx === 2)
-        return "Bot is loading build/test details and may refresh stale TeamCity cache.";
+        return "No prompt response yet after " + elapsedSec
+            + "s. Bot may still be waiting for TeamCity build history or chain context.";
 
     if (idx === 3)
-        return "Bot requested build-log analysis; waiting for log download/parse or the 30s log timeout.";
+        return "No prompt response yet after " + elapsedSec
+            + "s. Bot may be loading build/test details or refreshing stale TeamCity cache.";
 
-    return "Still waiting (" + elapsedSec
-        + "s). TeamCity request or build-log processing is not finished yet; you can use current context now.";
+    if (elapsedSec < 35)
+        return "No prompt response yet after " + elapsedSec
+            + "s. Bot may be downloading/parsing build logs; log wait timeout is 30s.";
+
+    return "No prompt response yet after " + elapsedSec
+        + "s. TeamCity request or build-log processing is taking longer than expected; you can use current context now.";
 }
 
 function appendAiPromptStep(state, text) {
