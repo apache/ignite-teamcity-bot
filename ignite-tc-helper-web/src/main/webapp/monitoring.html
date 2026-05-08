@@ -29,6 +29,7 @@
                 monitoringAdmin = result.admin === true;
 
                 initAdminControls();
+                renderAdminUsersList(result, "#adminUsersBlock", "#adminUsers");
                 loadData();
                 setInterval(loadAiPromptsData, 5000);
             },
@@ -36,6 +37,7 @@
                 monitoringAdmin = false;
 
                 initAdminControls();
+                $("#adminUsersBlock").hide();
                 loadData();
                 setInterval(loadAiPromptsData, 5000);
             }
@@ -356,6 +358,13 @@
     Tasks Monitoring Data:
     <div id="appLogSummary" style="font-family: monospace"></div>
     <div id="tasks" style="font-family: monospace"></div>
+    <br>
+</div>
+
+<div id="adminUsersBlock" class="adminOnly" style="display: none">
+    <hr>
+    <b>Users:</b>
+    <div id="adminUsers"></div>
     <br>
 </div>
 
