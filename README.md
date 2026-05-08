@@ -53,6 +53,9 @@ runtime data and local configuration files. The location can be changed with the
 
 Examples of configs can be found in [conf](conf) directory. 
 Main config file is [conf/branches.json](conf/branches.json). This file needs to be placed to work directory, (under user home by default).
+The running bot reloads `branches.json` lazily: configuration reads are cached for up to 3 minutes, so most changes
+become visible without a restart after the cache expires. Restart the bot only when you need the change to take effect
+immediately.
 Extra setup is required using security-sensitive information using PasswordEncoder. No TeamCity credentials are required because TC bot asks users to enter creds.
 
 Minimal local run checklist:
