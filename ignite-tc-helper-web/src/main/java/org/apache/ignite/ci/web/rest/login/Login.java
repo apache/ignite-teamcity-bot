@@ -160,7 +160,8 @@ public class Login {
         if (tcUser != null)
             user.enrichUserData(tcUser);
 
-        user.setAdmin(tcUser != null && tcUser.belongsToAnyGroup(botAdminGroups));
+        if (tcUser != null)
+            user.updateAdmin(tcUser.belongsToAnyGroup(botAdminGroups), System.currentTimeMillis());
 
         users.putUser(username, user);
 

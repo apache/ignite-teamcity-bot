@@ -128,6 +128,7 @@ public class LoginAuthTest {
 
         assertNotNull(loginResponse.fullToken);
         assertTrue(storage.getUser("admin").isAdmin());
+        assertNotNull(storage.getUser("admin").adminLastCheckedTs);
     }
 
     @Test
@@ -149,6 +150,35 @@ public class LoginAuthTest {
 
         assertNotNull(loginResponse.fullToken);
         assertFalse(storage.getUser("user").isAdmin());
+    }
+
+    @Test
+    public void testAdminFlagIsPreservedWhenTeamcityIsUnavailable() {
+        UserAndSessionsStorage storage = mockOneSessionStor();
+
+        Login login = createLogin();
+
+        ITcLogin adminTcLogin = (serverId, username, password) -> {
+            User user = new User();
+            user.username = username;
+            user.setGroups(new Groups(new GroupRef("IGNITE_COMMITTERS", "Ignite Committers")));
+
+            return user;
+        };
+
+        LoginResponse loginResponse = login.doLogin("admin", "password", storage, "public", Collections.emptySet(),
+            adminTcLogin, Collections.singleton("IGNITE_COMMITTERS"));
+
+        assertNotNull(loginResponse.fullToken);
+        assertTrue(storage.getUser("admin").isAdmin());
+
+        ITcLogin unavailableTcLogin = (serverId, username, password) -> null;
+
+        loginResponse = login.doLogin("admin", "password", storage, "public", Collections.emptySet(),
+            unavailableTcLogin, Collections.singleton("IGNITE_COMMITTERS"));
+
+        assertNotNull(loginResponse.fullToken);
+        assertTrue(storage.getUser("admin").isAdmin());
     }
 
     @Test

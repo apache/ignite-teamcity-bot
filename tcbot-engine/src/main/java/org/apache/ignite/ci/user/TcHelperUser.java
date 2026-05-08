@@ -61,6 +61,8 @@ public class TcHelperUser implements IVersionedEntity, INotificationChannel {
 
     private Boolean admin;
 
+    public Long adminLastCheckedTs;
+
     /** Subscribed to all failures in following tracked branches. */
     @Nullable private Set<String> subscribedToAllFailures;
 
@@ -205,6 +207,23 @@ public class TcHelperUser implements IVersionedEntity, INotificationChannel {
      */
     public void setAdmin(Boolean admin) {
         this.admin = admin;
+    }
+
+    /**
+     * @param admin Administration.
+     * @param lastCheckedTs Time when TeamCity user groups were successfully checked.
+     */
+    public void updateAdmin(Boolean admin, long lastCheckedTs) {
+        this.admin = admin;
+        this.adminLastCheckedTs = lastCheckedTs;
+    }
+
+    /**
+     * @param nowTs Current timestamp.
+     * @param maxAgeMs Max acceptable age.
+     */
+    public boolean isAdminStatusStale(long nowTs, long maxAgeMs) {
+        return adminLastCheckedTs == null || (nowTs - adminLastCheckedTs) > maxAgeMs;
     }
 
     /**
