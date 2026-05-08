@@ -56,6 +56,7 @@ public class DiContextTest {
         validateInstanceCachedFor(injector, BuildChainProcessor.class);
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public Injector getInjector() {
         TcBotWebAppModule igniteTcBotModule = new TcBotWebAppModule();
         Ignite ignite = mock(Ignite.class);

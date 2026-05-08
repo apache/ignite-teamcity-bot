@@ -472,7 +472,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         Injector injector = Guice.createInjector(new AbstractModule() {
             @Override protected void configure() {
                 bind(Ignite.class).toInstance(ignite);
-                bind(IStringCompactor.class).to(IgniteStringCompactor.class).in(Scopes.SINGLETON);
+                bind(IStringCompactor.class).toInstance(new IgniteStringCompactor(() -> ignite));
                 bind(IDataSourcesConfigSupplier.class).toInstance(Mockito.mock(IDataSourcesConfigSupplier.class));
                 bind(ILogProductSpecific.class).toInstance(Mockito.mock(ILogProductSpecific.class));
             }
