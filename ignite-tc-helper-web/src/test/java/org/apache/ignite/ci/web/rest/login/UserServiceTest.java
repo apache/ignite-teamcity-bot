@@ -1,0 +1,124 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.ignite.ci.web.rest.login;
+
+import com.google.inject.Injector;
+import java.lang.reflect.Field;
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.Form;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
+import org.apache.ignite.ci.user.TcHelperUser;
+import org.apache.ignite.tcbot.engine.user.IUserStorage;
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.same;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+public class UserServiceTest {
+    @Test
+    public void adminSavesRequestedUserData() throws Exception {
+        TcHelperUser admin = user("admin", true);
+        TcHelperUser other = user("other", false);
+
+        IUserStorage users = mock(IUserStorage.class);
+        when(users.getUser("admin")).thenReturn(admin);
+        when(users.getUser("other")).thenReturn(other);
+
+        UserService svc = service(users, creds("admin"));
+
+        Form form = new Form();
+        form.param("notify_master", "1");
+
+        svc.saveUserData("other", "other@example.org", "Other User", form);
+
+        assertEquals("Admin User", admin.fullName);
+        assertEquals("admin@example.org", admin.email);
+        assertFalse(admin.isSubscribedToBranch("master"));
+
+        assertEquals("Other User", other.fullName);
+        assertEquals("other@example.org", other.email);
+        assertTrue(other.isSubscribedToBranch("master"));
+
+        verify(users).putUser(eq("other"), same(other));
+        verify(users, never()).putUser(eq("admin"), same(admin));
+    }
+
+    private static UserService service(IUserStorage users, ITcBotUserCreds creds) throws Exception {
+        Injector injector = mock(Injector.class);
+        when(injector.getInstance(IUserStorage.class)).thenReturn(users);
+
+        ServletContext ctx = mock(ServletContext.class);
+        when(ctx.getAttribute(anyString())).thenReturn(injector);
+
+        HttpServletRequest req = mock(HttpServletRequest.class);
+        when(req.getAttribute(ITcBotUserCreds._KEY)).thenReturn(creds);
+
+        UserService svc = new UserService();
+
+        setField(svc, "ctx", ctx);
+        setField(svc, "req", req);
+
+        return svc;
+    }
+
+    private static TcHelperUser user(String username, boolean admin) {
+        TcHelperUser user = new TcHelperUser();
+        user.username = username;
+        user.fullName = username.substring(0, 1).toUpperCase() + username.substring(1) + " User";
+        user.email = username + "@example.org";
+        user.setAdmin(admin);
+
+        return user;
+    }
+
+    private static ITcBotUserCreds creds(String principalId) {
+        return new ITcBotUserCreds() {
+            @Override public String getUser(String srvCode) {
+                return null;
+            }
+
+            @Override public String getPassword(String srvCode) {
+                return null;
+            }
+
+            @Override public String getPrincipalId() {
+                return principalId;
+            }
+
+            @Override public byte[] getUserKey() {
+                return new byte[0];
+            }
+        };
+    }
+
+    private static void setField(Object target, String fieldName, Object val) throws Exception {
+        Field field = UserService.class.getDeclaredField(fieldName);
+
+        field.setAccessible(true);
+        field.set(target, val);
+    }
+}

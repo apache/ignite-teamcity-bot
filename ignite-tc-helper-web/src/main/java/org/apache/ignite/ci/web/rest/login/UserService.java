@@ -231,10 +231,16 @@ public class UserService {
         @Nullable @FormParam("fullName") final String fullName,
         Form form) {
 
-        final String login = ITcBotUserCreds.get(req).getPrincipalId(); //todo check admin Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
+        final String currUserLogin = ITcBotUserCreds.get(req).getPrincipalId();
+        final String login = Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
 
         final IUserStorage users = CtxListener.getInjector(ctx).getInstance(IUserStorage.class);
+        final TcHelperUser currUser = users.getUser(currUserLogin);
+        ensureCanAccessUser(currUser, currUserLogin, login);
+
         final TcHelperUser user = users.getUser(login);
+        if (user == null)
+            throw new NotFoundException("User not found: " + login);
 
         user.resetNotifications();
         form.asMap().forEach((k, v) -> {
@@ -251,7 +257,7 @@ public class UserService {
         user.fullName = fullName;
         user.email = email;
 
-        users.putUser(user.username, user);
+        users.putUser(login, user);
 
         return new SimpleResult("");
     }
