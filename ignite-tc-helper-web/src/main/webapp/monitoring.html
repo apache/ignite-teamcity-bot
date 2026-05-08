@@ -169,15 +169,15 @@
         for (var i = 0; i < result.length; i++) {
             var inv = result[i];
             res += "<tr>";
-            res += "<td>" + inv.method + "</td>";
-            res += "<td>" + inv.path + "</td>";
-            res += "<td>" + inv.count + "</td>";
-            res += "<td>" + inv.totalMs + "</td>";
-            res += "<td>" + inv.avgMs + "</td>";
-            res += "<td>" + inv.maxMs + "</td>";
-            res += "<td>" + inv.lastMs + "</td>";
-            res += "<td>" + inv.lastStatus + "</td>";
-            res += "<td>" + inv.lastRequest + "</td>";
+            res += "<td>" + escapeHtml(inv.method) + "</td>";
+            res += "<td>" + escapeHtml(inv.path) + "</td>";
+            res += "<td>" + escapeHtml(inv.count) + "</td>";
+            res += "<td>" + escapeHtml(inv.totalMs) + "</td>";
+            res += "<td>" + escapeHtml(inv.avgMs) + "</td>";
+            res += "<td>" + escapeHtml(inv.maxMs) + "</td>";
+            res += "<td>" + escapeHtml(inv.lastMs) + "</td>";
+            res += "<td>" + escapeHtml(inv.lastStatus) + "</td>";
+            res += "<td>" + escapeHtml(inv.lastRequest) + "</td>";
             res += "</tr>";
         }
         res += "</table>";
@@ -256,7 +256,7 @@
     }
 
     function escapeHtml(str) {
-        return String(str || "")
+        return String(str == null ? "" : str)
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;")

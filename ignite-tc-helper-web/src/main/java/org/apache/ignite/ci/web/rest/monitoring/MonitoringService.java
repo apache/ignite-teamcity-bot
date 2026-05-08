@@ -482,21 +482,18 @@ public class MonitoringService {
     }
 
     @GET
-    @PermitAll
     @Path("requests")
     public List<RequestStat> getRequestStats() {
         return RestRequestTimingStorage.stats();
     }
 
     @GET
-    @PermitAll
     @Path("recentRequests")
     public List<RequestTiming> getRecentRequests() {
         return RestRequestTimingStorage.recent();
     }
 
     @POST
-    @PermitAll
     @Path("resetRequests")
     public SimpleResult resetRequestStats() {
         RestRequestTimingStorage.reset();
