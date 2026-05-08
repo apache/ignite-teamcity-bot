@@ -322,6 +322,45 @@ public class HttpUtil {
     }
 
     /**
+     * Send POST request to the GitHub url.
+     *
+     * @param githubAuthTok GitHub authorization token.
+     * @param url URL.
+     * @param body Request body.
+     * @return Response body from given url.
+     * @throws IOException If failed.
+     */
+    public static String sendPostAsStringToGit(@Nullable String githubAuthTok, String url, String body)
+        throws IOException {
+        URL obj = new URL(url);
+        HttpURLConnection con = (HttpURLConnection)obj.openConnection();
+        Charset charset = StandardCharsets.UTF_8;
+
+        con.setRequestProperty("accept-charset", charset.toString());
+
+        if (githubAuthTok != null)
+            con.setRequestProperty("Authorization", "token " + githubAuthTok);
+
+        con.setRequestProperty("Connection", "Keep-Alive");
+        con.setRequestProperty("Keep-Alive", "header");
+        con.setRequestProperty("content-type", "application/json");
+
+        con.setRequestMethod("POST");
+
+        con.setDoOutput(true);
+
+        try (OutputStreamWriter writer = new OutputStreamWriter(con.getOutputStream(), charset)) {
+            writer.write(body);
+        }
+
+        logger.info("\nSending 'POST' request to URL : " + url + "\n" + body);
+
+        try (InputStream inputStream = getInputStream(con, gitHubAuthDiagnostic(githubAuthTok))) {
+            return readIsToString(inputStream);
+        }
+    }
+
+    /**
      * Send POST request to the JIRA url.
      *
      * @param jiraAuthTok Authorization Base64 token.

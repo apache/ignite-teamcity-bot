@@ -25,6 +25,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
+import org.apache.ignite.ci.tcbot.visa.CommentTargets;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -62,6 +63,9 @@ public class BuildsInfo {
     /** JIRA ticket full name. */
     public final String ticket;
 
+    /** Comment targets. */
+    public final String commentTargets;
+
     /** */
     public final Date date;
 
@@ -77,6 +81,7 @@ public class BuildsInfo {
         this.date = compactBuildsInfo.date();
         this.srvId = strCompactor.getStringFromId(compactBuildsInfo.srvId());
         this.ticket = strCompactor.getStringFromId(compactBuildsInfo.ticket());
+        this.commentTargets = CommentTargets.normalize(strCompactor.getStringFromId(compactBuildsInfo.commentTargets()));
         this.branchForTc = strCompactor.getStringFromId(compactBuildsInfo.branchForTc());
         this.buildTypeId = strCompactor.getStringFromId(compactBuildsInfo.buildTypeId());
         this.baseBranchForTc = strCompactor.getStringFromId(compactBuildsInfo.baseBranchForTc());
@@ -93,10 +98,26 @@ public class BuildsInfo {
     public BuildsInfo(String srvId, String ticket, String branchForTc, String parentSuiteId,
         @Nullable String baseBranchForTc, String userName,
         Build... builds) {
+        this(srvId, ticket, branchForTc, parentSuiteId, baseBranchForTc, userName,
+            CommentTargets.DFLT, builds);
+    }
+
+    /**
+     * @param userName
+     * @param srvId Server id.
+     * @param branchForTc Branch for TC.
+     * @param ticket Ticket.
+     * @param commentTargets Comment targets.
+     * @param builds Builds.
+     */
+    public BuildsInfo(String srvId, String ticket, String branchForTc, String parentSuiteId,
+        @Nullable String baseBranchForTc, String userName, @Nullable String commentTargets,
+        Build... builds) {
         this.userName = userName;
         this.date = Calendar.getInstance().getTime();
         this.srvId = srvId;
         this.ticket = ticket;
+        this.commentTargets = CommentTargets.normalize(commentTargets);
         this.branchForTc = branchForTc;
         this.buildTypeId = Strings.isNullOrEmpty(parentSuiteId) ?
             (builds.length == 1 ? builds[0].buildTypeId : "IgniteTests24Java8_RunAll") : parentSuiteId;
@@ -190,12 +211,13 @@ public class BuildsInfo {
             Objects.equals(buildTypeId, info.buildTypeId) &&
             Objects.equals(branchForTc, info.branchForTc) &&
             Objects.equals(ticket, info.ticket) &&
+            Objects.equals(commentTargets, info.commentTargets) &&
             Objects.equals(builds, info.builds) &&
             Objects.equals(date, info.date);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(srvId, buildTypeId, branchForTc, ticket, builds, date);
+        return Objects.hash(srvId, buildTypeId, branchForTc, ticket, commentTargets, builds, date);
     }
 }

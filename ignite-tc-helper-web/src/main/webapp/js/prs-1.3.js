@@ -261,7 +261,7 @@ function formatContributionDetails(row, srvId) {
         "                <td>PR naming</td>\n" +
         "                <td>Build Queued</td>\n" +
         "                <td>Results ready</td>\n" +
-        "                <td>JIRA comment</td>\n" +
+        "                <td>Comments</td>\n" +
         "            </tr>\n";
 
     //icon of stage
@@ -405,6 +405,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
 
     let buildIsCompleted = isDefinedAndFilled(status.branchWithFinishedSuite);
     let hasJiraIssue = isDefinedAndFilled(row.jiraIssueId);
+    var jiraOptional = hasJiraIssue ? row.jiraIssueId : "";
     let hasQueued = status.queuedBuilds > 0 || status.runningBuilds > 0;
     let queuedStatus = "Has queued builds: " + status.queuedBuilds  + " queued " + " " + status.runningBuilds  + " running";
 
@@ -432,25 +433,47 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
 
         tdForPr.html(reportLink);
 
+        let commentBtns = "";
+
         if (hasJiraIssue) {
-            let jiraBtn = "<button onclick='" +
+            commentBtns += "<button onclick='" +
                 "commentJira(" +
                 "\"" + srvId + "\", " +
                 "\"" + finishedBranch + "\", " +
                 "\"" + suiteIdSelected + "\", " +
                 "\"" + row.jiraIssueId + "\"," +
-                "\"\"" + // base TC branch
+                "\"\"," + // base TC branch
+                "\"JIRA\"" +
                 "); " +
                 replaintCall +
                 "'";
 
             if (hasQueued) {
-                jiraBtn += " class='disabledbtn' title='" + queuedStatus + "'";
+                commentBtns += " class='disabledbtn' title='" + queuedStatus + "'";
             }
-            jiraBtn += ">Comment JIRA</button>";
-
-            $('#commentJiraFor' + prId).html(jiraBtn);
+            commentBtns += ">Comment JIRA</button>";
         }
+
+        if (row.prNumber > 0) {
+            commentBtns += "<button onclick='" +
+                "commentJira(" +
+                "\"" + srvId + "\", " +
+                "\"" + finishedBranch + "\", " +
+                "\"" + suiteIdSelected + "\", " +
+                "\"" + jiraOptional + "\"," +
+                "\"\"," + // base TC branch
+                "\"GITHUB\"" +
+                "); " +
+                replaintCall +
+                "'";
+
+            if (hasQueued)
+                commentBtns += " class='disabledbtn' title='" + queuedStatus + "'";
+
+            commentBtns += ">Comment GitHub</button>";
+        }
+
+        $('#commentJiraFor' + prId).html(commentBtns);
     } else {
         tdForPr.html("No builds, please trigger " + suiteIdSelected);
     }
@@ -483,7 +506,6 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
     }
 
     if (isDefinedAndFilled(status.resolvedBranch)) {
-        var jiraOptional = hasJiraIssue ? row.jiraIssueId : "";
         // triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId)  defined in test fails
         let triggerBuildsCall = "triggerBuilds(" +
             "\"" + srvId + "\", " +
@@ -500,23 +522,66 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
         $("#triggerBuildFor" + prId).html(res);
     }
 
-    if (hasJiraIssue && isDefinedAndFilled(status.resolvedBranch)) {
+    if (isDefinedAndFilled(status.resolvedBranch)) {
+        let buttons = "";
+
+        if (hasJiraIssue) {
         // triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId)  defined in test fails
-        let trigObserveCall = "triggerBuilds(" +
+            let trigObserveCall = "triggerBuilds(" +
             "\"" + srvId + "\", " +
             "null, " +
             "\"" + suiteIdSelected + "\", " +
             "\"" + status.resolvedBranch + "\"," +
             " false," +
             " true," +
-            "\"" + jiraOptional + "\"); ";
-        var trigAndObs = "<button onClick='" + trigObserveCall + replaintCall + "'";
+                "\"" + jiraOptional + "\"," +
+                "null," +
+                "null," +
+                "false," +
+                "\"JIRA\"); ";
+            buttons += "<button onClick='" + trigObserveCall + replaintCall + "'";
 
-        trigAndObs += prepareStatusOfTrigger();
+            buttons += prepareStatusOfTrigger();
 
-        trigAndObs += ">Trigger build and comment JIRA after finish</button>";
+            buttons += ">Trigger build and comment JIRA after finish</button>";
+        }
 
-        $('#triggerAndObserveBuildFor' + prId).html(trigAndObs);
+        if (row.prNumber > 0) {
+            let trigGithubCall = "triggerBuilds(" +
+                "\"" + srvId + "\", " +
+                "null, " +
+                "\"" + suiteIdSelected + "\", " +
+                "\"" + status.resolvedBranch + "\"," +
+                " false," +
+                " true," +
+                "\"" + jiraOptional + "\"," +
+                "null," +
+                "null," +
+                "false," +
+                "\"GITHUB\"); ";
+            buttons += "<button onClick='" + trigGithubCall + replaintCall + "'";
+            buttons += prepareStatusOfTrigger();
+            buttons += ">Run and comment GitHub after finish</button>";
+
+            let rerunGithubCall = "triggerBuilds(" +
+                "\"" + srvId + "\", " +
+                "null, " +
+                "\"" + suiteIdSelected + "\", " +
+                "\"" + status.resolvedBranch + "\"," +
+                " false," +
+                " true," +
+                "\"" + jiraOptional + "\"," +
+                "null," +
+                "null," +
+                "true," +
+                "\"GITHUB\"); ";
+            buttons += "<button onClick='" + rerunGithubCall + replaintCall + "'";
+            if (hasQueued)
+                buttons += " class='disabledbtn' title='" + queuedStatus + "'";
+            buttons += ">Re-run and comment GitHub after finish</button>";
+        }
+
+        $('#triggerAndObserveBuildFor' + prId).html(buttons);
     }
 
 

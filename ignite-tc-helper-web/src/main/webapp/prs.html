@@ -137,8 +137,9 @@
                     "' required> ";
                 res += "Ticket: <input type='text' name='ticketId'>";
                 res += "<button name='jira' type='button' onclick='trigBuild(\"tests\")'>Start tests</button>";
-                res += "<button name='jira' onclick='trigBuild(\"tests+jira\")'>Start tests and comment JIRA ticket on ready</button><br>";
-                //res += "<button name='git' onclick='trigBuild(\"tests+jira\")'>Start tests and comment GitHub PR on ready</button>";
+                res += "<button name='jira' onclick='trigBuild(\"tests+comment\")'>Start tests and comment on ready</button>";
+                res += "<button name='github' onclick='trigBuild(\"tests+github\")'>Run tests and comment GitHub PR on ready</button>";
+                res += "<button name='github' onclick='trigBuild(\"rerun+github\")'>Re-run tests and comment GitHub PR on ready</button><br>";
                 /*
                 res+="Server: <input type='text' name='serverId' value=" + serverId +" readonly>" ;
                 res+="Pull Request #<input type='text' name='prId' onkeypress='return trigBuild(event)'> ";
@@ -182,7 +183,11 @@
 
             let parentSuiteId  = suiteId;
             let observe = trigCase !== "tests";
-            triggerBuilds(srvId, parentSuiteId , suiteId, branchName, false, observe, ticketId, null, null);
+            let cleanRebuild = trigCase === "rerun+github";
+            let commentTargets = trigCase === "tests+github" || trigCase === "rerun+github" ? "GITHUB" : null;
+
+            triggerBuilds(srvId, parentSuiteId , suiteId, branchName, false, observe, ticketId, null, null,
+                cleanRebuild, commentTargets);
         }
 
         /**
@@ -196,7 +201,7 @@
             var branchName = fields.namedItem("branchForTc").value;
             var ticketId = fields.namedItem("ticketId").value;
 
-            commentJira(srvId, branchName, suiteId, ticketId, "");
+            commentJira(srvId, branchName, suiteId, ticketId, "", null);
         }
 
         function showFormAndSuitesForPrCheck(result) {

@@ -30,6 +30,9 @@ public class Visa {
     /** Message to show user when JIRA ticket was successfully commented by the Bot. */
     public static final String JIRA_COMMENTED = "JIRA commented.";
 
+    /** Message to show user when requested analysis targets were successfully commented by the Bot. */
+    public static final String COMMENTED = "Analysis commented.";
+
     /** */
     public final String status;
 
@@ -72,8 +75,8 @@ public class Visa {
 
     /** */
     public boolean isSuccess() {
-        return JIRA_COMMENTED.equals(status)
-            && jiraCommentRes != null;
+        return (JIRA_COMMENTED.equals(status) && jiraCommentRes != null)
+            || COMMENTED.equals(status);
     }
 
     /** */

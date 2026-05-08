@@ -58,6 +58,7 @@ public class TriggerBuilds {
      * @param suiteIdList Suite ids need to be re-run (possible blockers).
      * @param top If {@code true} re-running suites will be placed at the top of TC queue.
      * @param observe If {@code true} JIRA will be commented with current state of possible blockers.
+     * @param commentTargets Comment targets.
      * @param ticketId JIRA ticket id.
      * @param prNum Pull request number in appropriate project (@code srvCodeOrAlias).
      * @param baseBranchForTc Base branch for possible blockers comparison (e.g. master, 8.8-master)
@@ -72,6 +73,7 @@ public class TriggerBuilds {
         @Nonnull @QueryParam("suiteIdList") String suiteIdList,
         @Nullable @QueryParam("top") Boolean top,
         @Nullable @QueryParam("observe") Boolean observe,
+        @Nullable @QueryParam("comment") String commentTargets,
         @Nullable @QueryParam("ticketId") String ticketId,
         @Nullable @QueryParam("prNum") String prNum,
         @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
@@ -87,7 +89,8 @@ public class TriggerBuilds {
 
         String jiraRes = appCtx
             .getInstance(TcBotTriggerAndSignOffService.class)
-            .triggerBuildsAndObserve(srvCodeOrAlias, branchForTc, parentSuiteId, suiteIdList, top, observe, ticketId, prNum, baseBranchForTc, cleanRebuild, prov);
+            .triggerBuildsAndObserve(srvCodeOrAlias, branchForTc, parentSuiteId, suiteIdList, top, observe, ticketId,
+                prNum, baseBranchForTc, cleanRebuild, commentTargets, prov);
 
         return new TriggerResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
@@ -97,6 +100,7 @@ public class TriggerBuilds {
      * @param branchForTc Branch for tc.
      * @param suiteId Suite id.
      * @param ticketId Ticket full name with IGNITE- prefix.
+     * @param commentTargets Comment targets.
      */
     @GET
     @Path("commentJira")
@@ -105,7 +109,8 @@ public class TriggerBuilds {
         @Nullable @QueryParam("branchName") String branchForTc,
         @Nullable @QueryParam("suiteId") String suiteId,
         @Nullable @QueryParam("ticketId") String ticketId,
-        @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc
+        @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
+        @Nullable @QueryParam("comment") String commentTargets
     ) {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
 
@@ -115,6 +120,6 @@ public class TriggerBuilds {
 
         return appCtx
             .getInstance(TcBotTriggerAndSignOffService.class)
-            .commentJiraEx(srvCode, branchForTc, suiteId, ticketId, baseBranchForTc, prov);
+            .commentJiraEx(srvCode, branchForTc, suiteId, ticketId, baseBranchForTc, prov, commentTargets);
     }
 }

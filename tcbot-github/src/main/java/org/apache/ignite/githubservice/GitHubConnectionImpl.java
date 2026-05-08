@@ -40,6 +40,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import org.apache.ignite.ci.github.GitHubBranchShort;
+import org.apache.ignite.ci.github.GitHubIssueComment;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
@@ -149,6 +150,55 @@ class GitHubConnectionImpl implements IGitHubConnection {
         }
 
         throw new IllegalStateException("Unreachable");
+    }
+
+    /** */
+    private boolean notifyGit(String url, String body) {
+        try {
+            HttpUtil.sendPostAsStringToGit(config().gitAuthTok(), url, body);
+
+            return true;
+        }
+        catch (IOException e) {
+            logger.error("Failed to notify Git [errMsg=" + e.getMessage() + ']');
+
+            return false;
+        }
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public List<GitHubIssueComment> getIssueComments(int prNum) {
+        List<GitHubIssueComment> res = new ArrayList<>();
+        AtomicReference<String> outLinkNext = new AtomicReference<>();
+        String url = getApiUrlMandatory() + "issues/" + prNum + "/comments?per_page=100";
+
+        do {
+            HashMap<String, String> rspHeaders = new HashMap<>();
+            outLinkNext.set(null);
+            rspHeaders.put("Link", null);
+
+            TypeToken<ArrayList<GitHubIssueComment>> tok = new TypeToken<ArrayList<GitHubIssueComment>>() {
+            };
+
+            res.addAll(readOnePage(outLinkNext, url, rspHeaders, tok));
+
+            url = outLinkNext.get();
+        }
+        while (url != null);
+
+        return res;
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public boolean postIssueComment(int prNum, String body) {
+        String url = getApiUrlMandatory() + "issues/" + prNum + "/comments";
+        HashMap<String, String> req = new HashMap<>();
+        req.put("body", body);
+        String json = new Gson().toJson(req);
+
+        return notifyGit(url, json);
     }
 
     /** {@inheritDoc} */

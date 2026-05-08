@@ -40,6 +40,7 @@ import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.ci.github.GitHubBranchKey;
 import org.apache.ignite.ci.github.GitHubBranchShort;
+import org.apache.ignite.ci.github.GitHubIssueComment;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
 import org.slf4j.Logger;
@@ -97,6 +98,17 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     @Nullable
     @Override public PullRequest getPullRequest(int prNum) {
         return prCache.get(prNumberToCacheKey(prNum));
+    }
+
+    @AutoProfiling
+    @Override public List<GitHubIssueComment> getIssueComments(int prNum) {
+        return conn.getIssueComments(prNum);
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public boolean postIssueComment(int prNum, String body) {
+        return conn.postIssueComment(prNum, body);
     }
 
     /** {@inheritDoc} */

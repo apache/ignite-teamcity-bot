@@ -445,7 +445,44 @@ function filterPossibleBlocker(suite) {
     return null;
 }
 
-function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top, observe, ticketId, prNum, baseBranchForTc, cleanRebuild=false) {
+function selectCommentTargets(defaultTargets, onSelected) {
+    var targets = isDefinedAndFilled(defaultTargets) ? defaultTargets : "JIRA";
+    var hasJira = targets.indexOf("JIRA") !== -1;
+    var hasGithub = targets.indexOf("GITHUB") !== -1;
+    var dialog = $("#triggerConfirm");
+
+    dialog.html(
+        "<div>Select where TCBot should publish the analysis after results are ready.</div><br>" +
+        "<label><input type='checkbox' id='commentTargetJira' " + (hasJira ? "checked" : "") + "> JIRA</label><br>" +
+        "<label><input type='checkbox' id='commentTargetGithub' " + (hasGithub ? "checked" : "") + "> GitHub PR</label>"
+    );
+
+    dialog.dialog({
+        modal: true,
+        buttons: {
+            "Continue": function () {
+                var selected = [];
+
+                if ($("#commentTargetJira").prop("checked"))
+                    selected.push("JIRA");
+
+                if ($("#commentTargetGithub").prop("checked"))
+                    selected.push("GITHUB");
+
+                if (selected.length === 0)
+                    return;
+
+                $(this).dialog("close");
+                onSelected(selected.join(","));
+            },
+            "Cancel": function () {
+                $(this).dialog("close");
+            }
+        }
+    });
+}
+
+function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top, observe, ticketId, prNum, baseBranchForTc, cleanRebuild=false, commentTargets) {
     var queueAtTop = isDefinedAndFilled(top) && top;
     var observeJira = isDefinedAndFilled(observe) && observe;
     var suiteIdsNotExists = !isDefinedAndFilled(suiteIdList) || suiteIdList.length === 0;
@@ -480,7 +517,17 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
     for (var i = 0; i < suites.length; i++)
         message += suites[i] + "<br>";
 
-    if (fewSuites) {
+    if (observeJira && !isDefinedAndFilled(commentTargets)) {
+        selectCommentTargets("JIRA", function (selectedTargets) {
+            commentTargets = selectedTargets;
+            confirmOrSend();
+        });
+    }
+    else
+        confirmOrSend();
+
+    function confirmOrSend() {
+        if (fewSuites) {
         triggerConfirm.html(message);
         triggerConfirm.dialog({
             modal: true,
@@ -492,8 +539,9 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
                 "Cancel": closeDialog
             }
         });
-    } else
-        sendGetRequest();
+        } else
+            sendGetRequest();
+    }
 
     /**
      * See org.apache.ignite.ci.web.rest.TriggerBuilds#triggerBuilds
@@ -508,6 +556,7 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
                 "suiteIdList": suiteIdList,
                 "top": queueAtTop,
                 "observe": observeJira,
+                "comment": commentTargets,
                 "ticketId": ticketId,
                 "prNum": prNum,
                 "baseBranchForTc": baseBranchForTc,
@@ -553,7 +602,7 @@ function branchForTc(pr) {
     return pr;
 }
 
-function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranchForTc) {
+function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranchForTc, commentTargets) {
     var branchNotExists = !isDefinedAndFilled(branchName) || branchName.length === 0;
     branchName = branchNotExists ? null : branchForTc(branchName);
     ticketId = (isDefinedAndFilled(ticketId) && ticketId.length > 0) ? ticketId : null;
@@ -574,6 +623,14 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
         return;
     }
 
+    if (!isDefinedAndFilled(commentTargets)) {
+        selectCommentTargets("JIRA", function (selectedTargets) {
+            commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranchForTc, selectedTargets);
+        });
+
+        return;
+    }
+
     $("#notifyJira").html("&#8987;" +
         " Please wait. First action for PR run-all data may require significant time.");
 
@@ -584,7 +641,8 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
             "suiteId": parentSuiteId,
             "branchName": branchName,
             "ticketId": ticketId,
-            "baseBranchForTc": baseBranchForTc
+            "baseBranchForTc": baseBranchForTc,
+            "comment": commentTargets
         },
         success: function(result) {
             $("#notifyJira").html("");
@@ -598,7 +656,7 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
 
                         ticketId = $("#enterTicketId").val();
 
-                        commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranchForTc)
+                        commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranchForTc, commentTargets)
                     },
                     "Cancel": function () {
                         $(this).dialog("close");
@@ -617,6 +675,7 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
 
             dialog.html("Comment ticket for server: " + serverCode + "<br>" +
                 " Suite: " + parentSuiteId + "<br>Branch:" + branchName +
+                "<br>Targets: " + commentTargets +
                 "<br><br> Result: " + result.result +
                 (needTicketId ? ("<br><br>Enter JIRA ticket number: <input type='text' id='enterTicketId'>") : ""));
 

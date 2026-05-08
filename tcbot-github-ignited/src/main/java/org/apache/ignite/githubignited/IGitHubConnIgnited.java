@@ -17,6 +17,7 @@
 package org.apache.ignite.githubignited;
 
 import java.util.List;
+import org.apache.ignite.ci.github.GitHubIssueComment;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
 import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
@@ -43,6 +44,21 @@ public interface IGitHubConnIgnited {
 
     /** */
     public PullRequest getPullRequest(int prNum);
+
+    /**
+     * @param prNum Pull request number.
+     * @return Pull request issue comments.
+     */
+    public List<GitHubIssueComment> getIssueComments(int prNum);
+
+    /**
+     * Publishes pull request issue comment.
+     *
+     * @param prNum Pull request number.
+     * @param body Comment markdown.
+     * @return {@code True} if comment was posted.
+     */
+    public boolean postIssueComment(int prNum, String body);
 
     /** {@inheritDoc} */
     public List<String> getBranches();
