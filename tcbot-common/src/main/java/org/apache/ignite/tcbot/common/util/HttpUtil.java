@@ -37,6 +37,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.ignite.tcbot.common.exeption.ServiceUnauthorizedException;
 import org.apache.ignite.tcbot.common.exeption.ServiceBadRequestException;
@@ -53,6 +54,7 @@ import javax.annotation.Nullable;
 public class HttpUtil {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(HttpUtil.class);
+    private static final int TIMEOUT_MS = 60_000;
 
     /**
      * @param inputStream Input stream.
@@ -61,16 +63,9 @@ public class HttpUtil {
         if (inputStream == null)
             return "<null>";
 
-        BufferedReader in = new BufferedReader(
-            new InputStreamReader(inputStream));
-        String inputLine;
-        StringBuilder res = new StringBuilder();
-
-        while ((inputLine = in.readLine()) != null) {
-            res.append(inputLine);
-            res.append("\n");
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(inputStream))) {
+            return in.lines().collect(Collectors.joining("\n", "", "\n"));
         }
-        return res.toString();
     }
 
     /**
@@ -88,13 +83,12 @@ public class HttpUtil {
         final Stopwatch started = Stopwatch.createStarted();
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
-        con.setConnectTimeout(60000);
-        con.setReadTimeout(60000);
+        con.setConnectTimeout(TIMEOUT_MS);
+        con.setReadTimeout(TIMEOUT_MS);
 
         con.setRequestProperty("Authorization", "Basic " + basicAuthTok);
-        con.setRequestProperty("Connection", "Keep-Alive");
-        con.setRequestProperty("Keep-Alive", "header");
-        con.setRequestProperty("accept-charset", StandardCharsets.UTF_8.toString());
+        useKeepAlive(con);
+        acceptUtf8(con);
 
         int resCode;
 
@@ -128,19 +122,14 @@ public class HttpUtil {
         if (githubAuthTok != null)
             con.setRequestProperty("Authorization", "token " + githubAuthTok);
 
-        con.setRequestProperty("accept-charset", StandardCharsets.UTF_8.toString());
-        con.setRequestProperty("Connection", "Keep-Alive");
-        con.setRequestProperty("Keep-Alive", "header");
+        acceptUtf8(con);
+        useKeepAlive(con);
 
         int resCode = con.getResponseCode();
 
-        if(rspHeaders != null) {
-            rspHeaders.keySet().forEach((k) -> {
-                String link = con.getHeaderField(k);
+        if (rspHeaders != null)
+            rspHeaders.keySet().forEach(k -> rspHeaders.put(k, con.getHeaderField(k)));
 
-                rspHeaders.put(k, link);
-            });
-        }
         logger.info(Thread.currentThread().getName() + ": Required: " + started.elapsed(TimeUnit.MILLISECONDS)
             + "ms : Sending 'GET' request to : " + url + " Response: " + resCode);
 
@@ -176,11 +165,10 @@ public class HttpUtil {
 
         con.setRequestMethod("POST");
         con.setRequestProperty("Authorization", "Basic " + tok);
-        con.setRequestProperty("Connection", "Keep-Alive");
-        con.setRequestProperty("Keep-Alive", "header");
+        useKeepAlive(con);
         Charset charset = StandardCharsets.UTF_8;
 
-        con.setRequestProperty("accept-charset", charset.toString());
+        acceptUtf8(con);
         con.setRequestProperty("content-type", "application/xml");
 
         con.setDoOutput(true);
@@ -345,8 +333,7 @@ public class HttpUtil {
 
         con.setRequestProperty("accept-charset", charset.toString());
         con.setRequestProperty("Authorization", "token " + githubAuthTok);
-        con.setRequestProperty("Connection", "Keep-Alive");
-        con.setRequestProperty("Keep-Alive", "header");
+        useKeepAlive(con);
         con.setRequestProperty("content-type", "application/json");
 
         con.setRequestMethod("POST");
@@ -381,8 +368,7 @@ public class HttpUtil {
         con.setRequestProperty("accept-charset", charset.toString());
         con.setRequestProperty("Authorization", "Basic " + jiraAuthTok);
         con.setRequestProperty("content-type", "application/json");
-        con.setRequestProperty("Connection", "Keep-Alive");
-        con.setRequestProperty("Keep-Alive", "header");
+        useKeepAlive(con);
 
         con.setRequestMethod("POST");
 
@@ -414,8 +400,7 @@ public class HttpUtil {
         con.setRequestProperty("accept-charset", charset.toString());
         con.setRequestProperty("Authorization", "Basic " + jiraAuthTok);
         con.setRequestProperty("content-type", "application/json");
-        con.setRequestProperty("Connection", "Keep-Alive");
-        con.setRequestProperty("Keep-Alive", "header");
+        useKeepAlive(con);
 
         con.setRequestMethod("GET");
 
@@ -427,5 +412,14 @@ public class HttpUtil {
         try (InputStream inputStream = getInputStream(con)) {
             return readIsToString(inputStream);
         }
+    }
+
+    private static void useKeepAlive(HttpURLConnection con) {
+        con.setRequestProperty("Connection", "Keep-Alive");
+        con.setRequestProperty("Keep-Alive", "header");
+    }
+
+    private static void acceptUtf8(HttpURLConnection con) {
+        con.setRequestProperty("accept-charset", StandardCharsets.UTF_8.toString());
     }
 }

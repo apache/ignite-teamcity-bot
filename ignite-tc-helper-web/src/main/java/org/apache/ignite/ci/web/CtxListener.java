@@ -92,54 +92,44 @@ public class CtxListener implements ServletContextListener {
 
         Injector injector = getInjector(ctx);
 
-        try {
+        shutdown("shutdown", () -> {
             injector.getInstance(IssueDetector.class).stop();
             injector.getInstance(TcUpdatePool.class).stop();
             injector.getInstance(BuildObserver.class).stop();
             injector.getInstance(IScheduler.class).stop();
             injector.getInstance(Cleaner.class).stop();
-        }
-        catch (Exception e) {
-            e.printStackTrace();
+        });
 
-            if (logger != null)
-                logger.error("Exception during shutdown: " + e.getMessage(), e);
-        }
-
-        try {
+        shutdown("TeamCity recorder shutdown", () -> {
             injector.getInstance(TeamcityRecorder.class).stop();
-        }
-        catch (IOException e) {
-            e.printStackTrace();
+        });
 
-            if (logger != null)
-                logger.error("Exception during shutdown: " + e.getMessage(), e);
-        }
-
-        try {
+        shutdown("monitoring shutdown", () -> {
             injector.getInstance(MonitoredTaskInterceptor.class).close();
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
+        });
 
-        try {
+        shutdown("Ignite shutdown", () -> {
             TcHelperDb.stop(injector.getInstance(Ignite.class));
+        });
+    }
+
+    private void shutdown(String action, ThrowingRunnable actionToRun) {
+        try {
+            actionToRun.run();
         }
         catch (Exception e) {
             e.printStackTrace();
 
             if (logger != null)
-                logger.error("Exception during shutdown: " + e.getMessage(), e);
+                logger.error("Exception during " + action + ": " + e.getMessage(), e);
         }
     }
 
     private void sendMessageToSlackChannel(String msg, ServletContext ctx) {
         try {
-            ISlackSender slackSender = CtxListener.getInjector(ctx).getInstance(ISlackSender.class);
-
-            ITcBotConfig tcBotConfig = CtxListener.getInjector(ctx).getInstance(ITcBotConfig.class);
-
+            Injector injector = CtxListener.getInjector(ctx);
+            ISlackSender slackSender = injector.getInstance(ISlackSender.class);
+            ITcBotConfig tcBotConfig = injector.getInstance(ITcBotConfig.class);
             NotificationsConfig notifications = tcBotConfig.notifications();
 
             for (INotificationChannel channel : notifications.channels()) {
@@ -153,5 +143,9 @@ public class CtxListener implements ServletContextListener {
             if (logger != null)
                 logger.error("Exception during sending message to the slack channel: " + e.getMessage(), e);
         }
+    }
+
+    private interface ThrowingRunnable {
+        void run() throws Exception;
     }
 }

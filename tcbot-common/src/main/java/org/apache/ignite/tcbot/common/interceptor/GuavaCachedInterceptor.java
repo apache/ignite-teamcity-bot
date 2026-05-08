@@ -24,7 +24,6 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -33,14 +32,14 @@ import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 
 public class GuavaCachedInterceptor implements MethodInterceptor {
-    private final ConcurrentMap<String, Cache<List, Optional>> caches = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Cache<List<Object>, Optional<Object>>> caches = new ConcurrentHashMap<>();
 
     @Override public Object invoke(MethodInvocation invocation) throws Throwable {
         final Method invocationMtd = invocation.getMethod();
         GuavaCached annotation = invocationMtd.getAnnotation(GuavaCached.class);
 
-        Cache<List, Optional> cache = caches.computeIfAbsent(cacheId(invocation), k -> {
-            CacheBuilder builder = CacheBuilder.newBuilder();
+        Cache<List<Object>, Optional<Object>> cache = caches.computeIfAbsent(cacheId(invocation), k -> {
+            CacheBuilder<Object, Object> builder = CacheBuilder.newBuilder();
 
             if (annotation.softValues())
                 builder = builder.softValues();
@@ -59,36 +58,27 @@ public class GuavaCachedInterceptor implements MethodInterceptor {
 
         List<Object> cacheKey = Arrays.asList(invocation.getArguments());
 
-        Optional optional = cache.get(cacheKey,
-            new Callable<Optional>() {
-                @Override public Optional call() throws Exception {
-                    Object res;
-                    try {
-                        res = invocation.proceed();
-                    }
-                    catch (Throwable throwable) {
-                        Throwables.propagateIfPossible(throwable, Exception.class);
-
-                        throw new RuntimeException(throwable);
-                    }
-                    return Optional.ofNullable(res);
-                }
-            });
-
-        if (!annotation.cacheNullRval()) {
-            if (!optional.isPresent())
-                cache.invalidate(cacheKey);
-        }
-
-        if (!annotation.cacheNegativeNumbersRval()) {
-            if (optional.isPresent()) {
-                Object o = optional.get();
-                Preconditions.checkState(o instanceof Number, "Invalid return value of method: " + cacheKey);
-
-                Number num = (Number)o;
-                if (num.longValue() < 0)
-                    cache.invalidate(cacheKey);
+        Optional<Object> optional = cache.get(cacheKey, () -> {
+            try {
+                return Optional.ofNullable(invocation.proceed());
             }
+            catch (Throwable throwable) {
+                Throwables.propagateIfPossible(throwable, Exception.class);
+
+                throw new RuntimeException(throwable);
+            }
+        });
+
+        if (!annotation.cacheNullRval() && optional.isEmpty())
+            cache.invalidate(cacheKey);
+
+        if (!annotation.cacheNegativeNumbersRval() && optional.isPresent()) {
+            Object o = optional.get();
+            Preconditions.checkState(o instanceof Number, "Invalid return value of method: " + cacheKey);
+
+            Number num = (Number)o;
+            if (num.longValue() < 0)
+                cache.invalidate(cacheKey);
         }
 
         return optional.orElse(null);
@@ -96,10 +86,8 @@ public class GuavaCachedInterceptor implements MethodInterceptor {
 
     @Nonnull
     private String cacheId(MethodInvocation invocation) {
-        final Method invocationMtd = invocation.getMethod();
-        final String cls = invocationMtd.getDeclaringClass().getName();
-        final String mtd = invocationMtd.getName();
+        Method method = invocation.getMethod();
 
-        return cls + "." + mtd;
+        return method.getDeclaringClass().getName() + "." + method.getName();
     }
 }

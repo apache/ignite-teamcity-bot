@@ -17,12 +17,17 @@
 
 package org.apache.ignite.ci.tcbot.issue;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Stream;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.web.model.Version;
 import org.apache.ignite.tcbot.common.util.TimeUtil;
-
-import java.util.*;
 
 import static org.apache.ignite.ci.web.model.Version.GITHUB_REF;
 
@@ -164,17 +169,14 @@ public class Notification {
     }
 
     public String countIssues() {
-        return "";
+        return String.valueOf(allIssues().count());
     }
 
     public List<String> toSlackMarkup() {
         List<String> res = new ArrayList<>();
 
-        for (Map.Entry<Integer, List<Issue>> nextEntry : buildIdToIssue.entrySet()) {
-            List<Issue> issues = nextEntry.getValue();
-
+        for (List<Issue> issues : buildIdToIssue.values())
             res.add(toSlackMarkup(issues));
-        }
 
         return res;
     }

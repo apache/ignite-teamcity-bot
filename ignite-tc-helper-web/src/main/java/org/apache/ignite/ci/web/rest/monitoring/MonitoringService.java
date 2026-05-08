@@ -104,7 +104,7 @@ public class MonitoringService {
     @PermitAll
     @Path("tasks")
     public List<TaskResult> getTaskMonitoring() {
-        MonitoredTaskInterceptor instance = CtxListener.getInjector(ctx).getInstance(MonitoredTaskInterceptor.class);
+        MonitoredTaskInterceptor instance = instance(MonitoredTaskInterceptor.class);
 
         final Collection<MonitoredTaskInterceptor.Invocation> list = instance.getList();
 
@@ -124,7 +124,7 @@ public class MonitoringService {
     @GET
     @Path("appLogSummaryLink")
     public AppLogSummaryLink getAppLogSummaryLink() {
-        MonitoredTaskInterceptor instance = CtxListener.getInjector(ctx).getInstance(MonitoredTaskInterceptor.class);
+        MonitoredTaskInterceptor instance = instance(MonitoredTaskInterceptor.class);
 
         AppLogSummaryLink res = new AppLogSummaryLink();
         res.startTs = instance.startedTs();
@@ -375,7 +375,7 @@ public class MonitoringService {
     @PermitAll
     @Path("profiling")
     public List<HotSpot> getHotMethods() {
-        AutoProfilingInterceptor instance = CtxListener.getInjector(ctx).getInstance(AutoProfilingInterceptor.class);
+        AutoProfilingInterceptor instance = instance(AutoProfilingInterceptor.class);
 
         Collection<AutoProfilingInterceptor.Invocation> profile = instance.getInvocations();
 
@@ -396,7 +396,7 @@ public class MonitoringService {
     @POST
     @Path("resetProfiling")
     public SimpleResult resetProfiling() {
-        AutoProfilingInterceptor instance = CtxListener.getInjector(ctx).getInstance(AutoProfilingInterceptor.class);
+        AutoProfilingInterceptor instance = instance(AutoProfilingInterceptor.class);
 
         instance.reset();
 
@@ -407,9 +407,8 @@ public class MonitoringService {
     @PermitAll
     @Path("testSlackNotification")
     public SimpleResult testSlackNotification() {
-        ISlackSender slackSender = CtxListener.getInjector(ctx).getInstance(ISlackSender.class);
-
-        ITcBotConfig tcBotConfig = CtxListener.getInjector(ctx).getInstance(ITcBotConfig.class);
+        ISlackSender slackSender = instance(ISlackSender.class);
+        ITcBotConfig tcBotConfig = instance(ITcBotConfig.class);
 
         try {
             NotificationsConfig notifications = tcBotConfig.notifications();
@@ -429,9 +428,8 @@ public class MonitoringService {
     @POST
     @Path("testEmailNotification")
     public SimpleResult testEmailNotification(@FormParam("address") String address) {
-        IEmailSender emailSender = CtxListener.getInjector(ctx).getInstance(IEmailSender.class);
-
-        ITcBotConfig tcBotConfig = CtxListener.getInjector(ctx).getInstance(ITcBotConfig.class);
+        IEmailSender emailSender = instance(IEmailSender.class);
+        ITcBotConfig tcBotConfig = instance(ITcBotConfig.class);
 
         try {
             NotificationsConfig notifications = tcBotConfig.notifications();
@@ -453,7 +451,7 @@ public class MonitoringService {
     @PermitAll
     @Path("cacheMetrics")
     public List<CacheMetricsUi> getCacheStat() {
-        Ignite ignite = CtxListener.getInjector(ctx).getInstance(Ignite.class);
+        Ignite ignite = instance(Ignite.class);
 
         final Collection<String> strings = ignite.cacheNames();
 
@@ -505,8 +503,12 @@ public class MonitoringService {
     @GET
     @Path("aiPrompts")
     public List<AiPromptRequestMonitor.Request> getAiPromptRequests() {
-        AiPromptRequestMonitor monitor = CtxListener.getInjector(ctx).getInstance(AiPromptRequestMonitor.class);
+        AiPromptRequestMonitor monitor = instance(AiPromptRequestMonitor.class);
 
         return monitor.getRequests();
+    }
+
+    private <T> T instance(Class<T> type) {
+        return CtxListener.getInjector(ctx).getInstance(type);
     }
 }

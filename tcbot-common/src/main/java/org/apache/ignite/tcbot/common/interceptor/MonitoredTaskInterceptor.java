@@ -52,8 +52,8 @@ public class MonitoredTaskInterceptor implements MethodInterceptor, AutoCloseabl
         try {
             final File workDir = TcBotWorkDir.resolveWorkDir();
             File tcbotLogs = new File(workDir, "tcbot_logs");
-            File file = new File(tcbotLogs, "monitoring"+
-                timestampForLogsSimpleDate(System.currentTimeMillis())+".log");
+            File file = new File(tcbotLogs, "monitoring" +
+                timestampForLogsSimpleDate(System.currentTimeMillis()) + ".log");
 
             if (!tcbotLogs.exists())
                 tcbotLogs.mkdirs();
@@ -142,7 +142,7 @@ public class MonitoredTaskInterceptor implements MethodInterceptor, AutoCloseabl
             if (lastEndTs.get() == 0) {
                 long time = System.currentTimeMillis() - lastStartTs.get();
 
-                return ("(running for " + TimeUtil.millisToDurationPrintable(time) + ")");
+                return "(running for " + TimeUtil.millisToDurationPrintable(time) + ")";
             }
 
             return Objects.toString(lastResult.get());
@@ -162,7 +162,7 @@ public class MonitoredTaskInterceptor implements MethodInterceptor, AutoCloseabl
 
     /** {@inheritDoc} */
     @Override public Object invoke(MethodInvocation invocation) throws Throwable {
-        if(init.compareAndSet(false,true))
+        if (init.compareAndSet(false, true))
             initLogging();
 
         final long startTs = System.currentTimeMillis();
@@ -200,22 +200,16 @@ public class MonitoredTaskInterceptor implements MethodInterceptor, AutoCloseabl
             return;
 
         try {
-            StringBuilder sb = new StringBuilder();
-            sb.append(str);
-
-            if (duration > 1) {
-                sb.append(", duration: ");
-                sb.append(TimeUtil.millisToDurationPrintable(duration));
-            }
-
-            sb.append(String.format("%n"));
-
-            fileWriter.write(sb.toString());
+            fileWriter.write(str + durationSuffix(duration) + System.lineSeparator());
             fileWriter.flush();
         }
         catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private static String durationSuffix(long duration) {
+        return duration > 1 ? ", duration: " + TimeUtil.millisToDurationPrintable(duration) : "";
     }
 
     private static class TaskSettings {
@@ -252,10 +246,10 @@ public class MonitoredTaskInterceptor implements MethodInterceptor, AutoCloseabl
             if (arguments != null && idx >= 0 && idx < arguments.length)
                 fullKey.append(".").append(arguments[idx]);
 
-            int[] ints = annotation.nameExtArgsIndexes();
+            int[] argIndexes = annotation.nameExtArgsIndexes();
 
-            for (int i = 0; i < ints.length; i++) {
-                int argIdx = ints[i];
+            for (int i = 0; i < argIndexes.length; i++) {
+                int argIdx = argIndexes[i];
                 if (arguments != null && argIdx >= 0 && argIdx < arguments.length) {
                     if (i == 0)
                         fullKey.append(":");
