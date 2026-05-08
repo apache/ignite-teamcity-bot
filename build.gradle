@@ -17,17 +17,29 @@
 
 plugins {
     id "com.github.hierynomus.license" version "0.16.1" apply false
+    id "com.github.jk1.dependency-license-report" version "3.1.2"
 }
 
 subprojects {
-    apply plugin: "com.github.hierynomus.license"
     apply plugin: "com.github.hierynomus.license-base"
-    apply plugin: "com.github.hierynomus.license-report"
 
     //for subprojects header can be found in top-level project.
     license.header = file('../header.txt')
 
     license.exclude("*.xml");
+
+}
+
+tasks.register("license") {
+    group = "License"
+    description = "Checks for header consistency."
+    dependsOn subprojects.collect { it.tasks.matching { task -> task.name in ["licenseMain", "licenseTest"] } }
+}
+
+tasks.register("licenseFormat") {
+    group = "License"
+    description = "Applies the license found in the header file in files missing the header."
+    dependsOn subprojects.collect { it.tasks.matching { task -> task.name in ["licenseFormatMain", "licenseFormatTest"] } }
 }
 
 allprojects {
@@ -47,7 +59,8 @@ allprojects {
 
         guavaVer = '33.6.0-jre'
 
-        //dual-licensed under the EPL v1.0 (Category B list.) and the LGPL 2.1 (category X).
+        // Logback is dual licensed. For ASF compatibility this build uses the EPL v1.0 choice
+        // for binary convenience packages; the LGPL option is not selected.
         logbackVer = '1.5.32'
 
         // MIT/X11 license, category A;
