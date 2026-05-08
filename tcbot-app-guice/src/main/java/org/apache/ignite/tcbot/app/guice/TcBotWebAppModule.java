@@ -20,9 +20,8 @@ import com.google.common.base.Preconditions;
 import com.google.inject.AbstractModule;
 import com.google.inject.Injector;
 import com.google.inject.Scopes;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.db.Ignite1Init;
@@ -62,15 +61,18 @@ public class TcBotWebAppModule extends AbstractModule {
         bind(Ignite.class).toProvider((Provider<Ignite>)() -> {
             Preconditions.checkNotNull(igniteFut, "Ignite future is not yet initialized");
 
-            try {
-                return igniteFut.get(10, TimeUnit.SECONDS);
-            }
-            catch (TimeoutException e) {
-                throw new ServicesStartingException(e);
-            }
-            catch (Exception e) {
-                e.printStackTrace();
+            if (!igniteFut.isDone())
+                throw new ServicesStartingException(new RuntimeException("Ignite is not yet available"));
 
+            try {
+                return igniteFut.get();
+            }
+            catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+
+                throw ExceptionUtil.propagateException(e);
+            }
+            catch (ExecutionException e) {
                 throw ExceptionUtil.propagateException(e);
             }
         });
@@ -102,12 +104,12 @@ public class TcBotWebAppModule extends AbstractModule {
         this.igniteFut = igniteFut;
     }
 
-    public Injector startIgniteInit(Injector injector) {
+    public Future<Ignite> startIgniteInit(Injector injector) {
         final Ignite1Init instance = injector.getInstance(Ignite1Init.class);
         final Future<Ignite> submit = instance.getIgniteFuture();
         setIgniteFut(submit);
 
-        return injector;
+        return submit;
     }
 
 }

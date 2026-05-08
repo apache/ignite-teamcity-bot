@@ -24,6 +24,7 @@ import com.google.inject.matcher.Matchers;
 import com.google.inject.spi.ProvisionListener;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.db.TcHelperDb;
@@ -67,8 +68,8 @@ class GuiceTcBotApplicationContext implements TcBotApplicationContext {
             TcBotWebAppModule module = new TcBotWebAppModule();
             injector = Guice.createInjector(new LifecycleTrackingModule(lifecycleTracker), module);
 
-            module.startIgniteInit(injector);
-            getInstance(BuildObserver.class);
+            Future<Ignite> igniteFuture = module.startIgniteInit(injector);
+            startBackgroundServicesWhenReady(igniteFuture);
         }
         catch (RuntimeException | Error e) {
             started.set(false);
@@ -77,6 +78,25 @@ class GuiceTcBotApplicationContext implements TcBotApplicationContext {
         }
 
         sendMessageToSlackChannel("TeamCity Bot is started!");
+    }
+
+    private void startBackgroundServicesWhenReady(Future<Ignite> igniteFuture) {
+        Thread thread = new Thread(() -> {
+            try {
+                igniteFuture.get();
+
+                if (!started.get() || closed.get())
+                    return;
+
+                getInstance(BuildObserver.class);
+            }
+            catch (Exception e) {
+                logger.error("Exception during background services start: " + e.getMessage(), e);
+            }
+        }, "tc-bot-background-services-start");
+
+        thread.setDaemon(true);
+        thread.start();
     }
 
     /** {@inheritDoc} */
