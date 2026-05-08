@@ -81,6 +81,15 @@ public class MonitoringServiceSecurityTest {
         assertAdminRequired(MonitoringService.class.getMethod("testEmailNotification", String.class));
     }
 
+    @Test
+    public void taskMonitoringBlockIsHiddenForNonAdmins() throws IOException {
+        String html = new String(Files.readAllBytes(monitoringHtml()), StandardCharsets.UTF_8);
+
+        assertTrue(html.contains("<div class=\"adminOnly\">\n    Tasks Monitoring Data:"));
+        assertTrue(html.contains("rest/monitoring/tasks"));
+        assertFalse(html.contains("Application warnings/errors are available for bot admins."));
+    }
+
     private static void assertAuthRequired(Method method) {
         assertFalse(method.isAnnotationPresent(PermitAll.class));
     }

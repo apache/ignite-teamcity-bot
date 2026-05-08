@@ -81,25 +81,23 @@
             error: showErrInLoadStatus
         });
 
-        $.ajax({
-            url: "rest/monitoring/tasks",
-            success: function(result) {
-                $("#loadStatus").html("");
-
-                showTasks(result);
-            },
-            error: showErrInLoadStatus
-        });
-
         if (monitoringAdmin) {
+            $.ajax({
+                url: "rest/monitoring/tasks",
+                success: function(result) {
+                    $("#loadStatus").html("");
+
+                    showTasks(result);
+                },
+                error: showErrInLoadStatus
+            });
+
             $.ajax({
                 url: "rest/monitoring/appLogSummaryLink",
                 success: showAppLogSummaryLink,
                 error: showErrInLoadStatus
             });
         }
-        else
-            $("#appLogSummary").html("Application warnings/errors are available for bot admins.");
 
         loadPofilingData();
         loadRequestData();
@@ -354,10 +352,12 @@
 
 </script>
 
-Tasks Monitoring Data:
-<div id="appLogSummary" style="font-family: monospace"></div>
-<div id="tasks" style="font-family: monospace"></div>
-<br>
+<div class="adminOnly">
+    Tasks Monitoring Data:
+    <div id="appLogSummary" style="font-family: monospace"></div>
+    <div id="tasks" style="font-family: monospace"></div>
+    <br>
+</div>
 
 <hr>
 <b>AI Prompt Requests:</b>
