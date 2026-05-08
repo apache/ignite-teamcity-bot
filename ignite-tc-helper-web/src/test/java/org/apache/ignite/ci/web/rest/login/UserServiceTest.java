@@ -17,7 +17,12 @@
 
 package org.apache.ignite.ci.web.rest.login;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.ForbiddenException;
@@ -101,6 +106,16 @@ public class UserServiceTest {
         service(users, creds("user")).resetCredentials("other");
     }
 
+    @Test
+    public void userPageHasExplicitAdminUsersList() throws IOException {
+        String html = new String(Files.readAllBytes(userHtml()), StandardCharsets.UTF_8);
+
+        assertTrue(html.contains("loadUsersList()"));
+        assertTrue(html.contains("id=\"adminUsersBlock\""));
+        assertTrue(html.contains("rest/user/currentUserName"));
+        assertTrue(html.contains("/user.html?login="));
+    }
+
     private static UserService service(IUserStorage users, ITcBotUserCreds creds) throws Exception {
         TcBotApplicationContext appCtx = mock(TcBotApplicationContext.class);
         when(appCtx.getInstance(IUserStorage.class)).thenReturn(users);
@@ -154,5 +169,14 @@ public class UserServiceTest {
 
         field.setAccessible(true);
         field.set(target, val);
+    }
+
+    private static Path userHtml() {
+        Path projectPath = Paths.get("src/main/webapp/user.html");
+
+        if (Files.exists(projectPath))
+            return projectPath;
+
+        return Paths.get("ignite-tc-helper-web/src/main/webapp/user.html");
     }
 }
