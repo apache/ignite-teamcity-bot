@@ -18,14 +18,14 @@
 apply plugin: 'java'
 
 dependencies {
-    api group: 'com.google.guava', name: 'guava', version: guavaVer
+    api "com.google.guava:guava:$guavaVer"
 
-    api group: 'org.slf4j', name: 'slf4j-api', version: slf4jVer
-    api group: 'com.google.code.findbugs', name: 'jsr305', version: jsr305Ver
-    api group: 'org.checkerframework', name: 'checker-qual', version: checkerQualVer
+    api "org.slf4j:slf4j-api:$slf4jVer"
+    api "com.google.code.findbugs:jsr305:$jsr305Ver"
+    api "org.checkerframework:checker-qual:$checkerQualVer"
 
-    implementation group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.1'
+    implementation 'javax.xml.bind:jaxb-api:2.3.1'
     
-    testImplementation group: 'junit', name: 'junit', version: junitVer;
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVer;
+    testImplementation "junit:junit:$junitVer";
+    testImplementation "org.mockito:mockito-core:$mockitoVer";
 }

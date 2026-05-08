@@ -22,10 +22,10 @@ dependencies {
     // GitHub integration shares entries for pure and Ignited connection, so persistence module is here for interfaces/annotations
     api project(":tcbot-persistence")
 
-    api group: 'com.google.code.gson', name: 'gson', version: gsonVer
+    api "com.google.code.gson:gson:$gsonVer"
 
-    testImplementation group: 'junit', name: 'junit', version: junitVer
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVer
+    testImplementation "junit:junit:$junitVer"
+    testImplementation "org.mockito:mockito-core:$mockitoVer"
 }
 
 

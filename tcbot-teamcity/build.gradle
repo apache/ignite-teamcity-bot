@@ -22,10 +22,10 @@ dependencies {
     api project(":tcbot-common")
 
     /// JAXB replacement for Java 17.
-    api group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.1'
-    runtimeOnly group: 'com.sun.xml.bind', name: 'jaxb-impl', version: jaxbVer
-    runtimeOnly group: 'com.sun.xml.bind', name: 'jaxb-core', version: '2.3.0'
+    api 'javax.xml.bind:jaxb-api:2.3.1'
+    runtimeOnly "com.sun.xml.bind:jaxb-impl:$jaxbVer"
+    runtimeOnly 'com.sun.xml.bind:jaxb-core:2.3.0'
 
-    implementation group: 'javax.inject', name: 'javax.inject', version: '1'
+    implementation 'javax.inject:javax.inject:1'
 }
  

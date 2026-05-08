@@ -15,7 +15,7 @@ dependencies {
     testImplementation project(':tcbot-persistence')
     testImplementation project(':tcbot-teamcity-ignited')
     testImplementation "org.apache.ignite:ignite-slf4j:$ignVer"
-    testImplementation group: 'junit', name: 'junit', version: junitVer
+    testImplementation "junit:junit:$junitVer"
 }
 
 application {

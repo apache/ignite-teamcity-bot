@@ -25,13 +25,13 @@ repositories {
 dependencies {
     api project(":tcbot-common")
 
-    api (group: 'org.apache.ignite', name: 'ignite-core', version: ignVer) {
+    api("org.apache.ignite:ignite-core:$ignVer") {
         exclude group: 'org.jetbrains'
     }
 
     api "org.apache.ignite:ignite-indexing:$ignVer"
 
-    implementation group: 'org.xerial.snappy', name: 'snappy-java', version: snappyVer
+    implementation "org.xerial.snappy:snappy-java:$snappyVer"
 
 }
  

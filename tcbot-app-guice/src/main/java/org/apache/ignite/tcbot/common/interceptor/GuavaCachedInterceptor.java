@@ -19,7 +19,6 @@ package org.apache.ignite.tcbot.common.interceptor;
 import java.time.Duration;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import java.lang.reflect.Method;
@@ -64,7 +63,11 @@ public class GuavaCachedInterceptor implements MethodInterceptor {
                 return Optional.ofNullable(invocation.proceed());
             }
             catch (Throwable throwable) {
-                Throwables.propagateIfPossible(throwable, Exception.class);
+                if (throwable instanceof Exception)
+                    throw (Exception)throwable;
+
+                if (throwable instanceof Error)
+                    throw (Error)throwable;
 
                 throw new RuntimeException(throwable);
             }
