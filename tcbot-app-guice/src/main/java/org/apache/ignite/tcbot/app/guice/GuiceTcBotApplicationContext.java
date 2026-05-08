@@ -42,12 +42,22 @@ class GuiceTcBotApplicationContext implements TcBotApplicationContext {
 
     private Injector injector;
 
-    /** {@inheritDoc} */
-    @Override public void start() {
-        TcBotWebAppModule module = new TcBotWebAppModule();
-        Injector preCreated = Guice.createInjector(module);
+    private boolean started;
+    private boolean closed;
 
-        injector = module.startIgniteInit(preCreated);
+    /** {@inheritDoc} */
+    @Override public synchronized void start() {
+        if (started)
+            return;
+
+        if (closed)
+            throw new IllegalStateException("TC Bot application context is already closed");
+
+        TcBotWebAppModule module = new TcBotWebAppModule();
+        injector = Guice.createInjector(module);
+
+        module.startIgniteInit(injector);
+        started = true;
 
         sendMessageToSlackChannel("TeamCity Bot is started!");
     }
@@ -61,7 +71,15 @@ class GuiceTcBotApplicationContext implements TcBotApplicationContext {
     }
 
     /** {@inheritDoc} */
-    @Override public void close() {
+    @Override public synchronized void close() {
+        if (closed)
+            return;
+
+        closed = true;
+
+        if (injector == null)
+            return;
+
         sendMessageToSlackChannel("TeamCity Bot is stopped!");
 
         shutdown("shutdown", () -> {
@@ -83,6 +101,8 @@ class GuiceTcBotApplicationContext implements TcBotApplicationContext {
         shutdown("Ignite shutdown", () -> {
             TcHelperDb.stop(getInstance(Ignite.class));
         });
+
+        injector = null;
     }
 
     private void shutdown(String action, ThrowingRunnable actionToRun) {

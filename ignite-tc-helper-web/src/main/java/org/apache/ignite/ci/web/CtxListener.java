@@ -44,9 +44,17 @@ public class CtxListener implements ServletContextListener {
         initLoggerBridge();
 
         TcBotApplicationContext appCtx = TcBotApplicationContexts.create();
-        appCtx.start();
 
-        sctxEvt.getServletContext().setAttribute(APPLICATION_CONTEXT, appCtx);
+        try {
+            appCtx.start();
+
+            sctxEvt.getServletContext().setAttribute(APPLICATION_CONTEXT, appCtx);
+        }
+        catch (RuntimeException | Error e) {
+            closeFailedContext(appCtx, e);
+
+            throw e;
+        }
     }
 
     /**
@@ -77,6 +85,15 @@ public class CtxListener implements ServletContextListener {
 
             if (logger != null)
                 logger.error("Exception during TC Bot application context close: " + e.getMessage(), e);
+        }
+    }
+
+    private void closeFailedContext(TcBotApplicationContext appCtx, Throwable startFailure) {
+        try {
+            appCtx.close();
+        }
+        catch (Throwable closeFailure) {
+            startFailure.addSuppressed(closeFailure);
         }
     }
 }
