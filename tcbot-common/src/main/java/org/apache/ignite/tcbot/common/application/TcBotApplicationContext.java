@@ -20,6 +20,8 @@ package org.apache.ignite.tcbot.common.application;
 public interface TcBotApplicationContext extends AutoCloseable {
     void start();
 
+    boolean isReady();
+
     <T> T getInstance(Class<T> type);
 
     @Override void close();

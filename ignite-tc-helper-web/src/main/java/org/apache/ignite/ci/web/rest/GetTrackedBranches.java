@@ -69,6 +69,13 @@ public class GetTrackedBranches {
     }
 
     @GET
+    @Path("ready")
+    @PermitAll
+    public boolean ready() {
+        return CtxListener.getApplicationContext(ctx).isReady();
+    }
+
+    @GET
     @Path("getIds")
     public List<String> getIdsIfAccessible() {
         Stream<ITrackedBranch> stream = accessibleTrackedBranches();

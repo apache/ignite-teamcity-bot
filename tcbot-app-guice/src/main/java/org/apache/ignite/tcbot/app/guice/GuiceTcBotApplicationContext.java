@@ -51,6 +51,7 @@ class GuiceTcBotApplicationContext implements TcBotApplicationContext {
     private final LifecycleTracker lifecycleTracker = new LifecycleTracker();
 
     private final AtomicBoolean started = new AtomicBoolean();
+    private final AtomicBoolean ready = new AtomicBoolean();
     private final AtomicBoolean closed = new AtomicBoolean();
 
     /** {@inheritDoc} */
@@ -77,7 +78,6 @@ class GuiceTcBotApplicationContext implements TcBotApplicationContext {
             throw e;
         }
 
-        sendMessageToSlackChannel("TeamCity Bot is started!");
     }
 
     private void startBackgroundServicesWhenReady(Future<Ignite> igniteFuture) {
@@ -89,6 +89,7 @@ class GuiceTcBotApplicationContext implements TcBotApplicationContext {
                     return;
 
                 getInstance(BuildObserver.class);
+                ready.set(true);
             }
             catch (Exception e) {
                 logger.error("Exception during background services start: " + e.getMessage(), e);
@@ -97,6 +98,11 @@ class GuiceTcBotApplicationContext implements TcBotApplicationContext {
 
         thread.setDaemon(true);
         thread.start();
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isReady() {
+        return ready.get() && !closed.get();
     }
 
     /** {@inheritDoc} */
@@ -111,6 +117,8 @@ class GuiceTcBotApplicationContext implements TcBotApplicationContext {
     @Override public synchronized void close() {
         if (!closed.compareAndSet(false, true))
             return;
+
+        ready.set(false);
 
         Injector injector = this.injector;
         if (injector == null)
