@@ -307,6 +307,9 @@
     }
 
     function testSlackNotification() {
+        if (!monitoringAdmin)
+            return false;
+
         $.ajax({
             url: "rest/monitoring/testSlackNotification",
             method: "post",
@@ -322,6 +325,9 @@
     }
 
     function testEmailNotification() {
+        if (!monitoringAdmin)
+            return false;
+
         $.ajax({
             url: "rest/monitoring/testEmailNotification",
             method: "post",

@@ -153,6 +153,10 @@ table.stat tr:nth-child(odd) { background-color: #fafaff; }
     font-size: 12px;
 }
 
+.adminOnly {
+	display: none;
+}
+
 input[type=button], input[type=submit], button {
 	background: #12AD5E;
 	height: 24px;

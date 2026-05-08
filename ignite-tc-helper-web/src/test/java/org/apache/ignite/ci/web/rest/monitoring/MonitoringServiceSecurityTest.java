@@ -66,6 +66,21 @@ public class MonitoringServiceSecurityTest {
         assertTrue(html.contains("String(str == null ? \"\" : str)"));
     }
 
+    @Test
+    public void notificationTestControlsAreHiddenForNonAdmins() throws IOException, NoSuchMethodException {
+        String html = new String(Files.readAllBytes(monitoringHtml()), StandardCharsets.UTF_8);
+        String css = new String(Files.readAllBytes(styleCss()), StandardCharsets.UTF_8);
+
+        assertTrue(html.contains("<div class=\"adminOnly\">"));
+        assertTrue(html.contains("testSlackNotification()"));
+        assertTrue(html.contains("testEmailNotification()"));
+        assertTrue(css.contains(".adminOnly"));
+        assertTrue(css.contains("display: none"));
+
+        assertAdminRequired(MonitoringService.class.getMethod("testSlackNotification"));
+        assertAdminRequired(MonitoringService.class.getMethod("testEmailNotification", String.class));
+    }
+
     private static void assertAuthRequired(Method method) {
         assertFalse(method.isAnnotationPresent(PermitAll.class));
     }
@@ -84,5 +99,14 @@ public class MonitoringServiceSecurityTest {
             return projectPath;
 
         return Paths.get("ignite-tc-helper-web/src/main/webapp/monitoring.html");
+    }
+
+    private static Path styleCss() {
+        Path projectPath = Paths.get("src/main/webapp/css/style-1.5.css");
+
+        if (Files.exists(projectPath))
+            return projectPath;
+
+        return Paths.get("ignite-tc-helper-web/src/main/webapp/css/style-1.5.css");
     }
 }
