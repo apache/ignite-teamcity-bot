@@ -41,6 +41,7 @@ public class Launcher {
     /**
      * @param dev Dev mode.
      */
+    @SuppressWarnings("deprecation")
     public static void runServer(boolean dev) throws Exception {
         if(dev)
             System.setProperty(TcBotSystemProperties.DEV_MODE, "true");

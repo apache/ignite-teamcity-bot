@@ -31,5 +31,7 @@ dependencies {
 
     api "org.apache.ignite:ignite-indexing:$ignVer"
 
+    implementation group: 'org.xerial.snappy', name: 'snappy-java', version: snappyVer
+
 }
  

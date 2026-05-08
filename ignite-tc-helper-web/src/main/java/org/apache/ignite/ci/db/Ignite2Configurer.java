@@ -20,6 +20,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
+import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
 import java.io.File;
@@ -43,7 +44,7 @@ public class Ignite2Configurer {
         logEncoder.setPattern("%-12date{YYYY-MM-dd HH:mm:ss.SSS} %-5level [%t] - %msg%n");
         logEncoder.start();
 
-        RollingFileAppender rollingFa = new RollingFileAppender();
+        RollingFileAppender<ILoggingEvent> rollingFa = new RollingFileAppender<>();
         rollingFa.setContext(logCtx);
         rollingFa.setName("logFile");
         rollingFa.setEncoder(logEncoder);
@@ -52,7 +53,7 @@ public class Ignite2Configurer {
         final File logs = new File(workDir, subdir);
         TcBotWorkDir.ensureDirExist(logs);
 
-        TimeBasedRollingPolicy logFilePolicy = new TimeBasedRollingPolicy();
+        TimeBasedRollingPolicy<ILoggingEvent> logFilePolicy = new TimeBasedRollingPolicy<>();
         logFilePolicy.setContext(logCtx);
         logFilePolicy.setParent(rollingFa);
         logFilePolicy.setFileNamePattern(new File(logs, "logfile-%d{yyyy-MM-dd_HH}.log").getAbsolutePath());
@@ -123,7 +124,8 @@ public class Ignite2Configurer {
         return regConf;
     }
 
-     public static DataStorageConfiguration getDataStorageConfiguration(DataRegionConfiguration regConf) {
+    @SuppressWarnings("deprecation")
+    public static DataStorageConfiguration getDataStorageConfiguration(DataRegionConfiguration regConf) {
         return new DataStorageConfiguration()
             // .setWalCompactionEnabled(true)
             .setWalMode(WALMode.LOG_ONLY)

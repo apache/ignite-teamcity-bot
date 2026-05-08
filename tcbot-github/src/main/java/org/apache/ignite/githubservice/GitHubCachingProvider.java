@@ -16,12 +16,13 @@
  */
 package org.apache.ignite.githubservice;
 
+import java.time.Duration;
+
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 
@@ -31,7 +32,7 @@ class GitHubCachingProvider implements IGitHubConnectionProvider {
     private final Cache<String, IGitHubConnection> srvs
         = CacheBuilder.newBuilder()
         .maximumSize(100)
-        .expireAfterAccess(16, TimeUnit.MINUTES)
+        .expireAfterAccess(Duration.ofMinutes(16))
         .softValues()
         .build();
 

@@ -25,6 +25,7 @@ import org.apache.ignite.Ignition;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
 import org.apache.ignite.ci.web.model.Version;
+import org.apache.ignite.cluster.ClusterState;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.logger.slf4j.Slf4jLogger;
@@ -73,7 +74,7 @@ public class TcHelperDb {
         cfg.setClientMode(true);
 
         final Ignite ignite = Ignition.start(cfg);
-        ignite.cluster().active(true);
+        ignite.cluster().state(ClusterState.ACTIVE);
         return ignite;
     }
 

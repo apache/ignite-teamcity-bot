@@ -17,8 +17,6 @@
 
 package org.apache.ignite.tcbot.common.util;
 
-import com.google.common.base.Throwables;
-
 import javax.annotation.Nonnull;
 import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
@@ -40,7 +38,7 @@ public class CryptUtil {
 
             return  sha256_HMAC.doFinal(data.getBytes(CHARSET));
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -51,7 +49,7 @@ public class CryptUtil {
             return cipher.doFinal(data);
         }
         catch (NoSuchAlgorithmException | NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException | InvalidKeyException e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -62,7 +60,7 @@ public class CryptUtil {
             return cipher.doFinal(data);
         }
         catch (NoSuchAlgorithmException | NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException | InvalidKeyException e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 

@@ -19,8 +19,8 @@ package org.apache.ignite.tcignited;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import java.time.Duration;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -45,7 +45,7 @@ class TcIgnitedCachingProvider implements ITeamcityIgnitedProvider {
     private final Cache<String, ITeamcityIgnited> srvs
             = CacheBuilder.newBuilder()
             .maximumSize(100)
-            .expireAfterAccess(16, TimeUnit.MINUTES)
+            .expireAfterAccess(Duration.ofMinutes(16))
             .softValues()
             .build();
 

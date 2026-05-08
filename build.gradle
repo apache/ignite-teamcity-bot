@@ -95,6 +95,10 @@ allprojects {
     tasks.withType(JavaExec).configureEach {
         jvmArgs igniteJava17JvmArgs
     }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.compilerArgs += ['-Xlint:deprecation', '-Xlint:unchecked']
+    }
 }
 
 /*

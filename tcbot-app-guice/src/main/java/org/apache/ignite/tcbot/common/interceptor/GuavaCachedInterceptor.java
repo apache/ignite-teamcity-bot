@@ -16,6 +16,8 @@
  */
 package org.apache.ignite.tcbot.common.interceptor;
 
+import java.time.Duration;
+
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.cache.Cache;
@@ -26,7 +28,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
@@ -48,10 +49,10 @@ public class GuavaCachedInterceptor implements MethodInterceptor {
                 builder = builder.maximumSize(annotation.maximumSize());
 
             if (annotation.expireAfterAccessSecs() > 0)
-                builder.expireAfterAccess(annotation.expireAfterAccessSecs(), TimeUnit.SECONDS);
+                builder.expireAfterAccess(Duration.ofSeconds(annotation.expireAfterAccessSecs()));
 
             if (annotation.expireAfterWriteSecs() > 0)
-                builder.expireAfterWrite(annotation.expireAfterWriteSecs(), TimeUnit.SECONDS);
+                builder.expireAfterWrite(Duration.ofSeconds(annotation.expireAfterWriteSecs()));
 
             return builder.build();
         });

@@ -115,6 +115,7 @@ public class IgniteStringCompactor implements IStringCompactor {
     /** {@inheritDoc} */
     @AutoProfiling
     @GuavaCached(cacheNullRval = false)
+    @SuppressWarnings("deprecation")
     @Override public String getStringFromId(int id) {
         if (id < 0)
             return null;

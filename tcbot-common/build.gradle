@@ -21,17 +21,10 @@ dependencies {
     api group: 'com.google.guava', name: 'guava', version: guavaVer
 
     api group: 'org.slf4j', name: 'slf4j-api', version: slf4jVer
-    //Apache License Version 2.0
-    api group: 'com.google.code.gson', name: 'gson', version: gsonVer
-
     api group: 'com.google.code.findbugs', name: 'jsr305', version: jsr305Ver
     api group: 'org.checkerframework', name: 'checker-qual', version: checkerQualVer
 
-    api group: 'org.xerial.snappy', name: 'snappy-java', version: snappyVer
-
-    api group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.1'
-    api group: 'com.sun.xml.bind', name: 'jaxb-impl', version: jaxbVer
-    api group: 'com.sun.xml.bind', name: 'jaxb-core', version: '2.3.0'
+    implementation group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.1'
     
     testImplementation group: 'junit', name: 'junit', version: junitVer;
     testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVer;

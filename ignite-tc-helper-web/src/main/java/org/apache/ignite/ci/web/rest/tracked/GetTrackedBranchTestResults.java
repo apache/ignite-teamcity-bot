@@ -62,7 +62,6 @@ public class GetTrackedBranchTestResults {
     private static final Logger logger = LoggerFactory.getLogger(GetTrackedBranchTestResults.class);
 
     public static final String TRACKED = "tracked";
-    public static final int DEFAULT_COUNT = 10;
 
     /** Slow tracked branch request threshold. */
     private static final long SLOW_TRACKED_RESULTS_WARN_MS =
@@ -189,53 +188,6 @@ public class GetTrackedBranchTestResults {
                 Boolean.TRUE.equals(showIgnored));
 
         logSlowTrackedResult(startNanos, "latest", branch, actualMergeBuilds, mode, res);
-
-        return res;
-    }
-
-    @GET
-    @Path("mergedUpdates")
-    public UpdateInfo getAllTestFailsUpdates(@Nullable @QueryParam("branch") String branchOrNull) {
-        return new UpdateInfo().initCounters(
-            CtxListener.getApplicationContext(ctx)
-                .getInstance(IDetailedStatusForTrackedBranch.class)
-                .getTrackedBranchUpdateCounters(branchOrNull, ITcBotUserCreds.get(req)));
-    }
-
-    @GET
-    @Path("mergedResultsNoSync")
-    public DsSummaryUi getAllTestFailsNoSync(@Nullable @QueryParam("branch") String branch,
-                                             @Nullable @QueryParam("count") Integer cnt,
-                                             @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        return mergedBuildsResults(branch, cnt, checkAllLogs, SyncMode.NONE);
-    }
-
-    @GET
-    @Path("mergedResults")
-    @NotNull
-    public DsSummaryUi getAllTestFailsForMergedBuidls(@Nullable @QueryParam("branch") String branchOpt,
-                                                      @QueryParam("count") Integer cnt,
-                                                      @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        return mergedBuildsResults(branchOpt, cnt, checkAllLogs, SyncMode.RELOAD_QUEUED);
-    }
-
-    @NotNull private DsSummaryUi mergedBuildsResults(
-        @QueryParam("branch") @Nullable String branchOpt,
-        @QueryParam("count") Integer cnt,
-        @QueryParam("checkAllLogs") @Nullable Boolean checkAllLogs,
-        SyncMode mode) {
-        long startNanos = System.nanoTime();
-
-        ITcBotUserCreds creds = ITcBotUserCreds.get(req);
-        int cntLimit = cnt == null ? DEFAULT_COUNT : cnt;
-        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
-
-        DsSummaryUi res = appCtx.getInstance(TrackedBranchChainsProcessor.class)
-            .getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, creds, mode,
-                false, null, null, DisplayMode.OnlyFailures, null,
-                -1, false, false);
-
-        logSlowTrackedResult(startNanos, "merged", branchOpt, cntLimit, mode, res);
 
         return res;
     }

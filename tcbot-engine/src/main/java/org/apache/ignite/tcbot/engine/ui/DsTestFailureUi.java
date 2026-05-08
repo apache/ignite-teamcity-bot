@@ -116,7 +116,7 @@ public class DsTestFailureUi extends ShortTestFailureUi {
                     checkAndFillByPrefix(details, "http://issues.apache.org/jira/browse/");
 
                 for (String s : details.split("\n")) {
-                    if (LogMsgToWarn.needWarn(s))
+                    if (LogMsgToWarn.isWarningLine(s))
                         warnings.add(s);
                 }
             });

@@ -27,11 +27,15 @@ public class LogMsgToWarn {
 
     private static final String JAVA_LEVEL_DEADLOCK_TXT = " Java-level deadlock:";
 
-    @Deprecated
-    public static boolean needWarn(String line) {
+    public static boolean isWarningLine(String line) {
         return line.contains("java.lang.AssertionError:")
             || line.contains(JAVA_LEVEL_DEADLOCK_TXT)
             || line.contains("Critical failure. Will be handled accordingly to configured handler");
+    }
+
+    @Deprecated
+    public static boolean needWarn(String line) {
+        return isWarningLine(line);
     }
 
     @Nullable
