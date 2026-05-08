@@ -270,24 +270,14 @@ function aiPromptUrlWithWaitForTc(url, waitForTc) {
 }
 
 function startAiPromptProgress(state, waitForTc) {
-    let messages = waitForTc ? [
-        "Asking TeamCity for build context.",
-        "Loading latest build and test details.",
-        "Downloading and parsing build logs if they are not cached.",
-        "Still waiting for TeamCity/log processing.",
-        "Preparing the final prompt text."
-    ] : [
-        "Using current cached context.",
-        "Building prompt without waiting for TeamCity/log processing.",
-        "Preparing the final prompt text."
-    ];
     let idx = 0;
+    let startedTs = Date.now();
 
     state.status.text(waitForTc ? "Generating prompt..." : "Generating prompt from current context...");
     state.log.empty();
 
     function showNextStatus() {
-        appendAiPromptStep(state, messages[Math.min(idx, messages.length - 1)]);
+        appendAiPromptStep(state, aiPromptProgressMessage(waitForTc, idx, Date.now() - startedTs));
 
         idx++;
     }
@@ -295,6 +285,36 @@ function startAiPromptProgress(state, waitForTc) {
     showNextStatus();
 
     state.timer = setInterval(showNextStatus, 5000);
+}
+
+function aiPromptProgressMessage(waitForTc, idx, elapsedMs) {
+    let elapsedSec = Math.round(elapsedMs / 1000);
+
+    if (!waitForTc) {
+        if (idx === 0)
+            return "Sending no-wait request to the bot server.";
+
+        if (idx === 1)
+            return "Using cached chain context and cached log analysis only.";
+
+        return "Still building from cache (" + elapsedSec
+            + "s). Waiting for the bot server response; no new TeamCity/log wait was requested.";
+    }
+
+    if (idx === 0)
+        return "Sending request to the bot server.";
+
+    if (idx === 1)
+        return "Bot is asking TeamCity for build history and chain context.";
+
+    if (idx === 2)
+        return "Bot is loading build/test details and may refresh stale TeamCity cache.";
+
+    if (idx === 3)
+        return "Bot requested build-log analysis; waiting for log download/parse or the 30s log timeout.";
+
+    return "Still waiting (" + elapsedSec
+        + "s). TeamCity request or build-log processing is not finished yet; you can use current context now.";
 }
 
 function appendAiPromptStep(state, text) {
@@ -312,15 +332,10 @@ function finishAiPromptProgress(state, result) {
 
     state.resultUrl = URL.createObjectURL(new Blob([result], {type: "text/plain;charset=utf-8"}));
     state.status.text("AI prompt is ready.");
-    appendAiPromptStep(state, "Prompt text is ready.");
+    appendAiPromptStep(state, "Prompt text is ready. Use Open prompt or Download .txt.");
     state.skipBtn.hide();
     state.openBtn.show();
     state.downloadBtn.show();
-
-    if (openAiPromptText(state))
-        appendAiPromptStep(state, "Opened prompt text in a new tab.");
-    else
-        appendAiPromptStep(state, "Automatic opening was blocked. Use Open prompt or Download .txt.");
 }
 
 function failAiPromptProgress(state, jqXHR, status, error) {
