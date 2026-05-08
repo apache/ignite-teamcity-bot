@@ -17,17 +17,29 @@
 
 plugins {
     id "com.github.hierynomus.license" version "0.16.1" apply false
+    id "com.github.jk1.dependency-license-report" version "3.1.2"
 }
 
 subprojects {
-    apply plugin: "com.github.hierynomus.license"
     apply plugin: "com.github.hierynomus.license-base"
-    apply plugin: "com.github.hierynomus.license-report"
 
     //for subprojects header can be found in top-level project.
     license.header = file('../header.txt')
 
     license.exclude("*.xml");
+
+}
+
+tasks.register("license") {
+    group = "License"
+    description = "Checks for header consistency."
+    dependsOn subprojects.collect { it.tasks.matching { task -> task.name in ["licenseMain", "licenseTest"] } }
+}
+
+tasks.register("licenseFormat") {
+    group = "License"
+    description = "Applies the license found in the header file in files missing the header."
+    dependsOn subprojects.collect { it.tasks.matching { task -> task.name in ["licenseFormatMain", "licenseFormatTest"] } }
 }
 
 allprojects {
