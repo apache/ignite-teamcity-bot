@@ -214,6 +214,9 @@ licenses.
 ==============================================================================
 For Logback:
 ==============================================================================
-Logback 1.2.3 is included into project in binary form only.
-Logback is dual-licensed under the EPL v1.0 (Category B) and the LGPL 2.1
-(category X). For details, see https://logback.qos.ch/license.html
+Logback 1.5.32 is included into binary convenience packages only.
+Logback is dual-licensed. This distribution uses Logback under the Eclipse
+Public License v1.0 (Category B). The GNU Lesser General Public License option
+is not selected for this distribution.
+
+For details, see https://logback.qos.ch/license.html

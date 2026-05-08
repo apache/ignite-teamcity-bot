@@ -47,7 +47,8 @@ allprojects {
 
         guavaVer = '33.6.0-jre'
 
-        //dual-licensed under the EPL v1.0 (Category B list.) and the LGPL 2.1 (category X).
+        // Logback is dual licensed. For ASF compatibility this build uses the EPL v1.0 choice
+        // for binary convenience packages; the LGPL option is not selected.
         logbackVer = '1.5.32'
 
         // MIT/X11 license, category A;
