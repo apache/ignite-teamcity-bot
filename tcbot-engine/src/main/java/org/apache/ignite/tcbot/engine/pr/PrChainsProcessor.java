@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
@@ -50,6 +50,7 @@ import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
 import org.apache.ignite.tcbot.engine.newtests.NewTestsStorage;
+import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi;
@@ -103,6 +104,9 @@ public class PrChainsProcessor {
 
     /** AI prompt request monitor. */
     @Inject private AiPromptRequestMonitor aiPromptMonitor;
+
+    /** TC update pool for best-effort AI prompt refreshes. */
+    @Inject private TcUpdatePool tcUpdatePool;
 
     /**
      * @param creds Credentials.
@@ -527,23 +531,36 @@ public class PrChainsProcessor {
         boolean includeScheduledInfo,
         String baseBranchForTc,
         String stageSuffix) {
-        CompletableFuture<FullChainRunCtx> live = CompletableFuture.supplyAsync(() -> buildChainProcessor.loadFullChainContext(
-            tcIgnited,
-            hist,
-            rebuild,
-            ProcessLogsMode.CACHED_ONLY,
-            includeScheduledInfo,
-            baseBranchForTc,
-            SyncMode.RELOAD_QUEUED,
-            null, null));
+        Future<FullChainRunCtx> live = null;
 
         try {
             aiPromptMonitor.stage(reqId, "trying fresh context for up to 1s: " + stageSuffix);
 
+            live = tcUpdatePool.getService().submit(() -> buildChainProcessor.loadFullChainContext(
+                tcIgnited,
+                hist,
+                rebuild,
+                ProcessLogsMode.CACHED_ONLY,
+                includeScheduledInfo,
+                baseBranchForTc,
+                SyncMode.RELOAD_QUEUED,
+                null, null));
+
             return live.get(1, TimeUnit.SECONDS);
         }
         catch (TimeoutException e) {
+            if (live != null)
+                live.cancel(true);
+
             aiPromptMonitor.stage(reqId, "fresh context timed out, using stale cache: " + stageSuffix);
+        }
+        catch (InterruptedException e) {
+            if (live != null)
+                live.cancel(true);
+
+            Thread.currentThread().interrupt();
+
+            aiPromptMonitor.stage(reqId, "fresh context interrupted, using stale cache: " + stageSuffix);
         }
         catch (Exception e) {
             aiPromptMonitor.stage(reqId, "fresh context failed, using stale cache: " + stageSuffix + " - " + e.getMessage());

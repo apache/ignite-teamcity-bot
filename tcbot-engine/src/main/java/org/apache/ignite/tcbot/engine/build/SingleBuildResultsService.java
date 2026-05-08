@@ -21,7 +21,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import javax.annotation.Nonnull;
@@ -31,6 +31,7 @@ import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
 import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
+import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -52,6 +53,7 @@ public class SingleBuildResultsService {
     @Inject IStringCompactor compactor;
     @Inject UpdateCountersStorage updateCounters;
     @Inject AiPromptRequestMonitor aiPromptMonitor;
+    @Inject TcUpdatePool tcUpdatePool;
 
     @Nonnull public DsSummaryUi getSingleBuildResults(String srvCodeOrAlias, Integer buildId,
         @Nullable Boolean checkAllLogs, SyncMode syncMode, ICredentialsProv prov) {
@@ -151,16 +153,29 @@ public class SingleBuildResultsService {
      */
     private FullChainRunCtx loadSingleBuildContextBestEffort(long reqId, String srvCodeOrAlias, Integer buildId,
         SyncMode liveSyncMode, ICredentialsProv prov) {
-        CompletableFuture<FullChainRunCtx> live = CompletableFuture.supplyAsync(() ->
-            loadSingleBuildContext(srvCodeOrAlias, buildId, null, liveSyncMode, prov, ProcessLogsMode.CACHED_ONLY));
+        Future<FullChainRunCtx> live = null;
 
         try {
             aiPromptMonitor.stage(reqId, "trying fresh context for up to 1s");
 
+            live = tcUpdatePool.getService().submit(() ->
+                loadSingleBuildContext(srvCodeOrAlias, buildId, null, liveSyncMode, prov, ProcessLogsMode.CACHED_ONLY));
+
             return live.get(1, TimeUnit.SECONDS);
         }
         catch (TimeoutException e) {
+            if (live != null)
+                live.cancel(true);
+
             aiPromptMonitor.stage(reqId, "fresh context timed out, using stale cache");
+        }
+        catch (InterruptedException e) {
+            if (live != null)
+                live.cancel(true);
+
+            Thread.currentThread().interrupt();
+
+            aiPromptMonitor.stage(reqId, "fresh context interrupted, using stale cache");
         }
         catch (Exception e) {
             aiPromptMonitor.stage(reqId, "fresh context failed, using stale cache: " + e.getMessage());
