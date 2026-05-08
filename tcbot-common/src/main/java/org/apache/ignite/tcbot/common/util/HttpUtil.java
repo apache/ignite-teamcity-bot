@@ -127,8 +127,12 @@ public class HttpUtil {
 
         int resCode = con.getResponseCode();
 
-        if (rspHeaders != null)
+        if (rspHeaders != null) {
             rspHeaders.keySet().forEach(k -> rspHeaders.put(k, con.getHeaderField(k)));
+
+            if (rspHeaders.containsKey("Response-Code"))
+                rspHeaders.put("Response-Code", Integer.toString(resCode));
+        }
 
         logger.info(Thread.currentThread().getName() + ": Required: " + started.elapsed(TimeUnit.MILLISECONDS)
             + "ms : Sending 'GET' request to : " + url + " Response: " + resCode);
