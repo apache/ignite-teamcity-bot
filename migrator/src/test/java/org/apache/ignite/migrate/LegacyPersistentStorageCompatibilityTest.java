@@ -105,6 +105,9 @@ public class LegacyPersistentStorageCompatibilityTest {
     /** Cache used only to produce enough WAL with old Ignite. */
     private static final String LEGACY_WAL_STRESS_CACHE = "legacyWalStressCache";
 
+    /** Current migration key that must be absent in the legacy marker set and then applied by current code. */
+    private static final String GRID_INT_LIST_MIGRATION = "migrate-GridIntList";
+
     /** Small durable region for the test. */
     private static final long REGION_SIZE = 256L * 1024 * 1024;
 
@@ -144,9 +147,14 @@ public class LegacyPersistentStorageCompatibilityTest {
 
             ignite.cluster().active(true);
 
+            IgniteCache<String, Object> doneMigrations = assertLegacyMigrationMarkersExist(ignite);
+
             String migrationRes = runMigrationsWithFilteredOutput(ignite);
 
             System.out.println("Migration result: " + migrationRes);
+
+            assertTrue("Current migrator must record the GridIntList migration",
+                doneMigrations.containsKey(GRID_INT_LIST_MIGRATION));
 
             PersistentStringCompactor compactor = new PersistentStringCompactor(ignite);
 
@@ -171,6 +179,8 @@ public class LegacyPersistentStorageCompatibilityTest {
             Object migrated = ignite.cache(LEGACY_GRID_INT_LIST_CACHE).get("legacy");
 
             assertEquals(GridIntList.asList(1, 2, 3), migrated);
+
+            assertAllUserCachesCanBeDeserialized(ignite);
 
             failureHandler.assertNoFailure();
         }
@@ -225,7 +235,7 @@ public class LegacyPersistentStorageCompatibilityTest {
             if (line.startsWith("cache [") && line.endsWith("] not found"))
                 missingCaches++;
 
-            if (line.contains("migrate-GridIntList"))
+            if (line.contains(GRID_INT_LIST_MIGRATION))
                 gridIntListLines.add(line);
         }
 
@@ -235,6 +245,74 @@ public class LegacyPersistentStorageCompatibilityTest {
         System.out.println("Migration procedures observed: running=" + running.size() + ", completed="
             + completed.size() + ", missingCaches=" + missingCaches);
         assertTrue("GridIntList migration must run", !gridIntListLines.isEmpty());
+    }
+
+    /**
+     * @param ignite Ignite.
+     * @return Existing done migrations cache created by the old bot code.
+     */
+    private IgniteCache<String, Object> assertLegacyMigrationMarkersExist(Ignite ignite) {
+        String cacheName = DbMigrations.ignCacheNme(DbMigrations.DONE_MIGRATIONS, DbMigrations.DONE_MIGRATION_PREFIX);
+        IgniteCache<String, Object> doneMigrations = ignite.cache(cacheName);
+
+        assertNotNull("Legacy generator must create old migration markers cache " + cacheName, doneMigrations);
+
+        int size = doneMigrations.size();
+
+        System.out.println("Legacy migration markers before current migrator: " + size);
+
+        assertTrue("Legacy generator must execute old migrations and leave done markers", size > 0);
+        assertFalse("Legacy marker set must not already skip the current GridIntList migration",
+            doneMigrations.containsKey(GRID_INT_LIST_MIGRATION));
+
+        return doneMigrations;
+    }
+
+    /**
+     * @param ignite Ignite.
+     */
+    private void assertAllUserCachesCanBeDeserialized(Ignite ignite) {
+        int caches = 0;
+        long entries = 0;
+
+        for (String cacheName : ignite.cacheNames()) {
+            IgniteCache<Object, Object> cache = ignite.cache(cacheName);
+
+            if (cache == null)
+                continue;
+
+            caches++;
+
+            long cacheEntries = 0;
+
+            try {
+                for (Cache.Entry<Object, Object> entry : cache) {
+                    Object key = entry.getKey();
+                    Object val = entry.getValue();
+
+                    if (key != null)
+                        key.getClass();
+
+                    if (val != null)
+                        val.getClass();
+
+                    cacheEntries++;
+                }
+            }
+            catch (RuntimeException | LinkageError e) {
+                throw new AssertionError("Unable to deserialize cache [" + cacheName
+                    + "] after migration, processedEntries=" + cacheEntries, e);
+            }
+
+            entries += cacheEntries;
+
+            System.out.println("Deserialized cache [" + cacheName + "] entries=" + cacheEntries);
+        }
+
+        System.out.println("Deserialized persistent caches: caches=" + caches + ", entries=" + entries);
+
+        assertTrue("At least one cache must be checked", caches > 0);
+        assertTrue("At least one cache entry must be checked", entries > 0);
     }
 
     /**
@@ -538,6 +616,11 @@ public class LegacyPersistentStorageCompatibilityTest {
             + "            legacy.put(\"legacy\", new GridIntList(new int[] {1, 2, 3}));\n"
             + "\n"
             + "            writeWalStressData(ignite);\n"
+            + "\n"
+            + "            String legacyMigrationRes = new DbMigrations(ignite).dataMigration();\n"
+            + "            IgniteCache<String, Object> doneMigrations = ignite.cache(DbMigrations.ignCacheNme(DbMigrations.DONE_MIGRATIONS, DbMigrations.DONE_MIGRATION_PREFIX));\n"
+            + "            System.out.println(\"Legacy migrations result: \" + legacyMigrationRes);\n"
+            + "            System.out.println(\"Legacy migration markers: \" + doneMigrations.size());\n"
             + "\n"
             + "            System.out.println(\"Legacy DB generated at: \" + workDir.getAbsolutePath());\n"
             + "        }\n"
@@ -889,6 +972,8 @@ public class LegacyPersistentStorageCompatibilityTest {
         return line.startsWith("> Task")
             || line.startsWith("BUILD ")
             || line.contains("Legacy generator")
+            || line.contains("Legacy migrations")
+            || line.contains("Legacy migration markers")
             || line.contains("Legacy WAL stress")
             || line.contains("Legacy Ignite node version")
             || line.contains("Legacy DB generated")
