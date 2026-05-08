@@ -74,6 +74,9 @@ public class BuildRefDao {
     /** Update Counters for branch-related changes storage. */
     @Inject private UpdateCountersStorage countersStorage;
 
+    /** Guard for branch history in-memory caches. */
+    private final Object buildRefsInMemCacheMux = new Object();
+
     /** Non persistence cache for all BuildRefsCompacted for particular branch.
      * RunHistKey(ServerId||BranchId||suiteId)-> Build reference
      */
@@ -182,8 +185,10 @@ public class BuildRefDao {
                 .map(b -> branchNameToHistCacheKey(srvId, b.branch()))
                 .collect(Collectors.toSet());
 
-        buildRefsInMemCacheForAllBranch.invalidateAll(cacheForAllBranch);
-        buildRefsInMemCache.invalidateAll(setOfHistToClear);
+        synchronized (buildRefsInMemCacheMux) {
+            buildRefsInMemCacheForAllBranch.invalidateAll(cacheForAllBranch);
+            buildRefsInMemCache.invalidateAll(setOfHistToClear);
+        }
 
         setOfHistToClear.forEach(b -> {
             int branch = b.branch();
@@ -228,22 +233,25 @@ public class BuildRefDao {
         branchNameIds.forEach(branchNameId -> {
             RunHistKey runHistKey = new RunHistKey(srvId, buildTypeIdId, branchNameId);
             try {
-                List<BuildRefCompacted> compactedBuildsForBranch =
-                    buildRefsInMemCache.get(runHistKey, () -> {
-                        List<BuildRefCompacted> branch = getBuildsForBranch(srvId, branchNameId);
+                List<BuildRefCompacted> compactedBuildsForBranch;
 
-                        List<BuildRefCompacted> resForBranch = branch.stream()
-                            .filter(e -> e.buildTypeId() == buildTypeIdId)
-                            .collect(Collectors.toList());
+                synchronized (buildRefsInMemCacheMux) {
+                    compactedBuildsForBranch = buildRefsInMemCache.get(runHistKey, () -> {
+                            List<BuildRefCompacted> branch = getBuildsForBranch(srvId, branchNameId);
 
-                        if (!resForBranch.isEmpty()) {
-                            System.err.println("Branch " + compactor.getStringFromId(branchNameId)
-                                + " Suite " + compactor.getStringFromId(buildTypeIdId)
-                                + " builds " + resForBranch.size() + " ");
-                        }
+                            List<BuildRefCompacted> resForBranch = branch.stream()
+                                .filter(e -> e.buildTypeId() == buildTypeIdId)
+                                .collect(Collectors.toList());
 
-                        return resForBranch;
-                    });
+                            if (!resForBranch.isEmpty()) {
+                                System.err.println("Branch " + compactor.getStringFromId(branchNameId)
+                                    + " Suite " + compactor.getStringFromId(buildTypeIdId)
+                                    + " builds " + resForBranch.size() + " ");
+                            }
+
+                            return resForBranch;
+                        });
+                }
 
                 res.addAll(compactedBuildsForBranch);
             }
@@ -289,7 +297,10 @@ public class BuildRefDao {
         long branchKey = branchNameToHistCacheKey(srvId, branchNameId);
 
         try {
-            return buildRefsInMemCacheForAllBranch.get(branchKey, () -> getBuildsForBranchNonCached(srvId, branchNameId));
+            synchronized (buildRefsInMemCacheMux) {
+                return buildRefsInMemCacheForAllBranch.get(branchKey,
+                    () -> getBuildsForBranchNonCached(srvId, branchNameId));
+            }
         }
         catch (ExecutionException e) {
             throw ExceptionUtil.propagateException(e);
