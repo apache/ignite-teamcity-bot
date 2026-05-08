@@ -84,9 +84,7 @@ public class StaticResourceServlet extends HttpServlet {
         if (path.endsWith("/"))
             path += "index.html";
 
-        String resPath = STATIC_ROOT + path;
-
-        try (InputStream in = Thread.currentThread().getContextClassLoader().getResourceAsStream(resPath)) {
+        try (InputStream in = openResource(path)) {
             if (in == null) {
                 resp.sendError(HttpServletResponse.SC_NOT_FOUND);
                 return;
@@ -102,5 +100,17 @@ public class StaticResourceServlet extends HttpServlet {
 
             in.transferTo(resp.getOutputStream());
         }
+    }
+
+    /**
+     * @param path Resource path relative to webapp root.
+     */
+    private InputStream openResource(String path) {
+        InputStream in = getServletContext().getResourceAsStream("/" + path);
+
+        if (in != null)
+            return in;
+
+        return Thread.currentThread().getContextClassLoader().getResourceAsStream(STATIC_ROOT + path);
     }
 }

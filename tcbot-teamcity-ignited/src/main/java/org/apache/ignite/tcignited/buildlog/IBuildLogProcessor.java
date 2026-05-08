@@ -23,6 +23,8 @@ import javax.annotation.Nullable;
 public interface IBuildLogProcessor {
     public ILogCheckResult analyzeBuildLog(ITeamcityIgnited teamcity, int buildId, boolean dumpLastTest);
 
+    @Nullable
+    public ILogCheckResult getCachedBuildLogAnalysis(String serverCode, Integer buildId);
 
     @Nullable
     public String getThreadDumpCached(String serverCode, Integer buildId);

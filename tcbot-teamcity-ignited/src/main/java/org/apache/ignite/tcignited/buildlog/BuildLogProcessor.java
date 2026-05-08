@@ -96,6 +96,22 @@ class BuildLogProcessor implements IBuildLogProcessor {
 
     @Nullable
     @Override
+    public ILogCheckResult getCachedBuildLogAnalysis(String serverCode, Integer buildId) {
+        if (buildId == null)
+            return null;
+
+        long cacheKey = BuildLogCheckResultDao.getCacheKey(serverCode, buildId);
+
+        ILogCheckResult cached = logCheckResultCache.getIfPresent(cacheKey);
+
+        if (cached != null)
+            return cached;
+
+        return logCheckResultDao.get(serverCode, buildId);
+    }
+
+    @Nullable
+    @Override
     public String getThreadDumpCached(String serverCode, Integer buildId) {
         LogCheckResultCompacted logCheckResultCompacted = logCheckResultDao.get(serverCode, buildId);
 

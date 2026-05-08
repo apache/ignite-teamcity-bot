@@ -35,6 +35,7 @@ public class MonitoringServiceSecurityTest {
         assertAuthRequired(MonitoringService.class.getMethod("getRequestStats"));
         assertAuthRequired(MonitoringService.class.getMethod("getRecentRequests"));
         assertAuthRequired(MonitoringService.class.getMethod("resetRequestStats"));
+        assertAuthRequired(MonitoringService.class.getMethod("getAiPromptRequests"));
     }
 
     @Test
@@ -44,6 +45,8 @@ public class MonitoringServiceSecurityTest {
         assertTrue(html.contains("escapeHtml(inv.method)"));
         assertTrue(html.contains("escapeHtml(inv.path)"));
         assertTrue(html.contains("escapeHtml(inv.lastRequest)"));
+        assertTrue(html.contains("escapeHtml(req.branch)"));
+        assertTrue(html.contains("escapeHtml(req.result)"));
         assertTrue(html.contains("String(str == null ? \"\" : str)"));
     }
 
