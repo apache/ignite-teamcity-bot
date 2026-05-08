@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.apache.ignite.tcservice.model.result.Build;
@@ -106,6 +107,27 @@ public class FullChainRunCtx {
 
     public void addAllSuites(List<MultBuildRunCtx> suites) {
         this.buildCfgsResults.addAll(suites);
+    }
+
+    /** @return Count of build log analyses requested for this chain context. */
+    public long logChecksStartedCount() {
+        return suites().mapToLong(MultBuildRunCtx::logChecksStartedCount).sum();
+    }
+
+    /** @return Count of build log analyses still running for this chain context. */
+    public long pendingLogChecksCount() {
+        return suites().mapToLong(MultBuildRunCtx::pendingLogChecksCount).sum();
+    }
+
+    /**
+     * Waits for build log analyses until timeout expires.
+     *
+     * @param timeoutMs Timeout in milliseconds.
+     */
+    public void awaitLogChecks(long timeoutMs) {
+        long deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs);
+
+        suites().forEach(suite -> suite.awaitLogChecksUntil(deadlineNanos));
     }
 
     public boolean isFakeStub() {

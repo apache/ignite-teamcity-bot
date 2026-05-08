@@ -248,8 +248,11 @@ public class TestFailuresAiPromptBuilder {
             .filter(entry -> entry.getValue() != null && entry.getValue().hasWarns())
             .collect(Collectors.toList());
 
-        if (warnings.isEmpty())
+        if (warnings.isEmpty()) {
+            appendLogAnalysisNote(res, suite);
+
             return;
+        }
 
         res.append("Build log scanner warnings:\n");
 
@@ -421,8 +424,7 @@ public class TestFailuresAiPromptBuilder {
 
         if (snippets.isEmpty()) {
             res.append("\n## Log Context\n");
-            res.append("Cached build log analysis has no warning snippets for this test. ");
-            res.append("Raw 200-500 line windows around test start/end are not available in the current bot cache.\n");
+            appendLogAnalysisNote(res, suite);
 
             return;
         }
@@ -435,6 +437,32 @@ public class TestFailuresAiPromptBuilder {
             res.append(snippet).append('\n');
 
         res.append("```\n");
+    }
+
+    /**
+     * @param res Result builder.
+     * @param suite Suite context.
+     */
+    private void appendLogAnalysisNote(StringBuilder res, MultBuildRunCtx suite) {
+        long pending = suite.pendingLogChecksCount();
+
+        if (pending > 0) {
+            res.append("Build log analysis was requested for this prompt, but ");
+            res.append(pending).append(" log task(s) did not finish before the prompt timeout. ");
+            res.append("The prompt may miss log grep context; retry later to use cached results.\n");
+
+            return;
+        }
+
+        if (suite.logChecksStartedCount() > 0) {
+            res.append("Build log analysis completed or failed without warning snippets for this scope. ");
+            res.append("Raw 200-500 line windows around test start/end are not available in the current bot cache.\n");
+
+            return;
+        }
+
+        res.append("Build log analysis was not available for this prompt. ");
+        res.append("Raw 200-500 line windows around test start/end are not available in the current bot cache.\n");
     }
 
     /**

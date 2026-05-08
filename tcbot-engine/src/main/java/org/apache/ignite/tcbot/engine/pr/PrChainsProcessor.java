@@ -71,6 +71,9 @@ import org.apache.ignite.tcservice.ITeamcity;
  * Process pull request/untracked branch chain at particular server.
  */
 public class PrChainsProcessor {
+    /** Max time to wait for AI prompt build log processing. */
+    private static final long AI_PROMPT_LOG_WAIT_MS = TimeUnit.SECONDS.toMillis(30);
+
     private static class Action {
         public static final String HISTORY = "History";
         public static final String LATEST = "Latest";
@@ -454,6 +457,7 @@ public class PrChainsProcessor {
      * @param maxDetailsChars Max chars to include for every test details block. Non-positive means default cap.
      * @param testName Optional full test name filter.
      * @param promptSuiteId Optional suite id filter.
+     * @param waitForTc Wait for fresh TeamCity context and build log processing.
      * @return AI prompt with PR failure context.
      */
     @AutoProfiling
@@ -467,7 +471,8 @@ public class PrChainsProcessor {
         @Nullable String tcBaseBranchParm,
         int maxDetailsChars,
         @Nullable String testName,
-        @Nullable String promptSuiteId) {
+        @Nullable String promptSuiteId,
+        boolean waitForTc) {
         long reqId = aiPromptMonitor.start("pr", branchForTc, srvCodeOrAlias, suiteId, testName);
 
         try {
@@ -494,7 +499,10 @@ public class PrChainsProcessor {
             aiPromptMonitor.stage(reqId, "loading chain context: " + srvCodeOrAlias + "/" + suiteId);
 
             FullChainRunCtx ctx = loadAiPromptContextBestEffort(reqId, tcIgnited, hist, rebuild,
-                buildResMergeCnt == 1, baseBranchForTc, srvCodeOrAlias + "/" + suiteId);
+                buildResMergeCnt == 1, baseBranchForTc, srvCodeOrAlias + "/" + suiteId, waitForTc);
+
+            if (waitForTc)
+                waitForAiPromptLogs(reqId, ctx, srvCodeOrAlias + "/" + suiteId);
 
             aiPromptMonitor.stage(reqId, "building prompt: " + srvCodeOrAlias + "/" + suiteId);
 
@@ -521,6 +529,7 @@ public class PrChainsProcessor {
      * @param includeScheduledInfo Include scheduled info.
      * @param baseBranchForTc Base branch.
      * @param stageSuffix Stage suffix.
+     * @param waitForTc Wait for fresh TeamCity context and build log processing.
      */
     private FullChainRunCtx loadAiPromptContextBestEffort(
         long reqId,
@@ -529,7 +538,22 @@ public class PrChainsProcessor {
         LatestRebuildMode rebuild,
         boolean includeScheduledInfo,
         String baseBranchForTc,
-        String stageSuffix) {
+        String stageSuffix,
+        boolean waitForTc) {
+        if (!waitForTc) {
+            aiPromptMonitor.stage(reqId, "using cached context without waiting for TeamCity: " + stageSuffix);
+
+            return buildChainProcessor.loadFullChainContext(
+                tcIgnited,
+                hist,
+                LatestRebuildMode.NONE,
+                ProcessLogsMode.CACHED_ONLY,
+                false,
+                baseBranchForTc,
+                SyncMode.NONE,
+                null, null);
+        }
+
         Future<FullChainRunCtx> live = null;
 
         try {
@@ -539,7 +563,7 @@ public class PrChainsProcessor {
                 tcIgnited,
                 hist,
                 rebuild,
-                ProcessLogsMode.CACHED_ONLY,
+                ProcessLogsMode.ALL,
                 includeScheduledInfo,
                 baseBranchForTc,
                 SyncMode.RELOAD_QUEUED,
@@ -571,10 +595,35 @@ public class PrChainsProcessor {
             tcIgnited,
             hist,
             rebuild,
-            ProcessLogsMode.CACHED_ONLY,
+            ProcessLogsMode.ALL,
             false,
             baseBranchForTc,
             SyncMode.NONE,
             null, null);
+    }
+
+    /**
+     * @param reqId AI prompt request id.
+     * @param ctx Chain context.
+     * @param stageSuffix Stage suffix.
+     */
+    private void waitForAiPromptLogs(long reqId, FullChainRunCtx ctx, String stageSuffix) {
+        long started = ctx.logChecksStartedCount();
+
+        if (started == 0)
+            return;
+
+        aiPromptMonitor.stage(reqId, "processing build logs: " + started + " task(s), waiting up to "
+            + TimeUnit.MILLISECONDS.toSeconds(AI_PROMPT_LOG_WAIT_MS) + "s: " + stageSuffix);
+
+        ctx.awaitLogChecks(AI_PROMPT_LOG_WAIT_MS);
+
+        long pending = ctx.pendingLogChecksCount();
+
+        if (pending > 0)
+            aiPromptMonitor.stage(reqId, "build log processing timeout: " + pending
+                + " task(s) still running: " + stageSuffix);
+        else
+            aiPromptMonitor.stage(reqId, "build log processing finished: " + stageSuffix);
     }
 }

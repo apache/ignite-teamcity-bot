@@ -125,6 +125,7 @@ public class GetPrTestFailures {
      * @param maxDetailsChars Max chars per TeamCity failure details block. Non-positive means default cap.
      * @param testName Optional full test name filter.
      * @param promptSuiteId Optional suite id filter.
+     * @param waitForTc Wait for fresh TeamCity context and build log processing.
      */
     @GET
     @Path("results/aiPrompt")
@@ -138,7 +139,8 @@ public class GetPrTestFailures {
         @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
         @Nullable @QueryParam("maxDetailsChars") Integer maxDetailsChars,
         @Nullable @QueryParam("testName") String testName,
-        @Nullable @QueryParam("promptSuiteId") String promptSuiteId) {
+        @Nullable @QueryParam("promptSuiteId") String promptSuiteId,
+        @Nullable @QueryParam("waitForTc") Boolean waitForTc) {
         final TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
         return appCtx.getInstance(PrChainsProcessor.class).getPrFailuresAiPrompt(
@@ -151,6 +153,7 @@ public class GetPrTestFailures {
             baseBranchForTc,
             TestFailuresAiPromptBuilder.restMaxDetailsChars(maxDetailsChars),
             testName,
-            promptSuiteId);
+            promptSuiteId,
+            waitForTc == null || waitForTc);
     }
 }
