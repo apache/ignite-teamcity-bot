@@ -78,7 +78,7 @@ public class SingleBuildResultsService {
     /**
      * @param srvCodeOrAlias Server id or alias.
      * @param buildId Build id.
-     * @param maxDetailsChars Max chars to include for every test details block. Non-positive means no limit.
+     * @param maxDetailsChars Max chars to include for every test details block. Non-positive means default cap.
      * @param syncMode Synchronization mode.
      * @param prov Credentials provider.
      */
@@ -93,9 +93,7 @@ public class SingleBuildResultsService {
 
             ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, prov);
 
-            int maxDetails = maxDetailsChars == null
-                ? TestFailuresAiPromptBuilder.DFLT_MAX_DETAILS_CHARS
-                : maxDetailsChars;
+            int maxDetails = TestFailuresAiPromptBuilder.restMaxDetailsChars(maxDetailsChars);
 
             aiPromptMonitor.stage(reqId, "building prompt");
 
@@ -175,7 +173,9 @@ public class SingleBuildResultsService {
 
             Thread.currentThread().interrupt();
 
-            aiPromptMonitor.stage(reqId, "fresh context interrupted, using stale cache");
+            aiPromptMonitor.stage(reqId, "fresh context interrupted");
+
+            throw new IllegalStateException("Interrupted while loading fresh TeamCity context", e);
         }
         catch (Exception e) {
             aiPromptMonitor.stage(reqId, "fresh context failed, using stale cache: " + e.getMessage());

@@ -106,7 +106,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
      * @param syncMode Sync mode.
      * @param tagForHistSelected Selected tag for filtering history.
      * @param sortOption Sort mode.
-     * @param maxDetailsChars Max chars to include for every test details block. Non-positive means no limit.
+     * @param maxDetailsChars Max chars to include for every test details block. Non-positive means default cap.
      * @param testName Full test name to include.
      * @param suiteId Suite id to include.
      */
@@ -126,9 +126,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         try {
             final String branchNn = isNullOrEmpty(branch) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
             final ITrackedBranch tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);
-            final int maxDetails = maxDetailsChars == null
-                ? TestFailuresAiPromptBuilder.DFLT_MAX_DETAILS_CHARS
-                : maxDetailsChars;
+            final int maxDetails = TestFailuresAiPromptBuilder.restMaxDetailsChars(maxDetailsChars);
 
             tracked.chainsStream()
                 .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverCode(), creds))
@@ -232,7 +230,9 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
 
             Thread.currentThread().interrupt();
 
-            aiPromptMonitor.stage(reqId, "fresh context interrupted, using stale cache: " + stageSuffix);
+            aiPromptMonitor.stage(reqId, "fresh context interrupted: " + stageSuffix);
+
+            throw new IllegalStateException("Interrupted while loading fresh TeamCity context: " + stageSuffix, e);
         }
         catch (Exception e) {
             aiPromptMonitor.stage(reqId, "fresh context failed, using stale cache: " + stageSuffix + " - " + e.getMessage());

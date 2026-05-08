@@ -63,6 +63,17 @@ public class TestFailuresAiPromptBuilder {
     }
 
     /**
+     * @param maxDetailsChars Requested REST limit.
+     * @return Safe REST limit for a single TeamCity failure details block.
+     */
+    public static int restMaxDetailsChars(@Nullable Integer maxDetailsChars) {
+        if (maxDetailsChars == null || maxDetailsChars <= 0)
+            return DFLT_MAX_DETAILS_CHARS;
+
+        return Math.min(maxDetailsChars, DFLT_MAX_DETAILS_CHARS);
+    }
+
+    /**
      * @param tcIgnited TeamCity facade.
      * @param ctx Full chain context.
      * @param baseBranchTc Base branch for failure-rate history.
@@ -529,7 +540,7 @@ public class TestFailuresAiPromptBuilder {
 
         return text.substring(0, maxChars)
             + "\n\n... truncated " + (text.length() - maxChars) + " chars. "
-            + "Increase maxDetailsChars or use 0 for unlimited details.";
+            + "Increase maxDetailsChars up to the server cap if more details are needed.";
     }
 
     /**

@@ -453,7 +453,7 @@ public class PrChainsProcessor {
      * @param act Action.
      * @param cnt Count.
      * @param tcBaseBranchParm Base branch name in TC identification.
-     * @param maxDetailsChars Max chars to include for every test details block. Non-positive means no limit.
+     * @param maxDetailsChars Max chars to include for every test details block. Non-positive means default cap.
      * @param testName Optional full test name filter.
      * @param promptSuiteId Optional suite id filter.
      * @return AI prompt with PR failure context.
@@ -501,7 +501,8 @@ public class PrChainsProcessor {
             aiPromptMonitor.stage(reqId, "building prompt: " + srvCodeOrAlias + "/" + suiteId);
 
             String res = new TestFailuresAiPromptBuilder(compactor)
-                .buildPrompt(tcIgnited, ctx, baseBranchForTc, maxDetailsChars, testName, promptSuiteId);
+                .buildPrompt(tcIgnited, ctx, baseBranchForTc,
+                    TestFailuresAiPromptBuilder.restMaxDetailsChars(maxDetailsChars), testName, promptSuiteId);
 
             aiPromptMonitor.finish(reqId, "chars=" + res.length());
 
@@ -560,7 +561,9 @@ public class PrChainsProcessor {
 
             Thread.currentThread().interrupt();
 
-            aiPromptMonitor.stage(reqId, "fresh context interrupted, using stale cache: " + stageSuffix);
+            aiPromptMonitor.stage(reqId, "fresh context interrupted: " + stageSuffix);
+
+            throw new IllegalStateException("Interrupted while loading fresh TeamCity context: " + stageSuffix, e);
         }
         catch (Exception e) {
             aiPromptMonitor.stage(reqId, "fresh context failed, using stale cache: " + stageSuffix + " - " + e.getMessage());

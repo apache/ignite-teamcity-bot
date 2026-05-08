@@ -128,7 +128,7 @@ public class GetPrTestFailures {
      * @param act Action.
      * @param cnt Count.
      * @param baseBranchForTc Base branch name in TC identification.
-     * @param maxDetailsChars Max chars per TeamCity failure details block. Non-positive means no limit.
+     * @param maxDetailsChars Max chars per TeamCity failure details block. Non-positive means default cap.
      * @param testName Optional full test name filter.
      * @param promptSuiteId Optional suite id filter.
      */
@@ -155,7 +155,7 @@ public class GetPrTestFailures {
             act,
             cnt,
             baseBranchForTc,
-            maxDetailsChars == null ? TestFailuresAiPromptBuilder.DFLT_MAX_DETAILS_CHARS : maxDetailsChars,
+            TestFailuresAiPromptBuilder.restMaxDetailsChars(maxDetailsChars),
             testName,
             promptSuiteId);
     }
