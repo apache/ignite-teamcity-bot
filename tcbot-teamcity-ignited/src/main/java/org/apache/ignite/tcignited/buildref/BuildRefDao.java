@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -75,7 +76,7 @@ public class BuildRefDao {
     @Inject private UpdateCountersStorage countersStorage;
 
     /** Guard for branch history in-memory caches. */
-    private final Object buildRefsInMemCacheMux = new Object();
+    private final ReentrantReadWriteLock buildRefsInMemCacheLock = new ReentrantReadWriteLock(true);
 
     /** Non persistence cache for all BuildRefsCompacted for particular branch.
      * RunHistKey(ServerId||BranchId||suiteId)-> Build reference
@@ -185,9 +186,14 @@ public class BuildRefDao {
                 .map(b -> branchNameToHistCacheKey(srvId, b.branch()))
                 .collect(Collectors.toSet());
 
-        synchronized (buildRefsInMemCacheMux) {
+        buildRefsInMemCacheLock.writeLock().lock();
+
+        try {
             buildRefsInMemCacheForAllBranch.invalidateAll(cacheForAllBranch);
             buildRefsInMemCache.invalidateAll(setOfHistToClear);
+        }
+        finally {
+            buildRefsInMemCacheLock.writeLock().unlock();
         }
 
         setOfHistToClear.forEach(b -> {
@@ -235,7 +241,9 @@ public class BuildRefDao {
             try {
                 List<BuildRefCompacted> compactedBuildsForBranch;
 
-                synchronized (buildRefsInMemCacheMux) {
+                buildRefsInMemCacheLock.readLock().lock();
+
+                try {
                     compactedBuildsForBranch = buildRefsInMemCache.get(runHistKey, () -> {
                             List<BuildRefCompacted> branch = getBuildsForBranch(srvId, branchNameId);
 
@@ -251,6 +259,9 @@ public class BuildRefDao {
 
                             return resForBranch;
                         });
+                }
+                finally {
+                    buildRefsInMemCacheLock.readLock().unlock();
                 }
 
                 res.addAll(compactedBuildsForBranch);
@@ -297,9 +308,14 @@ public class BuildRefDao {
         long branchKey = branchNameToHistCacheKey(srvId, branchNameId);
 
         try {
-            synchronized (buildRefsInMemCacheMux) {
+            buildRefsInMemCacheLock.readLock().lock();
+
+            try {
                 return buildRefsInMemCacheForAllBranch.get(branchKey,
                     () -> getBuildsForBranchNonCached(srvId, branchNameId));
+            }
+            finally {
+                buildRefsInMemCacheLock.readLock().unlock();
             }
         }
         catch (ExecutionException e) {
