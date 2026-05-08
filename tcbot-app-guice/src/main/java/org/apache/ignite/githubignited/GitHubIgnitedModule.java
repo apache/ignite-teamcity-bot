@@ -14,23 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.jiraignited;
+package org.apache.ignite.githubignited;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.internal.SingletonScope;
-import org.apache.ignite.jiraservice.JiraIntegrationModule;
+import com.google.inject.Scopes;
+import org.apache.ignite.githubservice.GitHubIntegrationModule;
 
 /**
- *
+ * Requires {@link org.apache.ignite.ci.di.scheduler.SchedulerModule} to be installed
  */
-public class JiraIgnitedModule extends AbstractModule {
+public class GitHubIgnitedModule extends AbstractModule {
     /** {@inheritDoc} */
     @Override protected void configure() {
-        bind(IJiraIgnitedProvider.class).to(JiraIgnitedProvider.class);
+        install(new GitHubIntegrationModule());
 
-        bind(JiraTicketDao.class).in(new SingletonScope());
-        bind(JiraTicketSync.class).in(new SingletonScope());
-
-        install(new JiraIntegrationModule());
+        bind(IGitHubConnIgnitedProvider.class).to(GitHubIgnitedProvImpl.class).in(Scopes.SINGLETON);
     }
 }

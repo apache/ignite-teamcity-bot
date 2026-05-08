@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.ignite.tcbot.persistence.scheduler;
+package org.apache.ignite.githubservice;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.internal.SingletonScope;
+import com.google.inject.Scopes;
 
-public class SchedulerModule extends AbstractModule {
+public class GitHubIntegrationModule extends AbstractModule {
     /** {@inheritDoc} */
     @Override protected void configure() {
-        bind(IScheduler.class).to(TcBotScheduler.class).in(new SingletonScope());
+        bind(IGitHubConnection.class).to(GitHubConnectionImpl.class);
+        bind(IGitHubConnectionProvider.class).to(GitHubCachingProvider.class).in(Scopes.SINGLETON);
     }
 }

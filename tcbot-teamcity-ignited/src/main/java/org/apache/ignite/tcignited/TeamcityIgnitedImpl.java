@@ -164,7 +164,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         this.conn = conn;
 
         srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvCode);
-        buildRefDao.init(); //todo init somehow in auto
+        buildRefDao.init();
         buildConditionDao.init();
         fatBuildDao.init();
         changesDao.init();

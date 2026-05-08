@@ -349,7 +349,6 @@ public class PrChainsProcessor {
      * @param tcIgnited
      * @param baseBranch
      */
-    //todo may avoid creation of UI model for simple comment.
     private List<ShortSuiteUi> findBlockerFailures(FullChainRunCtx fullChainRunCtx,
         ITeamcityIgnited tcIgnited,
         String baseBranch) {
@@ -394,7 +393,6 @@ public class PrChainsProcessor {
      * @param tcIgnited
      * @param baseBranch
      */
-    //todo may avoid creation of UI model for simple comment.
     private List<ShortSuiteNewTestsUi> findNewTests(FullChainRunCtx fullChainRunCtx,
         ITeamcityIgnited tcIgnited,
         String baseBranch) {

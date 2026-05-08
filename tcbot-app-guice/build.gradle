@@ -15,17 +15,20 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.tcbot.persistence;
+apply plugin: 'java-library'
 
-import com.google.inject.AbstractModule;
-import com.google.inject.internal.SingletonScope;
+dependencies {
+    api project(":tcbot-common")
+    api project(":tcbot-engine")
+    api project(":tcbot-github")
+    api project(":tcbot-github-ignited")
+    api project(":tcbot-jira")
+    api project(":tcbot-jira-ignited")
+    api project(":tcbot-notify")
+    api project(":tcbot-persistence")
+    api project(":tcbot-teamcity")
+    api project(":tcbot-teamcity-ignited")
 
-public class TcBotPersistenceModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        super.configure();
-
-
-        bind(IStringCompactor.class).to(IgniteStringCompactor.class).in(new SingletonScope());
-    }
+    api group: 'com.google.inject', name: 'guice', version: guiceVer
+    api group: 'javax.inject', name: 'javax.inject', version: '1'
 }

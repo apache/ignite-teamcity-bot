@@ -308,7 +308,6 @@ public class MultBuildRunCtx implements ISuiteResults {
             .forEach(map -> {
                 map.forEach(
                     (testName, logCheckResult) -> {
-                        //todo may be it is better to find   avg
                         long bytes = (long)logCheckResult.getLogSizeBytes();
                         if (bytes > LOG_CONSUMER_BORDER_BYTES)
                             logSizeBytes.merge(testName, bytes, Math::max);

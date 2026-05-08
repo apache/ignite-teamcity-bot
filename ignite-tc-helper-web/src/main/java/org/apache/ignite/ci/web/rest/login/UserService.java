@@ -124,8 +124,6 @@ public class UserService {
 
         IUserStorage users = injector.getInstance(IUserStorage.class);
         final TcHelperUser user = users.getUser(login);
-
-        //todo can filter accessibliity
         final TcHelperUserUi tcHelperUserUi = new TcHelperUserUi(user,
                 cfg.getTrackedBranches().branchesStream()
                         .map(ITrackedBranch::name)
@@ -143,8 +141,6 @@ public class UserService {
 
             tcHelperUserUi.data.add(credsUi);
         }
-
-        //todo if user is not current disable addBuild creds
         return tcHelperUserUi;
     }
 
@@ -154,7 +150,6 @@ public class UserService {
     public SimpleResult resetCredentials(@Nullable @FormParam("login") final String loginParm) {
         final String currUserLogin = ITcBotUserCreds.get(req).getPrincipalId();
         final String login = Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
-        //todo check admin
 
         final IUserStorage users = CtxListener.getInjector(ctx).getInstance(IUserStorage.class);
         final TcHelperUser user = users.getUser(login);
@@ -182,8 +177,6 @@ public class UserService {
 
         final IUserStorage users = injector.getInstance(IUserStorage.class);
         final TcHelperUser user = users.getUser(currUserLogin);
-
-        //todo check service credentials first
         final User tcAddUser = tcLogin.checkServiceUserAndPassword(svcId, svcLogin, svcPwd);
 
         if (tcAddUser == null)
@@ -209,7 +202,7 @@ public class UserService {
         @Nullable @FormParam("fullName") final String fullName,
         Form form) {
 
-        final String login = ITcBotUserCreds.get(req).getPrincipalId(); //todo check admin Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
+        final String login = ITcBotUserCreds.get(req).getPrincipalId();
 
         final IUserStorage users = CtxListener.getInjector(ctx).getInstance(IUserStorage.class);
         final TcHelperUser user = users.getUser(login);

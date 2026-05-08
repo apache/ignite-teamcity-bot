@@ -81,8 +81,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     @Override public void filter(ContainerRequestContext reqCtx) {
         Method mtd = resourceInfo.getResourceMethod();
-
-        //todo uncomment for development
         //if(method!=null)
         //    return;
 

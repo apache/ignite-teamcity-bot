@@ -18,7 +18,7 @@
 package org.apache.ignite.tcbot.engine;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.internal.SingletonScope;
+import com.google.inject.Scopes;
 import org.apache.ignite.tcbot.common.TcBotCommonModule;
 import org.apache.ignite.tcbot.engine.board.BoardService;
 import org.apache.ignite.tcbot.engine.boardmute.MutedIssuesDao;
@@ -39,20 +39,20 @@ import org.apache.ignite.tcbot.engine.user.UserAndSessionsStorage;
 public class TcBotEngineModule extends AbstractModule {
     /** {@inheritDoc} */
     @Override protected void configure() {
-        bind(BuildChainProcessor.class).in(new SingletonScope());
-        bind(IDetailedStatusForTrackedBranch.class).to(TrackedBranchChainsProcessor.class).in(new SingletonScope());
-        bind(SingleBuildResultsService.class).in(new SingletonScope());
+        bind(BuildChainProcessor.class).in(Scopes.SINGLETON);
+        bind(IDetailedStatusForTrackedBranch.class).to(TrackedBranchChainsProcessor.class).in(Scopes.SINGLETON);
+        bind(SingleBuildResultsService.class).in(Scopes.SINGLETON);
 
-        bind(BuildTimeService.class).in(new SingletonScope());
+        bind(BuildTimeService.class).in(Scopes.SINGLETON);
 
-        bind(IIssuesStorage.class).to(IssuesStorage.class).in(new SingletonScope());
+        bind(IIssuesStorage.class).to(IssuesStorage.class).in(Scopes.SINGLETON);
 
-        bind(BoardService.class).in(new SingletonScope());
+        bind(BoardService.class).in(Scopes.SINGLETON);
 
-        bind(IUserStorage.class).to(UserAndSessionsStorage.class).in(new SingletonScope());
+        bind(IUserStorage.class).to(UserAndSessionsStorage.class).in(Scopes.SINGLETON);
 
-        bind(MutedIssuesDao.class).in(new SingletonScope());
-        bind(NewTestsStorage.class).in(new SingletonScope());
+        bind(MutedIssuesDao.class).in(Scopes.SINGLETON);
+        bind(NewTestsStorage.class).in(Scopes.SINGLETON);
 
         install(new TcBotCommonModule());
     }

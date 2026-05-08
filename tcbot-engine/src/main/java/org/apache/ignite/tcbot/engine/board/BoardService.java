@@ -285,11 +285,7 @@ public class BoardService {
     @MonitoredTask(name = "Convert issues to defect")
     protected String issuesToDefects() {
         Stream<Issue> stream = issuesStorage.allIssues();
-
-        //todo make property how old issues can be considered as configuration parameter
         long minIssueTs = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(14);
-
-        //todo not so good to to call init() twice
         fatBuildDao.init();
         changeDao.init();
 
@@ -318,8 +314,6 @@ public class BoardService {
                 FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(srvId, key.buildId);
                 if (fatBuild == null)
                     return;
-
-                //todo non test failures
                 String testName = issue.issueKey().getTestOrBuildName();
 
                 int issueTypeCid = compactor.getStringId(issue.type);
@@ -400,8 +394,6 @@ public class BoardService {
 
             Preconditions.checkState(admin);
         }
-
-        //todo if it is not forced resovle need to check blockers count for now
 
         int strId = compactor.getStringId(principalId);
         defect.resolvedByUsernameId(strId);

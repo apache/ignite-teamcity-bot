@@ -123,8 +123,6 @@ public class Login {
 
                 return loginRes;
             }
-
-            //todo new registration should be checked on server first
             user.userKeyKcv = userKeyCandidateKcv;
 
             user.email = tcUser.email;
@@ -151,8 +149,6 @@ public class Login {
             if (!Arrays.equals(userKeyCandidateKcv, user.userKeyKcv))
                 return loginRes; //password validation failed
         }
-
-        //todo may be enrich user data here as well.
         userSes.userKeyUnderToken = CryptUtil.aesEncrypt(tokBytes, userKeyCandidate);
 
         users.putSession(sessId, userSes);

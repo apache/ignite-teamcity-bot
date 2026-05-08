@@ -14,14 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.tcignited.buildlog;
+package org.apache.ignite.tcbot.notify;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.internal.SingletonScope;
+import com.google.inject.Scopes;
 
-public class BuildLogProcessorModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        bind(IBuildLogProcessor.class).to(BuildLogProcessor.class).in(new SingletonScope());
+/**
+ *
+ */
+public class TcBotNotificationsModule extends AbstractModule {
+    /** {@inheritDoc} */
+    @Override protected void configure() {
+        bind(IEmailSender.class).to(EmailSender.class).in(Scopes.SINGLETON);
+        bind(ISlackSender.class).to(SlackSender.class).in(Scopes.SINGLETON);
     }
 }

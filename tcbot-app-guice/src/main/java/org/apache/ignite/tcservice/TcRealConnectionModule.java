@@ -17,7 +17,7 @@
 package org.apache.ignite.tcservice;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.internal.SingletonScope;
+import com.google.inject.Scopes;
 import org.apache.ignite.tcservice.http.ITeamcityHttpConnection;
 import org.apache.ignite.tcservice.http.TeamcityRecorder;
 import org.apache.ignite.tcservice.http.TeamcityRecordingConnection;
@@ -37,8 +37,8 @@ public class TcRealConnectionModule extends AbstractModule {
         else
             bind(ITeamcityHttpConnection.class).to(TeamcityRecordingConnection.class);
 
-        bind(TeamcityRecorder.class).in(new SingletonScope());
-        bind(ITcLogin.class).to(TcLoginImpl.class).in(new SingletonScope());
+        bind(TeamcityRecorder.class).in(Scopes.SINGLETON);
+        bind(ITcLogin.class).to(TcLoginImpl.class).in(Scopes.SINGLETON);
     }
 
     public void overrideHttp(ITeamcityHttpConnection conn) {

@@ -20,6 +20,7 @@ apply plugin: 'war'
 
 // https://www.apache.org/legal/resolved.html#category-a
 dependencies {
+    implementation project(":tcbot-app-guice")
     implementation project(":tcbot-engine")
     implementation project(':migrator')
 

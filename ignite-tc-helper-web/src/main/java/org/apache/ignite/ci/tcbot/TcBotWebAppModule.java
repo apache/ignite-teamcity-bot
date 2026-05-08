@@ -19,7 +19,7 @@ package org.apache.ignite.ci.tcbot;
 import com.google.common.base.Preconditions;
 import com.google.inject.AbstractModule;
 import com.google.inject.Injector;
-import com.google.inject.internal.SingletonScope;
+import com.google.inject.Scopes;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -74,12 +74,12 @@ public class TcBotWebAppModule extends AbstractModule {
         });
 
         bind(ITeamcityConn.class).toInstance(new TeamcityServiceConnection());
-        bind(TcUpdatePool.class).in(new SingletonScope());
-        bind(IssueDetector.class).in(new SingletonScope());
-        bind(ObserverTask.class).in(new SingletonScope());
-        bind(BuildObserver.class).in(new SingletonScope());
-        bind(VisasHistoryStorage.class).in(new SingletonScope());
-        bind(Cleaner.class).in(new SingletonScope());
+        bind(TcUpdatePool.class).in(Scopes.SINGLETON);
+        bind(IssueDetector.class).in(Scopes.SINGLETON);
+        bind(ObserverTask.class).in(Scopes.SINGLETON);
+        bind(BuildObserver.class).in(Scopes.SINGLETON);
+        bind(VisasHistoryStorage.class).in(Scopes.SINGLETON);
+        bind(Cleaner.class).in(Scopes.SINGLETON);
 
         install(new TcBotPersistenceModule());
         install(new TeamcityIgnitedModule());
@@ -90,11 +90,10 @@ public class TcBotWebAppModule extends AbstractModule {
 
         // common services
         install(new TcBotEngineModule());
-        bind(ITcBotConfig.class).to(LocalFilesBasedConfig.class).in(new SingletonScope());
-        //todo remove duplication of instances for base and for overriden class
-        bind(IDataSourcesConfigSupplier.class).to(LocalFilesBasedConfig.class).in(new SingletonScope());
-        bind(MasterTrendsService.class).in(new SingletonScope());
-        bind(ITcBotBgAuth.class).to(TcBotBgAuthImpl.class).in(new SingletonScope());
+        bind(ITcBotConfig.class).to(LocalFilesBasedConfig.class).in(Scopes.SINGLETON);
+        bind(IDataSourcesConfigSupplier.class).to(LocalFilesBasedConfig.class).in(Scopes.SINGLETON);
+        bind(MasterTrendsService.class).in(Scopes.SINGLETON);
+        bind(ITcBotBgAuth.class).to(TcBotBgAuthImpl.class).in(Scopes.SINGLETON);
     }
 
     public void setIgniteFut(Future<Ignite> igniteFut) {

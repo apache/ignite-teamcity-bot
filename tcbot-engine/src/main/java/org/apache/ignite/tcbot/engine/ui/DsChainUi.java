@@ -285,7 +285,7 @@ public class DsChainUi {
 
                 DsTestFailureUi failure = createOccurForLogConsumer(testLogConsuming);
 
-                failure.name = "[" + suite.suiteName() + "] " + failure.name; //todo suite as be separate field
+                failure.name = "[" + suite.suiteName() + "] " + failure.name;
 
                 logConsumers.add(failure);
             }

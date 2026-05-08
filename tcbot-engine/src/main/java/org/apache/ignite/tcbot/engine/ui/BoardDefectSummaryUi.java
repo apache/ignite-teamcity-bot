@@ -50,7 +50,6 @@ public class BoardDefectSummaryUi {
     }
 
     public Set<String> getTags() {
-        //todo bad code, make tag filter configurable.
         return tags.stream().filter(t -> teamTagPattern.matcher(t).matches()).collect(Collectors.toSet());
     }
 

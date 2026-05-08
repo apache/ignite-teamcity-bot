@@ -14,31 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.jiraignited;
 
-package org.apache.ignite.tcignited.buildlog;
-
-import javax.annotation.Nullable;
-import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
+import com.google.inject.AbstractModule;
+import com.google.inject.Scopes;
+import org.apache.ignite.jiraservice.JiraIntegrationModule;
 
 /**
  *
  */
-public class LogMsgToWarn {
+public class JiraIgnitedModule extends AbstractModule {
+    /** {@inheritDoc} */
+    @Override protected void configure() {
+        bind(IJiraIgnitedProvider.class).to(JiraIgnitedProvider.class);
 
-    private static final String JAVA_LEVEL_DEADLOCK_TXT = " Java-level deadlock:";
+        bind(JiraTicketDao.class).in(Scopes.SINGLETON);
+        bind(JiraTicketSync.class).in(Scopes.SINGLETON);
 
-    @Deprecated
-    public static boolean needWarn(String line) {
-        return line.contains("java.lang.AssertionError:")
-            || line.contains(JAVA_LEVEL_DEADLOCK_TXT)
-            || line.contains("Critical failure. Will be handled accordingly to configured handler");
-    }
-
-    @Nullable
-    public static String getProblemCode(String line) {
-        if (line.contains(JAVA_LEVEL_DEADLOCK_TXT))
-            return ProblemOccurrence.JAVA_LEVEL_DEADLOCK;
-
-        return null;
+        install(new JiraIntegrationModule());
     }
 }

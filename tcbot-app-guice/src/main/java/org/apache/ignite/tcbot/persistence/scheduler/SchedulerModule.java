@@ -14,18 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.tcbot.notify;
+
+package org.apache.ignite.tcbot.persistence.scheduler;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.internal.SingletonScope;
+import com.google.inject.Scopes;
 
-/**
- *
- */
-public class TcBotNotificationsModule extends AbstractModule {
+public class SchedulerModule extends AbstractModule {
     /** {@inheritDoc} */
     @Override protected void configure() {
-        bind(IEmailSender.class).to(EmailSender.class).in(new SingletonScope());
-        bind(ISlackSender.class).to(SlackSender.class).in(new SingletonScope());
+        bind(IScheduler.class).to(TcBotScheduler.class).in(Scopes.SINGLETON);
     }
 }

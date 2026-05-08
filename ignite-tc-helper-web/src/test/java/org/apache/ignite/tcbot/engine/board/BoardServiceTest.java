@@ -20,7 +20,7 @@ package org.apache.ignite.tcbot.engine.board;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import com.google.inject.internal.SingletonScope;
+import com.google.inject.Scopes;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -411,7 +411,7 @@ public class BoardServiceTest {
         /** {@inheritDoc} */
         @Override protected void configure() {
             bind(Ignite.class).toInstance(ignite);
-            bind(IScheduler.class).to(DirectExecNoWaitScheduler.class).in(new SingletonScope());
+            bind(IScheduler.class).to(DirectExecNoWaitScheduler.class).in(Scopes.SINGLETON);
 
             ITcBotConfig cfg = Mockito.mock(ITcBotConfig.class);
             bind(ITcBotConfig.class).toInstance(cfg);

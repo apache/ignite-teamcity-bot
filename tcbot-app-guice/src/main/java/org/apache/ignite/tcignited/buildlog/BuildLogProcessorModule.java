@@ -14,15 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.githubservice;
+package org.apache.ignite.tcignited.buildlog;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.internal.SingletonScope;
+import com.google.inject.Scopes;
 
-public class GitHubIntegrationModule extends AbstractModule {
-    /** {@inheritDoc} */
-    @Override protected void configure() {
-        bind(IGitHubConnection.class).to(GitHubConnectionImpl.class);
-        bind(IGitHubConnectionProvider.class).to(GitHubCachingProvider.class).in(new SingletonScope());
+public class BuildLogProcessorModule extends AbstractModule {
+    @Override
+    protected void configure() {
+        bind(IBuildLogProcessor.class).to(BuildLogProcessor.class).in(Scopes.SINGLETON);
     }
 }

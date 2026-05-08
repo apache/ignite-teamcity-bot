@@ -20,10 +20,10 @@ package org.apache.ignite.jiraservice;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.inject.Provider;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
+import javax.inject.Provider;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 
 /**
