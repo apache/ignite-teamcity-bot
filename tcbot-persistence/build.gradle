@@ -31,4 +31,4 @@ dependencies {
 
     api "org.apache.ignite:ignite-indexing:$ignVer"
 }
- 
+

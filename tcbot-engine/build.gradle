@@ -26,4 +26,4 @@ dependencies {
     testImplementation group: 'junit', name: 'junit', version: junitVer
     testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVer
 }
- 
+

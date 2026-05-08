@@ -16,7 +16,7 @@
  */
 
 apply plugin: 'java'
- 
+
 
 dependencies {
     api project(":tcbot-common")
@@ -25,4 +25,4 @@ dependencies {
     api group: 'com.sun.xml.bind', name: 'jaxb-impl', version: jaxbVer
     api group: 'com.sun.xml.bind', name: 'jaxb-core', version: '2.3.0'
 }
- 
+

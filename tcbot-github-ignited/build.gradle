@@ -21,4 +21,4 @@ dependencies {
     api project(":tcbot-github")
     api project(":tcbot-persistence")
 }
- 
+

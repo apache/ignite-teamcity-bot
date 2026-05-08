@@ -16,7 +16,7 @@
  */
 
 apply plugin: 'java'
- 
+
 dependencies {
     api project(":tcbot-teamcity")
     api project(":tcbot-persistence")
@@ -24,4 +24,4 @@ dependencies {
     testImplementation group: 'junit', name: 'junit', version: junitVer;
     testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVer;
 }
- 
+
