@@ -135,7 +135,7 @@ function showVersionInfo(result) {
     }
 
     if (isDefinedAndFilled(result.serverVer)) {
-        res += ", Server Version: " + result.serverVer;
+        res += ", Jetty server: " + result.serverVer;
     }
 
     res += "<br>";
