@@ -20,9 +20,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 import javax.cache.Cache;
-import javax.inject.Inject;
-import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteAtomicSequence;
 import org.apache.ignite.IgniteCache;
@@ -51,13 +50,17 @@ public class IgniteStringCompactor implements IStringCompactor {
     private static final String STRINGS_SEQ = "stringsSeq";
 
     /** Ignite provider. */
-    @Inject private Provider<Ignite> igniteProvider;
+    private final Supplier<Ignite> igniteProvider;
 
     /** Builds cache. */
     private IgniteCache<String, org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor.CompactorEntity> stringsCache;
 
     /** Sequence. */
     private IgniteAtomicSequence seq;
+
+    public IgniteStringCompactor(Supplier<Ignite> igniteProvider) {
+        this.igniteProvider = igniteProvider;
+    }
 
     private void initIfNeeded() {
         if (initGuard.compareAndSet(false, true)) {
@@ -112,6 +115,7 @@ public class IgniteStringCompactor implements IStringCompactor {
     /** {@inheritDoc} */
     @AutoProfiling
     @GuavaCached(cacheNullRval = false)
+    @SuppressWarnings("deprecation")
     @Override public String getStringFromId(int id) {
         if (id < 0)
             return null;

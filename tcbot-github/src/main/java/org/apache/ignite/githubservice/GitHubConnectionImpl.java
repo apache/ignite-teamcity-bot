@@ -20,18 +20,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
-import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
-import org.apache.ignite.ci.github.GitHubBranchShort;
-import org.apache.ignite.ci.github.PullRequest;
-import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
-import org.apache.ignite.tcbot.common.util.HttpUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.inject.Inject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -49,6 +39,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
+import org.apache.ignite.ci.github.GitHubBranchShort;
+import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
+import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
+import org.apache.ignite.tcbot.common.util.HttpUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -57,8 +55,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
     private static final Logger logger = LoggerFactory.getLogger(GitHubConnectionImpl.class);
 
     /** Config. */
-    @Inject
-    private IDataSourcesConfigSupplier cfg;
+    private final IDataSourcesConfigSupplier cfg;
 
     /** Service (server) code. */
     private String srvCode;
@@ -76,6 +73,10 @@ class GitHubConnectionImpl implements IGitHubConnection {
     private static final long MAX_RETRY_BACKOFF_MS = TimeUnit.SECONDS.toMillis(30);
 
     private static AtomicLong lastRq = new AtomicLong();
+
+    GitHubConnectionImpl(IDataSourcesConfigSupplier cfg) {
+        this.cfg = cfg;
+    }
 
     /**
      * @param linkRspHdrVal Value of Link response HTTP header.
@@ -148,21 +149,6 @@ class GitHubConnectionImpl implements IGitHubConnection {
         }
 
         throw new IllegalStateException("Unreachable");
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public boolean notifyGit(String url, String body) {
-        try {
-            HttpUtil.sendPostAsStringToGit(config().gitAuthTok(), url, body);
-
-            return true;
-        }
-        catch (IOException e) {
-            logger.error("Failed to notify Git [errMsg=" + e.getMessage() + ']');
-
-            return false;
-        }
     }
 
     /** {@inheritDoc} */

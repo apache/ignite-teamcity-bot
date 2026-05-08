@@ -364,7 +364,6 @@ public class ProactiveFatBuildSync {
     @SuppressWarnings({"WeakerAccess"})
     @AutoProfiling
     @Nullable public FatBuildCompacted reloadBuild(ITeamcityConn conn, int buildId, @Nullable FatBuildCompacted existingBuild) {
-        //todo some sort of locking to avoid double requests
 
         final String srvName = conn.serverCode();
         final int srvIdMask = ITeamcityIgnited.serverIdToInt(srvName);
@@ -435,8 +434,6 @@ public class ProactiveFatBuildSync {
                     tests = Collections.singletonList(existingBuild.getTestOcurrences(compactor));
 
                     problems = existingBuild.problems(compactor);
-
-                    //todo extract new parameters or save fat build without XML convertions
                     // - existingBuild.statistics();
                     // - int[] changes = existingBuild.changes();
                 }

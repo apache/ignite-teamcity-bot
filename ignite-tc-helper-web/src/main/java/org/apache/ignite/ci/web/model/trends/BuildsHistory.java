@@ -135,7 +135,6 @@ import static com.google.common.base.Strings.isNullOrEmpty;
         private DateFormat dateFormat = new SimpleDateFormat("ddMMyyyyHHmmss");
 
         public Builder(ITcBotConfig cfg) {
-            // todo may find findDefaultBuildType() from cfg.getTeamcityConfig(srvCode).defaultTrackedBranch()
         }
 
 

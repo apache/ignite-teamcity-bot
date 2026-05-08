@@ -113,8 +113,6 @@ public class PrChainsProcessorTest {
         TestCompactedV2.resetCached();
         TestCompactedMult.resetCached();
     }
-
-    //todo flaky test
     @Test
     public void testTestFailureWithoutStatReportedAsBlocker() {
         IStringCompactor c = injector.getInstance(IStringCompactor.class);

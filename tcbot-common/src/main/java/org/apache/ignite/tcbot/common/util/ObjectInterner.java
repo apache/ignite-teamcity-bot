@@ -26,7 +26,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -104,7 +103,7 @@ public class ObjectInterner {
                 if (fldVal.getClass().getPackage().getName().startsWith("org.apache.ignite.ci"))
                     compressed.addAndGet(internFields(fldVal));
                 else if (fldVal instanceof Collection) {
-                    Collection collection = (Collection)fldVal;
+                    Collection<?> collection = (Collection<?>)fldVal;
 
                     for (Object next : collection) {
                         if (next.getClass().getPackage().getName().startsWith("org.apache.ignite.ci"))
@@ -112,12 +111,9 @@ public class ObjectInterner {
                     }
                 }
                 else if(fldVal instanceof Map) {
-                    Map map = (Map)fldVal;
+                    Map<?, ?> map = (Map<?, ?>)fldVal;
 
-                    Set<Map.Entry> set = map.entrySet();
-
-                    for (Map.Entry  nextEntry : set) {
-                        Object val = nextEntry.getValue();
+                    for (Object val : map.values()) {
 
                         if (val.getClass().getPackage().getName().startsWith("org.apache.ignite.ci"))
                             compressed.addAndGet(internFields(val));

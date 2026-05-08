@@ -35,8 +35,8 @@ import org.apache.ignite.cache.affinity.Affinity;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
-import org.apache.ignite.tcbot.common.interceptor.AutoProfilingInterceptor;
-import org.apache.ignite.tcbot.common.interceptor.MonitoredTaskInterceptor;
+import org.apache.ignite.tcbot.common.monitoring.MonitoredTasks;
+import org.apache.ignite.tcbot.common.monitoring.ProfilingMonitor;
 import org.apache.ignite.tcbot.engine.build.AiPromptRequestMonitor;
 import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
@@ -104,9 +104,9 @@ public class MonitoringService {
     @PermitAll
     @Path("tasks")
     public List<TaskResult> getTaskMonitoring() {
-        MonitoredTaskInterceptor instance = CtxListener.getInjector(ctx).getInstance(MonitoredTaskInterceptor.class);
+        MonitoredTasks instance = instance(MonitoredTasks.class);
 
-        final Collection<MonitoredTaskInterceptor.Invocation> list = instance.getList();
+        final Collection<? extends MonitoredTasks.Invocation> list = instance.getList();
 
         return list.stream().map(invocation -> {
             final TaskResult res = new TaskResult();
@@ -124,7 +124,7 @@ public class MonitoringService {
     @GET
     @Path("appLogSummaryLink")
     public AppLogSummaryLink getAppLogSummaryLink() {
-        MonitoredTaskInterceptor instance = CtxListener.getInjector(ctx).getInstance(MonitoredTaskInterceptor.class);
+        MonitoredTasks instance = instance(MonitoredTasks.class);
 
         AppLogSummaryLink res = new AppLogSummaryLink();
         res.startTs = instance.startedTs();
@@ -375,9 +375,9 @@ public class MonitoringService {
     @PermitAll
     @Path("profiling")
     public List<HotSpot> getHotMethods() {
-        AutoProfilingInterceptor instance = CtxListener.getInjector(ctx).getInstance(AutoProfilingInterceptor.class);
+        ProfilingMonitor instance = instance(ProfilingMonitor.class);
 
-        Collection<AutoProfilingInterceptor.Invocation> profile = instance.getInvocations();
+        Collection<? extends ProfilingMonitor.Invocation> profile = instance.getInvocations();
 
         Stream<HotSpot> hotSpotStream = profile.stream().map(inv -> {
             HotSpot hotSpot = new HotSpot();
@@ -396,7 +396,7 @@ public class MonitoringService {
     @POST
     @Path("resetProfiling")
     public SimpleResult resetProfiling() {
-        AutoProfilingInterceptor instance = CtxListener.getInjector(ctx).getInstance(AutoProfilingInterceptor.class);
+        ProfilingMonitor instance = instance(ProfilingMonitor.class);
 
         instance.reset();
 
@@ -407,9 +407,8 @@ public class MonitoringService {
     @PermitAll
     @Path("testSlackNotification")
     public SimpleResult testSlackNotification() {
-        ISlackSender slackSender = CtxListener.getInjector(ctx).getInstance(ISlackSender.class);
-
-        ITcBotConfig tcBotConfig = CtxListener.getInjector(ctx).getInstance(ITcBotConfig.class);
+        ISlackSender slackSender = instance(ISlackSender.class);
+        ITcBotConfig tcBotConfig = instance(ITcBotConfig.class);
 
         try {
             NotificationsConfig notifications = tcBotConfig.notifications();
@@ -429,9 +428,8 @@ public class MonitoringService {
     @POST
     @Path("testEmailNotification")
     public SimpleResult testEmailNotification(@FormParam("address") String address) {
-        IEmailSender emailSender = CtxListener.getInjector(ctx).getInstance(IEmailSender.class);
-
-        ITcBotConfig tcBotConfig = CtxListener.getInjector(ctx).getInstance(ITcBotConfig.class);
+        IEmailSender emailSender = instance(IEmailSender.class);
+        ITcBotConfig tcBotConfig = instance(ITcBotConfig.class);
 
         try {
             NotificationsConfig notifications = tcBotConfig.notifications();
@@ -453,7 +451,7 @@ public class MonitoringService {
     @PermitAll
     @Path("cacheMetrics")
     public List<CacheMetricsUi> getCacheStat() {
-        Ignite ignite = CtxListener.getInjector(ctx).getInstance(Ignite.class);
+        Ignite ignite = instance(Ignite.class);
 
         final Collection<String> strings = ignite.cacheNames();
 
@@ -505,8 +503,12 @@ public class MonitoringService {
     @GET
     @Path("aiPrompts")
     public List<AiPromptRequestMonitor.Request> getAiPromptRequests() {
-        AiPromptRequestMonitor monitor = CtxListener.getInjector(ctx).getInstance(AiPromptRequestMonitor.class);
+        AiPromptRequestMonitor monitor = instance(AiPromptRequestMonitor.class);
 
         return monitor.getRequests();
+    }
+
+    private <T> T instance(Class<T> type) {
+        return CtxListener.getApplicationContext(ctx).getInstance(type);
     }
 }

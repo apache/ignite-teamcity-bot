@@ -52,13 +52,13 @@ public class TypeFactory<T> implements TypeAdapterFactory {
         if (!handle)
             return null;
 
-        TypeAdapter<?> delegate;
+        TypeAdapter<R> delegate;
         switch (apiVersion) {
             case V2:
-                delegate = gson.getDelegateAdapter(this, TypeToken.get(v2Class));
+                delegate = adapter(gson, v2Class);
                 break;
             case V3:
-                delegate = gson.getDelegateAdapter(this, TypeToken.get(v3Class));
+                delegate = adapter(gson, v3Class);
                 break;
             default:
                 throw new IllegalArgumentException("Unknown jira api version [ver=" + apiVersion + ']');
@@ -66,11 +66,16 @@ public class TypeFactory<T> implements TypeAdapterFactory {
 
         return new TypeAdapter<R>() {
             @Override public void write(JsonWriter out, R value) throws IOException {
-                ((TypeAdapter<R>) delegate).write(out, value);
+                delegate.write(out, value);
             }
             @Override public R read(JsonReader reader) throws IOException {
-                return ((TypeAdapter<R>) delegate).read(reader);
+                return delegate.read(reader);
             }
         }.nullSafe();
+    }
+
+    @SuppressWarnings("unchecked")
+    private <R> TypeAdapter<R> adapter(Gson gson, Class<? extends T> cls) {
+        return (TypeAdapter<R>)gson.getDelegateAdapter(this, TypeToken.get(cls));
     }
 }

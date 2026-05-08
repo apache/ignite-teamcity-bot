@@ -17,10 +17,9 @@
 
 package org.apache.ignite.ci.web.rest.issues;
 
-import com.google.inject.Injector;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import java.util.stream.Collectors;
 import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -30,7 +29,6 @@ import javax.ws.rs.core.MediaType;
 import org.apache.ignite.tcbot.engine.ui.IssueListUi;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.tcbot.engine.ui.UpdateInfo;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,9 +41,6 @@ public class TcIssues {
 
     @Context
     private ServletContext ctx;
-
-    @Context
-    private HttpServletRequest req;
 
     @GET
     @Path("updates")
@@ -61,23 +56,17 @@ public class TcIssues {
     public IssueListUi listIssues(@Nullable @QueryParam("branch") String branchOpt,
                                 @Nullable @QueryParam("count") Integer count,
                                 @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        Injector injector = CtxListener.getInjector(ctx);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
         final String branch = isNullOrEmpty(branchOpt) ? "master" : branchOpt;
 
-        IIssuesStorage issues = injector.getInstance(IIssuesStorage.class);
+        IIssuesStorage issues = appCtx.getInstance(IIssuesStorage.class);
 
         IssueListUi issueList = new IssueListUi(issues.allIssues().collect(Collectors.toList()));
 
         issueList.branch = branch;
 
         return issueList;
-    }
-
-    @GET
-    @Path("clear")
-    public SimpleResult clear(@Nullable @QueryParam("branch") String branchOpt) {
-        return new SimpleResult("Ok");
     }
 
 }

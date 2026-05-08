@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -50,14 +51,17 @@ public class BoardDefectSummaryUi {
     }
 
     public Set<String> getTags() {
-        //todo bad code, make tag filter configurable.
-        return tags.stream().filter(t -> teamTagPattern.matcher(t).matches()).collect(Collectors.toSet());
+        return tags.stream()
+            .filter(t -> teamTagPattern.matcher(t).matches())
+            .collect(Collectors.toSet());
     }
 
     public List<String> getSuites() {
-        return defect.buildsInvolved().values().stream().map(
-            b -> b.build().buildTypeName()
-        ).distinct().map(compactor::getStringFromId).collect(Collectors.toList());
+        return defect.buildsInvolved().values().stream()
+            .map(b -> b.build().buildTypeName())
+            .distinct()
+            .map(compactor::getStringFromId)
+            .collect(Collectors.toList());
     }
 
     public String getSuitesSummary() {
@@ -88,7 +92,9 @@ public class BoardDefectSummaryUi {
     }
 
     public List<String> getBlameCandidates() {
-        return defect.blameCandidates().stream().map(c -> c.vcsUsername(compactor)).collect(Collectors.toList());
+        return defect.blameCandidates().stream()
+            .map(c -> c.vcsUsername(compactor))
+            .collect(Collectors.toList());
     }
 
     public String getBlameCandidateSummary() {
@@ -116,7 +122,7 @@ public class BoardDefectSummaryUi {
     }
 
     public String getTrackedBranch() {
-       return compactor.getStringFromId(defect.trackedBranchCid());
+        return compactor.getStringFromId(defect.trackedBranchCid());
     }
 
     public int getId() {
@@ -136,18 +142,22 @@ public class BoardDefectSummaryUi {
     }
 
     private Stream<BoardDefectIssueUi> issues(IssueResolveStatus... types) {
-        return issuesList.stream().filter(iss -> {
+        return issuesList.stream().filter(hasStatus(types));
+    }
+
+    private static Predicate<BoardDefectIssueUi> hasStatus(IssueResolveStatus... types) {
+        return issue -> {
             for (IssueResolveStatus type : types) {
-                if (iss.status() == type)
+                if (issue.status() == type)
                     return true;
             }
 
             return false;
-        });
+        };
     }
 
     public List<BoardDefectIssueUi> getIgnoredIssues() {
-        return issues(IssueResolveStatus.IGNORED).collect(Collectors.toList());
+        return issuesList(IssueResolveStatus.IGNORED);
     }
 
     public String getSummaryIgnoredIssues() {
@@ -159,7 +169,7 @@ public class BoardDefectSummaryUi {
     }
 
     public List<BoardDefectIssueUi> getFailingIssues() {
-        return issues(IssueResolveStatus.FAILING).collect(Collectors.toList());
+        return issuesList(IssueResolveStatus.FAILING);
     }
 
     public String getSummaryFailingIssues() {
@@ -174,9 +184,8 @@ public class BoardDefectSummaryUi {
         return forceResolveAllowed;
     }
 
-
     public List<BoardDefectIssueUi> getFixedIssues() {
-        return issues(IssueResolveStatus.FIXED).collect(Collectors.toList());
+        return issuesList(IssueResolveStatus.FIXED);
     }
 
     public String getSummaryFixedIssues() {
@@ -188,7 +197,7 @@ public class BoardDefectSummaryUi {
     }
 
     public List<BoardDefectIssueUi> getUnclearIssues() {
-        return issues(IssueResolveStatus.UNKNOWN).collect(Collectors.toList());
+        return issuesList(IssueResolveStatus.UNKNOWN);
     }
 
     public String getSummaryUnclearIssues() {
@@ -205,5 +214,9 @@ public class BoardDefectSummaryUi {
 
     public void setForceResolveAllowed(boolean admin) {
         this.forceResolveAllowed = admin;
+    }
+
+    private List<BoardDefectIssueUi> issuesList(IssueResolveStatus status) {
+        return issues(status).collect(Collectors.toList());
     }
 }

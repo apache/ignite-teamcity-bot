@@ -88,8 +88,6 @@ public abstract class AbstractRunHist implements IRunHistory {
 
             if (cur.status() == InvocationData.MISSING)
                 continue;
-
-            //todo here all previous MISSING invocations status could be checked
             if (prev != null) {
                 if (prev.status() != cur.status()
                     && cur.changesState() == ChangesState.NONE

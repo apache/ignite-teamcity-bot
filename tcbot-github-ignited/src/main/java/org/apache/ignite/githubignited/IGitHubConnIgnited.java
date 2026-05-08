@@ -48,14 +48,6 @@ public interface IGitHubConnIgnited {
     public List<String> getBranches();
 
     /**
-     * Send POST request with given body.
-     *
-     * @param url Url.
-     * @param body Request body.
-     */
-    public void notifyGit(String url, String body);
-
-    /**
      * Prefix to be added to git branch instead of {@link IJiraServerConfig#branchNumPrefix()}. Usually it is a lower
      * case of JIRA branch mention, e.. JIRA branch num is 'IGNITE-', and git is 'ignite-'
      */

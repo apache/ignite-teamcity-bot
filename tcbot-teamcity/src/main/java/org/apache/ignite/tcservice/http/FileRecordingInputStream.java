@@ -17,7 +17,6 @@
 
 package org.apache.ignite.tcservice.http;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 
 import javax.annotation.Nonnull;
@@ -25,6 +24,7 @@ import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -98,7 +98,7 @@ public class FileRecordingInputStream extends FilterInputStream {
         super.close();
 
         if (closeGuard.compareAndSet(false, true)) {
-            file.write("\n".getBytes(Charsets.UTF_8));
+            file.write("\n".getBytes(StandardCharsets.UTF_8));
 
             lock.unlock();
 

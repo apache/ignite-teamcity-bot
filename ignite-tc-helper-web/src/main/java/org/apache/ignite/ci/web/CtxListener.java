@@ -17,56 +17,44 @@
 
 package org.apache.ignite.ci.web;
 
-import com.google.inject.Guice;
-import com.google.inject.Injector;
-import java.io.IOException;
 import java.util.logging.Handler;
 import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
-import org.apache.ignite.Ignite;
-import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.observer.BuildObserver;
-import org.apache.ignite.ci.tcbot.TcBotWebAppModule;
-import org.apache.ignite.ci.tcbot.issue.IssueDetector;
-import org.apache.ignite.tcbot.common.interceptor.MonitoredTaskInterceptor;
-import org.apache.ignite.tcbot.engine.cleaner.Cleaner;
-import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
-import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
-import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
-import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
-import org.apache.ignite.tcbot.notify.ISlackSender;
-import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
-import org.apache.ignite.tcservice.http.TeamcityRecorder;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContexts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  */
 public class CtxListener implements ServletContextListener {
-    /** Javax.Injector property code for servlet context. */
-    private static final String INJECTOR = "injector";
+    /** TC Bot application context servlet attribute. */
+    private static final String APPLICATION_CONTEXT = "tcBotApplicationContext";
 
     @Nullable private static volatile Logger logger;
 
-    public static Injector getInjector(ServletContext ctx) {
-        return (Injector)ctx.getAttribute(INJECTOR);
+    public static TcBotApplicationContext getApplicationContext(ServletContext ctx) {
+        return (TcBotApplicationContext)ctx.getAttribute(APPLICATION_CONTEXT);
     }
 
     /** {@inheritDoc} */
     @Override public void contextInitialized(ServletContextEvent sctxEvt) {
         initLoggerBridge();
-        TcBotWebAppModule igniteTcBotModule = new TcBotWebAppModule();
-        Injector injectorPreCreated = Guice.createInjector(igniteTcBotModule);
 
-        Injector injector = igniteTcBotModule.startIgniteInit(injectorPreCreated);
+        TcBotApplicationContext appCtx = TcBotApplicationContexts.create();
 
-        final ServletContext ctx = sctxEvt.getServletContext();
+        try {
+            appCtx.start();
 
-        ctx.setAttribute(INJECTOR, injector);
+            sctxEvt.getServletContext().setAttribute(APPLICATION_CONTEXT, appCtx);
+        }
+        catch (RuntimeException | Error e) {
+            closeFailedContext(appCtx, e);
 
-        sendMessageToSlackChannel("TeamCity Bot is started!", ctx);
+            throw e;
+        }
     }
 
     /**
@@ -86,72 +74,26 @@ public class CtxListener implements ServletContextListener {
 
     /** {@inheritDoc} */
     @Override public void contextDestroyed(ServletContextEvent sctxEvt) {
-        final ServletContext ctx = sctxEvt.getServletContext();
-
-        sendMessageToSlackChannel("TeamCity Bot is stopped!", ctx);
-
-        Injector injector = getInjector(ctx);
-
         try {
-            injector.getInstance(IssueDetector.class).stop();
-            injector.getInstance(TcUpdatePool.class).stop();
-            injector.getInstance(BuildObserver.class).stop();
-            injector.getInstance(IScheduler.class).stop();
-            injector.getInstance(Cleaner.class).stop();
+            TcBotApplicationContext appCtx = getApplicationContext(sctxEvt.getServletContext());
+
+            if (appCtx != null)
+                appCtx.close();
         }
         catch (Exception e) {
             e.printStackTrace();
 
             if (logger != null)
-                logger.error("Exception during shutdown: " + e.getMessage(), e);
-        }
-
-        try {
-            injector.getInstance(TeamcityRecorder.class).stop();
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-
-            if (logger != null)
-                logger.error("Exception during shutdown: " + e.getMessage(), e);
-        }
-
-        try {
-            injector.getInstance(MonitoredTaskInterceptor.class).close();
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        try {
-            TcHelperDb.stop(injector.getInstance(Ignite.class));
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-
-            if (logger != null)
-                logger.error("Exception during shutdown: " + e.getMessage(), e);
+                logger.error("Exception during TC Bot application context close: " + e.getMessage(), e);
         }
     }
 
-    private void sendMessageToSlackChannel(String msg, ServletContext ctx) {
+    private void closeFailedContext(TcBotApplicationContext appCtx, Throwable startFailure) {
         try {
-            ISlackSender slackSender = CtxListener.getInjector(ctx).getInstance(ISlackSender.class);
-
-            ITcBotConfig tcBotConfig = CtxListener.getInjector(ctx).getInstance(ITcBotConfig.class);
-
-            NotificationsConfig notifications = tcBotConfig.notifications();
-
-            for (INotificationChannel channel : notifications.channels()) {
-                if (channel.slack() != null && channel.slack().startsWith("#"))
-                    slackSender.sendMessage(channel.slack(), msg, notifications);
-            }
+            appCtx.close();
         }
-        catch (Exception e) {
-            e.printStackTrace();
-
-            if (logger != null)
-                logger.error("Exception during sending message to the slack channel: " + e.getMessage(), e);
+        catch (Throwable closeFailure) {
+            startFailure.addSuppressed(closeFailure);
         }
     }
 }

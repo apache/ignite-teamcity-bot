@@ -21,7 +21,11 @@ dependencies {
     api project(":tcbot-teamcity")
     api project(":tcbot-persistence")
 
-    testImplementation group: 'junit', name: 'junit', version: junitVer;
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVer;
+    implementation 'javax.inject:javax.inject:1'
+    implementation 'javax.xml.bind:jaxb-api:2.3.1'
+    implementation "org.xerial.snappy:snappy-java:$snappyVer"
+
+    testImplementation "junit:junit:$junitVer";
+    testImplementation "org.mockito:mockito-core:$mockitoVer";
 }
 

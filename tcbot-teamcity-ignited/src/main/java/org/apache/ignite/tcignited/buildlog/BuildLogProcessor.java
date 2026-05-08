@@ -18,6 +18,7 @@ package org.apache.ignite.tcignited.buildlog;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import java.time.Duration;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
@@ -31,7 +32,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -49,7 +49,7 @@ class BuildLogProcessor implements IBuildLogProcessor {
     private final Cache<Long, ILogCheckResult> logCheckResultCache
             = CacheBuilder.newBuilder()
             .maximumSize(500)
-            .expireAfterAccess(3, TimeUnit.MINUTES)
+            .expireAfterAccess(Duration.ofMinutes(3))
             .softValues()
             .build();
 

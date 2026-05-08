@@ -17,13 +17,13 @@
 
 package org.apache.ignite.tcservice.http;
 
-import com.google.common.base.Charsets;
 import org.apache.ignite.tcbot.common.conf.TcBotSystemProperties;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -50,7 +50,7 @@ public class TeamcityRecorder {
                     file = new FileOutputStream("tcrecorder.txt");
 
                 final String newUrlStartStr = "===HTTP=RECORDER=== GET " + url + "\n";
-                file.write(newUrlStartStr.getBytes(Charsets.UTF_8));
+                file.write(newUrlStartStr.getBytes(StandardCharsets.UTF_8));
 
                 FileRecordingInputStream spyStream = new FileRecordingInputStream(inputStream, file, lock);
 

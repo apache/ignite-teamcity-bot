@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.tcbot.chain;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.internal.SingletonScope;
+import com.google.inject.Scopes;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.githubignited.IGitHubConnIgnited;
@@ -73,7 +73,7 @@ public class MockBasedTcBotModule extends AbstractModule {
 
     /** {@inheritDoc} */
     @Override protected void configure() {
-        bind(IStringCompactor.class).to(InMemoryStringCompactor.class).in(new SingletonScope());
+        bind(IStringCompactor.class).to(InMemoryStringCompactor.class).in(Scopes.SINGLETON);
 
         bind(IBuildLogProcessor.class).toInstance(Mockito.mock(IBuildLogProcessor.class));
 
@@ -87,7 +87,7 @@ public class MockBasedTcBotModule extends AbstractModule {
         IJiraServerConfig jiraCfg = mock(IJiraServerConfig.class);
         mockJira(jiraCfg);
 
-        bind(ITeamcityIgnitedProvider.class).to(TeamcityIgnitedProviderMock.class).in(new SingletonScope());
+        bind(ITeamcityIgnitedProvider.class).to(TeamcityIgnitedProviderMock.class).in(Scopes.SINGLETON);
 
         final ITcBotConfig cfg = new ITcBotConfig() {
             @Override public String primaryServerCode() {

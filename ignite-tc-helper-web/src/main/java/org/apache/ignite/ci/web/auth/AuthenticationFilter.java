@@ -18,16 +18,13 @@
 package org.apache.ignite.ci.web.auth;
 
 import com.google.common.base.Throwables;
-import com.google.inject.Injector;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.StringTokenizer;
 import javax.annotation.security.DenyAll;
 import javax.annotation.security.PermitAll;
-import javax.annotation.security.RolesAllowed;
 import javax.crypto.BadPaddingException;
 import javax.servlet.ServletContext;
 import javax.ws.rs.container.ContainerRequestContext;
@@ -66,7 +63,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     private ServletContext context;
 
     private static final String AUTHORIZATION_PROPERTY = "Authorization";
-    private static final String AUTHENTICATION_SCHEME = "Basic";
     private static final String TOKEN_SCHEME = "Token";
 
     private static Response rspUnathorized() {
@@ -81,8 +77,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     @Override public void filter(ContainerRequestContext reqCtx) {
         Method mtd = resourceInfo.getResourceMethod();
-
-        //todo uncomment for development
         //if(method!=null)
         //    return;
 
@@ -110,9 +104,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             return;
         }
 
-        //Get encoded username and encodedPassword
         String authStr = authorization.get(0);
-        if(!authStr.startsWith(TOKEN_SCHEME)) {
+        if (!authStr.startsWith(TOKEN_SCHEME)) {
             reqCtx.abortWith(rspForbidden());
 
             return;
@@ -120,11 +113,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         String tokFull = authStr.substring(TOKEN_SCHEME.length()).trim();
 
-        Injector injector = CtxListener.getInjector(context);
-        final IUserStorage users = injector.getInstance(IUserStorage.class);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(context);
+        final IUserStorage users = appCtx.getInstance(IUserStorage.class);
 
         try {
-            injector.getInstance(Ignite.class);
+            appCtx.getInstance(Ignite.class);
         } catch (Exception e) {
             ExceptionUtil.throwIfRest(e);
 
@@ -135,21 +128,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         if (!authenticate(reqCtx, tokFull, users)) {
             reqCtx.abortWith(rspUnathorized());
-
-            return;
-        }
-
-        //Verify user access
-        if (mtd.isAnnotationPresent(RolesAllowed.class)) {
-            RolesAllowed rolesAnnotation = mtd.getAnnotation(RolesAllowed.class);
-            Set<String> rolesSet = new HashSet<String>(Arrays.asList(rolesAnnotation.value()));
-
-            //Is user valid?
-            if (!isUserAllowed("", "", rolesSet)) {
-                reqCtx.abortWith(rspForbidden());
-
-                return;
-            }
         }
     }
 
@@ -193,7 +171,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             userKey = CryptUtil.aesDecrypt(Base64Util.decodeString(tok), ses.userKeyUnderToken);
             byte[] userKeyKcv = CryptUtil.aesKcv(userKey);
 
-            if(!Arrays.equals(userKeyKcv, user.userKeyKcv)) {
+            if (!Arrays.equals(userKeyKcv, user.userKeyKcv)) {
                 logger.error("User provided " + ses.username + " invalid token ,failed at " + sessId + " enforcing login");
 
                 return false;
@@ -258,23 +236,5 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                 return userKey;
             }
         };
-    }
-
-    private boolean isUserAllowed(final String username, final String pwd, final Set<String> rolesSet) {
-        boolean isAllowed = false;
-
-        //Step 1. Fetch encodedPassword from database and match with encodedPassword in argument
-        //If both match then get the defined role for user from database and continue; else return isAllowed [false]
-        //Access the database and do this part yourself
-        //String userRole = userMgr.getUserRole(username);
-
-        if (username.equals("howtodoinjava") && pwd.equals("encodedPassword")) {
-            String userRole = "ADMIN";
-
-            //Step 2. Verify user role
-            if (rolesSet.contains(userRole))
-                isAllowed = true;
-        }
-        return isAllowed;
     }
 }

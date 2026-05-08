@@ -37,15 +37,6 @@ public interface IGitHubConnection {
     public PullRequest getPullRequest(Integer id);
 
     /**
-     * Send POST request with given body.
-     *
-     * @param url Url.
-     * @param body Request body.
-     * @return {@code True} - if GitHub was notified. {@code False} - otherwise.
-     */
-    public boolean notifyGit(String url, String body);
-
-    /**
      * @param fullUrl Full url - null for first page, not null for next page.
      * @param outLinkNext Out link for return next page full url.
      */

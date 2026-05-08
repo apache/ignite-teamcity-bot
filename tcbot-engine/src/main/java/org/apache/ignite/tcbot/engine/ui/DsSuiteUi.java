@@ -178,67 +178,47 @@ public class DsSuiteUi extends ShortSuiteUi {
         webToHist = buildWebLinkToHist(tcIgnited, suite, suite.branchName());
         webToHistBaseBranch = buildWebLinkToHist(tcIgnited, suite, baseBranch);
 
-        if (true) {
-            List<TestCompactedMult> tests = suite.getFilteredTests(test ->
-                test.hasLongRunningTest(maxDurationSec)
-                    || test.includeIntoReport(tcIgnited, baseBranchId, showMuted, showIgnored));
+        List<TestCompactedMult> tests = suite.getFilteredTests(test ->
+            test.hasLongRunningTest(maxDurationSec)
+                || test.includeIntoReport(tcIgnited, baseBranchId, showMuted, showIgnored));
 
-            Function<TestCompactedMult, Float> function = testCompactedMult -> {
-                IRunHistory res = testCompactedMult.history(tcIgnited, baseBranchId);
+        tests.sort(Comparator.comparing(failRate(tcIgnited, baseBranchId)).reversed());
 
-                return res == null ? 0f : res.getFailRate();
-            };
+        tests.stream()
+            .map(occurrence -> new DsTestFailureUi()
+                .initFromOccurrence(occurrence,
+                    tcIgnited,
+                    suite.projectId(),
+                    suite.branchName(),
+                    baseBranch,
+                    baseBranchId,
+                    curBranchId,
+                    requireParamVal))
+            .forEach(testFailures::add);
 
-            tests.sort(Comparator.comparing(function).reversed());
+        suite.getTopLongRunning().forEach(occurrence -> {
+            if (occurrence.getAvgDurationMs() > TimeUnit.SECONDS.toMillis(15))
+                topLongRunning.add(createOrrucForLongRun(tcIgnited, compactor, suite, occurrence, baseBranch, requireParamVal));
+        });
 
-            tests.stream()
-                .map(occurrence -> new DsTestFailureUi()
-                    .initFromOccurrence(occurrence,
-                        tcIgnited,
-                        suite.projectId(),
-                        suite.branchName(),
-                        baseBranch,
-                        baseBranchId,
-                        curBranchId,
-                        requireParamVal))
-                .forEach(testFailureUi -> testFailures.add(testFailureUi));
+        suite.getCriticalFailLastStartedTest().forEach(lastTest -> {
+            DsTestFailureUi failure = new DsTestFailureUi();
+            failure.name = lastTest + " (last started)";
+            testFailures.add(failure);
+        });
 
-            suite.getTopLongRunning().forEach(occurrence -> {
-                if (occurrence.getAvgDurationMs() > TimeUnit.SECONDS.toMillis(15)) {
-                    final DsTestFailureUi failure = createOrrucForLongRun(tcIgnited, compactor, suite, occurrence, baseBranch, requireParamVal);
+        suite.getLogsCheckResults().forEach(map ->
+            map.forEach((testName, logCheckResult) -> {
+                if (logCheckResult.hasWarns())
+                    findFailureAndAddWarning(testName, logCheckResult);
+            }));
 
-                    topLongRunning.add(failure);
-                }
-            });
+        suite.getTopLogConsumers().forEach(entry -> logConsumers.add(createOccurForLogConsumer(entry)));
 
-            suite.getCriticalFailLastStartedTest().forEach(
-                lastTest -> {
-                    final DsTestFailureUi failure = new DsTestFailureUi();
-                    failure.name = lastTest + " (last started)";
-                    testFailures.add(failure);
-                }
-            );
+        totalTests = suite.totalTests();
 
-            suite.getLogsCheckResults().forEach(map -> {
-                    map.forEach(
-                        (testName, logCheckResult) -> {
-                            if (logCheckResult.hasWarns())
-                                this.findFailureAndAddWarning(testName, logCheckResult);
-                        }
-                    );
-                }
-            );
-
-            suite.getTopLogConsumers().forEach(
-                (entry) -> logConsumers.add(createOccurForLogConsumer(entry))
-            );
-
-
-            totalTests = suite.totalTests();
-
-            if(calcTrustedTests)
-                trustedTests = suite.trustedTests(tcIgnited, baseBranchId);
-        }
+        if (calcTrustedTests)
+            trustedTests = suite.trustedTests(tcIgnited, baseBranchId);
 
         suite.getBuildsWithThreadDump().forEach(buildId -> {
             webUrlThreadDump = "/rest/" + GetBuildLog.GET_BUILD_LOG + "/" + GetBuildLog.THREAD_DUMP
@@ -301,6 +281,14 @@ public class DsSuiteUi extends ShortSuiteUi {
         return statInBaseBranch;
     }
 
+    private static Function<TestCompactedMult, Float> failRate(ITeamcityIgnited tcIgnited, Integer baseBranchId) {
+        return test -> {
+            IRunHistory history = test.history(tcIgnited, baseBranchId);
+
+            return history == null ? 0f : history.getFailRate();
+        };
+    }
+
     @Nonnull
     public static DsTestFailureUi createOccurForLogConsumer(Map.Entry<String, Long> entry) {
         DsTestFailureUi failure = new DsTestFailureUi();
@@ -325,16 +313,14 @@ public class DsSuiteUi extends ShortSuiteUi {
 
     public void findFailureAndAddWarning(String testName, ITestLogCheckResult logCheckRes) {
         DsTestFailureUi failure = testFailures.stream().filter(f -> f.name.contains(testName)).findAny().orElseGet(
-            () -> {
-                return warnOnly.stream().filter(f -> f.name.contains(testName)).findAny().orElseGet(
-                    () -> {
-                        DsTestFailureUi f = new DsTestFailureUi();
-                        f.name = testName + " (warning)";
-                        warnOnly.add(f);
+            () -> warnOnly.stream().filter(f -> f.name.contains(testName)).findAny().orElseGet(
+                () -> {
+                    DsTestFailureUi f = new DsTestFailureUi();
+                    f.name = testName + " (warning)";
+                    warnOnly.add(f);
 
-                        return f;
-                    });
-            });
+                    return f;
+                }));
 
         failure.warnings.addAll(logCheckRes.getWarns());
     }

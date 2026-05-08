@@ -333,8 +333,6 @@ function showData(result) {
     gVue.$data.tagsPresent = Array.from(setOfTags);
     gVue.$data.tagsForHistPresent = Array.from(setOfHistTags);
 
-    //var txtUrl = "rest/tracked/results/txt" + parmsForRest();
-
     var minFailRate = gVue.$data.failRateRange[0];
 
     var maxFailRate = gVue.$data.failRateRange[1];
@@ -344,7 +342,6 @@ function showData(result) {
     let resHtml = showChainResultsWithSettings(result, new Settings(minFailRate, maxFailRate, result.javaFlags, hideFlakyFailures));
 
     $("#divFailures").html(resHtml);
-    //        + " <a href='"+ txtUrl + "'>txt</a>");
 }
 
 function aiPromptUrlForTest(testName) {

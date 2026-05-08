@@ -19,7 +19,7 @@ package org.apache.ignite.ci.web.rest.login;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.inject.Injector;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.FormParam;
@@ -71,11 +71,11 @@ public class UserService {
         if (prov == null)
             return new SimpleResult("");
 
-        Injector injector = CtxListener.getInjector(ctx);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
         return userMenu(prov,
-            injector.getInstance(IUserStorage.class),
-            injector.getInstance(IssueDetector.class));
+            appCtx.getInstance(IUserStorage.class),
+            appCtx.getInstance(IssueDetector.class));
     }
 
     @NotNull public SimpleResult userMenu(ITcBotUserCreds prov, IUserStorage users, IssueDetector issueDetector) {
@@ -96,21 +96,21 @@ public class UserService {
     public SimpleResult setAuthorizedState() {
         final ITcBotUserCreds prov = ITcBotUserCreds.get(req);
 
-        Injector injector = CtxListener.getInjector(ctx);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
-        IssueDetector issueDetector = injector.getInstance(IssueDetector.class);
-        final ITcBotBgAuth helper = injector.getInstance(ITcBotBgAuth.class);
+        IssueDetector issueDetector = appCtx.getInstance(IssueDetector.class);
+        final ITcBotBgAuth helper = appCtx.getInstance(ITcBotBgAuth.class);
         helper.setServerAuthorizerCreds(prov);
 
         issueDetector.startBackgroundCheck(prov);
 
-        CtxListener.getInjector(ctx).getInstance(TcBotTriggerAndSignOffService.class).startObserver();
+        CtxListener.getApplicationContext(ctx).getInstance(TcBotTriggerAndSignOffService.class).startObserver();
 
-        Cleaner cleaner = injector.getInstance(Cleaner.class);
+        Cleaner cleaner = appCtx.getInstance(Cleaner.class);
         cleaner.startBackgroundClean();
 
         return userMenu(prov,
-            injector.getInstance(IUserStorage.class),
+            appCtx.getInstance(IUserStorage.class),
             issueDetector);
     }
 
@@ -119,13 +119,11 @@ public class UserService {
     public TcHelperUserUi getUserData(@Nullable @QueryParam("login") final String loginParm) {
         final String currUserLogin = ITcBotUserCreds.get(req).getPrincipalId();
         final String login = Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
-        Injector injector = CtxListener.getInjector(ctx);
-        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        ITcBotConfig cfg = appCtx.getInstance(ITcBotConfig.class);
 
-        IUserStorage users = injector.getInstance(IUserStorage.class);
+        IUserStorage users = appCtx.getInstance(IUserStorage.class);
         final TcHelperUser user = users.getUser(login);
-
-        //todo can filter accessibliity
         final TcHelperUserUi tcHelperUserUi = new TcHelperUserUi(user,
                 cfg.getTrackedBranches().branchesStream()
                         .map(ITrackedBranch::name)
@@ -143,8 +141,6 @@ public class UserService {
 
             tcHelperUserUi.data.add(credsUi);
         }
-
-        //todo if user is not current disable addBuild creds
         return tcHelperUserUi;
     }
 
@@ -154,9 +150,8 @@ public class UserService {
     public SimpleResult resetCredentials(@Nullable @FormParam("login") final String loginParm) {
         final String currUserLogin = ITcBotUserCreds.get(req).getPrincipalId();
         final String login = Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
-        //todo check admin
 
-        final IUserStorage users = CtxListener.getInjector(ctx).getInstance(IUserStorage.class);
+        final IUserStorage users = CtxListener.getApplicationContext(ctx).getInstance(IUserStorage.class);
         final TcHelperUser user = users.getUser(login);
 
         user.resetCredentials();
@@ -177,13 +172,11 @@ public class UserService {
 
         final ITcBotUserCreds prov = ITcBotUserCreds.get(req);
         final String currUserLogin = prov.getPrincipalId();
-        final Injector injector = CtxListener.getInjector(ctx);
-        final ITcLogin tcLogin = injector.getInstance(ITcLogin.class);
+        final TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        final ITcLogin tcLogin = appCtx.getInstance(ITcLogin.class);
 
-        final IUserStorage users = injector.getInstance(IUserStorage.class);
+        final IUserStorage users = appCtx.getInstance(IUserStorage.class);
         final TcHelperUser user = users.getUser(currUserLogin);
-
-        //todo check service credentials first
         final User tcAddUser = tcLogin.checkServiceUserAndPassword(svcId, svcLogin, svcPwd);
 
         if (tcAddUser == null)
@@ -209,9 +202,9 @@ public class UserService {
         @Nullable @FormParam("fullName") final String fullName,
         Form form) {
 
-        final String login = ITcBotUserCreds.get(req).getPrincipalId(); //todo check admin Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
+        final String login = ITcBotUserCreds.get(req).getPrincipalId();
 
-        final IUserStorage users = CtxListener.getInjector(ctx).getInstance(IUserStorage.class);
+        final IUserStorage users = CtxListener.getApplicationContext(ctx).getInstance(IUserStorage.class);
         final TcHelperUser user = users.getUser(login);
 
         user.resetNotifications();

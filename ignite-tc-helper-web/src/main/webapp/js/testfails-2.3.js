@@ -291,11 +291,6 @@ function showChainCurrentStatusData(chain, settings) {
 
     res += "</td><td>";
 
-    // if (settings.isGithubAvailable()) {
-    //     g_srv_to_notify_git = server;
-    //     res += "<button onclick='notifyGit()'>Update PR status</button>";
-    // }
-
     let baseBranchForTc = chain.baseBranchForTc;
     if (settings.isJiraAvailable() && isDefinedAndFilled(srvCodeForTriggering)) {
         res += "<button onclick='commentJira(\"" + srvCodeForTriggering + "\", " +

@@ -20,5 +20,7 @@ apply plugin: 'java'
 dependencies {
     api project(":tcbot-github")
     api project(":tcbot-persistence")
+
+    implementation 'javax.inject:javax.inject:1'
 }
 

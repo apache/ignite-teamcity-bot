@@ -20,7 +20,7 @@ import org.apache.ignite.tcservice.TeamcityServiceConnection;
 import org.apache.ignite.tcservice.http.TeamcityRecordingConnection;
 
 /**
- * Factory for non-guice creation of TC Connection instance.
+ * Factory for direct creation of TC Connection instance.
  */
 public class TcConnectionStaticLinker {
     /**

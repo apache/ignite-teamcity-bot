@@ -20,7 +20,7 @@ apply plugin: 'java'
 dependencies {
     api project(":tcbot-common")
 
-    api group: 'com.sun.mail', name: 'javax.mail', version: mailVer
+    api "com.sun.mail:javax.mail:$mailVer"
 
-    api group: 'com.ullink.slack', name: 'simpleslackapi', version: '1.4.0'
+    api 'com.ullink.slack:simpleslackapi:1.4.0'
 }

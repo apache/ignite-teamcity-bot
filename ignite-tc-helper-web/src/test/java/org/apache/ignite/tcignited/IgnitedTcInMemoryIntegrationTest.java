@@ -20,7 +20,7 @@ import com.google.common.collect.Lists;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import com.google.inject.internal.SingletonScope;
+import com.google.inject.Scopes;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -217,7 +217,6 @@ public class IgnitedTcInMemoryIntegrationTest {
         String buildTypeId = "IgniteTests24Java8_RunAll";
         String branchName = "<default>";
         List<BuildRefCompacted> hist = srv.getAllBuildsCompacted(buildTypeId, branchName);
-        //todo mult branches including pull/4926/head
 
         assertTrue(!hist.isEmpty());
 
@@ -473,7 +472,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         Injector injector = Guice.createInjector(new AbstractModule() {
             @Override protected void configure() {
                 bind(Ignite.class).toInstance(ignite);
-                bind(IStringCompactor.class).to(IgniteStringCompactor.class).in(new SingletonScope());
+                bind(IStringCompactor.class).toInstance(new IgniteStringCompactor(() -> ignite));
                 bind(IDataSourcesConfigSupplier.class).toInstance(Mockito.mock(IDataSourcesConfigSupplier.class));
                 bind(ILogProductSpecific.class).toInstance(Mockito.mock(ILogProductSpecific.class));
             }
@@ -615,8 +614,6 @@ public class IgnitedTcInMemoryIntegrationTest {
             c.getStringId(PrChainsProcessorTest.TEST_FLAKY_IN_MASTER),
             c.getStringId(PrChainsProcessorTest.CACHE_1),
             c.getStringId(branch));
-
-        // todo register builds buildsMap somehow in injector
         // assertNotNull(testRunHist);
         // assertEquals(0.5, testRunHist.getFailRate(), 0.1);
 
@@ -624,7 +621,6 @@ public class IgnitedTcInMemoryIntegrationTest {
             , c.getStringId(branch));
 
         assertNotNull(cache1Hist);
-        // todo register builds somehow in injector
         //assertEquals(1.0, cache1Hist.self().getFailRate(), 0.1);
         //assertEquals(0.18, cache1Hist.self().getCriticalFailRate(), 0.05);
     }
@@ -903,7 +899,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         /** {@inheritDoc} */
         @Override protected void configure() {
             bind(Ignite.class).toInstance(ignite);
-            bind(IScheduler.class).to(DirectExecNoWaitScheduler.class).in(new SingletonScope());
+            bind(IScheduler.class).to(DirectExecNoWaitScheduler.class).in(Scopes.SINGLETON);
 
             final IJiraIntegrationProvider jiraProv = Mockito.mock(IJiraIntegrationProvider.class);
             bind(IJiraIntegrationProvider.class).toInstance(jiraProv);

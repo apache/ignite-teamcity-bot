@@ -31,6 +31,7 @@ import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.ci.web.model.Version;
 import org.apache.ignite.cluster.BaselineNode;
+import org.apache.ignite.cluster.ClusterState;
 import org.apache.ignite.configuration.DataRegionConfiguration;
 import org.apache.ignite.configuration.DataStorageConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
@@ -94,7 +95,7 @@ public class Ignite1Init {
     protected String activate() {
         System.out.println("Activating Ignite Server Node, " + Version.VERSION);
 
-        ignite.cluster().active(true);
+        ignite.cluster().state(ClusterState.ACTIVE);
 
         System.out.println("Activate Completed");
 

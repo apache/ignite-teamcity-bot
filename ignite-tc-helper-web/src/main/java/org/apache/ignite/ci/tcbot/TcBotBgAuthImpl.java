@@ -22,7 +22,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  *
  */
-class TcBotBgAuthImpl implements ITcBotBgAuth {
+public class TcBotBgAuthImpl implements ITcBotBgAuth {
     /** Server authorizer credentials. */
     private ITcBotUserCreds srvAuthorizerCreds;
 
