@@ -37,8 +37,8 @@ public interface ITcBotConfig extends IDataSourcesConfigSupplier {
     /** Default confidence. */
     Double DEFAULT_CONFIDENCE = 0.95;
 
-    /** Default TeamCity group whose members are allowed to administer bot settings. */
-    String DEFAULT_BOT_ADMIN_GROUP = "IGNITE_COMMITTERS";
+    /** Default TeamCity group id whose members are allowed to administer bot settings. */
+    String DEFAULT_BOT_ADMIN_GROUP = "IGNITE_COMMITER";
 
     /** */
     String primaryServerCode();

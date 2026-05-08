@@ -76,29 +76,35 @@ class TcIgnitedCachingProvider implements ITeamcityIgnitedProvider {
 
         String realSrvCode = !Strings.isNullOrEmpty(ref) && !srvCode.equals(ref) ? ref : srvCode;
 
-        String fullKey = Strings.nullToEmpty(prov == null ? null : prov.getUser(realSrvCode)) + ":" + Strings.nullToEmpty(realSrvCode);
+        if (prov != null)
+            return createServer(realSrvCode, prov.getUser(realSrvCode), prov.getPassword(realSrvCode));
+
+        String fullKey = Strings.nullToEmpty(realSrvCode);
 
         try {
-            return srvs.get(fullKey, () -> {
-                final TeamcityServiceConnection teamcityServiceConnection = srvFactory.get();
-                teamcityServiceConnection.init(realSrvCode);
-
-                if (prov != null) {
-                    String user = prov.getUser(realSrvCode);
-                    String pwd = prov.getPassword(realSrvCode);
-
-                    teamcityServiceConnection.setAuthData(user, pwd);
-                }
-
-                TeamcityIgnitedImpl impl = provider.get();
-
-                impl.init(teamcityServiceConnection);
-
-                return impl;
-            });
+            return srvs.get(fullKey, () -> createServer(realSrvCode, null, null));
         }
         catch (ExecutionException e) {
             throw ExceptionUtil.propagateException(e);
         }
+    }
+
+    /**
+     * @param realSrvCode Resolved server code.
+     * @param user User or {@code null} for configured/anonymous access.
+     * @param pwd Password or {@code null} for configured/anonymous access.
+     */
+    private ITeamcityIgnited createServer(String realSrvCode, @Nullable String user, @Nullable String pwd) {
+        final TeamcityServiceConnection teamcityServiceConnection = srvFactory.get();
+        teamcityServiceConnection.init(realSrvCode);
+
+        if (user != null || pwd != null)
+            teamcityServiceConnection.setAuthData(user, pwd);
+
+        TeamcityIgnitedImpl impl = provider.get();
+
+        impl.init(teamcityServiceConnection);
+
+        return impl;
     }
 }

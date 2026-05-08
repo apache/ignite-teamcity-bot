@@ -95,11 +95,35 @@ public class TcHelperUser implements IVersionedEntity, INotificationChannel {
      */
     @Nullable public Credentials getCredentials(String srvId) {
         for (Credentials next : getCredentialsList()) {
-            if (next.serverId.equals(srvId))
+            if (!next.isStale() && next.serverId.equals(srvId))
                 return next;
         }
 
         return null;
+    }
+
+    /**
+     * Marks all active credentials as stale.
+     *
+     * @param reason Reason safe to show in UI.
+     */
+    public void markCredentialsStale(String reason) {
+        markCredentialsStale(null, reason);
+    }
+
+    /**
+     * Marks active credentials for one server as stale.
+     *
+     * @param srvId Server id or {@code null} to mark all active credentials.
+     * @param reason Reason safe to show in UI.
+     */
+    public void markCredentialsStale(@Nullable String srvId, String reason) {
+        long now = System.currentTimeMillis();
+
+        for (Credentials next : getCredentialsList()) {
+            if (!next.isStale() && (srvId == null || next.serverId.equals(srvId)))
+                next.markStale(now, reason);
+        }
     }
 
     public List<Credentials> getCredentialsList() {
@@ -239,6 +263,12 @@ public class TcHelperUser implements IVersionedEntity, INotificationChannel {
 
         byte[] passwordUnderUserKey;
 
+        Boolean stale;
+
+        Long staleTs;
+
+        String staleReason;
+
         Credentials() {
 
         }
@@ -253,6 +283,7 @@ public class TcHelperUser implements IVersionedEntity, INotificationChannel {
             return MoreObjects.toStringHelper(this)
                 .add("serverId", serverId)
                 .add("username", username)
+                .add("stale", isStale())
                 .add("passwordUnderUserKey", printHexBinary(passwordUnderUserKey))
                 .toString();
         }
@@ -271,6 +302,24 @@ public class TcHelperUser implements IVersionedEntity, INotificationChannel {
 
         public byte[] getPasswordUnderUserKey() {
             return passwordUnderUserKey;
+        }
+
+        public boolean isStale() {
+            return Boolean.TRUE.equals(stale);
+        }
+
+        public Long getStaleTs() {
+            return staleTs;
+        }
+
+        public String getStaleReason() {
+            return staleReason;
+        }
+
+        void markStale(long staleTs, String reason) {
+            this.stale = true;
+            this.staleTs = staleTs;
+            this.staleReason = reason;
         }
 
         public void setPassword(String password, byte[] userKey) {

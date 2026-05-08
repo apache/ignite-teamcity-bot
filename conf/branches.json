@@ -1,8 +1,9 @@
 {
   // Default server (service) code, internal identification
   "primaryServerCode": "apache",
-  // TeamCity group keys/names whose members can administer sensitive bot settings.
-  "botAdminGroups": ["IGNITE_COMMITTERS"],
+  // TeamCity group ids whose members can administer sensitive bot settings.
+  // Apache Ignite test admins are exposed by TeamCity REST as key="IGNITE_COMMITER".
+  "botAdminGroups": ["IGNITE_COMMITER"],
   "confidence": 0.995,
   "cleanerConfig": {
     "numOfItemsToDel": 100000,

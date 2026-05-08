@@ -58,15 +58,24 @@ public class User extends UserRef {
     }
 
     /**
-     * @param groupKeysOrNames TeamCity group keys, ids, or names.
+     * @param groupIds TeamCity group ids.
      */
-    public boolean belongsToAnyGroup(Collection<String> groupKeysOrNames) {
-        if (groups == null || groupKeysOrNames == null || groupKeysOrNames.isEmpty())
+    public boolean belongsToAnyGroup(Collection<String> groupIds) {
+        if (groups == null || groupIds == null || groupIds.isEmpty())
             return false;
 
         return groups.getGroupRefs().stream().anyMatch(grp ->
-            groupKeysOrNames.stream().anyMatch(configured ->
-                configured != null &&
-                    (configured.equals(grp.key) || configured.equals(grp.id) || configured.equals(grp.name))));
+            groupIds.stream().anyMatch(configured -> matchesGroupId(configured, grp.key)));
+    }
+
+    /**
+     * @param configured Configured group id.
+     * @param actualId Actual group id returned by TeamCity as a REST key.
+     */
+    private boolean matchesGroupId(String configured, String actualId) {
+        if (configured == null || actualId == null)
+            return false;
+
+        return configured.trim().equals(actualId.trim());
     }
 }

@@ -87,7 +87,7 @@ public class UserAdminRefreshServiceTest {
         throws Exception {
         ITcBotConfig cfg = mock(ITcBotConfig.class);
         when(cfg.primaryServerCode()).thenReturn("public");
-        when(cfg.botAdminGroups()).thenReturn(Collections.singleton("IGNITE_COMMITTERS"));
+        when(cfg.botAdminGroups()).thenReturn(Collections.singleton("IGNITE_COMMITER"));
 
         ITcBotBgAuth bgAuth = mock(ITcBotBgAuth.class);
         when(bgAuth.getServerAuthorizerCreds()).thenReturn(creds());

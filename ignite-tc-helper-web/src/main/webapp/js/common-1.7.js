@@ -90,13 +90,18 @@ function showErrInLoadStatus(jqXHR, exception) {
     } else if (jqXHR.status === 404) {
         $("#loadStatus").html('Requested page not found. [404]');
     } else if (jqXHR.status === 401) {
-        $("#loadStatus").html('Unauthorized [401]');
+        var authMsg = isDefinedAndFilled(jqXHR.responseText)
+            ? jqXHR.responseText
+            : 'Unauthorized [401]';
+
+        $("#loadStatus").text(authMsg);
 
         if (window.location.pathname === "/login.html")
             return;
 
         setTimeout(function() {
-            window.location.href = "/login.html?backref=" + encodeURIComponent(currentBackref());
+            window.location.href = "/login.html?authError=" + encodeURIComponent(authMsg)
+                + "&backref=" + encodeURIComponent(currentBackref());
         }, 1000);
     } else if (jqXHR.status === 403) {
         $("#loadStatus").html('Forbidden [403]');

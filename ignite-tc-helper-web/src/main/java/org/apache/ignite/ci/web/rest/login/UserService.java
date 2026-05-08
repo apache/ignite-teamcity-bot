@@ -44,6 +44,7 @@ import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcservice.model.user.User;
 import org.apache.ignite.tcservice.login.ITcLogin;
+import org.apache.ignite.tcservice.login.TcLoginResult;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.web.CtxListener;
@@ -158,6 +159,8 @@ public class UserService {
 
             final byte[] encPass = next.getPasswordUnderUserKey();
             credsUi.servicePassword = encPass != null && encPass.length > 0 ? "*******" : "";
+            credsUi.stale = next.isStale();
+            credsUi.staleReason = next.getStaleReason();
 
             tcHelperUserUi.data.add(credsUi);
         }
@@ -202,18 +205,17 @@ public class UserService {
 
         final IUserStorage users = appCtx.getInstance(IUserStorage.class);
         final TcHelperUser user = users.getUser(currUserLogin);
-        final User tcAddUser = tcLogin.checkServiceUserAndPassword(svcId, svcLogin, svcPwd);
+        final TcLoginResult loginResult = tcLogin.checkServiceUserAndPasswordResult(svcId, svcLogin, svcPwd);
+        final User tcAddUser = loginResult.user();
 
         if (tcAddUser == null)
             return new SimpleResult("Service rejected credentials/user not found");
 
-        final TcHelperUser.Credentials creds = new TcHelperUser.Credentials(svcId, svcLogin);
+        final TcHelperUser.Credentials creds = user.getOrCreateCreds(svcId).setLogin(svcLogin);
 
         creds.setPassword(svcPwd, prov.getUserKey());
 
         user.enrichUserData(tcAddUser);
-
-        user.getCredentialsList().add(creds);
 
         users.putUser(currUserLogin, user);
 

@@ -24,6 +24,7 @@ import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.apache.ignite.tcservice.model.user.User;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcservice.login.ITcLogin;
+import org.apache.ignite.tcservice.login.TcLoginResult;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.tcbot.common.util.Base64Util;
 import org.apache.ignite.tcbot.common.util.CryptUtil;
@@ -126,7 +127,8 @@ public class Login {
         byte[] userKeyCandidateKcv = CryptUtil.aesKcv(userKeyCandidate);
 
 
-        final User tcUser = tcLogin.checkServiceUserAndPassword(primarySrvId, username, pwd);
+        final TcLoginResult loginResult = tcLogin.checkServiceUserAndPasswordResult(primarySrvId, username, pwd);
+        final User tcUser = loginResult.user();
 
         if (user.userKeyKcv == null) {
             if (tcUser == null) {
@@ -135,26 +137,32 @@ public class Login {
 
                 return loginRes;
             }
-            user.userKeyKcv = userKeyCandidateKcv;
 
-            user.getOrCreateCreds(primarySrvId).setLogin(username).setPassword(pwd, userKeyCandidate);
+            updateUserKeyAndCredentials(user, userKeyCandidateKcv, userKeyCandidate, primarySrvId, srvIds, username,
+                pwd, tcUser, tcLogin);
+        } else {
+            if (Arrays.equals(userKeyCandidateKcv, user.userKeyKcv)) {
+                if (loginResult.isUnauthorized()) {
+                    loginRes.errorMessage =
+                        "Service " + primarySrvId + " rejected credentials/user not found";
 
-            user.enrichUserData(tcUser);
-
-            for (String addSrvId : srvIds) {
-                if (!addSrvId.equals(primarySrvId)) {
-                    final User tcAddUser = tcLogin.checkServiceUserAndPassword(addSrvId, username, pwd);
-
-                    if (tcAddUser != null) {
-                        user.getOrCreateCreds(addSrvId).setLogin(username).setPassword(pwd, userKeyCandidate);
-
-                        user.enrichUserData(tcAddUser);
-                    }
+                    return loginRes;
                 }
             }
-        } else {
-            if (!Arrays.equals(userKeyCandidateKcv, user.userKeyKcv))
-                return loginRes; //password validation failed
+            else {
+                if (tcUser == null) {
+                    loginRes.errorMessage = loginResult.isUnauthorized()
+                        ? "Service " + primarySrvId + " rejected credentials/user not found"
+                        : "Password does not match stored bot credentials";
+
+                    return loginRes;
+                }
+
+                user.markCredentialsStale("Replaced after successful TeamCity login with a new password");
+
+                updateUserKeyAndCredentials(user, userKeyCandidateKcv, userKeyCandidate, primarySrvId, srvIds,
+                    username, pwd, tcUser, tcLogin);
+            }
         }
 
         if (tcUser != null)
@@ -173,6 +181,36 @@ public class Login {
         loginRes.fullToken = sessId + ":" + tok;
 
         return loginRes;
+    }
+
+    private void updateUserKeyAndCredentials(
+        TcHelperUser user,
+        byte[] userKeyCandidateKcv,
+        byte[] userKeyCandidate,
+        String primarySrvId,
+        Collection<String> srvIds,
+        String username,
+        String pwd,
+        User tcUser,
+        ITcLogin tcLogin
+    ) {
+        user.userKeyKcv = userKeyCandidateKcv;
+
+        user.getOrCreateCreds(primarySrvId).setLogin(username).setPassword(pwd, userKeyCandidate);
+
+        user.enrichUserData(tcUser);
+
+        for (String addSrvId : srvIds) {
+            if (!addSrvId.equals(primarySrvId)) {
+                final User tcAddUser = tcLogin.checkServiceUserAndPasswordResult(addSrvId, username, pwd).user();
+
+                if (tcAddUser != null) {
+                    user.getOrCreateCreds(addSrvId).setLogin(username).setPassword(pwd, userKeyCandidate);
+
+                    user.enrichUserData(tcAddUser);
+                }
+            }
+        }
     }
 
     private TcHelperUser getOrCreateUser(@FormParam("uname") String username,

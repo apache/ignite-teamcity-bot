@@ -34,7 +34,7 @@ public class ServiceUnauthorizedExceptionMapper
 
     @Override
     public Response toResponse(ServiceUnauthorizedException exception) {
-        return Response.status(424).entity(exception.getMessage())
+        return Response.status(Response.Status.UNAUTHORIZED).entity(exception.getMessage())
                 .type("text/plain").build();
     }
 }

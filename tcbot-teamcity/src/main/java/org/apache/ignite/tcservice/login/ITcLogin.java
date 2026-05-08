@@ -30,4 +30,18 @@ public interface ITcLogin {
      * @return user settings on this teamcity
      */
     public User checkServiceUserAndPassword(String srvId, String username, String pwd);
+
+    /**
+     * Checks credentials and preserves the difference between an explicit authentication failure and a temporarily
+     * unavailable TeamCity server.
+     *
+     * @param srvId Server id.
+     * @param username Username.
+     * @param pwd Password.
+     */
+    public default TcLoginResult checkServiceUserAndPasswordResult(String srvId, String username, String pwd) {
+        User user = checkServiceUserAndPassword(srvId, username, pwd);
+
+        return user == null ? TcLoginResult.notChecked() : TcLoginResult.accepted(user);
+    }
 }

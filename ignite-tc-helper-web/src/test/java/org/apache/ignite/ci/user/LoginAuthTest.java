@@ -27,6 +27,7 @@ import org.apache.ignite.tcservice.model.user.GroupRef;
 import org.apache.ignite.tcservice.model.user.Groups;
 import org.apache.ignite.tcservice.model.user.User;
 import org.apache.ignite.tcservice.login.ITcLogin;
+import org.apache.ignite.tcservice.login.TcLoginResult;
 import org.apache.ignite.tcbot.common.util.Base64Util;
 import org.apache.ignite.ci.web.auth.AuthenticationFilter;
 import org.apache.ignite.ci.web.rest.login.Login;
@@ -45,7 +46,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 public class LoginAuthTest {
-    private ITcLogin tcLogin = (serverId, username, password) -> new User();
+    private ITcLogin tcLogin = (serverId, username, password) -> "password".equals(password) ? new User() : null;
 
     @Test
     public void testNewUserLogin() {
@@ -118,13 +119,13 @@ public class LoginAuthTest {
         ITcLogin adminTcLogin = (serverId, username, password) -> {
             User user = new User();
             user.username = username;
-            user.setGroups(new Groups(new GroupRef("IGNITE_COMMITTERS", "Ignite Committers")));
+            user.setGroups(new Groups(new GroupRef("IGNITE_COMMITER", "Ignite Tests Admins")));
 
             return user;
         };
 
         LoginResponse loginResponse = login.doLogin("admin", "password", storage, "public", Collections.emptySet(),
-            adminTcLogin, Collections.singleton("IGNITE_COMMITTERS"));
+            adminTcLogin, Collections.singleton("IGNITE_COMMITER"));
 
         assertNotNull(loginResponse.fullToken);
         assertTrue(storage.getUser("admin").isAdmin());
@@ -146,10 +147,31 @@ public class LoginAuthTest {
         };
 
         LoginResponse loginResponse = login.doLogin("user", "password", storage, "public", Collections.emptySet(),
-            regularTcLogin, Collections.singleton("IGNITE_COMMITTERS"));
+            regularTcLogin, Collections.singleton("IGNITE_COMMITER"));
 
         assertNotNull(loginResponse.fullToken);
         assertFalse(storage.getUser("user").isAdmin());
+    }
+
+    @Test
+    public void testAdminGroupMatchingDoesNotUseDisplayName() {
+        UserAndSessionsStorage storage = mockOneSessionStor();
+
+        Login login = createLogin();
+
+        ITcLogin adminTcLogin = (serverId, username, password) -> {
+            User user = new User();
+            user.username = username;
+            user.setGroups(new Groups(new GroupRef("IGNITE_COMMITER", "Ignite Tests Admins")));
+
+            return user;
+        };
+
+        LoginResponse loginResponse = login.doLogin("admin", "password", storage, "public", Collections.emptySet(),
+            adminTcLogin, Collections.singleton("Ignite Tests Admins"));
+
+        assertNotNull(loginResponse.fullToken);
+        assertFalse(storage.getUser("admin").isAdmin());
     }
 
     @Test
@@ -161,13 +183,13 @@ public class LoginAuthTest {
         ITcLogin adminTcLogin = (serverId, username, password) -> {
             User user = new User();
             user.username = username;
-            user.setGroups(new Groups(new GroupRef("IGNITE_COMMITTERS", "Ignite Committers")));
+            user.setGroups(new Groups(new GroupRef("IGNITE_COMMITER", "Ignite Tests Admins")));
 
             return user;
         };
 
         LoginResponse loginResponse = login.doLogin("admin", "password", storage, "public", Collections.emptySet(),
-            adminTcLogin, Collections.singleton("IGNITE_COMMITTERS"));
+            adminTcLogin, Collections.singleton("IGNITE_COMMITER"));
 
         assertNotNull(loginResponse.fullToken);
         assertTrue(storage.getUser("admin").isAdmin());
@@ -175,7 +197,7 @@ public class LoginAuthTest {
         ITcLogin unavailableTcLogin = (serverId, username, password) -> null;
 
         loginResponse = login.doLogin("admin", "password", storage, "public", Collections.emptySet(),
-            unavailableTcLogin, Collections.singleton("IGNITE_COMMITTERS"));
+            unavailableTcLogin, Collections.singleton("IGNITE_COMMITER"));
 
         assertNotNull(loginResponse.fullToken);
         assertTrue(storage.getUser("admin").isAdmin());
@@ -211,12 +233,77 @@ public class LoginAuthTest {
     }
 
     @Test
+    public void testChangedTeamcityPasswordReplacesStoredCredentials() {
+        UserAndSessionsStorage storage = mockOneSessionStor();
+
+        Login login = createLogin();
+
+        LoginResponse loginResponse = login.doLogin("user", "password", storage, "public", Collections.emptySet(),
+            tcLogin);
+
+        assertNotNull(loginResponse.fullToken);
+
+        ITcLogin changedPasswordLogin = (serverId, username, password) -> "new-password".equals(password)
+            ? new User()
+            : null;
+
+        loginResponse = login.doLogin("user", "new-password", storage, "public", Collections.emptySet(),
+            changedPasswordLogin);
+
+        assertNotNull(loginResponse.fullToken);
+        assertTrue(storage.getUser("user").getCredentialsList().stream().anyMatch(TcHelperUser.Credentials::isStale));
+
+        AuthenticationFilter authenticationFilter = new AuthenticationFilter();
+
+        ContainerRequestContext ctx = mockCtxWithParams();
+
+        assertTrue(authenticationFilter.authenticate(ctx, loginResponse.fullToken, storage));
+
+        ITcBotUserCreds creds = (ITcBotUserCreds)ctx.getProperty(ITcBotUserCreds._KEY);
+
+        assertEquals("new-password", creds.getPassword("public"));
+    }
+
+    @Test
+    public void testOldLocalPasswordRejectedByTeamcityKeepsCredentialsActive() {
+        UserAndSessionsStorage storage = mockOneSessionStor();
+
+        Login login = createLogin();
+
+        LoginResponse loginResponse = login.doLogin("user", "password", storage, "public", Collections.emptySet(),
+            tcLogin);
+
+        assertNotNull(loginResponse.fullToken);
+
+        ITcLogin unauthorizedLogin = new ITcLogin() {
+            @Override public User checkServiceUserAndPassword(String srvId, String username, String pwd) {
+                return null;
+            }
+
+            @Override public TcLoginResult checkServiceUserAndPasswordResult(String srvId, String username,
+                String pwd) {
+                return TcLoginResult.unauthorized();
+            }
+        };
+
+        loginResponse = login.doLogin("user", "password", storage, "public", Collections.emptySet(),
+            unauthorizedLogin);
+
+        assertNull(loginResponse.fullToken);
+        assertNotNull(loginResponse.errorMessage);
+        assertNotNull(storage.getUser("user").getCredentials("public"));
+        assertTrue(storage.getUser("user").getCredentialsList().stream()
+            .noneMatch(TcHelperUser.Credentials::isStale));
+    }
+
+    @Test
     public void testAuthFailedWithBrokenToken() {
         UserAndSessionsStorage storage = mockOneSessionStor();
 
         Login login = createLogin();
 
-        String fullToken = login.doLogin("user", "password", storage, "public", Collections.emptySet(), tcLogin).fullToken;
+        String fullToken = login.doLogin("user", "password", storage, "public", Collections.emptySet(),
+            tcLogin).fullToken;
 
         int sepIdx = fullToken.indexOf(':');
         String brokenToken = fullToken.substring(0, sepIdx + 1) +

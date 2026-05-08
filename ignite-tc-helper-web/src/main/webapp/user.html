@@ -209,6 +209,16 @@ function showData(userUi) {
             {
                 "data": "servicePassword",
                 title: "Password"
+            },
+            {
+                "data": "stale",
+                title: "Status",
+                "render": function(data, type, row) {
+                    if (data === true)
+                        return "Stale" + (isDefinedAndFilled(row.staleReason) ? ": " + row.staleReason : "");
+
+                    return "Active";
+                }
             }
         ]
     });
@@ -290,6 +300,7 @@ function showData(userUi) {
                 <th>Service Id</th>
                 <th>Login</th>
                 <th>Password</th>
+                <th>Status</th>
             </tr>
             </thead>
         </table>
