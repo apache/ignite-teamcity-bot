@@ -122,6 +122,248 @@ function showErrInLoadStatus(jqXHR, exception) {
     }
 }
 
+function openAiPrompt(url) {
+    let state = createAiPromptDialog();
+
+    requestAiPrompt(url, state, true);
+}
+
+function requestAiPrompt(url, state, waitForTc) {
+    if (state.timer)
+        clearInterval(state.timer);
+
+    let xhr;
+
+    state.skipBtn.toggle(waitForTc).prop("disabled", false).text("Use current context now");
+    state.openBtn.hide();
+    state.downloadBtn.hide();
+    state.errorBlock.hide();
+
+    state.skipBtn.off("click").on("click", function () {
+        if (xhr)
+            xhr.abort();
+
+        state.skipBtn.prop("disabled", true).text("Using current context...");
+        appendAiPromptStep(state, "Building prompt from current cached context.");
+        requestAiPrompt(url, state, false);
+    });
+
+    startAiPromptProgress(state, waitForTc);
+
+    xhr = $.ajax({
+        url: aiPromptUrlWithWaitForTc(url, waitForTc),
+        timeout: 300000,
+        success: function (result) {
+            finishAiPromptProgress(state, result);
+        },
+        error: function (jqXHR, status, error) {
+            if (status === "abort")
+                return;
+
+            failAiPromptProgress(state, jqXHR, status, error);
+        }
+    });
+
+    state.xhr = xhr;
+}
+
+function createAiPromptDialog() {
+    let dialog = $("#aiPromptDialog");
+
+    if (dialog.length > 0)
+        dialog.remove();
+
+    dialog = $("<div>", {id: "aiPromptDialog"});
+
+    let status = $("<div>", {
+        id: "aiPromptStatus",
+        css: {
+            "font-weight": "600",
+            "margin-bottom": "12px"
+        }
+    });
+
+    let log = $("<div>", {
+        id: "aiPromptProgressLog",
+        css: {
+            "background": "#f7f7f7",
+            "border": "1px solid #d8d8d8",
+            "border-radius": "4px",
+            "font-family": "monospace",
+            "line-height": "1.45",
+            "max-height": "260px",
+            "min-height": "145px",
+            "overflow-y": "auto",
+            "padding": "10px",
+            "white-space": "pre-wrap"
+        }
+    });
+
+    let errorBlock = $("<pre>", {
+        id: "aiPromptError",
+        css: {
+            "background": "#fff2f2",
+            "border": "1px solid #d09090",
+            "border-radius": "4px",
+            "display": "none",
+            "margin-top": "12px",
+            "max-height": "180px",
+            "overflow": "auto",
+            "padding": "10px",
+            "white-space": "pre-wrap"
+        }
+    });
+
+    let actions = $("<div>", {
+        css: {
+            "display": "flex",
+            "gap": "8px",
+            "justify-content": "flex-end",
+            "margin-top": "14px"
+        }
+    });
+
+    let skipBtn = $("<button>", {type: "button", text: "Use current context now"});
+    let openBtn = $("<button>", {type: "button", text: "Open prompt"}).hide();
+    let downloadBtn = $("<button>", {type: "button", text: "Download .txt"}).hide();
+
+    actions.append(skipBtn, openBtn, downloadBtn);
+    dialog.append(status, log, errorBlock, actions);
+    $("body").append(dialog);
+
+    let state = {
+        dialog: dialog,
+        status: status,
+        log: log,
+        errorBlock: errorBlock,
+        skipBtn: skipBtn,
+        openBtn: openBtn,
+        downloadBtn: downloadBtn,
+        resultUrl: null,
+        timer: null,
+        xhr: null
+    };
+
+    dialog.dialog({
+        close: function () {
+            closeAiPromptDialog(state);
+        },
+        modal: true,
+        resizable: false,
+        title: "Generating AI prompt",
+        width: Math.min(620, $(window).width() - 40)
+    });
+
+    openBtn.on("click", function () {
+        openAiPromptText(state);
+    });
+
+    downloadBtn.on("click", function () {
+        downloadAiPromptText(state);
+    });
+
+    return state;
+}
+
+function aiPromptUrlWithWaitForTc(url, waitForTc) {
+    return url + (url.indexOf("?") >= 0 ? "&" : "?") + "waitForTc=" + waitForTc;
+}
+
+function startAiPromptProgress(state, waitForTc) {
+    let messages = waitForTc ? [
+        "Asking TeamCity for build context.",
+        "Loading latest build and test details.",
+        "Downloading and parsing build logs if they are not cached.",
+        "Still waiting for TeamCity/log processing.",
+        "Preparing the final prompt text."
+    ] : [
+        "Using current cached context.",
+        "Building prompt without waiting for TeamCity/log processing.",
+        "Preparing the final prompt text."
+    ];
+    let idx = 0;
+
+    state.status.text(waitForTc ? "Generating prompt..." : "Generating prompt from current context...");
+    state.log.empty();
+
+    function showNextStatus() {
+        appendAiPromptStep(state, messages[Math.min(idx, messages.length - 1)]);
+
+        idx++;
+    }
+
+    showNextStatus();
+
+    state.timer = setInterval(showNextStatus, 5000);
+}
+
+function appendAiPromptStep(state, text) {
+    let line = $("<div>").text("> " + text);
+    state.log.append(line);
+    state.log.scrollTop(state.log[0].scrollHeight);
+}
+
+function finishAiPromptProgress(state, result) {
+    if (state.timer)
+        clearInterval(state.timer);
+
+    if (state.resultUrl)
+        URL.revokeObjectURL(state.resultUrl);
+
+    state.resultUrl = URL.createObjectURL(new Blob([result], {type: "text/plain;charset=utf-8"}));
+    state.status.text("AI prompt is ready.");
+    appendAiPromptStep(state, "Prompt text is ready.");
+    state.skipBtn.hide();
+    state.openBtn.show();
+    state.downloadBtn.show();
+
+    if (openAiPromptText(state))
+        appendAiPromptStep(state, "Opened prompt text in a new tab.");
+    else
+        appendAiPromptStep(state, "Automatic opening was blocked. Use Open prompt or Download .txt.");
+}
+
+function failAiPromptProgress(state, jqXHR, status, error) {
+    if (state.timer)
+        clearInterval(state.timer);
+
+    state.status.text("AI prompt request failed.");
+    state.skipBtn.hide();
+    state.errorBlock.text("AI prompt request failed: " + status + "\n\n" + jqXHR.responseText).show();
+    appendAiPromptStep(state, "Request failed: " + (error || status));
+    showErrInLoadStatus(jqXHR, status);
+}
+
+function openAiPromptText(state) {
+    if (!state.resultUrl)
+        return false;
+
+    return window.open(state.resultUrl, "_blank") != null;
+}
+
+function downloadAiPromptText(state) {
+    if (!state.resultUrl)
+        return;
+
+    let link = document.createElement("a");
+    link.href = state.resultUrl;
+    link.download = "ai-prompt.txt";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function closeAiPromptDialog(state) {
+    if (state.timer)
+        clearInterval(state.timer);
+
+    if (state.xhr && state.xhr.readyState !== 4)
+        state.xhr.abort();
+
+    if (state.resultUrl)
+        URL.revokeObjectURL(state.resultUrl);
+}
+
 
 //requires element on page: <div id="version"></div>
 function showVersionInfo(result) {
