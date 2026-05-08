@@ -125,3 +125,6 @@ be retried instead of silently leaving mixed old and new data.
 The same migrator can also be run as a standalone tool from the `migrator` module against an Ignite work directory. The
 standalone module uses the same Ignite version as the rest of the project through the shared `ignVer` Gradle property.
 
+The heavyweight legacy storage compatibility/perf test is excluded from the regular `:migrator:test` task. Run it
+explicitly with `./gradlew :migrator:legacyDbCompatPerfTest --no-daemon` when checking old Ignite 2.14 persistent
+storage compatibility.

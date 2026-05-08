@@ -8,7 +8,7 @@ repositories {
 
 dependencies {
     implementation "org.apache.ignite:ignite-core:$ignVer"
-    implementation 'ch.qos.logback:logback-classic:1.2.3'
+    implementation "ch.qos.logback:logback-classic:$logbackVer"
     implementation project(':tcbot-common')
 
     testImplementation project(':ignite-tc-helper-web')
@@ -26,6 +26,26 @@ test {
     jvmArgs igniteJava17JvmArgs
     maxHeapSize = '1536m'
     systemProperty 'compat.work.dir', file('src/test/work/ignite-db-compat').absolutePath
+    exclude '**/LegacyPersistentStorageCompatibilityTest.class'
+    failOnNoDiscoveredTests = false
+
+    testLogging {
+        events 'passed', 'failed', 'skipped', 'standardOut', 'standardError'
+        showStandardStreams = true
+    }
+}
+
+tasks.register('legacyDbCompatPerfTest', Test) {
+    description = 'Runs the heavyweight legacy Ignite persistent storage compatibility/perf test.'
+    group = 'verification'
+
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+
+    jvmArgs igniteJava17JvmArgs
+    maxHeapSize = '1536m'
+    systemProperty 'compat.work.dir', file('src/test/work/ignite-db-compat').absolutePath
+    include '**/LegacyPersistentStorageCompatibilityTest.class'
 
     testLogging {
         events 'passed', 'failed', 'skipped', 'standardOut', 'standardError'

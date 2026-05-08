@@ -16,7 +16,7 @@
  */
 
 apply plugin: 'java'
- 
+
 
 dependencies {
     api project(":tcbot-common")
@@ -28,4 +28,4 @@ dependencies {
 
     implementation 'javax.inject:javax.inject:1'
 }
- 
+

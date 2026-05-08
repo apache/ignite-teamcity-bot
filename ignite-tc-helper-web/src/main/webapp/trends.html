@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Apache Ignite Teamcity Bot - Master trends</title>
-    <link rel="icon" href="img/leaf-icon-png-7066.png">
+    <link rel="icon" href="img/leaf.svg">
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
@@ -707,7 +707,7 @@
 
         error.html("");
 
-        fillAllDataCells(num, "<img src='/img/loading.gif' width=15px height=15px>");
+        fillAllDataCells(num, "<img src='/img/loading.svg' width=15px height=15px>");
     }
 
     function printImportantMessage(num, color, message) {
@@ -890,7 +890,7 @@
         let conditionLocal = data[num].map.get(buildId).conditionLocal;
         let modalDialog = $("#modalDialog");
         let diff = ((value / median - 1) * 100 | 0);
-        let message = "<p style='text-align:center;opacity: 0.7;'><img src='img/tc.svg' width='100' height='100'></p>" +
+        let message = "<p style='text-align:center;opacity: 0.7;'><img src='img/build-chain.svg' width='100' height='100'></p>" +
             "<br><p style='text-align:justify'><b>Build [" + buildId +  "]</b> will be marked as &laquo;" +
             (isValid ? "" : "in") + "valid&raquo;. Value differs by <b>" + diff + "%</b> from the median.</p>" +
             "<br><b>Field:</b>&nbsp;<select id='selectField' style='width: 200px'>";
@@ -997,7 +997,7 @@
             return;
         }
 
-        let message = "<p style='text-align:center;opacity: 0.7;'><img src='img/tc.svg' width='100' height='100'></p>" +
+        let message = "<p style='text-align:center;opacity: 0.7;'><img src='img/build-chain.svg' width='100' height='100'></p>" +
             "<br>The results &laquo;Run All&raquo; for <b>build [" + buildId +  "]</b> is <b>not available</b> on " +
             "the TeamCity server.<br><br><span style='color:grey;font-size:smaller'><hr>TeamCity server stores data " +
             "for the last ~14 days. Since the launch of the build " + dateDiff + " days have passed</span>";
