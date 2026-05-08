@@ -21,20 +21,14 @@ import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
-import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.githubignited.IGitHubConnIgnited;
-import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
-import org.apache.ignite.githubservice.IGitHubConnection;
 import org.apache.ignite.tcbot.engine.build.TestFailuresAiPromptBuilder;
 import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
@@ -158,41 +152,5 @@ public class GetPrTestFailures {
             TestFailuresAiPromptBuilder.restMaxDetailsChars(maxDetailsChars),
             testName,
             promptSuiteId);
-    }
-
-    @POST
-    @Path("notifyGit")
-    public String getNotifyGit(
-        @Nullable @QueryParam("serverId") String srvId,
-        @Nonnull @QueryParam("suiteId") String suiteId,
-        @Nonnull @QueryParam("branchForTc") String branchForTc,
-        @Nonnull @QueryParam("action") String act,
-        @Nullable @QueryParam("count") Integer cnt,
-        @Nonnull @FormParam("notifyMsg") String msg) {
-        if (!branchForTc.startsWith("pull/"))
-            return "Given branch is not a pull request. Notify works only for pull requests.";
-
-        final TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
-        final IGitHubConnIgnited srv = appCtx.getInstance(IGitHubConnIgnitedProvider.class).server(srvId);
-
-        PullRequest pr;
-
-        try {
-            Integer prId = IGitHubConnection.convertBranchToPrId(branchForTc);
-
-            if (prId == null)
-                return "Invalid TC branch name: [" + branchForTc + "]";
-
-            pr = srv.getPullRequest(prId);
-        }
-        catch (RuntimeException e) {
-            return "Exception happened - " + e.getMessage();
-        }
-
-        String statusesUrl = pr.getStatusesUrl();
-
-        srv.notifyGit(statusesUrl, msg);
-
-        return "Git was notified.";
     }
 }

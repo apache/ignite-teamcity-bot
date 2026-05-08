@@ -89,24 +89,6 @@ public class GetTrackedBranchTestResults {
     }
 
     @GET
-    @Path("results/txt")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String getTestFailsText(@Nullable @QueryParam("branch") String branchOrNull,
-        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
-        @Nullable @QueryParam("trustedTests") Boolean trustedTests,
-        @Nullable @QueryParam("tagSelected") String tagSelected,
-        @Nullable @QueryParam("tagForHistSelected") String tagForHistSelected,
-        @Nullable @QueryParam("displayMode") String displayMode,
-        @Nullable @QueryParam("sortOption") String sortOption,
-        @Nullable @QueryParam("count") Integer mergeCnt,
-        @Nullable @QueryParam("showTestLongerThan") Integer showTestLongerThan,
-        @Nullable @QueryParam("muted") Boolean showMuted,
-        @Nullable @QueryParam("ignored") Boolean showIgnored) {
-        return getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected, tagForHistSelected,
-            displayMode, sortOption, mergeCnt, showTestLongerThan, showMuted, showIgnored).toString();
-    }
-
-    @GET
     @Path("results/aiPrompt")
     @Produces(MediaType.TEXT_PLAIN)
     public String getTestFailsAiPrompt(@Nullable @QueryParam("branch") String branchOrNull,

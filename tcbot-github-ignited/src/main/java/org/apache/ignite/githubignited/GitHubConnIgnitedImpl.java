@@ -100,11 +100,6 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     }
 
     /** {@inheritDoc} */
-    @Override public void notifyGit(String url, String body) {
-        conn.notifyGit(url, body);
-    }
-
-    /** {@inheritDoc} */
     @Override public String gitBranchPrefix() {
         return config().gitBranchPrefix();
     }

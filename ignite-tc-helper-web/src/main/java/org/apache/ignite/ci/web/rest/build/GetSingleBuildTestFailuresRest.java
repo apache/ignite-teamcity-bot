@@ -76,16 +76,6 @@ public class GetSingleBuildTestFailuresRest {
     }
 
     @GET
-    @Path("failures/txt")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String getTestFailsText(
-        @QueryParam("serverId") String srvCodeOrAlias,
-        @QueryParam("buildId") Integer buildId,
-        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) throws ServiceUnauthorizedException {
-        return getBuildTestFails(srvCodeOrAlias, buildId, checkAllLogs).toString();
-    }
-
-    @GET
     @Path("failures/aiPrompt")
     @Produces(MediaType.TEXT_PLAIN)
     public String getTestFailsAiPrompt(

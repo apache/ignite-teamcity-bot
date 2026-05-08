@@ -153,21 +153,6 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public boolean notifyGit(String url, String body) {
-        try {
-            HttpUtil.sendPostAsStringToGit(config().gitAuthTok(), url, body);
-
-            return true;
-        }
-        catch (IOException e) {
-            logger.error("Failed to notify Git [errMsg=" + e.getMessage() + ']');
-
-            return false;
-        }
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
     @Override public List<PullRequest> getPullRequestsPage(@Nullable String fullUrl,
         @Nullable AtomicReference<String> outLinkNext) {
         String gitApiUrl = getApiUrlMandatory();
