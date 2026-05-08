@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.web.rest;
 
-import com.google.inject.Injector;
+import org.apache.ignite.ci.web.TcBotApplicationContext;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Set;
@@ -87,14 +87,14 @@ public class TriggerBuilds {
         @Nonnull @QueryParam("cleanRebuild") Boolean cleanRebuild
     ) {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
-        Injector injector = CtxListener.getInjector(ctx);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
-        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCodeOrAlias, prov);
+        appCtx.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCodeOrAlias, prov);
 
         if (isNullOrEmpty(suiteIdList))
             return new TriggerResult("Error: nothing to run.");
 
-        String jiraRes = injector
+        String jiraRes = appCtx
             .getInstance(TcBotTriggerAndSignOffService.class)
             .triggerBuildsAndObserve(srvCodeOrAlias, branchForTc, parentSuiteId, suiteIdList, top, observe, ticketId, prNum, baseBranchForTc, cleanRebuild, prov);
 
@@ -118,11 +118,11 @@ public class TriggerBuilds {
     ) {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
 
-        Injector injector = CtxListener.getInjector(ctx);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
-        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, prov);
+        appCtx.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, prov);
 
-        return injector
+        return appCtx
             .getInstance(TcBotTriggerAndSignOffService.class)
             .commentJiraEx(srvCode, branchForTc, suiteId, ticketId, baseBranchForTc, prov);
     }
@@ -132,10 +132,10 @@ public class TriggerBuilds {
     public Set<ServerIntegrationLinks> getIntegrationUrls(@NotNull @QueryParam("serverIds") String srvCodes) {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
 
-        Injector injector = CtxListener.getInjector(ctx);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
-        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
-        ITeamcityIgnitedProvider tcIgnProv = injector.getInstance(ITeamcityIgnitedProvider.class);
+        ITcBotConfig cfg = appCtx.getInstance(ITcBotConfig.class);
+        ITeamcityIgnitedProvider tcIgnProv = appCtx.getInstance(ITeamcityIgnitedProvider.class);
 
         String[] srvCodesArr = srvCodes.split(",");
 
@@ -143,7 +143,7 @@ public class TriggerBuilds {
             if (!tcIgnProv.hasAccess(srvCode, prov))
                 return null;
 
-            IGitHubConnection gh = injector.getInstance(IGitHubConnectionProvider.class).server(srvCode);
+            IGitHubConnection gh = appCtx.getInstance(IGitHubConnectionProvider.class).server(srvCode);
 
             IJiraServerConfig jiraCfg = cfg.getJiraConfig(srvCode);
 

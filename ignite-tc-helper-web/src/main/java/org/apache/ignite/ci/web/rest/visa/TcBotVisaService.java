@@ -16,7 +16,7 @@
  */
 package org.apache.ignite.ci.web.rest.visa;
 
-import com.google.inject.Injector;
+import org.apache.ignite.ci.web.TcBotApplicationContext;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -58,7 +58,7 @@ public class TcBotVisaService {
     @Path("cancel")
     public boolean stopObservation(@NotNull @QueryParam("server") String srv,
         @NotNull @QueryParam("branch") String branchForTc) {
-            return CtxListener.getInjector(ctx)
+            return CtxListener.getApplicationContext(ctx)
                 .getInstance(BuildObserver.class)
                 .stopObservation(new ContributionKey(srv, branchForTc));
     }
@@ -68,7 +68,7 @@ public class TcBotVisaService {
     @GET
     @Path("history")
     public Collection<VisaStatus> history() {
-        return CtxListener.getInjector(ctx)
+        return CtxListener.getApplicationContext(ctx)
             .getInstance(TcBotTriggerAndSignOffService.class)
             .getVisasStatus(ITcBotUserCreds.get(req));
     }
@@ -82,11 +82,11 @@ public class TcBotVisaService {
     public List<ContributionToCheck> contributions(@Nullable @QueryParam("serverId") String srvCode) {
         ITcBotUserCreds credsProv = ITcBotUserCreds.get(req);
 
-        Injector injector = CtxListener.getInjector(ctx);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
-        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, credsProv);
+        appCtx.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, credsProv);
 
-        return injector.getInstance(TcBotTriggerAndSignOffService.class).getContributionsToCheck(srvCode, credsProv);
+        return appCtx.getInstance(TcBotTriggerAndSignOffService.class).getContributionsToCheck(srvCode, credsProv);
     }
 
     @GET
@@ -95,11 +95,11 @@ public class TcBotVisaService {
         @QueryParam("prId") String prId) {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
 
-        Injector injector = CtxListener.getInjector(ctx);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
-        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, prov);
+        appCtx.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, prov);
 
-        return injector.getInstance(TcBotTriggerAndSignOffService.class).contributionStatuses(srvCode, prov, prId);
+        return appCtx.getInstance(TcBotTriggerAndSignOffService.class).contributionStatuses(srvCode, prov, prId);
     }
 
     @GET
@@ -107,13 +107,13 @@ public class TcBotVisaService {
     public CurrentVisaStatus currentVisaStatus(@Nullable @QueryParam("serverId") String srvCode,
         @Nonnull @QueryParam("suiteId") String suiteId,
         @QueryParam("tcBranch") String tcBranch) {
-        Injector injector = CtxListener.getInjector(ctx);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
 
-        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, prov);
+        appCtx.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, prov);
 
-        return injector.getInstance(TcBotTriggerAndSignOffService.class)
+        return appCtx.getInstance(TcBotTriggerAndSignOffService.class)
             .currentVisaStatus(srvCode, prov, suiteId, tcBranch);
     }
 }

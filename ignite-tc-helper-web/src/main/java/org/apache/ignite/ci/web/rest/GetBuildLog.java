@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.web.rest;
 
-import com.google.inject.Injector;
+import org.apache.ignite.ci.web.TcBotApplicationContext;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.tcbot.engine.ui.BotUrls;
 import org.apache.ignite.tcignited.buildlog.IBuildLogProcessor;
@@ -58,9 +58,9 @@ public class GetBuildLog {
     public Response getThreadDump(
         @QueryParam(BotUrls.GetBuildLog.SERVER_ID) String srvCode,
         @QueryParam(BotUrls.GetBuildLog.BUILD_NO) Integer buildId) {
-        Injector injector = CtxListener.getInjector(ctx);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
-        IBuildLogProcessor instance = injector.getInstance(IBuildLogProcessor.class);
+        IBuildLogProcessor instance = appCtx.getInstance(IBuildLogProcessor.class);
 
         String cached = instance.getThreadDumpCached(srvCode, buildId);
 

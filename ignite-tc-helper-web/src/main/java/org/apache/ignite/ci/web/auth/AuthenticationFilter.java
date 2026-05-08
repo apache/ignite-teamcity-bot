@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.web.auth;
 
 import com.google.common.base.Throwables;
-import com.google.inject.Injector;
+import org.apache.ignite.ci.web.TcBotApplicationContext;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
@@ -113,11 +113,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         String tokFull = authStr.substring(TOKEN_SCHEME.length()).trim();
 
-        Injector injector = CtxListener.getInjector(context);
-        final IUserStorage users = injector.getInstance(IUserStorage.class);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(context);
+        final IUserStorage users = appCtx.getInstance(IUserStorage.class);
 
         try {
-            injector.getInstance(Ignite.class);
+            appCtx.getInstance(Ignite.class);
         } catch (Exception e) {
             ExceptionUtil.throwIfRest(e);
 

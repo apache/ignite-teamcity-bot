@@ -50,7 +50,7 @@ public class BuildTimeRestService {
     public BuildTimeResultUi loadAnalytics(@Nullable @QueryParam("branch") String branchOrNull) {
         final ITcBotUserCreds creds = ITcBotUserCreds.get(req);
 
-        final BuildTimeService tbProc = CtxListener.getInjector(ctx).getInstance(BuildTimeService.class);
+        final BuildTimeService tbProc = CtxListener.getApplicationContext(ctx).getInstance(BuildTimeService.class);
 
         return tbProc.analytics(creds);
     }

@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.web.rest.build;
 
-import com.google.inject.Injector;
+import org.apache.ignite.ci.web.TcBotApplicationContext;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -118,12 +118,12 @@ public class CompareBuilds {
 
     /** */
     private List<String> tests(String srvCode, Integer buildId) {
-        Injector injector = CtxListener.getInjector(ctx);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
 
-        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, prov);
+        appCtx.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, prov);
 
-        return injector.getInstance(CompareBuildsService.class).tests0(srvCode, buildId, prov);
+        return appCtx.getInstance(CompareBuildsService.class).tests0(srvCode, buildId, prov);
     }
 }

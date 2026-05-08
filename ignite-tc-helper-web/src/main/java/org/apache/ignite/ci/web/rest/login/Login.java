@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.web.rest.login;
 
 import com.google.common.base.Preconditions;
-import com.google.inject.Injector;
+import org.apache.ignite.ci.web.TcBotApplicationContext;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.apache.ignite.tcservice.model.user.User;
@@ -55,11 +55,11 @@ public class Login {
     @Path("primaryServerData")
     @PermitAll
     public ServerDataResponse primaryServerUrl() {
-        Injector injector = CtxListener.getInjector(ctx);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
-        ITcBotConfig tcBotCfg = injector.getInstance(ITcBotConfig.class);
+        ITcBotConfig tcBotCfg = appCtx.getInstance(ITcBotConfig.class);
         String srvId = tcBotCfg.primaryServerCode();
-        String host = injector.getInstance(ITeamcityIgnitedProvider.class).server(srvId, null).host();
+        String host = appCtx.getInstance(ITeamcityIgnitedProvider.class).server(srvId, null).host();
         return new ServerDataResponse(host);
     }
 
@@ -71,10 +71,10 @@ public class Login {
         Preconditions.checkNotNull(username);
         Preconditions.checkNotNull(pwd);
 
-        final Injector injector = CtxListener.getInjector(ctx);
-        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
-        final ITcLogin tcLogin = injector.getInstance(ITcLogin.class);
-        IUserStorage users = injector.getInstance(IUserStorage.class);
+        final TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        ITcBotConfig cfg = appCtx.getInstance(ITcBotConfig.class);
+        final ITcLogin tcLogin = appCtx.getInstance(ITcLogin.class);
+        IUserStorage users = appCtx.getInstance(IUserStorage.class);
 
         String primarySrvCode = cfg.primaryServerCode();
 

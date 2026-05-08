@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.web.rest.pr;
 
-import com.google.inject.Injector;
+import org.apache.ignite.ci.web.TcBotApplicationContext;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -63,7 +63,7 @@ public class GetPrTestFailures {
         @Nonnull @QueryParam("branchForTc") String branchForTc,
         @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc) {
         return new UpdateInfo().initCounters(
-            CtxListener.getInjector(ctx).getInstance(PrChainsProcessor.class)
+            CtxListener.getApplicationContext(ctx).getInstance(PrChainsProcessor.class)
                 .getPrUpdateCounters(srvCodeOrAlias, branchForTc, baseBranchForTc, ITcBotUserCreds.get(req)));
     }
 
@@ -91,8 +91,8 @@ public class GetPrTestFailures {
         @QueryParam("checkAllLogs") @Nullable Boolean checkAllLogs,
         SyncMode mode) {
         final ITcBotUserCreds creds = ITcBotUserCreds.get(req);
-        final Injector injector = CtxListener.getInjector(ctx);
-        final PrChainsProcessor prChainsProcessor = injector.getInstance(PrChainsProcessor.class);
+        final TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        final PrChainsProcessor prChainsProcessor = appCtx.getInstance(PrChainsProcessor.class);
 
         return prChainsProcessor.getTestFailuresSummary(creds, srvId, suiteId, branchForTc, act, cnt, baseBranchForTc,
             checkAllLogs,
@@ -145,9 +145,9 @@ public class GetPrTestFailures {
         @Nullable @QueryParam("maxDetailsChars") Integer maxDetailsChars,
         @Nullable @QueryParam("testName") String testName,
         @Nullable @QueryParam("promptSuiteId") String promptSuiteId) {
-        final Injector injector = CtxListener.getInjector(ctx);
+        final TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
-        return injector.getInstance(PrChainsProcessor.class).getPrFailuresAiPrompt(
+        return appCtx.getInstance(PrChainsProcessor.class).getPrFailuresAiPrompt(
             ITcBotUserCreds.get(req),
             srvId,
             suiteId,
@@ -172,8 +172,8 @@ public class GetPrTestFailures {
         if (!branchForTc.startsWith("pull/"))
             return "Given branch is not a pull request. Notify works only for pull requests.";
 
-        final Injector injector = CtxListener.getInjector(ctx);
-        final IGitHubConnIgnited srv = injector.getInstance(IGitHubConnIgnitedProvider.class).server(srvId);
+        final TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        final IGitHubConnIgnited srv = appCtx.getInstance(IGitHubConnIgnitedProvider.class).server(srvId);
 
         PullRequest pr;
 

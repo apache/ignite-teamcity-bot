@@ -509,6 +509,6 @@ public class MonitoringService {
     }
 
     private <T> T instance(Class<T> type) {
-        return CtxListener.getInjector(ctx).getInstance(type);
+        return CtxListener.getApplicationContext(ctx).getInstance(type);
     }
 }

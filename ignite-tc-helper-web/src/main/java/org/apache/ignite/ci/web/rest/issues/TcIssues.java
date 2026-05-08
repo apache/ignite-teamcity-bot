@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.web.rest.issues;
 
-import com.google.inject.Injector;
+import org.apache.ignite.ci.web.TcBotApplicationContext;
 import java.util.stream.Collectors;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -61,11 +61,11 @@ public class TcIssues {
     public IssueListUi listIssues(@Nullable @QueryParam("branch") String branchOpt,
                                 @Nullable @QueryParam("count") Integer count,
                                 @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        Injector injector = CtxListener.getInjector(ctx);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
         final String branch = isNullOrEmpty(branchOpt) ? "master" : branchOpt;
 
-        IIssuesStorage issues = injector.getInstance(IIssuesStorage.class);
+        IIssuesStorage issues = appCtx.getInstance(IIssuesStorage.class);
 
         IssueListUi issueList = new IssueListUi(issues.allIssues().collect(Collectors.toList()));
 

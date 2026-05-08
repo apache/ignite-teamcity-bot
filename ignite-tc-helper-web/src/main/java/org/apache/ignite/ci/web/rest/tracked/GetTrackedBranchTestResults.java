@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.web.rest.tracked;
 
-import com.google.inject.Injector;
+import org.apache.ignite.ci.web.TcBotApplicationContext;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -81,7 +81,7 @@ public class GetTrackedBranchTestResults {
     public UpdateInfo getTestFailsUpdates(@Nullable @QueryParam("branch") String branchOrNull) {
         UpdateInfo info = new UpdateInfo();
 
-        Map<Integer, Integer> counters = CtxListener.getInjector(ctx).getInstance(IDetailedStatusForTrackedBranch.class)
+        Map<Integer, Integer> counters = CtxListener.getApplicationContext(ctx).getInstance(IDetailedStatusForTrackedBranch.class)
             .getTrackedBranchUpdateCounters(branchOrNull, ITcBotUserCreds.get(req));
         info.initCounters(counters);
 
@@ -118,7 +118,7 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("promptSuiteId") String promptSuiteId) {
         int actualMergeBuilds = (mergeCnt == null || mergeCnt < 1) ? 1 : mergeCnt;
 
-        return CtxListener.getInjector(ctx)
+        return CtxListener.getApplicationContext(ctx)
             .getInstance(TrackedBranchChainsProcessor.class)
             .getTrackedBranchFailuresAiPrompt(branchOrNull,
                 actualMergeBuilds,
@@ -185,13 +185,13 @@ public class GetTrackedBranchTestResults {
 
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
 
-        Injector injector = CtxListener.getInjector(ctx);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
         int actualMergeBuilds = (mergeCnt == null || mergeCnt < 1) ? 1 : mergeCnt;
 
         int maxDurationSec = (showTestLongerThan == null || showTestLongerThan < 1) ? 0 : showTestLongerThan;
 
-        DsSummaryUi res = injector.getInstance(IDetailedStatusForTrackedBranch.class)
+        DsSummaryUi res = appCtx.getInstance(IDetailedStatusForTrackedBranch.class)
             .getTrackedBranchTestFailures(branch,
                 checkAllLogs,
                 actualMergeBuilds,
@@ -215,7 +215,7 @@ public class GetTrackedBranchTestResults {
     @Path("mergedUpdates")
     public UpdateInfo getAllTestFailsUpdates(@Nullable @QueryParam("branch") String branchOrNull) {
         return new UpdateInfo().initCounters(
-            CtxListener.getInjector(ctx)
+            CtxListener.getApplicationContext(ctx)
                 .getInstance(IDetailedStatusForTrackedBranch.class)
                 .getTrackedBranchUpdateCounters(branchOrNull, ITcBotUserCreds.get(req)));
     }
@@ -246,9 +246,9 @@ public class GetTrackedBranchTestResults {
 
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
         int cntLimit = cnt == null ? DEFAULT_COUNT : cnt;
-        Injector injector = CtxListener.getInjector(ctx);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
-        DsSummaryUi res = injector.getInstance(TrackedBranchChainsProcessor.class)
+        DsSummaryUi res = appCtx.getInstance(TrackedBranchChainsProcessor.class)
             .getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, creds, mode,
                 false, null, null, DisplayMode.OnlyFailures, null,
                 -1, false, false);
@@ -284,8 +284,8 @@ public class GetTrackedBranchTestResults {
     ) {
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
 
-        Injector injector = CtxListener.getInjector(ctx);
-        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        ITcBotConfig cfg = appCtx.getInstance(ITcBotConfig.class);
 
         if (F.isEmpty(srvCode))
             srvCode = cfg.primaryServerCode();
@@ -293,9 +293,9 @@ public class GetTrackedBranchTestResults {
         if (F.isEmpty(projectId))
             projectId = DEFAULT_PROJECT_ID;
 
-        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, creds);
+        appCtx.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, creds);
 
-        return injector
+        return appCtx
             .getInstance(TcBotTriggerAndSignOffService.class)
             .getMutes(srvCode, projectId, creds);
     }
@@ -304,9 +304,9 @@ public class GetTrackedBranchTestResults {
     @Path("summary")
     public List<GuardBranchStatusUi> getIdsIfAccessible() {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
-        Injector injector = CtxListener.getInjector(ctx);
-        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
-        IDetailedStatusForTrackedBranch status = injector.getInstance(IDetailedStatusForTrackedBranch.class);
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        ITcBotConfig cfg = appCtx.getInstance(ITcBotConfig.class);
+        IDetailedStatusForTrackedBranch status = appCtx.getInstance(IDetailedStatusForTrackedBranch.class);
 
         return cfg.getTrackedBranches().branchesStream()
             .map(bt -> status.getBranchSummary(bt.name(), prov)).filter(Objects::nonNull)
