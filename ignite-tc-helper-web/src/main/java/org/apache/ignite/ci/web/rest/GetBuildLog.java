@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.web.rest;
 
-import org.apache.ignite.ci.web.TcBotApplicationContext;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.tcbot.engine.ui.BotUrls;
 import org.apache.ignite.tcignited.buildlog.IBuildLogProcessor;

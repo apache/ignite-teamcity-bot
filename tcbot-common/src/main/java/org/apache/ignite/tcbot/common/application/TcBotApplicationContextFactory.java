@@ -15,12 +15,8 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.web;
+package org.apache.ignite.tcbot.common.application;
 
-public interface TcBotApplicationContext extends AutoCloseable {
-    void start();
-
-    <T> T getInstance(Class<T> type);
-
-    @Override void close();
+public interface TcBotApplicationContextFactory {
+    TcBotApplicationContext create();
 }

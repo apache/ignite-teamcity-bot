@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.web.auth;
 
 import com.google.common.base.Throwables;
-import org.apache.ignite.ci.web.TcBotApplicationContext;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;

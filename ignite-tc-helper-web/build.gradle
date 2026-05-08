@@ -20,15 +20,14 @@ apply plugin: 'war'
 
 // https://www.apache.org/legal/resolved.html#category-a
 dependencies {
-    implementation project(":tcbot-app-guice")
     implementation project(":tcbot-engine")
     implementation project(':migrator')
+    runtimeOnly project(":tcbot-app-guice")
 
     implementation group: 'org.apache.ignite', name: 'ignite-core', version: ignVer
     implementation group: 'org.apache.ignite', name: 'ignite-slf4j', version: ignVer
     implementation group: 'org.apache.ignite', name: 'ignite-direct-io', version: ignVer
 
-    implementation group: 'com.google.inject', name: 'guice', version: guiceVer
     implementation group: 'javax.inject', name: 'javax.inject', version: '1'
 
     implementation group: 'org.slf4j', name: 'slf4j-api', version: slf4jVer
@@ -52,6 +51,8 @@ dependencies {
 
     testImplementation group: 'junit', name: 'junit', version: junitVer
     testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVer
+    testImplementation project(":tcbot-app-guice")
+    testImplementation group: 'com.google.inject', name: 'guice', version: guiceVer
 }
 
 processResources {

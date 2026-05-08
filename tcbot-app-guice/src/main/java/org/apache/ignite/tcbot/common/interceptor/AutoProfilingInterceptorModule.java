@@ -18,6 +18,7 @@ package org.apache.ignite.tcbot.common.interceptor;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.matcher.Matchers;
+import org.apache.ignite.tcbot.common.monitoring.ProfilingMonitor;
 
 public class AutoProfilingInterceptorModule extends AbstractModule {
     @Override protected void configure() {
@@ -32,5 +33,6 @@ public class AutoProfilingInterceptorModule extends AbstractModule {
             profilingInterceptor);
 
         bind(AutoProfilingInterceptor.class).toInstance(profilingInterceptor);
+        bind(ProfilingMonitor.class).toInstance(profilingInterceptor);
     }
 }

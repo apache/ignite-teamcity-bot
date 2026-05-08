@@ -14,25 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.tcbot;
 
-import org.apache.ignite.ci.user.ITcBotUserCreds;
-import org.jetbrains.annotations.Nullable;
+package org.apache.ignite.tcbot.app.guice;
 
-/**
- *
- */
-public class TcBotBgAuthImpl implements ITcBotBgAuth {
-    /** Server authorizer credentials. */
-    private ITcBotUserCreds srvAuthorizerCreds;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContextFactory;
 
+public class GuiceTcBotApplicationContextFactory implements TcBotApplicationContextFactory {
     /** {@inheritDoc} */
-    @Override public void setServerAuthorizerCreds(ITcBotUserCreds creds) {
-        this.srvAuthorizerCreds = creds;
-    }
-
-    /** {@inheritDoc} */
-    @Nullable @Override public ITcBotUserCreds getServerAuthorizerCreds() {
-        return srvAuthorizerCreds;
+    @Override public TcBotApplicationContext create() {
+        return new GuiceTcBotApplicationContext();
     }
 }

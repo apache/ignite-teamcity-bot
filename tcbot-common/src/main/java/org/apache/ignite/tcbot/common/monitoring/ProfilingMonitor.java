@@ -15,14 +15,20 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.web;
+package org.apache.ignite.tcbot.common.monitoring;
 
-public final class TcBotApplicationContexts {
-    private TcBotApplicationContexts() {
-        // No-op.
-    }
+import java.util.Collection;
 
-    public static TcBotApplicationContext create() {
-        return new GuiceTcBotApplicationContext();
+public interface ProfilingMonitor {
+    void reset();
+
+    Collection<? extends Invocation> getInvocations();
+
+    interface Invocation {
+        long getNanos();
+
+        int getCount();
+
+        String getName();
     }
 }

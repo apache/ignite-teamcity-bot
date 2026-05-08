@@ -18,6 +18,7 @@ package org.apache.ignite.tcbot.common.interceptor;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.matcher.Matchers;
+import org.apache.ignite.tcbot.common.monitoring.MonitoredTasks;
 
 public class MonitoredTaskInterceptorModule extends AbstractModule {
     @Override protected void configure() {
@@ -32,6 +33,7 @@ public class MonitoredTaskInterceptorModule extends AbstractModule {
             profilingInterceptor);
 
         bind(MonitoredTaskInterceptor.class).toInstance(profilingInterceptor);
+        bind(MonitoredTasks.class).toInstance(profilingInterceptor);
     }
 
 }

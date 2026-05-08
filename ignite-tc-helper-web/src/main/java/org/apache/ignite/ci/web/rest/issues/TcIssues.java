@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.web.rest.issues;
 
-import org.apache.ignite.ci.web.TcBotApplicationContext;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import java.util.stream.Collectors;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;

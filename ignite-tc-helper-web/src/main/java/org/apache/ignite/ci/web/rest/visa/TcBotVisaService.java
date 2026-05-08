@@ -16,7 +16,7 @@
  */
 package org.apache.ignite.ci.web.rest.visa;
 
-import org.apache.ignite.ci.web.TcBotApplicationContext;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;

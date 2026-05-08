@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.tcbot;
+package org.apache.ignite.tcbot.app.guice;
 
 import com.google.common.base.Preconditions;
 import com.google.inject.AbstractModule;
@@ -28,6 +28,8 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.db.Ignite1Init;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
+import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
+import org.apache.ignite.ci.tcbot.TcBotBgAuthImpl;
 import org.apache.ignite.ci.tcbot.conf.LocalFilesBasedConfig;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;

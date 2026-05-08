@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.web.rest.login;
 
 import com.google.common.base.Preconditions;
-import org.apache.ignite.ci.web.TcBotApplicationContext;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.apache.ignite.tcservice.model.user.User;

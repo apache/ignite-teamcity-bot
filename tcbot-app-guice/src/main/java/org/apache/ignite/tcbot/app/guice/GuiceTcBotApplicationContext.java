@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.web;
+package org.apache.ignite.tcbot.app.guice;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.observer.BuildObserver;
-import org.apache.ignite.ci.tcbot.TcBotWebAppModule;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
-import org.apache.ignite.tcbot.common.interceptor.MonitoredTaskInterceptor;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
+import org.apache.ignite.tcbot.common.monitoring.MonitoredTasks;
 import org.apache.ignite.tcbot.engine.cleaner.Cleaner;
 import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
@@ -77,7 +77,7 @@ class GuiceTcBotApplicationContext implements TcBotApplicationContext {
         });
 
         shutdown("monitoring shutdown", () -> {
-            getInstance(MonitoredTaskInterceptor.class).close();
+            getInstance(MonitoredTasks.class).close();
         });
 
         shutdown("Ignite shutdown", () -> {

@@ -19,7 +19,7 @@ package org.apache.ignite.ci.web.rest.login;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import org.apache.ignite.ci.web.TcBotApplicationContext;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.FormParam;

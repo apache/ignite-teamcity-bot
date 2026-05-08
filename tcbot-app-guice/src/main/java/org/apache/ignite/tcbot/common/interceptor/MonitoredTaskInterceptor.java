@@ -35,11 +35,12 @@ import javax.annotation.Nonnull;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
+import org.apache.ignite.tcbot.common.monitoring.MonitoredTasks;
 import org.apache.ignite.tcbot.common.util.TimeUtil;
 
 import static org.apache.ignite.tcbot.common.util.TimeUtil.timestampForLogsSimpleDate;
 
-public class MonitoredTaskInterceptor implements MethodInterceptor, AutoCloseable {
+public class MonitoredTaskInterceptor implements MethodInterceptor, MonitoredTasks {
     private final ConcurrentMap<String, Invocation> totalTime = new ConcurrentSkipListMap<>();
 
     private final long startedTs = System.currentTimeMillis();
@@ -72,7 +73,7 @@ public class MonitoredTaskInterceptor implements MethodInterceptor, AutoCloseabl
         fileWriter = null;
     }
 
-    public static class Invocation {
+    public static class Invocation implements MonitoredTasks.Invocation {
         private final AtomicLong lastStartTs = new AtomicLong();
         private final AtomicLong lastEndTs = new AtomicLong();
         private final AtomicReference<Object> lastResult = new AtomicReference<>();

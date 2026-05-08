@@ -26,15 +26,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
+import org.apache.ignite.tcbot.common.monitoring.ProfilingMonitor;
 
-public class AutoProfilingInterceptor implements MethodInterceptor {
+public class AutoProfilingInterceptor implements MethodInterceptor, ProfilingMonitor {
     private final ConcurrentMap<String, Invocation> totalTime = new ConcurrentHashMap<>();
 
     public void reset() {
         totalTime.clear();
     }
 
-    public static class Invocation {
+    public static class Invocation implements ProfilingMonitor.Invocation {
         private final AtomicLong timeNanos = new AtomicLong();
         private final AtomicInteger callsCnt = new AtomicInteger();
         private String name;

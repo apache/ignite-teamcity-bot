@@ -14,25 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.tcbot;
 
-import org.apache.ignite.ci.user.ITcBotUserCreds;
-import org.jetbrains.annotations.Nullable;
+package org.apache.ignite.tcbot.common.application;
 
-/**
- *
- */
-public class TcBotBgAuthImpl implements ITcBotBgAuth {
-    /** Server authorizer credentials. */
-    private ITcBotUserCreds srvAuthorizerCreds;
+import java.util.ServiceLoader;
 
-    /** {@inheritDoc} */
-    @Override public void setServerAuthorizerCreds(ITcBotUserCreds creds) {
-        this.srvAuthorizerCreds = creds;
+public final class TcBotApplicationContexts {
+    private TcBotApplicationContexts() {
+        // No-op.
     }
 
-    /** {@inheritDoc} */
-    @Nullable @Override public ITcBotUserCreds getServerAuthorizerCreds() {
-        return srvAuthorizerCreds;
+    public static TcBotApplicationContext create() {
+        return ServiceLoader.load(TcBotApplicationContextFactory.class)
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException("No TC Bot application context factory found"))
+            .create();
     }
 }

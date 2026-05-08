@@ -14,25 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.tcbot;
 
-import org.apache.ignite.ci.user.ITcBotUserCreds;
-import org.jetbrains.annotations.Nullable;
+package org.apache.ignite.tcbot.common.monitoring;
 
-/**
- *
- */
-public class TcBotBgAuthImpl implements ITcBotBgAuth {
-    /** Server authorizer credentials. */
-    private ITcBotUserCreds srvAuthorizerCreds;
+import java.util.Collection;
 
-    /** {@inheritDoc} */
-    @Override public void setServerAuthorizerCreds(ITcBotUserCreds creds) {
-        this.srvAuthorizerCreds = creds;
-    }
+public interface MonitoredTasks extends AutoCloseable {
+    Collection<? extends Invocation> getList();
 
-    /** {@inheritDoc} */
-    @Nullable @Override public ITcBotUserCreds getServerAuthorizerCreds() {
-        return srvAuthorizerCreds;
+    long startedTs();
+
+    @Override void close() throws Exception;
+
+    interface Invocation {
+        String name();
+
+        int count();
+
+        long startTs();
+
+        long endTs();
+
+        String start();
+
+        String end();
+
+        String result();
     }
 }

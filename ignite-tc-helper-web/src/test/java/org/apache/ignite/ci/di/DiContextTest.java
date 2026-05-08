@@ -26,7 +26,7 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
-import org.apache.ignite.ci.tcbot.TcBotWebAppModule;
+import org.apache.ignite.tcbot.app.guice.TcBotWebAppModule;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTaskInterceptor;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;

@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.web.rest.tracked;
 
-import org.apache.ignite.ci.web.TcBotApplicationContext;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;

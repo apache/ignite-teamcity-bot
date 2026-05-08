@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.web.rest.build;
 
 import com.google.common.collect.BiMap;
-import org.apache.ignite.ci.web.TcBotApplicationContext;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import java.text.ParseException;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;

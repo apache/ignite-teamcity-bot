@@ -35,8 +35,8 @@ import org.apache.ignite.cache.affinity.Affinity;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
-import org.apache.ignite.tcbot.common.interceptor.AutoProfilingInterceptor;
-import org.apache.ignite.tcbot.common.interceptor.MonitoredTaskInterceptor;
+import org.apache.ignite.tcbot.common.monitoring.MonitoredTasks;
+import org.apache.ignite.tcbot.common.monitoring.ProfilingMonitor;
 import org.apache.ignite.tcbot.engine.build.AiPromptRequestMonitor;
 import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
@@ -104,9 +104,9 @@ public class MonitoringService {
     @PermitAll
     @Path("tasks")
     public List<TaskResult> getTaskMonitoring() {
-        MonitoredTaskInterceptor instance = instance(MonitoredTaskInterceptor.class);
+        MonitoredTasks instance = instance(MonitoredTasks.class);
 
-        final Collection<MonitoredTaskInterceptor.Invocation> list = instance.getList();
+        final Collection<? extends MonitoredTasks.Invocation> list = instance.getList();
 
         return list.stream().map(invocation -> {
             final TaskResult res = new TaskResult();
@@ -124,7 +124,7 @@ public class MonitoringService {
     @GET
     @Path("appLogSummaryLink")
     public AppLogSummaryLink getAppLogSummaryLink() {
-        MonitoredTaskInterceptor instance = instance(MonitoredTaskInterceptor.class);
+        MonitoredTasks instance = instance(MonitoredTasks.class);
 
         AppLogSummaryLink res = new AppLogSummaryLink();
         res.startTs = instance.startedTs();
@@ -375,9 +375,9 @@ public class MonitoringService {
     @PermitAll
     @Path("profiling")
     public List<HotSpot> getHotMethods() {
-        AutoProfilingInterceptor instance = instance(AutoProfilingInterceptor.class);
+        ProfilingMonitor instance = instance(ProfilingMonitor.class);
 
-        Collection<AutoProfilingInterceptor.Invocation> profile = instance.getInvocations();
+        Collection<? extends ProfilingMonitor.Invocation> profile = instance.getInvocations();
 
         Stream<HotSpot> hotSpotStream = profile.stream().map(inv -> {
             HotSpot hotSpot = new HotSpot();
@@ -396,7 +396,7 @@ public class MonitoringService {
     @POST
     @Path("resetProfiling")
     public SimpleResult resetProfiling() {
-        AutoProfilingInterceptor instance = instance(AutoProfilingInterceptor.class);
+        ProfilingMonitor instance = instance(ProfilingMonitor.class);
 
         instance.reset();
 

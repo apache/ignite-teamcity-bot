@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.web.rest;
 
-import org.apache.ignite.ci.web.TcBotApplicationContext;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Set;

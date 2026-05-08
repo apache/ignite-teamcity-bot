@@ -22,6 +22,8 @@ import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
+import org.apache.ignite.tcbot.common.application.TcBotApplicationContexts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
