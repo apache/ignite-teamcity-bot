@@ -265,6 +265,134 @@ public class LoginAuthTest {
     }
 
     @Test
+    public void testNewPasswordRejectedByTeamcityKeepsStoredCredentialsActive() {
+        UserAndSessionsStorage storage = mockOneSessionStor();
+
+        Login login = createLogin();
+
+        LoginResponse initialLogin = login.doLogin("user", "password", storage, "public", Collections.emptySet(),
+            tcLogin);
+
+        assertNotNull(initialLogin.fullToken);
+
+        LoginResponse failedLogin = login.doLogin("user", "mistyped-password", storage, "public",
+            Collections.emptySet(), tcLoginWithFallback(TcLoginResult.unauthorized()));
+
+        assertNull(failedLogin.fullToken);
+        assertNotNull(failedLogin.errorMessage);
+        assertTrue(storage.getUser("user").getCredentialsList().stream()
+            .noneMatch(TcHelperUser.Credentials::isStale));
+        assertEquals("password", credentialPassword(storage, initialLogin.fullToken, "public"));
+    }
+
+    @Test
+    public void testNewPasswordNotCheckedKeepsStoredCredentialsActive() {
+        UserAndSessionsStorage storage = mockOneSessionStor();
+
+        Login login = createLogin();
+
+        LoginResponse initialLogin = login.doLogin("user", "password", storage, "public", Collections.emptySet(),
+            tcLogin);
+
+        assertNotNull(initialLogin.fullToken);
+
+        LoginResponse failedLogin = login.doLogin("user", "possible-new-password", storage, "public",
+            Collections.emptySet(), tcLoginWithFallback(TcLoginResult.notChecked()));
+
+        assertNull(failedLogin.fullToken);
+        assertEquals("Password does not match stored bot credentials", failedLogin.errorMessage);
+        assertTrue(storage.getUser("user").getCredentialsList().stream()
+            .noneMatch(TcHelperUser.Credentials::isStale));
+        assertEquals("password", credentialPassword(storage, initialLogin.fullToken, "public"));
+    }
+
+    @Test
+    public void testStoredPasswordAllowsLoginWhenTeamcityIsNotChecked() {
+        UserAndSessionsStorage storage = mockOneSessionStor();
+
+        Login login = createLogin();
+
+        LoginResponse initialLogin = login.doLogin("user", "password", storage, "public", Collections.emptySet(),
+            tcLogin);
+
+        assertNotNull(initialLogin.fullToken);
+
+        LoginResponse offlineLogin = login.doLogin("user", "password", storage, "public", Collections.emptySet(),
+            tcLoginWithFallback(TcLoginResult.notChecked()));
+
+        assertNotNull(offlineLogin.fullToken);
+        assertTrue(storage.getUser("user").getCredentialsList().stream()
+            .noneMatch(TcHelperUser.Credentials::isStale));
+        assertEquals("password", credentialPassword(storage, offlineLogin.fullToken, "public"));
+    }
+
+    @Test
+    public void testPasswordRotationStalesServiceWithoutAcceptedNewCredentials() {
+        UserAndSessionsStorage storage = mockOneSessionStor();
+
+        Login login = createLogin();
+
+        LoginResponse initialLogin = login.doLogin("user", "password", storage, "public",
+            Collections.singleton("aux"), tcLoginAccepting(
+                "public", "password",
+                "aux", "password"
+            ));
+
+        assertNotNull(initialLogin.fullToken);
+        assertEquals("password", credentialPassword(storage, initialLogin.fullToken, "public"));
+        assertEquals("password", credentialPassword(storage, initialLogin.fullToken, "aux"));
+
+        LoginResponse rotatedLogin = login.doLogin("user", "new-password", storage, "public",
+            Collections.singleton("aux"), tcLoginAcceptingWithFallback(TcLoginResult.unauthorized(),
+                "public", "new-password"
+            ));
+
+        assertNotNull(rotatedLogin.fullToken);
+        assertEquals("new-password", credentialPassword(storage, rotatedLogin.fullToken, "public"));
+        assertFalse(credentials(storage, rotatedLogin.fullToken).hasAccess("aux"));
+        assertNull(storage.getUser("user").getCredentials("aux"));
+    }
+
+    @Test
+    public void testPasswordRotationUpdatesAdditionalServiceWhenNewCredentialsAccepted() {
+        UserAndSessionsStorage storage = mockOneSessionStor();
+
+        Login login = createLogin();
+
+        LoginResponse initialLogin = login.doLogin("user", "password", storage, "public",
+            Collections.singleton("aux"), tcLoginAccepting(
+                "public", "password",
+                "aux", "password"
+            ));
+
+        assertNotNull(initialLogin.fullToken);
+
+        LoginResponse rotatedLogin = login.doLogin("user", "new-password", storage, "public",
+            Collections.singleton("aux"), tcLoginAccepting(
+                "public", "new-password",
+                "aux", "new-password"
+            ));
+
+        assertNotNull(rotatedLogin.fullToken);
+        assertEquals("new-password", credentialPassword(storage, rotatedLogin.fullToken, "public"));
+        assertEquals("new-password", credentialPassword(storage, rotatedLogin.fullToken, "aux"));
+        assertTrue(storage.getUser("user").getCredentialsList().stream()
+            .anyMatch(TcHelperUser.Credentials::isStale));
+    }
+
+    @Test
+    public void testNewUserRejectedByTeamcityIsNotSaved() {
+        UserAndSessionsStorage storage = mockOneSessionStor();
+
+        LoginResponse failedLogin = createLogin().doLogin("user", "password", storage, "public",
+            Collections.emptySet(), tcLoginWithFallback(TcLoginResult.unauthorized()));
+
+        assertNull(failedLogin.fullToken);
+        assertNotNull(failedLogin.errorMessage);
+        assertNull(storage.getUser("user"));
+    }
+
+    @Test
     public void testOldLocalPasswordRejectedByTeamcityKeepsCredentialsActive() {
         UserAndSessionsStorage storage = mockOneSessionStor();
 
@@ -320,5 +448,56 @@ public class LoginAuthTest {
 
     @NotNull public Login createLogin() {
         return new Login();
+    }
+
+    private static ITcLogin tcLoginWithFallback(TcLoginResult fallback) {
+        return tcLoginAcceptingWithFallback(fallback);
+    }
+
+    private static ITcLogin tcLoginAccepting(String... acceptedServerPasswordPairs) {
+        return tcLoginAcceptingWithFallback(TcLoginResult.notChecked(), acceptedServerPasswordPairs);
+    }
+
+    private static ITcLogin tcLoginAcceptingWithFallback(TcLoginResult fallback,
+        String... acceptedServerPasswordPairs) {
+        Map<String, Boolean> accepted = new HashMap<>();
+
+        for (int i = 0; i < acceptedServerPasswordPairs.length; i += 2)
+            accepted.put(loginKey(acceptedServerPasswordPairs[i], acceptedServerPasswordPairs[i + 1]), true);
+
+        return new ITcLogin() {
+            @Override public User checkServiceUserAndPassword(String srvId, String username, String pwd) {
+                return checkServiceUserAndPasswordResult(srvId, username, pwd).user();
+            }
+
+            @Override public TcLoginResult checkServiceUserAndPasswordResult(String srvId, String username,
+                String pwd) {
+                if (accepted.containsKey(loginKey(srvId, pwd))) {
+                    User user = new User();
+                    user.username = username;
+
+                    return TcLoginResult.accepted(user);
+                }
+
+                return fallback;
+            }
+        };
+    }
+
+    private static String loginKey(String srvId, String pwd) {
+        return srvId + ":" + pwd;
+    }
+
+    private ITcBotUserCreds credentials(UserAndSessionsStorage storage, String fullToken) {
+        AuthenticationFilter authenticationFilter = new AuthenticationFilter();
+        ContainerRequestContext ctx = mockCtxWithParams();
+
+        assertTrue(authenticationFilter.authenticate(ctx, fullToken, storage));
+
+        return (ITcBotUserCreds)ctx.getProperty(ITcBotUserCreds._KEY);
+    }
+
+    private String credentialPassword(UserAndSessionsStorage storage, String fullToken, String srvId) {
+        return credentials(storage, fullToken).getPassword(srvId);
     }
 }
