@@ -18,6 +18,7 @@
 <script>
 $(document).ready(function() {
     $(document).tooltip();
+    loadUsersList();
     loadData();
 
     var username = findGetParameter("username");
@@ -87,6 +88,7 @@ function doResetCreds() {
     $.ajax({
         type: "POST",
         url: url,
+        data: parmsForRest().replace(/^\?/, ""),
         contentType: "application/x-www-form-urlencoded; charset=utf-8",
         success: function(data) {
              loadData();
@@ -144,6 +146,52 @@ function loadData() {
         },
         error: showErrInLoadStatus
     });
+}
+
+function loadUsersList() {
+    $.ajax({
+        url: "rest/user/currentUserName",
+        success: showUsersList,
+        error: function() {
+            $("#adminUsersBlock").hide();
+        }
+    });
+}
+
+function showUsersList(menuData) {
+    if (menuData.admin !== true) {
+        $("#adminUsersBlock").hide();
+
+        return;
+    }
+
+    var users = Array.isArray(menuData.users) ? menuData.users : [];
+    var res = "";
+
+    if (users.length === 0) {
+        res = "No other users";
+    }
+    else {
+        res += "<table class='stat'>";
+        res += "<tr><th>User</th><th>Login</th><th>Role</th></tr>";
+
+        for (var i = 0; i < users.length; i++) {
+            var user = users[i];
+            var login = user.username || "";
+            var label = user.displayName || login;
+
+            res += "<tr>";
+            res += "<td><a href='/user.html?login=" + encodeURIComponent(login) + "'>" + escapeHtml(label) + "</a></td>";
+            res += "<td>" + escapeHtml(login) + "</td>";
+            res += "<td>" + (user.admin ? "admin" : "") + "</td>";
+            res += "</tr>";
+        }
+
+        res += "</table>";
+    }
+
+    $("#adminUsers").html(res);
+    $("#adminUsersBlock").show();
 }
 
 function setupEditDialog() {
@@ -209,6 +257,16 @@ function showData(userUi) {
             {
                 "data": "servicePassword",
                 title: "Password"
+            },
+            {
+                "data": "stale",
+                title: "Status",
+                "render": function(data, type, row) {
+                    if (data === true)
+                        return "Stale" + (isDefinedAndFilled(row.staleReason) ? ": " + row.staleReason : "");
+
+                    return "Active";
+                }
             }
         ]
     });
@@ -216,6 +274,10 @@ function showData(userUi) {
 </script>
 
 <div id="form_container">
+    <div id="adminUsersBlock" style="display: none">
+        <h3>Users</h3>
+        <div id="adminUsers"></div>
+    </div>
 
     <form id="userData" class="appnitro">
         <div class="form_description">
@@ -290,6 +352,7 @@ function showData(userUi) {
                 <th>Service Id</th>
                 <th>Login</th>
                 <th>Password</th>
+                <th>Status</th>
             </tr>
             </thead>
         </table>

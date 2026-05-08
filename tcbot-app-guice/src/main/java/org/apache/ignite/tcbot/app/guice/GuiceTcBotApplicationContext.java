@@ -30,6 +30,7 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
+import org.apache.ignite.ci.web.rest.login.UserAdminRefreshService;
 import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import org.apache.ignite.tcbot.common.monitoring.MonitoredTasks;
 import org.apache.ignite.tcbot.engine.cleaner.Cleaner;
@@ -89,6 +90,7 @@ class GuiceTcBotApplicationContext implements TcBotApplicationContext {
                     return;
 
                 getInstance(BuildObserver.class);
+                getInstance(UserAdminRefreshService.class).start();
                 ready.set(true);
             }
             catch (Exception e) {

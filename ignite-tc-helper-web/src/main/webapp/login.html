@@ -62,6 +62,10 @@
         tcHelperLogout();
      }
 
+     var authError = findGetParameter("authError");
+     if (isDefinedAndFilled(authError))
+        $("#loadStatus").text(authError);
+
      $("#loginForm").submit(function(e) {
          var url = "rest/login/login";
 
@@ -97,7 +101,9 @@
              window.location.href = "/";
          }
      } else {
-         $("#loadStatus").html('Login failed, please check username and password');
+         $("#loadStatus").text(isDefinedAndFilled(data.errorMessage)
+             ? data.errorMessage
+             : 'Login failed, please check username and password');
      }
  }
 

@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.tcservice.login;
 
+import com.google.common.base.Strings;
 import org.apache.ignite.tcservice.TeamcityServiceConnection;
 import org.apache.ignite.tcservice.model.user.User;
 import org.apache.ignite.tcbot.common.exeption.ServiceUnauthorizedException;
@@ -37,6 +38,11 @@ public class TcLoginImpl implements ITcLogin {
 
     /** {@inheritDoc} */
     @Override public User checkServiceUserAndPassword(String srvId, String username, String pwd) {
+        return checkServiceUserAndPasswordResult(srvId, username, pwd).user();
+    }
+
+    /** {@inheritDoc} */
+    @Override public TcLoginResult checkServiceUserAndPasswordResult(String srvId, String username, String pwd) {
         try {
             TeamcityServiceConnection tcConn = tcFactory.get();
 
@@ -44,25 +50,32 @@ public class TcLoginImpl implements ITcLogin {
 
             tcConn.setAuthData(username, pwd);
 
-            final User tcUser = tcConn.getUserByUsername(username);
+            final User tcUser = tcConn.getCurrentUser();
 
-            if (tcUser != null)
+            if (tcUser != null) {
+                if (!Strings.isNullOrEmpty(tcUser.username) && !username.equalsIgnoreCase(tcUser.username)) {
+                    logger.warn("TC current user mismatch [requested={}, returned={}]", username, tcUser.username);
+
+                    return TcLoginResult.unauthorized();
+                }
+
                 logger.info("TC user returned: " + tcUser);
+            }
 
-            return tcUser;
+            return tcUser == null ? TcLoginResult.notChecked() : TcLoginResult.accepted(tcUser);
         }
         catch (ServiceUnauthorizedException e) {
             final String msg = "Service " + srvId + " rejected credentials from " + username;
             System.err.println(msg);
 
             logger.warn(msg, e);
-            return null;
+            return TcLoginResult.unauthorized();
         }
         catch (Exception e) {
             e.printStackTrace();
             logger.error("Unexpected login exception", e);
 
-            return null;
+            return TcLoginResult.notChecked();
         }
     }
 }

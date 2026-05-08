@@ -24,6 +24,7 @@ import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.apache.ignite.tcservice.model.user.User;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcservice.login.ITcLogin;
+import org.apache.ignite.tcservice.login.TcLoginResult;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.tcbot.common.util.Base64Util;
 import org.apache.ignite.tcbot.common.util.CryptUtil;
@@ -39,6 +40,7 @@ import javax.ws.rs.core.Context;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 @Path("login")
 @Produces("application/json")
@@ -79,7 +81,7 @@ public class Login {
         String primarySrvCode = cfg.primaryServerCode();
 
         try {
-            return doLogin(username, pwd, users, primarySrvCode, cfg.getServerIds(), tcLogin);
+            return doLogin(username, pwd, users, primarySrvCode, cfg.getServerIds(), tcLogin, cfg.botAdminGroups());
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
@@ -92,6 +94,17 @@ public class Login {
                                  String primarySrvId,
                                  Collection<String> srvIds,
                                  ITcLogin tcLogin) {
+        return doLogin(username, pwd, users, primarySrvId, srvIds, tcLogin,
+            Collections.singleton(ITcBotConfig.DEFAULT_BOT_ADMIN_GROUP));
+    }
+
+    public LoginResponse doLogin(@FormParam("uname") String username,
+                                 @FormParam("psw") String pwd,
+        IUserStorage users,
+                                 String primarySrvId,
+                                 Collection<String> srvIds,
+                                 ITcLogin tcLogin,
+                                 Collection<String> botAdminGroups) {
         SecureRandom random = new SecureRandom();
         byte[] tokBytes = random.generateSeed(TOKEN_LEN);
         String tok = Base64Util.encodeBytesToString(tokBytes);
@@ -114,7 +127,8 @@ public class Login {
         byte[] userKeyCandidateKcv = CryptUtil.aesKcv(userKeyCandidate);
 
 
-        final User tcUser = tcLogin.checkServiceUserAndPassword(primarySrvId, username, pwd);
+        final TcLoginResult loginResult = tcLogin.checkServiceUserAndPasswordResult(primarySrvId, username, pwd);
+        final User tcUser = loginResult.user();
 
         if (user.userKeyKcv == null) {
             if (tcUser == null) {
@@ -123,32 +137,43 @@ public class Login {
 
                 return loginRes;
             }
-            user.userKeyKcv = userKeyCandidateKcv;
 
-            user.email = tcUser.email;
-            user.fullName = tcUser.name;
+            updateUserKeyAndCredentials(user, userKeyCandidateKcv, userKeyCandidate, primarySrvId, srvIds, username,
+                pwd, tcUser, tcLogin);
+        } else {
+            if (Arrays.equals(userKeyCandidateKcv, user.userKeyKcv)) {
+                if (loginResult.isUnauthorized()) {
+                    loginRes.errorMessage =
+                        "Service " + primarySrvId + " rejected credentials/user not found";
 
-            user.getOrCreateCreds(primarySrvId).setLogin(username).setPassword(pwd, userKeyCandidate);
-
-            user.enrichUserData(tcUser);
-
-            for (String addSrvId : srvIds) {
-                if (!addSrvId.equals(primarySrvId)) {
-                    final User tcAddUser = tcLogin.checkServiceUserAndPassword(addSrvId, username, pwd);
-
-                    if (tcAddUser != null) {
-                        user.getOrCreateCreds(addSrvId).setLogin(username).setPassword(pwd, userKeyCandidate);
-
-                        user.enrichUserData(tcAddUser);
-                    }
+                    return loginRes;
                 }
             }
+            else {
+                if (tcUser == null) {
+                    loginRes.errorMessage = loginResult.isUnauthorized()
+                        ? "Service " + primarySrvId + " rejected credentials/user not found"
+                        : "Password does not match stored bot credentials";
 
-            users.putUser(username, user);
-        } else {
-            if (!Arrays.equals(userKeyCandidateKcv, user.userKeyKcv))
-                return loginRes; //password validation failed
+                    return loginRes;
+                }
+
+                user.markCredentialsStale("Replaced after successful TeamCity login with a new password");
+
+                updateUserKeyAndCredentials(user, userKeyCandidateKcv, userKeyCandidate, primarySrvId, srvIds,
+                    username, pwd, tcUser, tcLogin);
+            }
         }
+
+        if (tcUser != null)
+            user.enrichUserData(tcUser);
+
+        if (tcUser != null)
+            user.updateAdmin(tcUser.belongsToAnyGroup(botAdminGroups), System.currentTimeMillis());
+
+        users.putUser(username, user);
+
+        //todo may be enrich user data here as well.
         userSes.userKeyUnderToken = CryptUtil.aesEncrypt(tokBytes, userKeyCandidate);
 
         users.putSession(sessId, userSes);
@@ -156,6 +181,36 @@ public class Login {
         loginRes.fullToken = sessId + ":" + tok;
 
         return loginRes;
+    }
+
+    private void updateUserKeyAndCredentials(
+        TcHelperUser user,
+        byte[] userKeyCandidateKcv,
+        byte[] userKeyCandidate,
+        String primarySrvId,
+        Collection<String> srvIds,
+        String username,
+        String pwd,
+        User tcUser,
+        ITcLogin tcLogin
+    ) {
+        user.userKeyKcv = userKeyCandidateKcv;
+
+        user.getOrCreateCreds(primarySrvId).setLogin(username).setPassword(pwd, userKeyCandidate);
+
+        user.enrichUserData(tcUser);
+
+        for (String addSrvId : srvIds) {
+            if (!addSrvId.equals(primarySrvId)) {
+                final User tcAddUser = tcLogin.checkServiceUserAndPasswordResult(addSrvId, username, pwd).user();
+
+                if (tcAddUser != null) {
+                    user.getOrCreateCreds(addSrvId).setLogin(username).setPassword(pwd, userKeyCandidate);
+
+                    user.enrichUserData(tcAddUser);
+                }
+            }
+        }
     }
 
     private TcHelperUser getOrCreateUser(@FormParam("uname") String username,

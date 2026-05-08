@@ -16,14 +16,38 @@
 </head>
 <body>
 <script>
+    var monitoringAdmin = false;
+
     $(document).ready(function() {
         $.getScript("js/common-1.7.js", function(data, textStatus, jqxhr){ });
 
         $( document ).tooltip();
 
-        loadData();
-        setInterval(loadAiPromptsData, 5000);
+        $.ajax({
+            url: "/rest/user/currentUserName",
+            success: function(result) {
+                monitoringAdmin = result.admin === true;
+
+                initAdminControls();
+                loadData();
+                setInterval(loadAiPromptsData, 5000);
+            },
+            error: function() {
+                monitoringAdmin = false;
+
+                initAdminControls();
+                loadData();
+                setInterval(loadAiPromptsData, 5000);
+            }
+        });
     });
+
+    function initAdminControls() {
+        if (monitoringAdmin)
+            $(".adminOnly").show();
+        else
+            $(".adminOnly").hide();
+    }
 
     function loadPofilingData() {
         $.ajax({
@@ -57,21 +81,23 @@
             error: showErrInLoadStatus
         });
 
-        $.ajax({
-            url: "rest/monitoring/tasks",
-            success: function(result) {
-                $("#loadStatus").html("");
+        if (monitoringAdmin) {
+            $.ajax({
+                url: "rest/monitoring/tasks",
+                success: function(result) {
+                    $("#loadStatus").html("");
 
-                showTasks(result);
-            },
-            error: showErrInLoadStatus
-        });
+                    showTasks(result);
+                },
+                error: showErrInLoadStatus
+            });
 
-        $.ajax({
-            url: "rest/monitoring/appLogSummaryLink",
-            success: showAppLogSummaryLink,
-            error: showErrInLoadStatus
-        });
+            $.ajax({
+                url: "rest/monitoring/appLogSummaryLink",
+                success: showAppLogSummaryLink,
+                error: showErrInLoadStatus
+            });
+        }
 
         loadPofilingData();
         loadRequestData();
@@ -112,7 +138,8 @@
         res += "<th>Count</th>";
         res += "<th>End</th>";
         res += "<th>Result</th>";
-        res += "<th>Actions</th>";
+        if (monitoringAdmin)
+            res += "<th>Actions</th>";
         res += "</tr>";
         for (var i = 0; i < result.length; i++) {
             var task = result[i];
@@ -126,7 +153,8 @@
             res += "<td>" + escapeHtml(task.count) + "</td>";
             res += "<td>" + escapeHtml(task.end) + "</td>";
             res += "<td>" + escapeHtml(task.result) + "</td>";
-            res += "<td><a target='_blank' href='" + logUrl + "'>Warnings/errors</a></td>";
+            if (monitoringAdmin)
+                res += "<td><a target='_blank' href='" + logUrl + "'>Warnings/errors</a></td>";
             res += "</tr>";
         }
         res += "</table>";
@@ -277,6 +305,9 @@
     }
 
     function testSlackNotification() {
+        if (!monitoringAdmin)
+            return false;
+
         $.ajax({
             url: "rest/monitoring/testSlackNotification",
             method: "post",
@@ -292,6 +323,9 @@
     }
 
     function testEmailNotification() {
+        if (!monitoringAdmin)
+            return false;
+
         $.ajax({
             url: "rest/monitoring/testEmailNotification",
             method: "post",
@@ -318,10 +352,12 @@
 
 </script>
 
-Tasks Monitoring Data:
-<div id="appLogSummary" style="font-family: monospace"></div>
-<div id="tasks" style="font-family: monospace"></div>
-<br>
+<div class="adminOnly">
+    Tasks Monitoring Data:
+    <div id="appLogSummary" style="font-family: monospace"></div>
+    <div id="tasks" style="font-family: monospace"></div>
+    <br>
+</div>
 
 <hr>
 <b>AI Prompt Requests:</b>
@@ -329,12 +365,12 @@ Tasks Monitoring Data:
 <br>
 
 <hr>
-<b>REST Request Timings:</b> <button onclick="resetRequests()">Reset</button>
+<b>REST Request Timings:</b> <button class="adminOnly" onclick="resetRequests()">Reset</button>
 <div id="requests" style="font-family: monospace"></div>
 <br>
 
 <hr>
-<b>Method Profiling Data:</b> <button onclick="resetProfiling()">Reset</button>
+<b>Method Profiling Data:</b> <button class="adminOnly" onclick="resetProfiling()">Reset</button>
 <div id="profiling" style="font-family: monospace"></div>
 <br>
 
@@ -345,6 +381,7 @@ Tasks Monitoring Data:
 <br>
 
 <hr>
+<div class="adminOnly">
 <b>Test Slack notification:</b> <button onclick="testSlackNotification()">Send</button>
 <b>Test Email notification:</b>
 
@@ -353,6 +390,7 @@ Tasks Monitoring Data:
 </form>
 
 <button onclick="testEmailNotification()">Send</button>
+</div>
 
 <br>
 

@@ -21,10 +21,13 @@ import com.google.common.base.Throwables;
 import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.StringTokenizer;
 import javax.annotation.security.DenyAll;
 import javax.annotation.security.PermitAll;
+import javax.annotation.security.RolesAllowed;
 import javax.crypto.BadPaddingException;
 import javax.servlet.ServletContext;
 import javax.ws.rs.container.ContainerRequestContext;
@@ -53,6 +56,9 @@ import org.slf4j.LoggerFactory;
  */
 @Provider
 public class AuthenticationFilter implements ContainerRequestFilter {
+    /** Admin role name for {@link RolesAllowed}. */
+    public static final String ADMIN_ROLE = "ADMIN";
+
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(AuthenticationFilter.class);
 
@@ -128,7 +134,39 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         if (!authenticate(reqCtx, tokFull, users)) {
             reqCtx.abortWith(rspUnathorized());
+
+            return;
         }
+
+        RolesAllowed rolesAnnotation = rolesAllowed(mtd);
+
+        //Verify user access
+        if (rolesAnnotation != null) {
+            Set<String> rolesSet = new HashSet<String>(Arrays.asList(rolesAnnotation.value()));
+            ITcBotUserCreds creds = (ITcBotUserCreds)reqCtx.getProperty(ITcBotUserCreds._KEY);
+            TcHelperUser user = users.getUser(creds.getPrincipalId());
+
+            if (!isUserAllowed(user, rolesSet)) {
+                reqCtx.abortWith(rspForbidden());
+
+                return;
+            }
+        }
+    }
+
+    /**
+     * @param mtd Resource method.
+     */
+    private RolesAllowed rolesAllowed(Method mtd) {
+        if (mtd.isAnnotationPresent(RolesAllowed.class))
+            return mtd.getAnnotation(RolesAllowed.class);
+
+        Class<?> resourceClass = resourceInfo.getResourceClass();
+
+        if (resourceClass != null && resourceClass.isAnnotationPresent(RolesAllowed.class))
+            return resourceClass.getAnnotation(RolesAllowed.class);
+
+        return null;
     }
 
     public boolean authenticate(ContainerRequestContext reqCtx,
@@ -236,5 +274,9 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                 return userKey;
             }
         };
+    }
+
+    private boolean isUserAllowed(TcHelperUser user, Set<String> rolesSet) {
+        return user != null && rolesSet.contains(ADMIN_ROLE) && user.isAdmin();
     }
 }

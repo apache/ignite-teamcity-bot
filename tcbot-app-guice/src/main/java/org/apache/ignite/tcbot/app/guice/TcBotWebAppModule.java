@@ -32,6 +32,7 @@ import org.apache.ignite.ci.tcbot.TcBotBgAuthImpl;
 import org.apache.ignite.ci.tcbot.conf.LocalFilesBasedConfig;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
+import org.apache.ignite.ci.web.rest.login.UserAdminRefreshService;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.apache.ignite.githubignited.GitHubIgnitedModule;
 import org.apache.ignite.jiraignited.JiraIgnitedModule;
@@ -84,6 +85,7 @@ public class TcBotWebAppModule extends AbstractModule {
         bind(BuildObserver.class).in(Scopes.SINGLETON);
         bind(VisasHistoryStorage.class).in(Scopes.SINGLETON);
         bind(Cleaner.class).in(Scopes.SINGLETON);
+        bind(UserAdminRefreshService.class).in(Scopes.SINGLETON);
 
         install(new TcBotPersistenceModule());
         install(new TeamcityIgnitedModule());

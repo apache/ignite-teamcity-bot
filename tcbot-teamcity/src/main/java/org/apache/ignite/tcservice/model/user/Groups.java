@@ -15,26 +15,40 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.web.rest.exception;
+package org.apache.ignite.tcservice.model.user;
 
-import org.apache.ignite.tcbot.common.exeption.ServiceUnauthorizedException;
-
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
-import javax.ws.rs.ext.Provider;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import javax.xml.bind.annotation.XmlElement;
 
 /**
- * Exception mapper for case is thrown if 3rd party service returned 401 - unauthorized.
+ * TeamCity user groups.
  */
-@Provider
-public class ServiceUnauthorizedExceptionMapper
-        implements ExceptionMapper<ServiceUnauthorizedException> {
-    public ServiceUnauthorizedExceptionMapper() {
+public class Groups {
+    @XmlElement(name = "group")
+    private List<GroupRef> groups;
+
+    /**
+     * Required by JAXB.
+     */
+    public Groups() {
     }
 
-    @Override
-    public Response toResponse(ServiceUnauthorizedException exception) {
-        return Response.status(Response.Status.UNAUTHORIZED).entity(exception.getMessage())
-                .type("text/plain").build();
+    /**
+     * @param groups Groups.
+     */
+    public Groups(GroupRef... groups) {
+        this.groups = Arrays.asList(groups);
+    }
+
+    /**
+     * @return Group references.
+     */
+    public List<GroupRef> getGroupRefs() {
+        if (groups == null)
+            return Collections.emptyList();
+
+        return groups;
     }
 }

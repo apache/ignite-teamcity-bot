@@ -24,6 +24,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import javax.annotation.security.PermitAll;
+import javax.annotation.security.RolesAllowed;
+import org.apache.ignite.ci.web.auth.AuthenticationFilter;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -39,6 +41,20 @@ public class MonitoringServiceSecurityTest {
     }
 
     @Test
+    public void logEndpointsRequireAdminRole() throws NoSuchMethodException {
+        assertAdminRequired(MonitoringService.class.getMethod("getAppLogSummaryLink"));
+        assertAdminRequired(MonitoringService.class.getMethod("getTaskLog", long.class, long.class));
+    }
+
+    @Test
+    public void mutationEndpointsRequireAdminRole() throws NoSuchMethodException {
+        assertAdminRequired(MonitoringService.class.getMethod("resetProfiling"));
+        assertAdminRequired(MonitoringService.class.getMethod("resetRequestStats"));
+        assertAdminRequired(MonitoringService.class.getMethod("testSlackNotification"));
+        assertAdminRequired(MonitoringService.class.getMethod("testEmailNotification", String.class));
+    }
+
+    @Test
     public void requestTimingFieldsAreEscaped() throws IOException {
         String html = new String(Files.readAllBytes(monitoringHtml()), StandardCharsets.UTF_8);
 
@@ -50,8 +66,39 @@ public class MonitoringServiceSecurityTest {
         assertTrue(html.contains("String(str == null ? \"\" : str)"));
     }
 
+    @Test
+    public void notificationTestControlsAreHiddenForNonAdmins() throws IOException, NoSuchMethodException {
+        String html = new String(Files.readAllBytes(monitoringHtml()), StandardCharsets.UTF_8);
+        String css = new String(Files.readAllBytes(styleCss()), StandardCharsets.UTF_8);
+
+        assertTrue(html.contains("<div class=\"adminOnly\">"));
+        assertTrue(html.contains("testSlackNotification()"));
+        assertTrue(html.contains("testEmailNotification()"));
+        assertTrue(css.contains(".adminOnly"));
+        assertTrue(css.contains("display: none"));
+
+        assertAdminRequired(MonitoringService.class.getMethod("testSlackNotification"));
+        assertAdminRequired(MonitoringService.class.getMethod("testEmailNotification", String.class));
+    }
+
+    @Test
+    public void taskMonitoringBlockIsHiddenForNonAdmins() throws IOException {
+        String html = new String(Files.readAllBytes(monitoringHtml()), StandardCharsets.UTF_8);
+
+        assertTrue(html.contains("<div class=\"adminOnly\">\n    Tasks Monitoring Data:"));
+        assertTrue(html.contains("rest/monitoring/tasks"));
+        assertFalse(html.contains("Application warnings/errors are available for bot admins."));
+    }
+
     private static void assertAuthRequired(Method method) {
         assertFalse(method.isAnnotationPresent(PermitAll.class));
+    }
+
+    private static void assertAdminRequired(Method method) {
+        RolesAllowed rolesAllowed = method.getAnnotation(RolesAllowed.class);
+
+        assertTrue(rolesAllowed != null);
+        assertTrue(java.util.Arrays.asList(rolesAllowed.value()).contains(AuthenticationFilter.ADMIN_ROLE));
     }
 
     private static Path monitoringHtml() {
@@ -61,5 +108,14 @@ public class MonitoringServiceSecurityTest {
             return projectPath;
 
         return Paths.get("ignite-tc-helper-web/src/main/webapp/monitoring.html");
+    }
+
+    private static Path styleCss() {
+        Path projectPath = Paths.get("src/main/webapp/css/style-1.5.css");
+
+        if (Files.exists(projectPath))
+            return projectPath;
+
+        return Paths.get("ignite-tc-helper-web/src/main/webapp/css/style-1.5.css");
     }
 }

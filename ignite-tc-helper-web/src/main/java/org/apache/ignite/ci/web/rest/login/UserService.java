@@ -19,11 +19,15 @@ package org.apache.ignite.ci.web.rest.login;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import java.util.Comparator;
+import java.util.Objects;
 import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -40,6 +44,7 @@ import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcservice.model.user.User;
 import org.apache.ignite.tcservice.login.ITcLogin;
+import org.apache.ignite.tcservice.login.TcLoginResult;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.web.CtxListener;
@@ -87,6 +92,15 @@ public class UserService {
         UserMenuResult res = new UserMenuResult(user.getDisplayName());
 
         res.authorizedState = issueDetector.isAuthorized();
+        res.admin = user.isAdmin();
+
+        if (user.isAdmin()) {
+            users.allUsers()
+                .filter(next -> !Objects.equals(user.username, next.username))
+                .sorted(Comparator.comparing(TcHelperUser::getDisplayName, String.CASE_INSENSITIVE_ORDER))
+                .map(next -> new UserMenuResult.User(next.username, next.getDisplayName(), next.isAdmin()))
+                .forEach(res.users::add);
+        }
 
         return res;
     }
@@ -123,7 +137,14 @@ public class UserService {
         ITcBotConfig cfg = appCtx.getInstance(ITcBotConfig.class);
 
         IUserStorage users = appCtx.getInstance(IUserStorage.class);
+        final TcHelperUser currUser = users.getUser(currUserLogin);
+        ensureCanAccessUser(currUser, currUserLogin, login);
+
         final TcHelperUser user = users.getUser(login);
+        if (user == null)
+            throw new NotFoundException("User not found: " + login);
+
+        //todo can filter accessibliity
         final TcHelperUserUi tcHelperUserUi = new TcHelperUserUi(user,
                 cfg.getTrackedBranches().branchesStream()
                         .map(ITrackedBranch::name)
@@ -138,6 +159,8 @@ public class UserService {
 
             final byte[] encPass = next.getPasswordUnderUserKey();
             credsUi.servicePassword = encPass != null && encPass.length > 0 ? "*******" : "";
+            credsUi.stale = next.isStale();
+            credsUi.staleReason = next.getStaleReason();
 
             tcHelperUserUi.data.add(credsUi);
         }
@@ -152,7 +175,12 @@ public class UserService {
         final String login = Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
 
         final IUserStorage users = CtxListener.getApplicationContext(ctx).getInstance(IUserStorage.class);
+        final TcHelperUser currUser = users.getUser(currUserLogin);
+        ensureCanAccessUser(currUser, currUserLogin, login);
+
         final TcHelperUser user = users.getUser(login);
+        if (user == null)
+            throw new NotFoundException("User not found: " + login);
 
         user.resetCredentials();
 
@@ -177,18 +205,17 @@ public class UserService {
 
         final IUserStorage users = appCtx.getInstance(IUserStorage.class);
         final TcHelperUser user = users.getUser(currUserLogin);
-        final User tcAddUser = tcLogin.checkServiceUserAndPassword(svcId, svcLogin, svcPwd);
+        final TcLoginResult loginResult = tcLogin.checkServiceUserAndPasswordResult(svcId, svcLogin, svcPwd);
+        final User tcAddUser = loginResult.user();
 
         if (tcAddUser == null)
             return new SimpleResult("Service rejected credentials/user not found");
 
-        final TcHelperUser.Credentials creds = new TcHelperUser.Credentials(svcId, svcLogin);
+        final TcHelperUser.Credentials creds = user.getOrCreateCreds(svcId).setLogin(svcLogin);
 
         creds.setPassword(svcPwd, prov.getUserKey());
 
         user.enrichUserData(tcAddUser);
-
-        user.getCredentialsList().add(creds);
 
         users.putUser(currUserLogin, user);
 
@@ -202,10 +229,16 @@ public class UserService {
         @Nullable @FormParam("fullName") final String fullName,
         Form form) {
 
-        final String login = ITcBotUserCreds.get(req).getPrincipalId();
+        final String currUserLogin = ITcBotUserCreds.get(req).getPrincipalId();
+        final String login = Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
 
         final IUserStorage users = CtxListener.getApplicationContext(ctx).getInstance(IUserStorage.class);
+        final TcHelperUser currUser = users.getUser(currUserLogin);
+        ensureCanAccessUser(currUser, currUserLogin, login);
+
         final TcHelperUser user = users.getUser(login);
+        if (user == null)
+            throw new NotFoundException("User not found: " + login);
 
         user.resetNotifications();
         form.asMap().forEach((k, v) -> {
@@ -222,9 +255,18 @@ public class UserService {
         user.fullName = fullName;
         user.email = email;
 
-        users.putUser(user.username, user);
+        users.putUser(login, user);
 
         return new SimpleResult("");
     }
 
+    /**
+     * @param currUser Current user.
+     * @param currUserLogin Current user login.
+     * @param requestedLogin Requested user login.
+     */
+    private void ensureCanAccessUser(TcHelperUser currUser, String currUserLogin, String requestedLogin) {
+        if (!Objects.equals(currUserLogin, requestedLogin) && (currUser == null || !currUser.isAdmin()))
+            throw new ForbiddenException("Only bot admin can access other users");
+    }
 }

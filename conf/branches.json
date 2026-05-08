@@ -1,6 +1,9 @@
 {
   // Default server (service) code, internal identification
   "primaryServerCode": "apache",
+  // TeamCity group ids whose members can administer sensitive bot settings.
+  // Apache Ignite test admins are exposed by TeamCity REST as key="IGNITE_COMMITER".
+  "botAdminGroups": ["IGNITE_COMMITER"],
   "confidence": 0.995,
   "cleanerConfig": {
     "numOfItemsToDel": 100000,
@@ -161,13 +164,13 @@
       "disableIssueTypes": []
     },
     {
-      "id": "ignite-2.11-nightly",
+      "id": "ignite-2.18-nightly",
       "chains": [
         {
           "serverId": "apache",
           "suiteId": "IgniteTests24Java8_RunAllNightly",
-          "branchForRest": "ignite-2.11",
-          "baseBranchForTc": "ignite-2.10",
+          "branchForRest": "ignite-2.18",
+          "baseBranchForTc": "ignite-2.17",
           "triggerBuild": true,
           //trigger twice per day
           "triggerBuildQuietPeriod": 720  //triggering quiet period in minutes,
