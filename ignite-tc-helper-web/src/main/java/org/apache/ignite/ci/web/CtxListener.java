@@ -19,7 +19,6 @@ package org.apache.ignite.ci.web;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import java.io.IOException;
 import java.util.logging.Handler;
 import javax.annotation.Nullable;
 import javax.servlet.ServletContext;

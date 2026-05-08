@@ -20,5 +20,7 @@ apply plugin: 'java'
 dependencies {
     api project(":tcbot-jira")
     api project(":tcbot-persistence")
+
+    implementation group: 'javax.inject', name: 'javax.inject', version: '1'
 }
  

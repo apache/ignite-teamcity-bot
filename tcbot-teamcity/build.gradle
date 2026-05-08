@@ -24,5 +24,7 @@ dependencies {
     /// JAXB replacement for Java 17, API is defined in common
     api group: 'com.sun.xml.bind', name: 'jaxb-impl', version: jaxbVer
     api group: 'com.sun.xml.bind', name: 'jaxb-core', version: '2.3.0'
+
+    implementation group: 'javax.inject', name: 'javax.inject', version: '1'
 }
  

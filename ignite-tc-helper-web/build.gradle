@@ -28,6 +28,9 @@ dependencies {
     implementation group: 'org.apache.ignite', name: 'ignite-slf4j', version: ignVer
     implementation group: 'org.apache.ignite', name: 'ignite-direct-io', version: ignVer
 
+    implementation group: 'com.google.inject', name: 'guice', version: guiceVer
+    implementation group: 'javax.inject', name: 'javax.inject', version: '1'
+
     implementation group: 'org.slf4j', name: 'slf4j-api', version: slf4jVer
     implementation group: 'org.slf4j', name: 'jul-to-slf4j', version: slf4jVer
 

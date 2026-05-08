@@ -24,8 +24,6 @@ dependencies {
     //Apache License Version 2.0
     api group: 'com.google.code.gson', name: 'gson', version: gsonVer
 
-    api group: 'javax.inject', name: 'javax.inject', version: '1'
-    api group: 'aopalliance', name: 'aopalliance', version: '1.0'
     api group: 'com.google.code.findbugs', name: 'jsr305', version: jsr305Ver
     api group: 'org.checkerframework', name: 'checker-qual', version: checkerQualVer
 

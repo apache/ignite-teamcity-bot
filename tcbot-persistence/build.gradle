@@ -30,5 +30,7 @@ dependencies {
     }
 
     api "org.apache.ignite:ignite-indexing:$ignVer"
+
+    implementation group: 'javax.inject', name: 'javax.inject', version: '1'
 }
  
