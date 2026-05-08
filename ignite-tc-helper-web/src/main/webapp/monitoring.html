@@ -37,6 +37,18 @@
         });
     }
 
+    function loadRequestData() {
+        $.ajax({
+            url: "rest/monitoring/requests",
+            success: function (result) {
+                $("#loadStatus").html("");
+
+                showRequests(result);
+            },
+            error: showErrInLoadStatus
+        });
+    }
+
     function loadData() {
         $("#loadStatus").html("&#8987; Please wait");
         $.ajax({
@@ -62,6 +74,7 @@
         });
 
         loadPofilingData();
+        loadRequestData();
 
         $.ajax({
             url: "rest/monitoring/cacheMetrics",
@@ -152,6 +165,40 @@
         $("#profiling").html(res);
     }
 
+    /**
+     * @param result org.apache.ignite.ci.web.rest.monitoring.RequestStat
+     */
+    function showRequests(result) {
+        var res = "<table class='stat'>" ;
+        res += "<tr>";
+        res += "<th>Method</th>";
+        res += "<th>Path</th>";
+        res += "<th>Count</th>";
+        res += "<th>Total, ms</th>";
+        res += "<th>Avg, ms</th>";
+        res += "<th>Max, ms</th>";
+        res += "<th>Last, ms</th>";
+        res += "<th>Last status</th>";
+        res += "<th>Last request</th>";
+        res += "</tr>";
+        for (var i = 0; i < result.length; i++) {
+            var inv = result[i];
+            res += "<tr>";
+            res += "<td>" + escapeHtml(inv.method) + "</td>";
+            res += "<td>" + escapeHtml(inv.path) + "</td>";
+            res += "<td>" + escapeHtml(inv.count) + "</td>";
+            res += "<td>" + escapeHtml(inv.totalMs) + "</td>";
+            res += "<td>" + escapeHtml(inv.avgMs) + "</td>";
+            res += "<td>" + escapeHtml(inv.maxMs) + "</td>";
+            res += "<td>" + escapeHtml(inv.lastMs) + "</td>";
+            res += "<td>" + escapeHtml(inv.lastStatus) + "</td>";
+            res += "<td>" + escapeHtml(inv.lastRequest) + "</td>";
+            res += "</tr>";
+        }
+        res += "</table>";
+        $("#requests").html(res);
+    }
+
     function showCacheMetrics(result) {
         var res = "<table class='stat'>" ;
         res += "<tr>";
@@ -189,18 +236,18 @@
         for (var i = 0; i < result.length; i++) {
             var req = result[i];
             res += "<tr>";
-            res += "<td>" + req.id + "</td>";
-            res += "<td>" + req.kind + "</td>";
-            res += "<td>" + req.branch + "</td>";
-            res += "<td>" + req.server + "</td>";
-            res += "<td>" + req.suite + "</td>";
-            res += "<td>" + req.test + "</td>";
-            res += "<td>" + req.stage + "</td>";
-            res += "<td>" + req.start + "</td>";
-            res += "<td>" + req.end + "</td>";
-            res += "<td>" + req.duration + "</td>";
-            res += "<td>" + req.running + "</td>";
-            res += "<td>" + req.result + "</td>";
+            res += "<td>" + escapeHtml(req.id) + "</td>";
+            res += "<td>" + escapeHtml(req.kind) + "</td>";
+            res += "<td>" + escapeHtml(req.branch) + "</td>";
+            res += "<td>" + escapeHtml(req.server) + "</td>";
+            res += "<td>" + escapeHtml(req.suite) + "</td>";
+            res += "<td>" + escapeHtml(req.test) + "</td>";
+            res += "<td>" + escapeHtml(req.stage) + "</td>";
+            res += "<td>" + escapeHtml(req.start) + "</td>";
+            res += "<td>" + escapeHtml(req.end) + "</td>";
+            res += "<td>" + escapeHtml(req.duration) + "</td>";
+            res += "<td>" + escapeHtml(req.running) + "</td>";
+            res += "<td>" + escapeHtml(req.result) + "</td>";
             res += "</tr>";
         }
         res += "</table>";
@@ -213,6 +260,17 @@
             method: "post",
             success: function(result) {
                 loadPofilingData();
+            },
+            error: showErrInLoadStatus
+        });
+    }
+
+    function resetRequests() {
+        $.ajax({
+            url: "rest/monitoring/resetRequests",
+            method: "post",
+            success: function(result) {
+                loadRequestData();
             },
             error: showErrInLoadStatus
         });
@@ -250,7 +308,7 @@
     }
 
     function escapeHtml(str) {
-        return String(str || "")
+        return String(str == null ? "" : str)
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;")
@@ -268,6 +326,11 @@ Tasks Monitoring Data:
 <hr>
 <b>AI Prompt Requests:</b>
 <div id="aiPrompts" style="font-family: monospace"></div>
+<br>
+
+<hr>
+<b>REST Request Timings:</b> <button onclick="resetRequests()">Reset</button>
+<div id="requests" style="font-family: monospace"></div>
 <br>
 
 <hr>

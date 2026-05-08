@@ -34,10 +34,9 @@ import org.apache.ignite.cache.CacheMetrics;
 import org.apache.ignite.cache.affinity.Affinity;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.SimpleResult;
+import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfilingInterceptor;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTaskInterceptor;
-import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
-import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.apache.ignite.tcbot.engine.build.AiPromptRequestMonitor;
 import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
@@ -481,5 +480,33 @@ public class MonitoringService {
             res.add(new CacheMetricsUi(next, size, affinity.partitions()));
         }
         return res;
+    }
+
+    @GET
+    @Path("requests")
+    public List<RequestStat> getRequestStats() {
+        return RestRequestTimingStorage.stats();
+    }
+
+    @GET
+    @Path("recentRequests")
+    public List<RequestTiming> getRecentRequests() {
+        return RestRequestTimingStorage.recent();
+    }
+
+    @POST
+    @Path("resetRequests")
+    public SimpleResult resetRequestStats() {
+        RestRequestTimingStorage.reset();
+
+        return new SimpleResult("Ok");
+    }
+
+    @GET
+    @Path("aiPrompts")
+    public List<AiPromptRequestMonitor.Request> getAiPromptRequests() {
+        AiPromptRequestMonitor monitor = CtxListener.getInjector(ctx).getInstance(AiPromptRequestMonitor.class);
+
+        return monitor.getRequests();
     }
 }

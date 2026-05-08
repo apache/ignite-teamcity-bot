@@ -27,6 +27,9 @@
 <script>
     let g_shownDataHashCodeHex = "";
     let g_checkForUpdateSched = false;
+    let g_fullLoadInProgress = false;
+    let g_partialLoadInProgress = false;
+    let g_partialDataShown = false;
     let gVue;
 
 function genLink() {
@@ -242,6 +245,9 @@ function loadData() {
     var curFailuresUrl = "rest/tracked/results" + parmsForRest();
     
     $("#loadStatus").html("&#8987; Please wait");
+    g_fullLoadInProgress = true;
+    g_partialDataShown = false;
+
     setTimeout(loadPartialData, 3000);
 
     $.ajax({
@@ -256,6 +262,9 @@ function loadData() {
                 setTimeout(checkForUpdate, 20000);
             }
         },
+        complete: function() {
+            g_fullLoadInProgress = false;
+        },
         error: showErrInLoadStatus
     });
 }
@@ -263,9 +272,12 @@ function loadData() {
 function loadPartialData() {
     var curFailuresUrl = "rest/tracked/resultsNoSync" + parmsForRest();
 
-    if (g_shownDataHashCodeHex !== "") {
+    if (g_shownDataHashCodeHex !== "" || g_partialLoadInProgress || g_partialDataShown || !g_fullLoadInProgress) {
         return;
     }
+
+    g_partialLoadInProgress = true;
+
     $.ajax({
         url: curFailuresUrl,
         success: function (result) {
@@ -283,9 +295,16 @@ function loadPartialData() {
                 }
             }
             if (validResult)
+            {
                 showData(result);
+                g_partialDataShown = true;
+            }
 
-            setTimeout(loadPartialData, 3000);
+            if (!g_partialDataShown && g_fullLoadInProgress)
+                setTimeout(loadPartialData, 10000);
+        },
+        complete: function() {
+            g_partialLoadInProgress = false;
         },
         error: showErrInLoadStatus
     });
