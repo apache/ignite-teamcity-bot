@@ -22,8 +22,6 @@ dependencies {
     // GitHub integration shares entries for pure and Ignited connection, so persistence module is here for interfaces/annotations
     api project(":tcbot-persistence")
 
-    implementation group: 'javax.inject', name: 'javax.inject', version: '1'
-    
     testImplementation group: 'junit', name: 'junit', version: junitVer
     testImplementation group: 'org.mockito', name: 'mockito-core', version: mockitoVer
 }

@@ -17,12 +17,20 @@
 package org.apache.ignite.githubservice;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.Scopes;
+import com.google.inject.Provider;
+import com.google.inject.Provides;
+import com.google.inject.Singleton;
+import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 
 public class GitHubIntegrationModule extends AbstractModule {
-    /** {@inheritDoc} */
-    @Override protected void configure() {
-        bind(IGitHubConnection.class).to(GitHubConnectionImpl.class);
-        bind(IGitHubConnectionProvider.class).to(GitHubCachingProvider.class).in(Scopes.SINGLETON);
+    @Provides
+    IGitHubConnection gitHubConnection(IDataSourcesConfigSupplier cfg) {
+        return new GitHubConnectionImpl(cfg);
+    }
+
+    @Provides
+    @Singleton
+    IGitHubConnectionProvider gitHubConnectionProvider(Provider<IGitHubConnection> factory) {
+        return new GitHubCachingProvider(factory::get);
     }
 }

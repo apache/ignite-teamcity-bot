@@ -22,12 +22,11 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import javax.inject.Inject;
-import javax.inject.Provider;
+import java.util.function.Supplier;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 
 class GitHubCachingProvider implements IGitHubConnectionProvider {
-    @Inject private Provider<IGitHubConnection> factory;
+    private final Supplier<IGitHubConnection> factory;
 
     private final Cache<String, IGitHubConnection> srvs
         = CacheBuilder.newBuilder()
@@ -35,6 +34,10 @@ class GitHubCachingProvider implements IGitHubConnectionProvider {
         .expireAfterAccess(16, TimeUnit.MINUTES)
         .softValues()
         .build();
+
+    GitHubCachingProvider(Supplier<IGitHubConnection> factory) {
+        this.factory = factory;
+    }
 
     /** {@inheritDoc} */
     @Override public IGitHubConnection server(String srvCode) {

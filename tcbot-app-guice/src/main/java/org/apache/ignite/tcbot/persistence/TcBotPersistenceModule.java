@@ -18,14 +18,15 @@
 package org.apache.ignite.tcbot.persistence;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.Scopes;
+import com.google.inject.Provider;
+import com.google.inject.Provides;
+import com.google.inject.Singleton;
+import org.apache.ignite.Ignite;
 
 public class TcBotPersistenceModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        super.configure();
-
-
-        bind(IStringCompactor.class).to(IgniteStringCompactor.class).in(Scopes.SINGLETON);
+    @Provides
+    @Singleton
+    IStringCompactor stringCompactor(Provider<Ignite> igniteProvider) {
+        return new IgniteStringCompactor(igniteProvider::get);
     }
 }
