@@ -121,13 +121,41 @@ reads both persisted fields, `arr` and `idx`, validates that `idx` is inside the
 `arr[0..idx)`. The copied values are then written as the new TC Bot `GridIntList` type.
 
 The migration is intentionally fail-fast from the database marker point of view. Per-entry failures are logged with the
-cache name and key, counted, and reported after the scan. If any entry fails, the migration throws an exception and the
+cache name and key, counted, and reported after the scan. Failed entries are also written as an Ignite dump plus a small
+manifest under `<ignite-work>/diagnostic/grid-int-list-migration-recovery`. If any entry still cannot be repaired, the
 `migrate-GridIntList` marker is not written to `apache.doneMigrations`, so the issue can be fixed and the migration can
 be retried instead of silently leaving mixed old and new data.
 
 The same migrator can also be run as a standalone tool from the `migrator` module against an Ignite work directory. The
 standalone module uses the same Ignite version as the rest of the project through the shared `ignVer` Gradle property.
 
-The heavyweight legacy storage compatibility/perf test is excluded from the regular `:migrator:test` task. Run it
-explicitly with `./gradlew :migrator:legacyDbCompatPerfTest --no-daemon` when checking old Ignite 2.14 persistent
-storage compatibility.
+Heavyweight persistent-storage integration tests are excluded from the regular `test` and `build` tasks. Run them
+explicitly with `./gradlew :migrator:integrationTest --no-daemon` when checking old Ignite 2.14 persistent storage
+compatibility or migration recovery for corrupted binary metadata.
+
+<details>
+<summary>Windows clean PR check</summary>
+
+```bat
+call gradlew.bat clean build --no-daemon
+
+rem Optional heavyweight persistent-storage checks:
+rem call gradlew.bat :migrator:integrationTest --no-daemon
+```
+
+The `migrator\check.bat` helper keeps the same integration command commented for local manual runs and uses
+`migrator\prod` as the production-copy root.
+
+</details>
+
+<details>
+<summary>Linux clean PR check</summary>
+
+```bash
+./gradlew clean build --no-daemon
+
+# Optional heavyweight persistent-storage checks:
+# ./gradlew :migrator:integrationTest --no-daemon
+```
+
+</details>
