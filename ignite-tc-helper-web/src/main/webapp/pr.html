@@ -13,7 +13,7 @@
     <!-- production version, optimized for size and speed -->
     <!--<script src="https://cdn.jsdelivr.net/npm/vue"></script>-->
     <script src="js/common-1.7.js"></script>
-    <script src="js/testfails-2.3.js"></script>
+    <script src="js/testfails-2.3.js?v=20260509-3"></script>
 </head>
 <body>
 <script>
@@ -48,7 +48,7 @@
                     gVue.$data.tcBranchesForSrv.push(id);
                 }
 
-                if (baseBranchForTc != null && !Vue.$data.tcBranchesForSrv.contains(baseBranchForTc)) {
+                if (baseBranchForTc != null && !gVue.$data.tcBranchesForSrv.contains(baseBranchForTc)) {
                     gVue.$data.tcBranchesForSrv.push(baseBranchForTc);
                     gVue.$data.baseBranchSelected = baseBranchForTc;
                 }
@@ -60,8 +60,6 @@
     }
 
     $(document).ready(function () {
-        $.getScript("js/testfails-2.3.js", function (data, textStatus, jqxhr) {});
-
         $(document).tooltip();
         showQueryForm();
         loadData();
@@ -231,7 +229,7 @@ function showData(result) {
 </script>
 
 <div id="vueQueryForm">
-    <v-app id="prQueryForm" name="prQueryForm">
+    <div id="prQueryForm" name="prQueryForm">
         <div class="formgroup">
             <span>Base branch: </span>
             <select v-model="baseBranchSelected" @change="formChanged">
@@ -245,10 +243,11 @@ function showData(result) {
             <span id="loadStatus"></span>
         </div>
         <div id="divFailures"></div>
-    </v-app>
+    </div>
 </div>
 
 <div id="version"></div>
-<div style="display:none"><div id="triggerConfirm" title="Trigger Confirmation"></div><div id="triggerDialog" title="Trigger Result"></div></div>
+<div id="triggerConfirm" title="Trigger Confirmation" style="display:none"></div>
+<div id="triggerDialog" title="Trigger Result" style="display:none"></div>
 </body>
 </html>

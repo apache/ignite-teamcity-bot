@@ -77,8 +77,8 @@ function refreshContributionsNow(srvId) {
 
     let stages = $("#refreshContributionsStages");
     let status = $("#refreshContributionsStatus");
-    let startedTs = Date.now();
-    let progressStep = 0;
+    let processId = createBotProcessId("refreshContributions");
+    let stopProcessPolling;
     let xhr;
 
     function appendStage(text) {
@@ -86,23 +86,10 @@ function refreshContributionsNow(srvId) {
         stages.scrollTop(stages.prop("scrollHeight"));
     }
 
-    function progressText() {
-        let elapsedSec = Math.round((Date.now() - startedTs) / 1000);
-
-        if (progressStep === 0)
-            return "Sending refresh request to the bot server.";
-
-        if (progressStep === 1)
-            return "Bot is loading updated pull requests from GitHub.";
-
-        if (progressStep === 2)
-            return "GitHub may need several pages or retries; still waiting after " + elapsedSec + "s.";
-
-        return "Still waiting after " + elapsedSec + "s. The request is running, the page will update when it finishes.";
-    }
-
     function finishProgress(buttons) {
-        clearInterval(progressTimer);
+        if (stopProcessPolling)
+            stopProcessPolling();
+
         dialog.dialog("option", "buttons", buttons);
         button.prop("disabled", false);
     }
@@ -113,16 +100,15 @@ function refreshContributionsNow(srvId) {
 
     dialog.dialog(actionDialogOptions("Refresh pull requests", {}));
 
-    appendStage(progressText());
-    progressStep++;
+    appendStage("Sending PR refresh request to the bot REST API.");
 
-    let progressTimer = setInterval(function () {
-        appendStage(progressText());
-        progressStep++;
-    }, 5000);
+    stopProcessPolling = startBotProcessPolling(processId, function (processStatus) {
+        appendStage(botProcessStatusText(processStatus));
+    });
 
     xhr = $.ajax({
-        url: "rest/visa/contributions/refresh?serverId=" + encodeURIComponent(srvId),
+        url: "rest/visa/contributions/refresh?serverId=" + encodeURIComponent(srvId) +
+            "&processId=" + encodeURIComponent(processId),
         success: function (result) {
             showContributionsTable(result, srvId, "");
             fillBranchAutocompleteList(result, srvId);
@@ -154,7 +140,9 @@ function refreshContributionsNow(srvId) {
         if (xhr != null && xhr.readyState !== 4)
             xhr.abort();
 
-        clearInterval(progressTimer);
+        if (stopProcessPolling)
+            stopProcessPolling();
+
         button.prop("disabled", false);
     });
 }

@@ -28,6 +28,7 @@ import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
 import org.apache.ignite.tcbot.engine.issue.IssuesStorage;
 import org.apache.ignite.tcbot.engine.newtests.NewTestsStorage;
+import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
 import org.apache.ignite.tcbot.engine.tracked.IDetailedStatusForTrackedBranch;
 import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
 import org.apache.ignite.tcbot.engine.user.IUserStorage;
@@ -53,6 +54,7 @@ public class TcBotEngineModule extends AbstractModule {
 
         bind(MutedIssuesDao.class).in(Scopes.SINGLETON);
         bind(NewTestsStorage.class).in(Scopes.SINGLETON);
+        bind(BotProcessMonitor.class).in(Scopes.SINGLETON);
 
         install(new TcBotCommonModule());
     }

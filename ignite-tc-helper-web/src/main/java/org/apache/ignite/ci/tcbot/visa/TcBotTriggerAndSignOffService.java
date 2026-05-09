@@ -77,6 +77,7 @@ import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.pr.BranchTicketMatcher;
 import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
+import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
 import org.apache.ignite.tcbot.engine.ui.ShortSuiteNewTestsUi;
 import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -145,6 +146,9 @@ public class TcBotTriggerAndSignOffService {
 
     @Inject
     BranchTicketMatcher ticketMatcher;
+
+    /** User-visible process monitor. */
+    @Inject BotProcessMonitor processMonitor;
 
     /** Jackson serializer. */
     private final ObjectMapper objMapper = new ObjectMapper();
@@ -283,6 +287,29 @@ public class TcBotTriggerAndSignOffService {
         @Nullable String commentTargets,
         @Nullable Boolean commentOnlyIfNoBlockers,
         @Nullable ITcBotUserCreds prov) {
+        return triggerBuildsAndObserve(srvCodeOrAlias, branchForTc, parentSuiteId, suiteIdList, top, observe, ticketId,
+            prNum, baseBranchForTc, cleanRebuild, commentTargets, commentOnlyIfNoBlockers, prov, null);
+    }
+
+    /**
+     * @param processId User-visible process id.
+     */
+    @AutoProfiling
+    @NotNull public String triggerBuildsAndObserve(
+        @Nullable String srvCodeOrAlias,
+        @Nullable String branchForTc,
+        @Nonnull String parentSuiteId,
+        @Nonnull String suiteIdList,
+        @Nullable Boolean top,
+        @Nullable Boolean observe,
+        @Nullable String ticketId,
+        @Nullable String prNum,
+        @Nullable String baseBranchForTc,
+        @Nonnull Boolean cleanRebuild,
+        @Nullable String commentTargets,
+        @Nullable Boolean commentOnlyIfNoBlockers,
+        @Nullable ITcBotUserCreds prov,
+        @Nullable Long processId) {
         long startNanos = System.nanoTime();
         long initNanos = 0;
         long prLookupNanos = 0;
@@ -294,6 +321,8 @@ public class TcBotTriggerAndSignOffService {
         String jiraRes = "";
 
         long stepStart = System.nanoTime();
+        processMonitor.status(processId, "Preparing the selected trigger action.");
+
         ITeamcityIgnited teamcity = tcIgnitedProv.server(srvCodeOrAlias, prov);
 
         IGitHubConnIgnited ghIgn = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
@@ -323,6 +352,8 @@ public class TcBotTriggerAndSignOffService {
         Build[] builds = new Build[suiteIds.length];
         Set<Integer> buildidsToSync = new HashSet<>();
 
+        processMonitor.status(processId, "Starting selected builds in TeamCity.");
+
         for (int i = 0; i < suiteIds.length; i++) {
             stepStart = System.nanoTime();
             T2<Build, Set<Integer>> objects = teamcity.triggerBuild(suiteIds[i], branchForTc, cleanRebuild, top != null && top, new HashMap<>(),
@@ -334,11 +365,13 @@ public class TcBotTriggerAndSignOffService {
         }
 
         stepStart = System.nanoTime();
+        processMonitor.status(processId, "Synchronizing triggered builds back into the bot cache.");
         teamcity.fastBuildsSync(buildidsToSync);
         syncNanos = System.nanoTime() - stepStart;
 
         if (observe != null && observe) {
             stepStart = System.nanoTime();
+            processMonitor.status(processId, "Scheduling a result comment after builds finish.");
             jiraRes += observeComments(srvCodeOrAlias, branchForTc, ticketId, prov, parentSuiteId, baseBranchForTc,
                 commentTargets, parsedPrNum, commentOnlyIfNoBlockers != null && commentOnlyIfNoBlockers, builds);
             observeNanos = System.nanoTime() - stepStart;
@@ -501,6 +534,27 @@ public class TcBotTriggerAndSignOffService {
         @Nullable String commentTargets,
         @Nullable String prNum,
         boolean commentOnlyIfNoBlockers) {
+        return commentJiraEx(srvId, branchForTc, suiteId, ticketFullName, baseBranchForTc, prov, commentTargets, prNum,
+            commentOnlyIfNoBlockers, null);
+    }
+
+    /**
+     * @param processId User-visible process id.
+     */
+    @NotNull
+    public SimpleResult commentJiraEx(
+        @Nullable String srvId,
+        @Nullable String branchForTc,
+        @Nullable String suiteId,
+        @Nullable String ticketFullName,
+        @Nullable String baseBranchForTc,
+        ITcBotUserCreds prov,
+        @Nullable String commentTargets,
+        @Nullable String prNum,
+        boolean commentOnlyIfNoBlockers,
+        @Nullable Long processId) {
+        processMonitor.status(processId, "Preparing the selected comment action.");
+
         String targets;
 
         try {
@@ -538,10 +592,14 @@ public class TcBotTriggerAndSignOffService {
                 " \"Re-run possible blockers & Comment JIRA\" was triggered for current branch." +
                 " Wait for the end or cancel exsiting observing.");
 
+        processMonitor.status(processId, "Collecting build analysis for the comment.");
+
         Visa visa = notifyComments(srvId, prov, suiteId, branchForTc, ticketFullName, baseBranchForTc, targets,
-            parsedPrNum, commentOnlyIfNoBlockers);
+            parsedPrNum, commentOnlyIfNoBlockers, processId);
 
         visasHistStorage.put(new VisaRequest(buildsInfo).setResult(visa));
+
+        processMonitor.status(processId, "Comment operation finished: " + visa.status);
 
         return new SimpleResult(visa.status);
     }
@@ -553,6 +611,16 @@ public class TcBotTriggerAndSignOffService {
     @AutoProfiling
     public List<ContributionToCheck> getContributionsToCheck(String srvCodeOrAlias,
         ITcBotUserCreds credsProv) {
+        return getContributionsToCheck(srvCodeOrAlias, credsProv, null);
+    }
+
+    /**
+     * @param processId User-visible process id.
+     */
+    @AutoProfiling
+    public List<ContributionToCheck> getContributionsToCheck(String srvCodeOrAlias,
+        ITcBotUserCreds credsProv,
+        @Nullable Long processId) {
         long startNanos = System.nanoTime();
         long serviceResolveNanos;
         long prsLoadNanos;
@@ -571,6 +639,8 @@ public class TcBotTriggerAndSignOffService {
         AtomicInteger activeBuildLookupCnt = new AtomicInteger();
 
         long stepStart = System.nanoTime();
+        processMonitor.status(processId, "Building the contribution list from cached bot data.");
+
         IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCodeOrAlias);
 
         IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
@@ -579,10 +649,12 @@ public class TcBotTriggerAndSignOffService {
         serviceResolveNanos = System.nanoTime() - stepStart;
 
         stepStart = System.nanoTime();
+        processMonitor.status(processId, "Loading pull request details from GitHub.");
         List<PullRequest> prs = gitHubConnIgnited.getPullRequests();
         prsLoadNanos = System.nanoTime() - stepStart;
 
         stepStart = System.nanoTime();
+        processMonitor.status(processId, "Loading JIRA tickets for contribution matching.");
         Set<Ticket> tickets = jiraIntegration.getTickets();
         ticketsLoadNanos = System.nanoTime() - stepStart;
 
@@ -600,6 +672,7 @@ public class TcBotTriggerAndSignOffService {
         List<ContributionToCheck> contribsList = new ArrayList<>();
 
         stepStart = System.nanoTime();
+        processMonitor.status(processId, "Matching pull requests, JIRA tickets, and TeamCity branches.");
         if (prs != null) {
             prs.forEach(pr -> {
                 ContributionToCheck c = new ContributionToCheck();
@@ -655,6 +728,7 @@ public class TcBotTriggerAndSignOffService {
         prLoopNanos = System.nanoTime() - stepStart;
 
         stepStart = System.nanoTime();
+        processMonitor.status(processId, "Loading repository branches.");
         List<String> branches = gitHubConnIgnited.getBranches();
         Set<String> branchesSet = new HashSet<>(branches);
         branchesLoadNanos = System.nanoTime() - stepStart;
@@ -738,6 +812,8 @@ public class TcBotTriggerAndSignOffService {
                 activeBuildLookupCnt.get());
         }
 
+        processMonitor.status(processId, "The contribution list is ready.");
+
         return contribsList;
     }
 
@@ -750,14 +826,27 @@ public class TcBotTriggerAndSignOffService {
     @AutoProfiling
     public List<ContributionToCheck> refreshContributionsToCheck(String srvCodeOrAlias,
         ITcBotUserCreds credsProv) {
+        return refreshContributionsToCheck(srvCodeOrAlias, credsProv, null);
+    }
+
+    /**
+     * @param processId User-visible process id.
+     */
+    @AutoProfiling
+    public List<ContributionToCheck> refreshContributionsToCheck(String srvCodeOrAlias,
+        ITcBotUserCreds credsProv,
+        @Nullable Long processId) {
         IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
 
+        processMonitor.status(processId, "Refreshing pull requests from GitHub.");
         gitHubConnIgnited.refreshPullRequests();
 
-        if (gitHubConnIgnited.config().isPreferBranches())
+        if (gitHubConnIgnited.config().isPreferBranches()) {
+            processMonitor.status(processId, "Refreshing repository branches.");
             gitHubConnIgnited.refreshBranches();
+        }
 
-        return getContributionsToCheck(srvCodeOrAlias, credsProv);
+        return getContributionsToCheck(srvCodeOrAlias, credsProv, processId);
     }
 
     /**
@@ -1166,8 +1255,29 @@ public class TcBotTriggerAndSignOffService {
         @Nullable String commentTargets,
         @Nullable Integer prNum,
         boolean commentOnlyIfNoBlockers) {
+        return notifyComments(srvCodeOrAlias, prov, buildTypeId, branchForTc, ticket, baseBranchForTc, commentTargets,
+            prNum, commentOnlyIfNoBlockers, null);
+    }
+
+    /**
+     * @param processId User-visible process id.
+     */
+    @AutoProfiling
+    public Visa notifyComments(
+        String srvCodeOrAlias,
+        ITcBotUserCreds prov,
+        String buildTypeId,
+        String branchForTc,
+        @Nullable String ticket,
+        @Nullable String baseBranchForTc,
+        @Nullable String commentTargets,
+        @Nullable Integer prNum,
+        boolean commentOnlyIfNoBlockers,
+        @Nullable Long processId) {
         long startNanos = System.nanoTime();
         String targets;
+
+        processMonitor.status(processId, "Collecting build analysis for the comment.");
 
         try {
             targets = CommentTargets.normalize(commentTargets);
@@ -1182,6 +1292,8 @@ public class TcBotTriggerAndSignOffService {
         ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, prov);
 
         IJiraIgnited jira = jiraRequested ? jiraIgnProv.server(srvCodeOrAlias) : null;
+
+        processMonitor.status(processId, "Loading the latest finished build for the comment.");
 
         List<Integer> builds = tcIgnited.getLastNBuildsFromHistory(buildTypeId, branchForTc, 1);
 
@@ -1206,6 +1318,8 @@ public class TcBotTriggerAndSignOffService {
             String baseBranch = Strings.isNullOrEmpty(baseBranchForTc)
                 ? prChainsProcessor.dfltBaseTcBranch(srvCodeOrAlias) : baseBranchForTc;
 
+            processMonitor.status(processId, "Analyzing blockers and new tests for the comment.");
+
             List<ShortSuiteUi> suitesStatuses = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId,
                 build.branchName, srvCodeOrAlias, prov, SyncMode.RELOAD_QUEUED, baseBranch);
 
@@ -1224,6 +1338,8 @@ public class TcBotTriggerAndSignOffService {
             boolean gitHubCommented = true;
 
             if (githubRequested) {
+                processMonitor.status(processId, "Publishing the analysis comment to GitHub.");
+
                 gitHubCommented = notifyGitHubPullRequest(srvCodeOrAlias, buildTypeId, branchForTc, prNum, build,
                     fatBuild, tcIgnited, suitesStatuses, newTestsStatuses, blockers, baseBranch);
             }
@@ -1231,6 +1347,8 @@ public class TcBotTriggerAndSignOffService {
             if (jiraRequested) {
                 if (Strings.isNullOrEmpty(ticket))
                     return new Visa("JIRA wasn't commented - ticket is not specified.");
+
+                processMonitor.status(processId, "Publishing the analysis comment to JIRA.");
 
                 String comment = JiraCommentsGenerator.generateJiraComment(jira.config().getApiVersion(), compactor,
                     suitesStatuses, newTestsStatuses, build.webUrl, buildTypeId, tcIgnited, blockers,

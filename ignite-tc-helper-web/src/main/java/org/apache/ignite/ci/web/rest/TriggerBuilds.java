@@ -34,6 +34,7 @@ import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.SimpleResult;
+import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
 import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -79,22 +80,38 @@ public class TriggerBuilds {
         @Nullable @QueryParam("prNum") String prNum,
         @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
         @Nullable @QueryParam("commentOnlyIfNoBlockers") Boolean commentOnlyIfNoBlockers,
-        @Nonnull @QueryParam("cleanRebuild") Boolean cleanRebuild
+        @Nonnull @QueryParam("cleanRebuild") Boolean cleanRebuild,
+        @Nullable @QueryParam("processId") Long processId
     ) {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
         TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        BotProcessMonitor process = appCtx.getInstance(BotProcessMonitor.class);
 
-        appCtx.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCodeOrAlias, prov);
+        process.start(processId, "triggerBuilds", "Sending trigger request to the bot REST API.");
 
-        if (isNullOrEmpty(suiteIdList))
-            return new TriggerResult("Error: nothing to run.");
+        try {
+            appCtx.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCodeOrAlias, prov);
 
-        String jiraRes = appCtx
-            .getInstance(TcBotTriggerAndSignOffService.class)
-            .triggerBuildsAndObserve(srvCodeOrAlias, branchForTc, parentSuiteId, suiteIdList, top, observe, ticketId,
-                prNum, baseBranchForTc, cleanRebuild, commentTargets, commentOnlyIfNoBlockers, prov);
+            if (isNullOrEmpty(suiteIdList)) {
+                process.fail(processId, "nothing to run");
 
-        return new TriggerResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
+                return new TriggerResult("Error: nothing to run.");
+            }
+
+            String jiraRes = appCtx
+                .getInstance(TcBotTriggerAndSignOffService.class)
+                .triggerBuildsAndObserve(srvCodeOrAlias, branchForTc, parentSuiteId, suiteIdList, top, observe, ticketId,
+                    prNum, baseBranchForTc, cleanRebuild, commentTargets, commentOnlyIfNoBlockers, prov, processId);
+
+            process.finish(processId, "Tests started");
+
+            return new TriggerResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
+        }
+        catch (RuntimeException e) {
+            process.fail(processId, e);
+
+            throw e;
+        }
     }
 
     /**
@@ -114,17 +131,32 @@ public class TriggerBuilds {
         @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
         @Nullable @QueryParam("comment") String commentTargets,
         @Nullable @QueryParam("prNum") String prNum,
-        @Nullable @QueryParam("commentOnlyIfNoBlockers") Boolean commentOnlyIfNoBlockers
+        @Nullable @QueryParam("commentOnlyIfNoBlockers") Boolean commentOnlyIfNoBlockers,
+        @Nullable @QueryParam("processId") Long processId
     ) {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
 
         TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        BotProcessMonitor process = appCtx.getInstance(BotProcessMonitor.class);
 
-        appCtx.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, prov);
+        process.start(processId, "commentJira", "Sending comment request to the bot REST API.");
 
-        return appCtx
-            .getInstance(TcBotTriggerAndSignOffService.class)
-            .commentJiraEx(srvCode, branchForTc, suiteId, ticketId, baseBranchForTc, prov, commentTargets,
-                prNum, commentOnlyIfNoBlockers != null && commentOnlyIfNoBlockers);
+        try {
+            appCtx.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, prov);
+
+            SimpleResult res = appCtx
+                .getInstance(TcBotTriggerAndSignOffService.class)
+                .commentJiraEx(srvCode, branchForTc, suiteId, ticketId, baseBranchForTc, prov, commentTargets,
+                    prNum, commentOnlyIfNoBlockers != null && commentOnlyIfNoBlockers, processId);
+
+            process.finish(processId, res.result);
+
+            return res;
+        }
+        catch (RuntimeException e) {
+            process.fail(processId, e);
+
+            throw e;
+        }
     }
 }

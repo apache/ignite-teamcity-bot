@@ -76,6 +76,63 @@ function escapeHtml(str) {
         .replace(/'/g, "&#039;");
 }
 
+function createBotProcessId(kind) {
+    return Date.now() * 1000 + Math.floor(Math.random() * 1000);
+}
+
+function botProcessStatusText(status) {
+    return status && isDefinedAndFilled(status.status) && status.status !== ""
+        ? status.status
+        : "Waiting for the bot to publish status.";
+}
+
+function startBotProcessPolling(processId, onStatus, options) {
+    if (!isDefinedAndFilled(processId))
+        return function () {};
+
+    var opts = options || {};
+    var lastStatus = null;
+    var stopped = false;
+    var timer;
+
+    function poll() {
+        if (stopped)
+            return;
+
+        $.ajax({
+            url: "rest/process/status",
+            data: {id: processId},
+            success: function (status) {
+                if (stopped || !status)
+                    return;
+
+                if (!isDefinedAndFilled(status.kind) && opts.skipUnknown !== false)
+                    return;
+
+                if (status.status !== lastStatus) {
+                    lastStatus = status.status;
+                    onStatus(status);
+                }
+
+                if (status.running === false)
+                    stop();
+            }
+        });
+    }
+
+    function stop() {
+        stopped = true;
+
+        if (timer)
+            clearInterval(timer);
+    }
+
+    timer = setInterval(poll, opts.intervalMs || 1500);
+    poll();
+
+    return stop;
+}
+
 function currentBackref() {
     if (isLoginUrl(window.location.href))
         return "/";
@@ -134,8 +191,9 @@ function openAiPrompt(url) {
         errorId: "aiPromptError",
         title: "Generating AI prompt",
         initialMode: true,
-        requestUrl: function (waitForTc) {
-            return aiPromptUrlWithWaitForTc(url, waitForTc);
+        processKind: "aiPrompt",
+        requestUrl: function (waitForTc, processId) {
+            return aiPromptUrlWithWaitForTc(url, waitForTc, processId);
         },
         timeoutMs: 70000,
         skip: {
@@ -171,6 +229,11 @@ function requestTextCommand(options, state, mode, firstStep) {
     if (state.timer)
         clearInterval(state.timer);
 
+    if (state.processPollStop)
+        state.processPollStop();
+
+    state.processId = options.processKind ? createBotProcessId(options.processKind) : options.processId;
+
     let skip = options.skip;
     let skipVisible = skip != null && (skip.isVisible == null || skip.isVisible(mode));
 
@@ -197,7 +260,7 @@ function requestTextCommand(options, state, mode, firstStep) {
     startTextCommandProgress(options, state, mode, firstStep);
 
     state.xhr = $.ajax({
-        url: options.requestUrl(mode),
+        url: options.requestUrl(mode, state.processId),
         timeout: options.timeoutMs == null ? 70000 : options.timeoutMs,
         success: function (result) {
             finishTextCommandDialog(options, state, result);
@@ -285,7 +348,9 @@ function createTextCommandDialog(options) {
         downloadBtn: downloadBtn,
         resultUrl: null,
         timer: null,
-        xhr: null
+        xhr: null,
+        processPollStop: null,
+        processId: null
     };
 
     dialog.dialog({
@@ -309,12 +374,13 @@ function createTextCommandDialog(options) {
     return state;
 }
 
-function aiPromptUrlWithWaitForTc(url, waitForTc) {
-    return url + (url.indexOf("?") >= 0 ? "&" : "?") + "waitForTc=" + waitForTc;
+function aiPromptUrlWithWaitForTc(url, waitForTc, processId) {
+    return url + (url.indexOf("?") >= 0 ? "&" : "?") + "waitForTc=" + waitForTc +
+        (isDefinedAndFilled(processId) ? "&processId=" + encodeURIComponent(processId) : "");
 }
 
 function startTextCommandProgress(options, state, mode, firstStep) {
-    let idx = 0;
+    let idx = isDefinedAndFilled(state.processId) ? 1 : 0;
     let startedTs = Date.now();
 
     state.status.text(options.statusText == null ? "Running command..." : options.statusText(mode));
@@ -322,6 +388,14 @@ function startTextCommandProgress(options, state, mode, firstStep) {
 
     if (firstStep)
         appendTextCommandStep(state, firstStep);
+
+    if (isDefinedAndFilled(state.processId)) {
+        appendTextCommandStep(state, "Sending request to the bot REST API.");
+
+        state.processPollStop = startBotProcessPolling(state.processId, function (status) {
+            appendTextCommandStep(state, botProcessStatusText(status));
+        });
+    }
 
     function showNextStatus() {
         let message = options.progressMessage == null
@@ -397,6 +471,9 @@ function finishTextCommandDialog(options, state, result) {
     if (state.timer)
         clearInterval(state.timer);
 
+    if (state.processPollStop)
+        state.processPollStop();
+
     if (state.resultUrl)
         URL.revokeObjectURL(state.resultUrl);
 
@@ -413,6 +490,9 @@ function finishTextCommandDialog(options, state, result) {
 function failTextCommandDialog(options, state, jqXHR, status, error) {
     if (state.timer)
         clearInterval(state.timer);
+
+    if (state.processPollStop)
+        state.processPollStop();
 
     state.status.text(options.failureStatusText || "Command request failed.");
     state.skipBtn.hide();
@@ -444,6 +524,9 @@ function downloadTextCommandResult(options, state) {
 function closeTextCommandDialog(state) {
     if (state.timer)
         clearInterval(state.timer);
+
+    if (state.processPollStop)
+        state.processPollStop();
 
     if (state.xhr && state.xhr.readyState !== 4)
         state.xhr.abort();

@@ -39,6 +39,7 @@ import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.ContributionKey;
+import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -95,14 +96,30 @@ public class TcBotVisaService {
      */
     @GET
     @Path("contributions/refresh")
-    public List<ContributionToCheck> refreshContributions(@Nullable @QueryParam("serverId") String srvCode) {
+    public List<ContributionToCheck> refreshContributions(@Nullable @QueryParam("serverId") String srvCode,
+        @Nullable @QueryParam("processId") Long processId) {
         ITcBotUserCreds credsProv = ITcBotUserCreds.get(req);
 
         TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        BotProcessMonitor process = appCtx.getInstance(BotProcessMonitor.class);
 
-        appCtx.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, credsProv);
+        process.start(processId, "refreshContributions", "Sending PR refresh request to the bot REST API.");
 
-        return appCtx.getInstance(TcBotTriggerAndSignOffService.class).refreshContributionsToCheck(srvCode, credsProv);
+        try {
+            appCtx.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, credsProv);
+
+            List<ContributionToCheck> res = appCtx.getInstance(TcBotTriggerAndSignOffService.class)
+                .refreshContributionsToCheck(srvCode, credsProv, processId);
+
+            process.finish(processId, "count=" + res.size());
+
+            return res;
+        }
+        catch (RuntimeException e) {
+            process.fail(processId, e);
+
+            throw e;
+        }
     }
 
     @GET
