@@ -252,7 +252,8 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
             if (live != null)
                 live.cancel(true);
 
-            aiPromptMonitor.stage(reqId, "fresh TeamCity context timed out, using cached-only context: " + stageSuffix);
+            aiPromptMonitor.stage(reqId, "fresh TeamCity reload timed out, loading best-effort cached context: "
+                + stageSuffix);
         }
         catch (InterruptedException e) {
             if (live != null)
@@ -265,7 +266,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
             throw new IllegalStateException("Interrupted while loading fresh TeamCity context: " + stageSuffix, e);
         }
         catch (Exception e) {
-            aiPromptMonitor.stage(reqId, "fresh TeamCity context failed, using cached-only context: "
+            aiPromptMonitor.stage(reqId, "fresh TeamCity reload failed, loading best-effort cached context: "
                 + stageSuffix + " - " + e.getMessage());
         }
 

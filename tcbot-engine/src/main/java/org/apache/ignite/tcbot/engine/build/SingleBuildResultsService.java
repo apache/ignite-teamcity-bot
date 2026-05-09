@@ -169,7 +169,7 @@ public class SingleBuildResultsService {
             if (live != null)
                 live.cancel(true);
 
-            aiPromptMonitor.stage(reqId, "fresh TeamCity context timed out, using cached-only context");
+            aiPromptMonitor.stage(reqId, "fresh TeamCity reload timed out, loading best-effort cached context");
         }
         catch (InterruptedException e) {
             if (live != null)
@@ -182,7 +182,8 @@ public class SingleBuildResultsService {
             throw new IllegalStateException("Interrupted while loading fresh TeamCity context", e);
         }
         catch (Exception e) {
-            aiPromptMonitor.stage(reqId, "fresh TeamCity context failed, using cached-only context: " + e.getMessage());
+            aiPromptMonitor.stage(reqId, "fresh TeamCity reload failed, loading best-effort cached context: "
+                + e.getMessage());
         }
 
         return loadSingleBuildContext(srvCodeOrAlias, buildId, null, SyncMode.NONE, prov, ProcessLogsMode.CACHED_ONLY);

@@ -130,7 +130,7 @@ public class TestFailuresAiPromptBuilderTest {
         assertTrue(summary.contains("Test started and failed within ~341 ms."));
         assertTrue(summary.contains("Assertion at WalDeletionArchiveAbstractTest.java:212."));
         assertTrue(summary.contains("Ignite node started and stopped normally."));
-        assertTrue(summary.contains("No timeout or crash signal."));
+        assertTrue(summary.contains("No timeout or crash signal found in included details."));
         assertFalse(summary.contains("expected:<11> but was:<12>"));
     }
 }

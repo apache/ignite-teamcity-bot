@@ -1251,7 +1251,7 @@ public class TestFailuresAiPromptBuilder {
             bullets.add("Ignite node started and stopped normally.");
 
         if (!hasTimeoutOrCrashSignal(details))
-            bullets.add("No timeout or crash signal.");
+            bullets.add("No timeout or crash signal found in included details.");
 
         return bullets.stream().map(bullet -> "- " + bullet + '\n').collect(Collectors.joining());
     }

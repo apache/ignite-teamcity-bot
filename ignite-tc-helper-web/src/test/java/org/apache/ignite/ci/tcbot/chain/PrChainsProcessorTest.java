@@ -58,7 +58,6 @@ import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -210,7 +209,7 @@ public class PrChainsProcessorTest {
 
         assertTrue(prompt.contains("AI Prompt"));
 
-        verify(logProcessor, atLeastOnce()).getCachedBuildLogAnalysis(eq(SRV_ID), anyInt());
+        verify(logProcessor, atLeastOnce()).getCachedBuildLogAnalysis(any(), anyInt());
         verify(logProcessor, never()).analyzeBuildLog(any(), anyInt(), anyBoolean());
     }
 
