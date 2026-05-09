@@ -17,7 +17,11 @@
 function drawTable(srvId, element) {
     let tableId = "serverContributions-" + srvId;
 
-    element.append("<div id='expandAllButton-" + srvId + "' align='right' style='margin-right:50px'></div><br>" +
+    element.append("<div id='contributionsActions-" + srvId + "' align='right' style='margin-right:50px'>" +
+        "<button id='refreshContributions-" + srvId + "' type='button' title='Load current PR data from GitHub now'>" +
+        "Refresh now</button>" +
+        "</div>" +
+        "<div id='expandAllButton-" + srvId + "' align='right' style='margin-right:50px'></div><br>" +
         "<table id=\"" + tableId + "\" class='ui-widget ui-widget-content'>\n" +
         "            <thead>\n" +
         "            <tr class=\"ui-widget-header \">\n" +
@@ -32,6 +36,10 @@ function drawTable(srvId, element) {
         "            </tr>\n" +
         "            </thead>\n" +
         "        </table>\n");
+
+    $("#refreshContributions-" + srvId).on("click", function () {
+        refreshContributionsNow(srvId);
+    });
 }
 
 function requestTableForServer(srvId, element) {
@@ -51,6 +59,103 @@ function requestTableForServer(srvId, element) {
                 fillBranchAutocompleteList(result, srvId);
                 setAutocompleteFilter();
             }
+    });
+}
+
+function refreshContributionsNow(srvId) {
+    let button = $("#refreshContributions-" + srvId);
+    let dialog = $("#refreshContributionsDialog");
+
+    if (dialog.length === 0) {
+        $("body").append("<div id='refreshContributionsDialog' title='Refresh pull requests'>" +
+            "<div id='refreshContributionsStatus'></div>" +
+            "<div class='action-stages' id='refreshContributionsStages' " +
+            "style='margin-top: 12px; max-height: 220px; overflow-y: auto'></div>" +
+            "</div>");
+        dialog = $("#refreshContributionsDialog");
+    }
+
+    let stages = $("#refreshContributionsStages");
+    let status = $("#refreshContributionsStatus");
+    let startedTs = Date.now();
+    let progressStep = 0;
+    let xhr;
+
+    function appendStage(text) {
+        appendActionStage(dialog, text);
+        stages.scrollTop(stages.prop("scrollHeight"));
+    }
+
+    function progressText() {
+        let elapsedSec = Math.round((Date.now() - startedTs) / 1000);
+
+        if (progressStep === 0)
+            return "Sending refresh request to the bot server.";
+
+        if (progressStep === 1)
+            return "Bot is loading updated pull requests from GitHub.";
+
+        if (progressStep === 2)
+            return "GitHub may need several pages or retries; still waiting after " + elapsedSec + "s.";
+
+        return "Still waiting after " + elapsedSec + "s. The request is running, the page will update when it finishes.";
+    }
+
+    function finishProgress(buttons) {
+        clearInterval(progressTimer);
+        dialog.dialog("option", "buttons", buttons);
+        button.prop("disabled", false);
+    }
+
+    button.prop("disabled", true);
+    stages.empty();
+    status.text("Refreshing " + srvId + " contributions from GitHub...");
+
+    dialog.dialog(actionDialogOptions("Refresh pull requests", {}));
+
+    appendStage(progressText());
+    progressStep++;
+
+    let progressTimer = setInterval(function () {
+        appendStage(progressText());
+        progressStep++;
+    }, 5000);
+
+    xhr = $.ajax({
+        url: "rest/visa/contributions/refresh?serverId=" + encodeURIComponent(srvId),
+        success: function (result) {
+            showContributionsTable(result, srvId, "");
+            fillBranchAutocompleteList(result, srvId);
+            setAutocompleteFilter();
+
+            status.text("Done. Loaded " + result.length + " contributions.");
+            appendStage("Table was updated with fresh GitHub data.");
+            finishProgress({
+                "Ok": function () {
+                    $(this).dialog("close");
+                }
+            });
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            if (textStatus === "abort")
+                return;
+
+            status.text("Refresh failed.");
+            appendStage("Error: " + (errorThrown || jqXHR.statusText || "unknown error"));
+            finishProgress({
+                "Ok": function () {
+                    $(this).dialog("close");
+                }
+            });
+        }
+    });
+
+    dialog.dialog("option", "close", function () {
+        if (xhr != null && xhr.readyState !== 4)
+            xhr.abort();
+
+        clearInterval(progressTimer);
+        button.prop("disabled", false);
     });
 }
 
@@ -184,7 +289,7 @@ function showContributionsTable(result, srvId, suiteId) {
     });
 
     // Add event listener for opening and closing details, enable to only btn   'td.details-control'
-    $('#' + tableId + ' tbody').on('click', 'td.details-control', function () {
+    $('#' + tableId + ' tbody').off('click', 'td.details-control').on('click', 'td.details-control', function () {
         var tr = $(this).closest('tr');
         var row = table.row(tr);
 

@@ -742,6 +742,25 @@ public class TcBotTriggerAndSignOffService {
     }
 
     /**
+     * Refreshes GitHub data immediately and returns contribution list built on top of the updated cache.
+     *
+     * @param srvCodeOrAlias Server id.
+     * @param credsProv Credentials.
+     */
+    @AutoProfiling
+    public List<ContributionToCheck> refreshContributionsToCheck(String srvCodeOrAlias,
+        ITcBotUserCreds credsProv) {
+        IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
+
+        gitHubConnIgnited.refreshPullRequests();
+
+        if (gitHubConnIgnited.config().isPreferBranches())
+            gitHubConnIgnited.refreshBranches();
+
+        return getContributionsToCheck(srvCodeOrAlias, credsProv);
+    }
+
+    /**
      * @param suiteId Suite id.
      * @param prId Pr id from {@link ContributionToCheck#prNumber}. Negative value imples branch number for PR-less.
      * @param ghConn Gh connection.

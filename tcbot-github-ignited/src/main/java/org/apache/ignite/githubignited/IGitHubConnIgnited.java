@@ -42,6 +42,20 @@ public interface IGitHubConnIgnited {
      */
     public List<PullRequest> getPullRequests();
 
+    /**
+     * Reloads recently updated pull requests from GitHub immediately.
+     *
+     * @return Reload summary.
+     */
+    public String refreshPullRequests();
+
+    /**
+     * Reloads branches from GitHub immediately.
+     *
+     * @return Reload summary.
+     */
+    public String refreshBranches();
+
     /** */
     public PullRequest getPullRequest(int prNum);
 

@@ -89,6 +89,22 @@ public class TcBotVisaService {
         return appCtx.getInstance(TcBotTriggerAndSignOffService.class).getContributionsToCheck(srvCode, credsProv);
     }
 
+    /**
+     * @param srvCode Server id.
+     * @return Contribution list after immediate GitHub refresh.
+     */
+    @GET
+    @Path("contributions/refresh")
+    public List<ContributionToCheck> refreshContributions(@Nullable @QueryParam("serverId") String srvCode) {
+        ITcBotUserCreds credsProv = ITcBotUserCreds.get(req);
+
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+
+        appCtx.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, credsProv);
+
+        return appCtx.getInstance(TcBotTriggerAndSignOffService.class).refreshContributionsToCheck(srvCode, credsProv);
+    }
+
     @GET
     @Path("contributionStatus")
     public Set<ContributionCheckStatus> contributionStatus(@Nullable @QueryParam("serverId") String srvCode,

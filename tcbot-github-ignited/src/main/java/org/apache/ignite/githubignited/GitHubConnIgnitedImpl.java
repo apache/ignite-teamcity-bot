@@ -135,6 +135,12 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
 
     /** {@inheritDoc} */
     @AutoProfiling
+    @Override public String refreshPullRequests() {
+        return runActualizePrs(srvCode, false);
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
     @Override public List<String> getBranches() {
         final int rescanIntervalMins = config().isPreferBranches() ? 5 : 120;
 
@@ -147,6 +153,12 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
             .map(javax.cache.Cache.Entry::getKey)
             .map(GitHubBranchKey::branchName)
             .collect(Collectors.toList());
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public String refreshBranches() {
+        return runActualizeBranches(srvCode, false);
     }
 
     private void actualizeBranches() {
