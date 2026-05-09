@@ -406,6 +406,8 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
     let buildIsCompleted = isDefinedAndFilled(status.branchWithFinishedSuite);
     let hasJiraIssue = isDefinedAndFilled(row.jiraIssueId);
     var jiraOptional = hasJiraIssue ? row.jiraIssueId : "";
+    let actionUiLinks = "{ticketLink: \"" + (isDefinedAndFilled(row.jiraIssueUrl) ? row.jiraIssueUrl : "") +
+        "\", prLink: \"" + (isDefinedAndFilled(row.prHtmlUrl) ? row.prHtmlUrl : "") + "\"}";
     let hasQueued = status.queuedBuilds > 0 || status.runningBuilds > 0;
     let queuedStatus = "Has queued builds: " + status.queuedBuilds  + " queued " + " " + status.runningBuilds  + " running";
 
@@ -443,7 +445,10 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
                 "\"" + suiteIdSelected + "\", " +
                 "\"" + row.jiraIssueId + "\"," +
                 "\"\"," + // base TC branch
-                "\"JIRA\"" +
+                "\"JIRA\"," +
+                "\"" + row.prNumber + "\"," +
+                "false," +
+                actionUiLinks +
                 "); " +
                 replaintCall +
                 "'";
@@ -462,7 +467,10 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
                 "\"" + suiteIdSelected + "\", " +
                 "\"" + jiraOptional + "\"," +
                 "\"\"," + // base TC branch
-                "\"GITHUB\"" +
+                "\"GITHUB\"," +
+                "\"" + row.prNumber + "\"," +
+                "false," +
+                actionUiLinks +
                 "); " +
                 replaintCall +
                 "'";
@@ -514,7 +522,13 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
             "\"" + status.resolvedBranch + "\"," +
             " false," +
             " false," +
-            "\"" + jiraOptional + "\"); ";
+            "\"" + jiraOptional + "\"," +
+            "\"" + row.prNumber + "\"," +
+            "null," +
+            "false," +
+            "\"\"," +
+            "false," +
+            actionUiLinks + "); ";
         var res = "<button onClick='" + triggerBuildsCall + replaintCall + "'";
         res += prepareStatusOfTrigger();
 
@@ -535,10 +549,12 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
             " false," +
             " true," +
                 "\"" + jiraOptional + "\"," +
-                "null," +
+                "\"" + row.prNumber + "\"," +
                 "null," +
                 "false," +
-                "\"JIRA\"); ";
+                "\"JIRA\"," +
+                "false," +
+                actionUiLinks + "); ";
             buttons += "<button onClick='" + trigObserveCall + replaintCall + "'";
 
             buttons += prepareStatusOfTrigger();
@@ -558,7 +574,9 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
                 "\"" + row.prNumber + "\"," +
                 "null," +
                 "false," +
-                "\"GITHUB\"); ";
+                "\"GITHUB\"," +
+                "false," +
+                actionUiLinks + "); ";
             buttons += "<button onClick='" + trigGithubCall + replaintCall + "'";
             buttons += prepareStatusOfTrigger();
             buttons += ">Run and comment GitHub after finish</button>";
@@ -574,7 +592,9 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
                 "\"" + row.prNumber + "\"," +
                 "null," +
                 "true," +
-                "\"GITHUB\"); ";
+                "\"GITHUB\"," +
+                "false," +
+                actionUiLinks + "); ";
             buttons += "<button onClick='" + rerunGithubCall + replaintCall + "'";
             if (hasQueued)
                 buttons += " class='disabledbtn' title='" + queuedStatus + "'";

@@ -300,7 +300,11 @@ function showChainCurrentStatusData(chain, settings) {
                 "\"\", " + // ticket id
                 "\"" + baseBranchForTc + "\", " +
                 "\"JIRA\", " +
-                "\"" + chain.prNum + "\")'>Comment JIRA</button><br>";
+                "\"" + chain.prNum + "\", " +
+                "false, " +
+                "{ticketLink: \"" + (isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "") +
+                "\", prLink: \"" + (isDefinedAndFilled(chain.webToPr) ? chain.webToPr : "") +
+                "\"})'>Comment JIRA</button><br>";
         }
 
         if (settings.isGithubAvailable() && isDefinedAndFilled(chain.prNum)) {
@@ -310,7 +314,11 @@ function showChainCurrentStatusData(chain, settings) {
                 "\"\", " + // ticket id
                 "\"" + baseBranchForTc + "\", " +
                 "\"GITHUB\", " +
-                "\"" + chain.prNum + "\")'>Comment GitHub PR</button><br>";
+                "\"" + chain.prNum + "\", " +
+                "false, " +
+                "{ticketLink: \"" + (isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "") +
+                "\", prLink: \"" + (isDefinedAndFilled(chain.webToPr) ? chain.webToPr : "") +
+                "\"})'>Comment GitHub PR</button><br>";
         }
 
         var blockersList = "";
@@ -522,20 +530,15 @@ function selectCommentOptions(defaultTargets, options, onSelected) {
 
 function triggerBuildsWithCommentOptions(tcServerCode, parentSuiteId, suiteIdList, branchName, top, observe, ticketId,
     prNum, baseBranchForTc, cleanRebuild=false, ticketLink, prLink) {
-    selectCommentOptions("", {
+    triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top, observe, ticketId, prNum,
+        baseBranchForTc, cleanRebuild, "", false, {
         ticketLink: ticketLink,
-        prLink: prLink,
-        allowNoTargets: true,
-        showOnlyNoBlockers: true
-    }, function (selectedTargets, commentOnlyIfNoBlockers) {
-        triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top,
-            isDefinedAndFilled(selectedTargets), ticketId, prNum, baseBranchForTc, cleanRebuild,
-            selectedTargets, commentOnlyIfNoBlockers);
+        prLink: prLink
     });
 }
 
 function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top, observe, ticketId, prNum, baseBranchForTc,
-    cleanRebuild=false, commentTargets, commentOnlyIfNoBlockers=false) {
+    cleanRebuild=false, commentTargets, commentOnlyIfNoBlockers=false, uiOptions) {
     var queueAtTop = isDefinedAndFilled(top) && top;
     var observeJira = isDefinedAndFilled(observe) && observe;
     var suiteIdsNotExists = !isDefinedAndFilled(suiteIdList) || suiteIdList.length === 0;
@@ -570,32 +573,7 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
     for (var i = 0; i < suites.length; i++)
         message += suites[i] + "<br>";
 
-    if (observeJira && !isDefinedAndFilled(commentTargets)) {
-        selectCommentOptions("JIRA", {showOnlyNoBlockers: true}, function (selectedTargets, onlyNoBlockers) {
-            commentTargets = selectedTargets;
-            commentOnlyIfNoBlockers = onlyNoBlockers;
-            confirmOrSend();
-        });
-    }
-    else
-        confirmOrSend();
-
-    function confirmOrSend() {
-        if (fewSuites) {
-        triggerConfirm.html(message);
-        triggerConfirm.dialog({
-            modal: true,
-            buttons: {
-                "Run" : function () {
-                    $(this).dialog("close");
-                    sendGetRequest();
-                },
-                "Cancel": closeDialog
-            }
-        });
-        } else
-            sendGetRequest();
-    }
+    showTriggerStagesDialog();
 
     /**
      * See org.apache.ignite.ci.web.rest.TriggerBuilds#triggerBuilds
@@ -618,23 +596,88 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
                 "cleanRebuild": cleanRebuild
             },
             success: successDialog,
-            error: showErrInLoadStatus
+            error: failureDialog
         });
     }
 
     function successDialog(result) {
-        var triggerDialog = $("#triggerDialog");
+        appendActionStage(triggerConfirm, "TeamCity accepted the trigger request.");
+        appendActionStage(triggerConfirm, "Result: " + result.result);
 
-        triggerDialog.html(message + "<br><b>Result:</b> " + result.result);
-        triggerDialog.dialog({
-            modal: true,
-            buttons: {
-                "Ok": closeDialog
-            }
-        });
+        if (observeJira) {
+            appendActionStage(triggerConfirm, "Comment scheduled: " + commentTargetsLabel(commentTargets) +
+                "; policy: " + commentPolicyLabel(commentOnlyIfNoBlockers) + ".");
+        }
+        else
+            appendActionStage(triggerConfirm, "No result comment scheduled.");
+
+        triggerConfirm.dialog("option", "buttons", {"Ok": closeDialog});
 
         if (loadData && typeof(loadData) === "function")
             loadData();
+    }
+
+    function failureDialog(jqXHR, exception) {
+        appendActionStage(triggerConfirm, "Trigger request failed.");
+        triggerConfirm.find(".action-error").text(jqXHR.responseText || exception).show();
+        triggerConfirm.dialog("option", "buttons", {"Ok": closeDialog});
+        showErrInLoadStatus(jqXHR, exception);
+    }
+
+    function showTriggerStagesDialog() {
+        var defaultTargets = isDefinedAndFilled(commentTargets)
+            ? commentTargets : (observeJira ? "JIRA" : "");
+        var hasJira = defaultTargets.indexOf("JIRA") !== -1;
+        var hasGithub = defaultTargets.indexOf("GITHUB") !== -1;
+        var opts = uiOptions || {};
+
+        triggerConfirm.html(
+            "<div><b>Build trigger</b></div>" +
+            "<div style='margin-top:8px'>" + message + "</div>" +
+            "<div style='margin-top:12px'><b>Run options</b></div>" +
+            "<label><input type='checkbox' id='stageCleanRebuild' " + (cleanRebuild ? "checked" : "") +
+            "> Delete checkout files before snapshot dependency builds</label>" +
+            "<div style='margin-top:12px'><b>Comment result</b></div>" +
+            "<label><input type='checkbox' id='stageCommentJira' " + (hasJira ? "checked" : "") + "> JIRA" +
+            optionalLink(opts.ticketLink, "ticket") + "</label><br>" +
+            "<label><input type='checkbox' id='stageCommentGithub' " + (hasGithub ? "checked" : "") +
+            "> GitHub PR" + optionalLink(opts.prLink, "PR") + "</label><br>" +
+            "<label><input type='radio' name='stageCommentPolicy' value='always' " +
+            (!commentOnlyIfNoBlockers ? "checked" : "") + "> Comment always</label><br>" +
+            "<label><input type='radio' name='stageCommentPolicy' value='clean' " +
+            (commentOnlyIfNoBlockers ? "checked" : "") + "> Comment only clean run (no blockers)</label>" +
+            "<div class='action-stages' style='display:none; margin-top:14px; background:#f7f7f7; " +
+            "border:1px solid #d8d8d8; border-radius:4px; padding:10px; white-space:pre-wrap'></div>" +
+            "<pre class='action-error' style='display:none; background:#fff2f2; border:1px solid #d09090; " +
+            "border-radius:4px; margin-top:12px; padding:10px; white-space:pre-wrap'></pre>"
+        );
+
+        triggerConfirm.dialog({
+            modal: true,
+            width: Math.min(640, $(window).width() - 40),
+            buttons: {
+                "Run": function () {
+                    cleanRebuild = $("#stageCleanRebuild").prop("checked");
+                    commentTargets = collectStageCommentTargets();
+                    commentOnlyIfNoBlockers = $("input[name='stageCommentPolicy']:checked").val() === "clean";
+                    observeJira = isDefinedAndFilled(commentTargets);
+
+                    triggerConfirm.dialog("option", "buttons", {});
+                    triggerConfirm.find("input").prop("disabled", true);
+                    triggerConfirm.find(".action-stages").show().empty();
+                    appendActionStage(triggerConfirm, "Options selected.");
+                    appendActionStage(triggerConfirm, "Run mode: " + (cleanRebuild ? "clean checkout" : "regular") +
+                        "; queue: " + (queueAtTop ? "top" : "regular") + ".");
+                    appendActionStage(triggerConfirm, observeJira
+                        ? "Will comment " + commentTargetsLabel(commentTargets) +
+                        " with policy: " + commentPolicyLabel(commentOnlyIfNoBlockers) + "."
+                        : "Commenting disabled.");
+                    appendActionStage(triggerConfirm, "Sending trigger request to TeamCity.");
+                    sendGetRequest();
+                },
+                "Cancel": closeDialog
+            }
+        });
     }
 
     function closeDialog() {
@@ -658,7 +701,7 @@ function branchForTc(pr) {
 }
 
 function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranchForTc, commentTargets, prNum,
-    commentOnlyIfNoBlockers=false) {
+    commentOnlyIfNoBlockers=false, uiOptions) {
     var branchNotExists = !isDefinedAndFilled(branchName) || branchName.length === 0;
     branchName = branchNotExists ? null : branchForTc(branchName);
     ticketId = (isDefinedAndFilled(ticketId) && ticketId.length > 0) ? ticketId : null;
@@ -679,74 +722,142 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
         return;
     }
 
-    if (!isDefinedAndFilled(commentTargets)) {
-        selectCommentTargets("JIRA", function (selectedTargets) {
-            commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranchForTc, selectedTargets, prNum,
-                commentOnlyIfNoBlockers);
-        });
+    showCommentStagesDialog();
 
-        return;
+    function sendCommentRequest(dialog) {
+        $.ajax({
+            url: 'rest/build/commentJira',
+            data: {
+                "serverId": serverCode, //general Servers code
+                "suiteId": parentSuiteId,
+                "branchName": branchName,
+                "ticketId": ticketId,
+                "baseBranchForTc": baseBranchForTc,
+                "comment": commentTargets,
+                "prNum": prNum,
+                "commentOnlyIfNoBlockers": commentOnlyIfNoBlockers
+            },
+            success: function(result) {
+                appendActionStage(dialog, "Server returned comment result.");
+                appendActionStage(dialog, "Result: " + result.result);
+
+                var needTicketId = result.result.lastIndexOf("TicketNotFoundException") !== -1;
+
+                if (needTicketId) {
+                    dialog.append("<div style='margin-top:12px'>Enter JIRA ticket number: " +
+                        "<input type='text' id='enterTicketId'></div>");
+
+                    dialog.dialog("option", "buttons", {
+                        "Retry": function () {
+                            ticketId = $("#enterTicketId").val();
+                            dialog.find(".action-error").hide();
+                            dialog.find(".action-stages").empty();
+                            appendActionStage(dialog, "Retrying with explicit ticket " + ticketId + ".");
+                            sendCommentRequest(dialog);
+                        },
+                        "Cancel": closeDialog
+                    });
+                }
+                else
+                    dialog.dialog("option", "buttons", {"Ok": closeDialog});
+
+                loadData(); // should be defined by page
+            },
+            error: function(jqXHR, exception) {
+                appendActionStage(dialog, "Comment request failed.");
+                dialog.find(".action-error").text(jqXHR.responseText || exception).show();
+                dialog.dialog("option", "buttons", {"Ok": closeDialog});
+                showErrInLoadStatus(jqXHR, exception);
+            }
+        });
     }
 
-    $("#notifyJira").html("&#8987;" +
-        " Please wait. First action for PR run-all data may require significant time.");
+    function showCommentStagesDialog() {
+        var dialog = $("#triggerDialog");
+        var defaultTargets = isDefinedAndFilled(commentTargets) ? commentTargets : "JIRA";
+        var opts = uiOptions || {};
 
-    $.ajax({
-        url: 'rest/build/commentJira',
-        data: {
-            "serverId": serverCode, //general Servers code
-            "suiteId": parentSuiteId,
-            "branchName": branchName,
-            "ticketId": ticketId,
-            "baseBranchForTc": baseBranchForTc,
-            "comment": commentTargets,
-            "prNum": prNum,
-            "commentOnlyIfNoBlockers": commentOnlyIfNoBlockers
-        },
-        success: function(result) {
-            $("#notifyJira").html("");
+        dialog.html(
+            "<div><b>Comment analysis</b></div>" +
+            "<div style='margin-top:8px'>Server: " + escapeHtml(serverCode) +
+            "<br>Suite: " + escapeHtml(parentSuiteId) +
+            "<br>Branch: " + escapeHtml(branchName) + "</div>" +
+            "<div style='margin-top:12px'><b>Targets</b></div>" +
+            "<label><input type='checkbox' id='stageCommentJira' " +
+            (defaultTargets.indexOf("JIRA") !== -1 ? "checked" : "") + "> JIRA" +
+            optionalLink(opts.ticketLink, "ticket") + "</label><br>" +
+            "<label><input type='checkbox' id='stageCommentGithub' " +
+            (defaultTargets.indexOf("GITHUB") !== -1 ? "checked" : "") + "> GitHub PR" +
+            optionalLink(opts.prLink, "PR") + "</label><br>" +
+            "<label><input type='radio' name='stageCommentPolicy' value='always' " +
+            (!commentOnlyIfNoBlockers ? "checked" : "") + "> Comment always</label><br>" +
+            "<label><input type='radio' name='stageCommentPolicy' value='clean' " +
+            (commentOnlyIfNoBlockers ? "checked" : "") + "> Comment only clean run (no blockers)</label>" +
+            "<div class='action-stages' style='display:none; margin-top:14px; background:#f7f7f7; " +
+            "border:1px solid #d8d8d8; border-radius:4px; padding:10px; white-space:pre-wrap'></div>" +
+            "<pre class='action-error' style='display:none; background:#fff2f2; border:1px solid #d09090; " +
+            "border-radius:4px; margin-top:12px; padding:10px; white-space:pre-wrap'></pre>"
+        );
 
-            var needTicketId = result.result.lastIndexOf("TicketNotFoundException") !== -1;
+        dialog.dialog({
+            modal: true,
+            width: Math.min(640, $(window).width() - 40),
+            buttons: {
+                "Comment": function () {
+                    commentTargets = collectStageCommentTargets();
 
-            if (needTicketId) {
-                var buttons = {
-                    "Retry": function () {
-                        $(this).dialog("close");
+                    if (!isDefinedAndFilled(commentTargets))
+                        return;
 
-                        ticketId = $("#enterTicketId").val();
-
-                        commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranchForTc, commentTargets)
-                    },
-                    "Cancel": function () {
-                        $(this).dialog("close");
-                    }
-                }
+                    commentOnlyIfNoBlockers = $("input[name='stageCommentPolicy']:checked").val() === "clean";
+                    dialog.dialog("option", "buttons", {});
+                    dialog.find("input").prop("disabled", true);
+                    dialog.find(".action-stages").show().empty();
+                    appendActionStage(dialog, "Options selected.");
+                    appendActionStage(dialog, "Will comment " + commentTargetsLabel(commentTargets) +
+                        " with policy: " + commentPolicyLabel(commentOnlyIfNoBlockers) + ".");
+                    appendActionStage(dialog, "Sending comment request.");
+                    sendCommentRequest(dialog);
+                },
+                "Cancel": closeDialog
             }
-            else {
-                buttons = {
-                    "Ok": function () {
-                        $(this).dialog("close");
-                    }
-                }
-            }
+        });
+    }
 
-            var dialog = $("#triggerDialog");
+    function closeDialog() {
+        $(this).dialog("close");
+    }
+}
 
-            dialog.html("Comment ticket for server: " + serverCode + "<br>" +
-                " Suite: " + parentSuiteId + "<br>Branch:" + branchName +
-                "<br>Targets: " + commentTargets +
-                "<br><br> Result: " + result.result +
-                (needTicketId ? ("<br><br>Enter JIRA ticket number: <input type='text' id='enterTicketId'>") : ""));
+function collectStageCommentTargets() {
+    var selected = [];
 
-            dialog.dialog({
-                modal: true,
-                buttons: buttons
-            });
+    if ($("#stageCommentJira").prop("checked"))
+        selected.push("JIRA");
 
-            loadData(); // should be defined by page
-        },
-        error: showErrInLoadStatus
-    });
+    if ($("#stageCommentGithub").prop("checked"))
+        selected.push("GITHUB");
+
+    return selected.join(",");
+}
+
+function appendActionStage(dialog, text) {
+    dialog.find(".action-stages").append($("<div>").text("> " + text));
+}
+
+function commentTargetsLabel(targets) {
+    return isDefinedAndFilled(targets) ? targets : "nothing";
+}
+
+function commentPolicyLabel(commentOnlyIfNoBlockers) {
+    return commentOnlyIfNoBlockers ? "only clean run (no blockers)" : "always";
+}
+
+function optionalLink(url, label) {
+    if (!isDefinedAndFilled(url))
+        return "";
+
+    return " <a href='" + escapeHtml(url) + "' target='_blank'>" + escapeHtml(label) + "</a>";
 }
 
 /**
