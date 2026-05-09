@@ -77,8 +77,9 @@ optional PR/ref checkout, so the checked ref defines whether the task exists.
 @echo off
 setlocal
 
-set "REPO=C:\Tmp\ignite-teamcity-bot-check"
-set "DIST=C:\Tmp\tc-bot-prod-check"
+set "CHECK_ROOT=%~dp0"
+set "REPO=%CHECK_ROOT%ignite-teamcity-bot-check"
+set "DIST=%CHECK_ROOT%tc-bot-prod-check"
 set "PR_REF="
 rem set "PR_REF=pull/200/head"
 set "RUN_INTEGRATION_TESTS="
@@ -122,8 +123,9 @@ call jetty-launcher.bat
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="${REPO:-/tmp/ignite-teamcity-bot-check}"
-DIST="${DIST:-/tmp/tc-bot-prod-check}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO="${REPO:-$SCRIPT_DIR/ignite-teamcity-bot-check}"
+DIST="${DIST:-$SCRIPT_DIR/tc-bot-prod-check}"
 PR_REF="${PR_REF:-}"
 # PR_REF="pull/200/head"
 RUN_INTEGRATION_TESTS="${RUN_INTEGRATION_TESTS:-}"
