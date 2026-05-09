@@ -90,6 +90,15 @@ public class MonitoringServiceSecurityTest {
         assertFalse(html.contains("Application warnings/errors are available for bot admins."));
     }
 
+    @Test
+    public void monitoringPageContainsAdminUsersList() throws IOException {
+        String html = readFile(monitoringHtml());
+
+        assertTrue(html.contains("renderAdminUsersList(result, \"#adminUsersBlock\", \"#adminUsers\")"));
+        assertTrue(html.contains("id=\"adminUsersBlock\" class=\"adminOnly\""));
+        assertTrue(html.contains("<b>Users:</b>"));
+    }
+
     private static void assertAuthRequired(Method method) {
         assertFalse(method.isAnnotationPresent(PermitAll.class));
     }

@@ -109,11 +109,21 @@ public class UserServiceTest {
     @Test
     public void userPageHasExplicitAdminUsersList() throws IOException {
         String html = new String(Files.readAllBytes(userHtml()), StandardCharsets.UTF_8);
+        String commonScript = new String(Files.readAllBytes(commonJs()), StandardCharsets.UTF_8);
 
         assertTrue(html.contains("loadUsersList()"));
         assertTrue(html.contains("id=\"adminUsersBlock\""));
         assertTrue(html.contains("rest/user/currentUserName"));
-        assertTrue(html.contains("/user.html?login="));
+        assertTrue(html.contains("renderAdminUsersList(menuData, \"#adminUsersBlock\", \"#adminUsers\")"));
+        assertTrue(commonScript.contains("/user.html?login="));
+    }
+
+    @Test
+    public void mainMenuDoesNotRenderAdminUsersDropdown() throws IOException {
+        String commonScript = new String(Files.readAllBytes(commonJs()), StandardCharsets.UTF_8);
+
+        assertFalse(commonScript.contains("adminUsersMenu"));
+        assertFalse(commonScript.contains("dropbtn'>Users"));
     }
 
     private static UserService service(IUserStorage users, ITcBotUserCreds creds) throws Exception {
@@ -178,5 +188,14 @@ public class UserServiceTest {
             return projectPath;
 
         return Paths.get("ignite-tc-helper-web/src/main/webapp/user.html");
+    }
+
+    private static Path commonJs() {
+        Path projectPath = Paths.get("src/main/webapp/js/common-1.7.js");
+
+        if (Files.exists(projectPath))
+            return projectPath;
+
+        return Paths.get("ignite-tc-helper-web/src/main/webapp/js/common-1.7.js");
     }
 }

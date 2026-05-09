@@ -226,10 +226,6 @@ function showMenu(menuData) {
 
         res += "<a href='/monitoring.html'>Server state</a>";
 
-        if (menuData.admin) {
-            res += adminUsersMenu(menuData.users);
-        }
-
         res += "<a id='userName' href='/user.html'>" + escapeHtml(userName) + "</a>";
         var logout = "/login.html" + "?exit=true&backref=" + encodeURIComponent(window.location.href);
         res += "<a href='" + logout + "'>Logout</a>";
@@ -241,30 +237,42 @@ function showMenu(menuData) {
     $(document.body).prepend(res);
 }
 
-function adminUsersMenu(users) {
-    if (!Array.isArray(users) || users.length === 0)
-        return "";
+function renderAdminUsersList(menuData, blockSelector, usersSelector) {
+    if (!menuData || menuData.admin !== true) {
+        $(usersSelector).html("");
+        $(blockSelector).hide();
 
-    var res = "<div class='dropdown'>";
-    res += "<button class='dropbtn'>Users</button>";
-    res += "<div class='dropdown-content'>";
-
-    for (var i = 0; i < users.length; i++) {
-        var user = users[i];
-        var label = escapeHtml(user.displayName || user.username);
-
-        if (user.admin)
-            label += " <span class='admin-marker'>admin</span>";
-
-        res += "<a href='/user.html?login=" + encodeURIComponent(user.username) + "'>" + label + "</a>";
+        return;
     }
 
-    res += "</div>";
-    res += "</div>";
+    var users = Array.isArray(menuData.users) ? menuData.users : [];
+    var res = "";
 
-    return res;
+    if (users.length === 0) {
+        res = "No other users";
+    }
+    else {
+        res += "<table class='stat'>";
+        res += "<tr><th>User</th><th>Login</th><th>Role</th></tr>";
+
+        for (var i = 0; i < users.length; i++) {
+            var user = users[i];
+            var login = user.username || "";
+            var label = user.displayName || login;
+
+            res += "<tr>";
+            res += "<td><a href='/user.html?login=" + encodeURIComponent(login) + "'>" + escapeHtml(label) + "</a></td>";
+            res += "<td>" + escapeHtml(login) + "</td>";
+            res += "<td>" + (user.admin ? "admin" : "") + "</td>";
+            res += "</tr>";
+        }
+
+        res += "</table>";
+    }
+
+    $(usersSelector).html(res);
+    $(blockSelector).show();
 }
-
 
 function authorizeServer() {
     $.ajax({
