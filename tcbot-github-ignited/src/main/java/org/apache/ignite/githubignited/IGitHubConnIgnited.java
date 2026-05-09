@@ -21,6 +21,7 @@ import org.apache.ignite.ci.github.GitHubIssueComment;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
 import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
+import org.jetbrains.annotations.Nullable;
 
 /**
  *
@@ -72,7 +73,18 @@ public interface IGitHubConnIgnited {
      * @param body Comment markdown.
      * @return {@code True} if comment was posted.
      */
-    public boolean postIssueComment(int prNum, String body);
+    public default boolean postIssueComment(int prNum, String body) {
+        return postIssueCommentError(prNum, body) == null;
+    }
+
+    /**
+     * Publishes pull request issue comment.
+     *
+     * @param prNum Pull request number.
+     * @param body Comment markdown.
+     * @return {@code null} if comment was posted, otherwise detailed error.
+     */
+    @Nullable public String postIssueCommentError(int prNum, String body);
 
     /** {@inheritDoc} */
     public List<String> getBranches();

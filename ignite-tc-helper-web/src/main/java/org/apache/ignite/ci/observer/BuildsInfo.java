@@ -88,13 +88,21 @@ public class BuildsInfo {
         this.srvId = strCompactor.getStringFromId(compactBuildsInfo.srvId());
         this.ticket = strCompactor.getStringFromId(compactBuildsInfo.ticket());
         this.commentTargets = CommentTargets.normalize(
-            strCompactor.getStringFromId(compactBuildsInfo.commentTargets()));
+            compactedString(strCompactor, compactBuildsInfo.commentTargets()));
         this.branchForTc = strCompactor.getStringFromId(compactBuildsInfo.branchForTc());
         this.buildTypeId = strCompactor.getStringFromId(compactBuildsInfo.buildTypeId());
-        this.baseBranchForTc = strCompactor.getStringFromId(compactBuildsInfo.baseBranchForTc());
+        this.baseBranchForTc = compactedString(strCompactor, compactBuildsInfo.baseBranchForTc());
         this.prNum = compactBuildsInfo.prNum() > 0 ? compactBuildsInfo.prNum() : null;
         this.commentOnlyIfNoBlockers = compactBuildsInfo.commentOnlyIfNoBlockers();
         this.builds.addAll(compactBuildsInfo.getBuilds());
+    }
+
+    /**
+     * @param strCompactor String compactor.
+     * @param id String id.
+     */
+    @Nullable private static String compactedString(IStringCompactor strCompactor, int id) {
+        return id < 0 ? null : strCompactor.getStringFromId(id);
     }
 
     /**

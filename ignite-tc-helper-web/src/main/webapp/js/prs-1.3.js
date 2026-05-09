@@ -17,11 +17,12 @@
 function drawTable(srvId, element) {
     let tableId = "serverContributions-" + srvId;
 
-    element.append("<div id='contributionsActions-" + srvId + "' align='right' style='margin-right:50px'>" +
+    element.append("<div id='contributionsActions-" + srvId + "' align='right' " +
+        "style='margin-right:50px; display:flex; justify-content:flex-end; gap:4px; align-items:center'>" +
         "<button id='refreshContributions-" + srvId + "' type='button' title='Load current PR data from GitHub now'>" +
         "Refresh now</button>" +
-        "</div>" +
-        "<div id='expandAllButton-" + srvId + "' align='right' style='margin-right:50px'></div><br>" +
+        "<span id='expandAllButton-" + srvId + "'></span>" +
+        "</div><br>" +
         "<table id=\"" + tableId + "\" class='ui-widget ui-widget-content'>\n" +
         "            <thead>\n" +
         "            <tr class=\"ui-widget-header \">\n" +
@@ -66,17 +67,21 @@ function refreshContributionsNow(srvId) {
     let button = $("#refreshContributions-" + srvId);
     let dialog = $("#refreshContributionsDialog");
 
-    if (dialog.length === 0) {
-        $("body").append("<div id='refreshContributionsDialog' title='Refresh pull requests'>" +
-            "<div id='refreshContributionsStatus'></div>" +
-            "<div class='action-stages' id='refreshContributionsStages' " +
-            "style='margin-top: 12px; max-height: 220px; overflow-y: auto'></div>" +
-            "</div>");
-        dialog = $("#refreshContributionsDialog");
+    if (dialog.length > 0) {
+        if (dialog.data("ui-dialog"))
+            dialog.dialog("destroy");
+
+        dialog.remove();
     }
 
+    $("body").append("<div id='refreshContributionsDialog' title='Refresh pull requests'>" +
+        actionStatusHtml("Preparing PR refresh.") +
+        actionStagesHtml(false, "refreshContributionsStages") +
+        actionErrorHtml() +
+        "</div>");
+    dialog = $("#refreshContributionsDialog");
+
     let stages = $("#refreshContributionsStages");
-    let status = $("#refreshContributionsStatus");
     let processId = createBotProcessId("refreshContributions");
     let stopProcessPolling;
     let xhr;
@@ -96,9 +101,10 @@ function refreshContributionsNow(srvId) {
 
     button.prop("disabled", true);
     stages.empty();
-    status.text("Refreshing " + srvId + " contributions from GitHub...");
+    dialog.find(".action-error").hide().empty();
+    setActionStatus(dialog, "Refreshing " + srvId + " contributions from GitHub...");
 
-    dialog.dialog(actionDialogOptions("Refresh pull requests", {}));
+    openCenteredDialog(dialog, actionDialogOptions("Refresh pull requests", {}));
 
     appendStage("Sending PR refresh request to the bot REST API.");
 
@@ -114,7 +120,7 @@ function refreshContributionsNow(srvId) {
             fillBranchAutocompleteList(result, srvId);
             setAutocompleteFilter();
 
-            status.text("Done. Loaded " + result.length + " contributions.");
+            setActionStatus(dialog, "Done. Loaded " + result.length + " contributions.");
             appendStage("Table was updated with fresh GitHub data.");
             finishProgress({
                 "Ok": function () {
@@ -126,8 +132,9 @@ function refreshContributionsNow(srvId) {
             if (textStatus === "abort")
                 return;
 
-            status.text("Refresh failed.");
+            setActionStatus(dialog, "Refresh failed.");
             appendStage("Error: " + (errorThrown || jqXHR.statusText || "unknown error"));
+            dialog.find(".action-error").text(jqXHR.responseText || errorThrown || "Unknown request error.").show();
             finishProgress({
                 "Ok": function () {
                     $(this).dialog("close");
@@ -158,7 +165,8 @@ function showContributionsTable(result, srvId, suiteId) {
     tableForSrv.dataTable().fnDestroy();
 
     if (isDefinedAndFilled(result) && result.length > 0)
-        $("#expandAllButton-"+ srvId).html("<button class='more green' id='expandAll'>Expand all</button>");
+        $("#expandAllButton-" + srvId).html("<button class='more green' id='expandAll-" + srvId +
+            "' type='button'>Expand all</button>");
 
     var table = tableForSrv.DataTable({
         order: [[1, 'desc']],
@@ -272,8 +280,8 @@ function showContributionsTable(result, srvId, suiteId) {
         ]
     });
 
-    $('#expandAll').on('click', function () {
-        $('.details-control').click();
+    $('#expandAll-' + srvId).on('click', function () {
+        $('#' + tableId + ' .details-control').click();
     });
 
     // Add event listener for opening and closing details, enable to only btn   'td.details-control'
@@ -504,10 +512,6 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
     let hasQueued = status.queuedBuilds > 0 || status.runningBuilds > 0;
     let queuedStatus = "Has queued builds: " + status.queuedBuilds  + " queued " + " " + status.runningBuilds  + " running";
 
-    let replaintCall = "repaintLater(" +
-        "\"" + srvId + "\"" +
-        ");";
-
     var linksToRunningBuilds = "";
     for (let i = 0; i < status.webLinksQueuedSuites.length; i++) {
         const l = status.webLinksQueuedSuites[i];
@@ -542,8 +546,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
                 "\"" + row.prNumber + "\"," +
                 "false," +
                 actionUiLinks +
-                "); " +
-                replaintCall +
+                ");" +
                 "'";
 
             if (hasQueued) {
@@ -564,8 +567,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
                 "\"" + row.prNumber + "\"," +
                 "false," +
                 actionUiLinks +
-                "); " +
-                replaintCall +
+                ");" +
                 "'";
 
             if (hasQueued)

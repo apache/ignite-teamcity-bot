@@ -107,8 +107,8 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public boolean postIssueComment(int prNum, String body) {
-        return conn.postIssueComment(prNum, body);
+    @Override public String postIssueCommentError(int prNum, String body) {
+        return conn.postIssueCommentError(prNum, body);
     }
 
     /** {@inheritDoc} */

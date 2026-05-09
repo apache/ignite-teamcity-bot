@@ -1313,6 +1313,8 @@ public class TcBotTriggerAndSignOffService {
         int blockers;
 
         JiraCommentResponse res = null;
+        String jiraCommentStatus = null;
+        GitHubCommentResult gitHubComment = GitHubCommentResult.commented(null);
 
         try {
             String baseBranch = Strings.isNullOrEmpty(baseBranchForTc)
@@ -1335,12 +1337,10 @@ public class TcBotTriggerAndSignOffService {
             if (commentOnlyIfNoBlockers && blockers > 0)
                 return new Visa(Visa.COMMENT_SKIPPED, null, blockers);
 
-            boolean gitHubCommented = true;
-
             if (githubRequested) {
                 processMonitor.status(processId, "Publishing the analysis comment to GitHub.");
 
-                gitHubCommented = notifyGitHubPullRequest(srvCodeOrAlias, buildTypeId, branchForTc, prNum, build,
+                gitHubComment = notifyGitHubPullRequest(srvCodeOrAlias, buildTypeId, branchForTc, prNum, build,
                     fatBuild, tcIgnited, suitesStatuses, newTestsStatuses, blockers, baseBranch);
             }
 
@@ -1355,10 +1355,12 @@ public class TcBotTriggerAndSignOffService {
                     build.branchName, baseBranch);
 
                 res = objMapper.readValue(jira.postJiraComment(ticket, comment), JiraCommentResponse.class);
+                jiraCommentStatus = "JIRA ticket commented: " + ticketTarget(jira, ticket, res);
             }
 
-            if (githubRequested && !gitHubCommented)
-                return commentResult(targets, gitHubCommented, res, blockers);
+            if (githubRequested && !gitHubComment.commented)
+                return commentResult(targets, gitHubComment.commented, gitHubComment.error, gitHubComment.status,
+                    jiraCommentStatus, res, blockers);
         }
         catch (Exception e) {
             String errMsg = "Exception happened during commenting TCBot analysis " +
@@ -1371,7 +1373,7 @@ public class TcBotTriggerAndSignOffService {
 
         logSlowVisaOperation(startNanos, "notifyComments", srvCodeOrAlias, buildTypeId, branchForTc, blockers);
 
-        return commentResult(targets, true, res, blockers);
+        return commentResult(targets, true, null, gitHubComment.status, jiraCommentStatus, res, blockers);
     }
 
     /**
@@ -1381,16 +1383,161 @@ public class TcBotTriggerAndSignOffService {
      * @param blockers Blockers count.
      */
     static Visa commentResult(String targets, boolean gitHubCommented, JiraCommentResponse res, int blockers) {
+        return commentResult(targets, gitHubCommented, null, res, blockers);
+    }
+
+    /**
+     * @param targets Comment targets.
+     * @param gitHubCommented Whether GitHub target was commented successfully.
+     * @param gitHubError GitHub comment error.
+     * @param res JIRA response.
+     * @param blockers Blockers count.
+     */
+    static Visa commentResult(String targets, boolean gitHubCommented, @Nullable String gitHubError,
+        JiraCommentResponse res, int blockers) {
+        return commentResult(targets, gitHubCommented, gitHubError, null, null, res, blockers);
+    }
+
+    /**
+     * @param targets Comment targets.
+     * @param gitHubCommented Whether GitHub target was commented successfully.
+     * @param gitHubError GitHub comment error.
+     * @param gitHubStatus GitHub comment status.
+     * @param jiraStatus JIRA comment status.
+     * @param res JIRA response.
+     * @param blockers Blockers count.
+     */
+    static Visa commentResult(String targets, boolean gitHubCommented, @Nullable String gitHubError,
+        @Nullable String gitHubStatus, @Nullable String jiraStatus, JiraCommentResponse res, int blockers) {
         boolean githubRequested = CommentTargets.github(targets);
         boolean jiraRequested = CommentTargets.jira(targets);
 
         if (githubRequested && !gitHubCommented && jiraRequested)
-            return new Visa(Visa.PARTIALLY_COMMENTED, res, blockers);
+            return new Visa(partialCommentStatus(jiraStatus, gitHubError), res, blockers);
 
         if (githubRequested && !gitHubCommented)
-            return new Visa("GitHub wasn't commented - related PR was not found or GitHub API returned an error.");
+            return new Visa("GitHub wasn't commented - " +
+                (Strings.isNullOrEmpty(gitHubError) ? "unknown GitHub comment error." : gitHubError));
 
-        return jiraRequested ? new Visa(Visa.JIRA_COMMENTED, res, blockers) : new Visa(Visa.COMMENTED, res, blockers);
+        if (jiraRequested && githubRequested)
+            return new Visa(joinCommentStatuses(jiraStatus, gitHubStatus), res, blockers);
+
+        if (jiraRequested)
+            return new Visa(Strings.isNullOrEmpty(jiraStatus) ? Visa.JIRA_COMMENTED : jiraStatus, res, blockers);
+
+        return new Visa(Strings.isNullOrEmpty(gitHubStatus) ? Visa.COMMENTED : gitHubStatus, res, blockers);
+    }
+
+    /**
+     * @param jiraStatus JIRA comment status.
+     * @param gitHubError GitHub comment error.
+     */
+    private static String partialCommentStatus(@Nullable String jiraStatus, @Nullable String gitHubError) {
+        String prefix = Strings.isNullOrEmpty(jiraStatus) ? Visa.PARTIALLY_COMMENTED : jiraStatus;
+
+        return prefix + "; GitHub wasn't commented - " +
+            (Strings.isNullOrEmpty(gitHubError) ? "unknown GitHub comment error." : gitHubError);
+    }
+
+    /**
+     * @param jiraStatus JIRA comment status.
+     * @param gitHubStatus GitHub comment status.
+     */
+    private static String joinCommentStatuses(@Nullable String jiraStatus, @Nullable String gitHubStatus) {
+        List<String> statuses = new ArrayList<>();
+
+        if (!Strings.isNullOrEmpty(jiraStatus))
+            statuses.add(jiraStatus);
+
+        if (!Strings.isNullOrEmpty(gitHubStatus))
+            statuses.add(gitHubStatus);
+
+        return statuses.isEmpty() ? Visa.COMMENTED : String.join("; ", statuses);
+    }
+
+    /**
+     * @param jira JIRA.
+     * @param ticket Ticket.
+     * @param res JIRA comment response.
+     */
+    private static String ticketTarget(IJiraIgnited jira, String ticket, @Nullable JiraCommentResponse res) {
+        try {
+            if (res != null && res.getId() > 0)
+                return ticket + " " + jira.generateCommentUrl(ticket, res.getId());
+
+            return ticket + " " + jira.generateTicketUrl(ticket);
+        }
+        catch (RuntimeException e) {
+            return ticket;
+        }
+    }
+
+    /**
+     * @param pr Pull request.
+     */
+    private static String pullRequestTarget(PullRequest pr) {
+        String target = "PR #" + pr.getNumber();
+
+        return Strings.isNullOrEmpty(pr.htmlUrl()) ? target : target + " " + pr.htmlUrl();
+    }
+
+    /**
+     * @param chainBuildId Main chain build id.
+     * @param suitesStatuses Blocker suite statuses.
+     * @param newTestsStatuses New test suite statuses.
+     */
+    static String analysisSliceKey(
+        int chainBuildId,
+        List<ShortSuiteUi> suitesStatuses,
+        List<ShortSuiteNewTestsUi> newTestsStatuses
+    ) {
+        Set<String> suiteBuildIds = new LinkedHashSet<>();
+
+        if (suitesStatuses != null) {
+            for (ShortSuiteUi suite : suitesStatuses)
+                addBuildIdFromUrl(suiteBuildIds, suite.webToBuild);
+        }
+
+        if (newTestsStatuses != null) {
+            for (ShortSuiteNewTestsUi suite : newTestsStatuses)
+                addBuildIdFromUrl(suiteBuildIds, suite.webToBuild);
+        }
+
+        List<String> sortedBuildIds = new ArrayList<>(suiteBuildIds);
+
+        Collections.sort(sortedBuildIds);
+
+        return "chainBuildId=" + chainBuildId + " suiteBuildIds=" +
+            (sortedBuildIds.isEmpty() ? "none" : String.join(",", sortedBuildIds));
+    }
+
+    /**
+     * @param buildIds Build ids.
+     * @param url Build URL.
+     */
+    private static void addBuildIdFromUrl(Set<String> buildIds, @Nullable String url) {
+        if (Strings.isNullOrEmpty(url))
+            return;
+
+        String param = "buildId=";
+        int idx = url.indexOf(param);
+
+        if (idx < 0) {
+            buildIds.add(url);
+
+            return;
+        }
+
+        int start = idx + param.length();
+        int end = start;
+
+        while (end < url.length() && Character.isDigit(url.charAt(end)))
+            end++;
+
+        if (end > start)
+            buildIds.add(url.substring(start, end));
+        else
+            buildIds.add(url);
     }
 
     /**
@@ -1406,7 +1553,7 @@ public class TcBotTriggerAndSignOffService {
      * @param blockers Blockers count.
      * @param baseBranch Base branch.
      */
-    private boolean notifyGitHubPullRequest(
+    private GitHubCommentResult notifyGitHubPullRequest(
         String srvCodeOrAlias,
         String buildTypeId,
         String requestedBranchForTc,
@@ -1424,43 +1571,104 @@ public class TcBotTriggerAndSignOffService {
                 : findPullRequestByNumber(gh, prNum);
 
             if (pr == null) {
-                logger.info("GitHub PR was not found for TCBot analysis comment " +
-                        "[srv={}, prNum={}, requestedBranch={}, buildBranch={}]",
-                    srvCodeOrAlias, prNum, requestedBranchForTc, build.branchName);
+                String err = "related PR was not found [srv=" + srvCodeOrAlias +
+                    ", prNum=" + prNum +
+                    ", requestedBranch=" + requestedBranchForTc +
+                    ", buildBranch=" + build.branchName + ']';
 
-                return false;
+                logger.info("GitHub PR was not found for TCBot analysis comment [{}]", err);
+
+                return GitHubCommentResult.failed(err);
             }
 
-            String marker = GitHubCommentsGenerator.duplicateMarker(build.getId());
+            String analysisSliceKey = analysisSliceKey(build.getId(), suitesStatuses, newTestsStatuses);
+            String marker = GitHubCommentsGenerator.duplicateMarker(analysisSliceKey);
+            String prTarget = pullRequestTarget(pr);
 
-            if (hasExistingGitHubComment(gh, pr.getNumber(), marker, build.webUrl)) {
-                logger.info("GitHub PR already has TCBot analysis comment [srv={}, pr={}, build={}]",
-                    srvCodeOrAlias, pr.getNumber(), build.getId());
+            if (hasExistingGitHubComment(gh, pr.getNumber(), marker)) {
+                logger.info("GitHub PR already has TCBot analysis comment [srv={}, pr={}, build={}, slice={}]",
+                    srvCodeOrAlias, pr.getNumber(), build.getId(), analysisSliceKey);
 
-                return true;
+                return GitHubCommentResult.alreadyCommented(prTarget);
             }
 
             String testedCommit = tcIgnited.getLatestCommitVersion(fatBuild);
-            String testedCommitLink = testedCommitLink(gh, testedCommit);
+            String testedCommitLink = testedCommitLink(gh, testedCommit, pr.getNumber());
 
             String comment = GitHubCommentsGenerator.generateGitHubComment(compactor, suitesStatuses,
                 newTestsStatuses, build.webUrl, buildTypeId, tcIgnited, blockers, build.branchName, baseBranch,
-                testedCommitLink, build.getId());
+                testedCommitLink, analysisSliceKey);
 
-            boolean notified = gh.postIssueComment(pr.getNumber(), comment);
+            String notifyErr = gh.postIssueCommentError(pr.getNumber(), comment);
 
-            if (!notified)
-                logger.warn("GitHub PR was not commented [srv={}, pr={}, build={}]", srvCodeOrAlias,
-                    pr.getNumber(), build.getId());
+            if (notifyErr != null) {
+                String err = "GitHub issue comment POST failed [srv=" + srvCodeOrAlias +
+                    ", pr=" + pr.getNumber() +
+                    ", build=" + build.getId() +
+                    ", err=" + notifyErr + ']';
 
-            return notified;
+                logger.warn("GitHub PR was not commented [{}]", err);
+
+                return GitHubCommentResult.failed(err);
+            }
+
+            return GitHubCommentResult.commented(prTarget);
         }
         catch (Exception e) {
-            logger.error("Exception happened during commenting GitHub PR [srv=" + srvCodeOrAlias +
+            String err = "exception happened during commenting GitHub PR [srv=" + srvCodeOrAlias +
                 ", requestedBranch=" + requestedBranchForTc + ", build=" + build.getId() +
-                ", errMsg=" + e.getMessage() + ']', e);
+                ", errType=" + e.getClass().getSimpleName() +
+                ", errMsg=" + e.getMessage() + ']';
 
-            return false;
+            logger.error(err, e);
+
+            return GitHubCommentResult.failed(err);
+        }
+    }
+
+    /** GitHub comment attempt result. */
+    private static class GitHubCommentResult {
+        /** */
+        private final boolean commented;
+
+        /** */
+        @Nullable private final String error;
+
+        /** */
+        @Nullable private final String status;
+
+        /**
+         * @param commented Commented flag.
+         * @param error Error.
+         * @param status User-visible status.
+         */
+        private GitHubCommentResult(boolean commented, @Nullable String error, @Nullable String status) {
+            this.commented = commented;
+            this.error = error;
+            this.status = status;
+        }
+
+        /**
+         * @param target Comment target.
+         */
+        private static GitHubCommentResult commented(@Nullable String target) {
+            return new GitHubCommentResult(true, null,
+                Strings.isNullOrEmpty(target) ? null : "GitHub PR commented: " + target);
+        }
+
+        /**
+         * @param target Comment target.
+         */
+        private static GitHubCommentResult alreadyCommented(String target) {
+            return new GitHubCommentResult(true, null,
+                "GitHub PR already has a valid TCBot comment for this build: " + target);
+        }
+
+        /**
+         * @param error Error.
+         */
+        private static GitHubCommentResult failed(String error) {
+            return new GitHubCommentResult(false, error, null);
         }
     }
 
@@ -1468,7 +1676,24 @@ public class TcBotTriggerAndSignOffService {
      * @param gh GitHub.
      * @param prNum Pull request number.
      */
-    @Nullable private PullRequest findPullRequestByNumber(IGitHubConnIgnited gh, int prNum) {
+    @Nullable PullRequest findPullRequestByNumber(IGitHubConnIgnited gh, int prNum) {
+        PullRequest pr = findPullRequestByNumberInCache(gh, prNum);
+
+        if (pr != null)
+            return pr;
+
+        logger.info("GitHub PR was not found in cache, refreshing pull requests [pr={}]", prNum);
+
+        gh.refreshPullRequests();
+
+        return findPullRequestByNumberInCache(gh, prNum);
+    }
+
+    /**
+     * @param gh GitHub.
+     * @param prNum Pull request number.
+     */
+    @Nullable private PullRequest findPullRequestByNumberInCache(IGitHubConnIgnited gh, int prNum) {
         PullRequest pr = gh.getPullRequest(prNum);
 
         if (pr != null)
@@ -1536,9 +1761,8 @@ public class TcBotTriggerAndSignOffService {
      * @param gh GitHub.
      * @param prNum PR number.
      * @param marker Marker.
-     * @param buildUrl Build URL.
      */
-    boolean hasExistingGitHubComment(IGitHubConnIgnited gh, int prNum, String marker, String buildUrl) {
+    boolean hasExistingGitHubComment(IGitHubConnIgnited gh, int prNum, String marker) {
         List<GitHubIssueComment> comments = gh.getIssueComments(prNum);
 
         if (comments == null)
@@ -1547,7 +1771,7 @@ public class TcBotTriggerAndSignOffService {
         for (GitHubIssueComment comment : comments) {
             String body = comment.body();
 
-            if (body != null && (body.contains(marker) || body.contains(buildUrl)))
+            if (body != null && body.contains(marker))
                 return true;
         }
 
@@ -1574,14 +1798,15 @@ public class TcBotTriggerAndSignOffService {
     /**
      * @param gh GitHub.
      * @param commit Commit hash.
+     * @param prNum Pull request number.
      */
-    private String testedCommitLink(IGitHubConnIgnited gh, @Nullable String commit) {
+    private String testedCommitLink(IGitHubConnIgnited gh, @Nullable String commit, int prNum) {
         if (Strings.isNullOrEmpty(commit))
             return null;
 
         String shortCommit = commit.length() > PullRequest.INCLUDE_SHORT_VER
             ? commit.substring(0, PullRequest.INCLUDE_SHORT_VER) : commit;
-        String url = commitHtmlUrl(gh.config().gitApiUrl(), commit);
+        String url = commitHtmlUrl(gh.config().gitApiUrl(), commit, prNum);
 
         return url == null ? "`" + shortCommit + "`" : "[" + shortCommit + "](" + url + ")";
     }
@@ -1589,8 +1814,9 @@ public class TcBotTriggerAndSignOffService {
     /**
      * @param gitApiUrl GitHub API URL.
      * @param commit Commit hash.
+     * @param prNum Pull request number.
      */
-    @Nullable private String commitHtmlUrl(@Nullable String gitApiUrl, String commit) {
+    @Nullable String commitHtmlUrl(@Nullable String gitApiUrl, String commit, int prNum) {
         if (Strings.isNullOrEmpty(gitApiUrl))
             return null;
 
@@ -1617,7 +1843,7 @@ public class TcBotTriggerAndSignOffService {
         else if (host.endsWith("/api/v3"))
             host = host.substring(0, host.length() - "/api/v3".length());
 
-        return host + "/" + path[0] + "/" + path[1] + "/commit/" + commit;
+        return host + "/" + path[0] + "/" + path[1] + "/pull/" + prNum + "/commits/" + commit;
     }
 
     /**

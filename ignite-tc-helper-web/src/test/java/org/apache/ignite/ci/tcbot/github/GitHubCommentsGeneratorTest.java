@@ -43,10 +43,10 @@ public class GitHubCommentsGeneratorTest {
             "pull/100/head",
             "<default>",
             "[abcdef1](https://github.com/apache/ignite/commit/abcdef123456)",
-            42
+            "chainBuildId=42"
         );
 
-        assertTrue(comment.contains(GitHubCommentsGenerator.duplicateMarker(42)));
+        assertTrue(comment.contains(GitHubCommentsGenerator.duplicateMarker("chainBuildId=42")));
         assertTrue(comment.contains("No blockers found."));
         assertTrue(comment.contains("No new tests found."));
         assertTrue(comment.contains("[abcdef1](https://github.com/apache/ignite/commit/abcdef123456)"));

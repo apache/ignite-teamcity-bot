@@ -153,16 +153,25 @@ class GitHubConnectionImpl implements IGitHubConnection {
     }
 
     /** */
-    private boolean notifyGit(String url, String body) {
+    @Nullable private String notifyGitError(String url, String body) {
         try {
             HttpUtil.sendPostAsStringToGit(config().gitAuthTok(), url, body);
 
-            return true;
+            return null;
         }
         catch (IOException e) {
-            logger.error("Failed to notify Git [errMsg=" + e.getMessage() + ']');
+            String err = e.getClass().getSimpleName() + ": " + e.getMessage();
 
-            return false;
+            logger.error("Failed to notify Git [errMsg={}]", err, e);
+
+            return err;
+        }
+        catch (RuntimeException e) {
+            String err = e.getClass().getSimpleName() + ": " + e.getMessage();
+
+            logger.error("Failed to notify Git [errMsg={}]", err, e);
+
+            return err;
         }
     }
 
@@ -192,13 +201,13 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public boolean postIssueComment(int prNum, String body) {
+    @Override public String postIssueCommentError(int prNum, String body) {
         String url = getApiUrlMandatory() + "issues/" + prNum + "/comments";
         HashMap<String, String> req = new HashMap<>();
         req.put("body", body);
         String json = new Gson().toJson(req);
 
-        return notifyGit(url, json);
+        return notifyGitError(url, json);
     }
 
     /** {@inheritDoc} */

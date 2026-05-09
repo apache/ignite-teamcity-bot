@@ -39,7 +39,15 @@ public class GitHubCommentsGenerator {
      * @return Stable hidden marker for duplicate detection.
      */
     public static String duplicateMarker(int buildId) {
-        return "<!-- tcbot-analysis-comment buildId=" + buildId + " -->";
+        return duplicateMarker("chainBuildId=" + buildId);
+    }
+
+    /**
+     * @param analysisSliceKey Analysis slice key.
+     * @return Stable hidden marker for duplicate detection.
+     */
+    public static String duplicateMarker(String analysisSliceKey) {
+        return "<!-- tcbot-analysis-comment " + analysisSliceKey + " -->";
     }
 
     /**
@@ -53,7 +61,7 @@ public class GitHubCommentsGenerator {
      * @param branchName TC branch name, which was tested.
      * @param baseBranch TC base branch used for comment.
      * @param testedCommitLink Markdown-formatted tested commit.
-     * @param buildId TeamCity build id.
+     * @param analysisSliceKey Analysis slice key.
      * @return GitHub markdown comment.
      */
     public static String generateGitHubComment(
@@ -67,7 +75,7 @@ public class GitHubCommentsGenerator {
         String branchName,
         String baseBranch,
         String testedCommitLink,
-        int buildId
+        String analysisSliceKey
     ) {
         BuildTypeRefCompacted bt = tcIgnited.getBuildTypeRef(buildTypeId);
         String suiteNameUsedForVisa = bt != null ? bt.name(compactor) : buildTypeId;
@@ -76,7 +84,7 @@ public class GitHubCommentsGenerator {
 
         StringBuilder res = new StringBuilder();
 
-        res.append(duplicateMarker(buildId)).append('\n');
+        res.append(duplicateMarker(analysisSliceKey)).append('\n');
         res.append("### TCBot Test Analysis\n\n");
         res.append("* TeamCity: [").append(escapeLinkText(suiteNameUsedForVisa)).append(" Results](")
             .append(webUrl).append(")\n");

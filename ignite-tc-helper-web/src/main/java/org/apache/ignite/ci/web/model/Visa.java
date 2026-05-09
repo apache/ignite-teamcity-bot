@@ -41,6 +41,16 @@ public class Visa {
     public static final String COMMENT_SKIPPED = "Analysis comment skipped: blockers found.";
 
     /** */
+    private static final String JIRA_COMMENTED_PREFIX = "JIRA ticket commented:";
+
+    /** */
+    private static final String GITHUB_COMMENTED_PREFIX = "GitHub PR commented:";
+
+    /** */
+    private static final String GITHUB_ALREADY_COMMENTED_PREFIX =
+        "GitHub PR already has a valid TCBot comment for this build:";
+
+    /** */
     public final String status;
 
     /** */
@@ -85,7 +95,23 @@ public class Visa {
         return (JIRA_COMMENTED.equals(status) && jiraCommentRes != null)
             || COMMENTED.equals(status)
             || (PARTIALLY_COMMENTED.equals(status) && jiraCommentRes != null)
+            || isDetailedSuccess(status)
             || COMMENT_SKIPPED.equals(status);
+    }
+
+    /** */
+    private boolean isDetailedSuccess(String status) {
+        if (status == null)
+            return false;
+
+        boolean jiraCommented = status.startsWith(JIRA_COMMENTED_PREFIX) && jiraCommentRes != null;
+        boolean partiallyCommented = status.startsWith(PARTIALLY_COMMENTED) && jiraCommentRes != null;
+        boolean githubCommented = status.startsWith(GITHUB_COMMENTED_PREFIX)
+            || status.startsWith(GITHUB_ALREADY_COMMENTED_PREFIX)
+            || status.contains("; " + GITHUB_COMMENTED_PREFIX)
+            || status.contains("; " + GITHUB_ALREADY_COMMENTED_PREFIX);
+
+        return jiraCommented || partiallyCommented || (githubCommented && !status.contains("wasn't commented"));
     }
 
     /** */

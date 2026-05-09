@@ -56,7 +56,18 @@ public interface IGitHubConnection {
      * @param body Comment markdown.
      * @return {@code True} - if GitHub was notified. {@code False} - otherwise.
      */
-    public boolean postIssueComment(int prNum, String body);
+    public default boolean postIssueComment(int prNum, String body) {
+        return postIssueCommentError(prNum, body) == null;
+    }
+
+    /**
+     * Publishes pull request issue comment.
+     *
+     * @param prNum Pull request number.
+     * @param body Comment markdown.
+     * @return {@code null} if comment was posted, otherwise detailed error.
+     */
+    @Nullable public String postIssueCommentError(int prNum, String body);
 
     /**
      * @param fullUrl Full url - null for first page, not null for next page.

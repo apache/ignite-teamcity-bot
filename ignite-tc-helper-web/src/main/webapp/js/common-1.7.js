@@ -353,7 +353,8 @@ function createTextCommandDialog(options) {
         processId: null
     };
 
-    dialog.dialog({
+    openCenteredDialog(dialog, {
+        appendTo: "body",
         close: function () {
             closeTextCommandDialog(state);
         },
@@ -374,14 +375,81 @@ function createTextCommandDialog(options) {
     return state;
 }
 
+function centeredDialogOptions(options) {
+    let originalOpen = options.open;
+    let scrollLeft = $(window).scrollLeft();
+    let scrollTop = $(window).scrollTop();
+
+    return $.extend({}, options, {
+        appendTo: options.appendTo || "body",
+        position: options.position || {
+            my: "center",
+            at: "center",
+            of: window
+        },
+        open: function (event, ui) {
+            if (typeof originalOpen === "function")
+                originalOpen.call(this, event, ui);
+
+            centerDialogInViewport($(this), scrollLeft, scrollTop);
+        },
+        focus: function () {
+            restoreWindowScroll(scrollLeft, scrollTop);
+        }
+    });
+}
+
+function openCenteredDialog(dialog, options) {
+    ensureCenteredDialogStyle();
+    dialog.dialog(centeredDialogOptions(options));
+    centerDialogInViewport(dialog, $(window).scrollLeft(), $(window).scrollTop());
+}
+
+function centerDialogInViewport(dialog, scrollLeft, scrollTop) {
+    setTimeout(function () {
+        if (!dialog.data("ui-dialog"))
+            return;
+
+        let widget = dialog.dialog("widget");
+
+        if (widget.length === 0 || !widget.is(":visible"))
+            return;
+
+        widget.addClass("tcbot-centered-dialog");
+
+        restoreWindowScroll(scrollLeft, scrollTop);
+    }, 0);
+}
+
+function ensureCenteredDialogStyle() {
+    if ($("#tcbot-centered-dialog-style").length > 0)
+        return;
+
+    $("head").append("<style id='tcbot-centered-dialog-style'>" +
+        ".tcbot-centered-dialog {" +
+        "left: 50vw !important;" +
+        "margin: 0 !important;" +
+        "position: fixed !important;" +
+        "top: 50vh !important;" +
+        "transform: translate(-50%, -50%) !important;" +
+        "}" +
+        "</style>");
+}
+
+function restoreWindowScroll(scrollLeft, scrollTop) {
+    if ($(window).scrollLeft() !== scrollLeft || $(window).scrollTop() !== scrollTop)
+        window.scrollTo(scrollLeft, scrollTop);
+}
+
 function aiPromptUrlWithWaitForTc(url, waitForTc, processId) {
     return url + (url.indexOf("?") >= 0 ? "&" : "?") + "waitForTc=" + waitForTc +
         (isDefinedAndFilled(processId) ? "&processId=" + encodeURIComponent(processId) : "");
 }
 
 function startTextCommandProgress(options, state, mode, firstStep) {
-    let idx = isDefinedAndFilled(state.processId) ? 1 : 0;
+    let idx = 0;
     let startedTs = Date.now();
+    let hasProcessStatus = isDefinedAndFilled(state.processId);
 
     state.status.text(options.statusText == null ? "Running command..." : options.statusText(mode));
     state.log.empty();
@@ -389,12 +457,14 @@ function startTextCommandProgress(options, state, mode, firstStep) {
     if (firstStep)
         appendTextCommandStep(state, firstStep);
 
-    if (isDefinedAndFilled(state.processId)) {
+    if (hasProcessStatus) {
         appendTextCommandStep(state, "Sending request to the bot REST API.");
 
         state.processPollStop = startBotProcessPolling(state.processId, function (status) {
             appendTextCommandStep(state, botProcessStatusText(status));
         });
+
+        return;
     }
 
     function showNextStatus() {
@@ -424,45 +494,27 @@ function defaultTextCommandProgressMessage(mode, idx, elapsedMs) {
 function aiPromptProgressMessage(waitForTc, idx, elapsedMs) {
     let elapsedSec = Math.round(elapsedMs / 1000);
 
-    if (!waitForTc) {
-        if (idx === 0)
-            return "Sending no-wait request to the bot server.";
-
-        if (idx === 1)
-            return "Using cached chain context and cached log analysis only.";
-
-        return "No prompt response yet after " + elapsedSec
-            + "s. Bot is still building from cache; no new TeamCity/log wait was requested.";
-    }
-
     if (idx === 0)
         return "Sending request to the bot server.";
 
-    if (idx === 1)
-        return "Bot is loading the TeamCity build list and dependency chain.";
-
-    if (idx === 2)
-        return "No prompt response yet after " + elapsedSec
-            + "s. Bot may still be downloading build/test metadata from TeamCity.";
-
-    if (idx === 3)
-        return "No prompt response yet after " + elapsedSec
-            + "s. Bot may be loading build logs for failed or incomplete suites.";
-
-    if (idx === 4)
-        return "No prompt response yet after " + elapsedSec
-            + "s. Bot may be parsing build logs and attaching cached log analysis to the prompt.";
-
-    if (elapsedSec < 65)
-        return "No prompt response yet after " + elapsedSec
-            + "s. Fresh context/log wait timeout is 60s; you can use current cached context now.";
-
-    return "No prompt response yet after " + elapsedSec
-        + "s. TeamCity loading or build-log processing is taking longer than expected; you can use current context now.";
+    return "No prompt response yet after " + elapsedSec + "s. Waiting for the bot process status.";
 }
 
 function appendTextCommandStep(state, text) {
-    let line = $("<div>").text("> " + text);
+    state.log.children(".process-log-step").css({
+        "color": "#666",
+        "opacity": "0.58"
+    });
+
+    let line = $("<div>", {
+        "class": "process-log-step",
+        css: {
+            "color": "#222",
+            "opacity": "1",
+            "transition": "color 0.2s ease, opacity 0.2s ease"
+        }
+    }).text(text);
+
     state.log.append(line);
     state.log.scrollTop(state.log[0].scrollHeight);
 }
