@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -66,11 +67,16 @@ import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 @Path(UserService.USER)
 @Produces(MediaType.APPLICATION_JSON)
 public class UserService {
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
+
     public static final String USER = "user";
 
     @Context
@@ -103,16 +109,60 @@ public class UserService {
 
         res.authorizedState = issueDetector.isAuthorized();
         res.admin = user.isAdmin();
-
-        if (user.isAdmin()) {
-            users.allUsers()
-                .filter(next -> !Objects.equals(user.username, next.username))
-                .sorted(Comparator.comparing(TcHelperUser::getDisplayName, String.CASE_INSENSITIVE_ORDER))
-                .map(next -> new UserMenuResult.User(next.username, next.getDisplayName(), next.isAdmin()))
-                .forEach(res.users::add);
-        }
+        ITcBotConfig cfg = CtxListener.getApplicationContext(ctx).getInstance(ITcBotConfig.class);
+        res.userAdmin = isUserAdmin(user, cfg);
+        res.canClaimUserAdmin = !anyUserAdminExists(users, cfg);
 
         return res;
+    }
+
+    /**
+     * @return All bot users. Contains sensitive user data, user-admin only.
+     */
+    @GET
+    @Path("list")
+    public List<UserListItem> users() {
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        IUserStorage users = appCtx.getInstance(IUserStorage.class);
+        ITcBotConfig cfg = appCtx.getInstance(ITcBotConfig.class);
+        TcHelperUser currUser = users.getUser(ITcBotUserCreds.get(req).getPrincipalId());
+
+        ensureUserAdmin(currUser, cfg);
+
+        Collection<GitHubUser> cachedAuthors = cachedPullRequestAuthorsOrEmpty(appCtx, null, ITcBotUserCreds.get(req));
+        GitHubUserResolver gitHubUserResolver = appCtx.getInstance(GitHubUserResolver.class);
+
+        return users.allUsers()
+            .sorted(Comparator.comparing(TcHelperUser::getDisplayName, String.CASE_INSENSITIVE_ORDER))
+            .map(user -> new UserListItem(user, isConfigUserAdmin(user.username, cfg),
+                gitHubUserResolver.resolve(user, cachedAuthors)))
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Claims the initial user-admin role when no DB/config user-admin exists yet.
+     */
+    @POST
+    @Path("claimUserAdmin")
+    public UserMenuResult claimUserAdmin() {
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        IUserStorage users = appCtx.getInstance(IUserStorage.class);
+        ITcBotConfig cfg = appCtx.getInstance(ITcBotConfig.class);
+        IssueDetector issueDetector = appCtx.getInstance(IssueDetector.class);
+        String currUserLogin = ITcBotUserCreds.get(req).getPrincipalId();
+        TcHelperUser currUser = users.getUser(currUserLogin);
+
+        if (currUser == null)
+            throw new NotFoundException("User not found: " + currUserLogin);
+
+        if (anyUserAdminExists(users, cfg))
+            throw new ForbiddenException("User admin already exists");
+
+        currUser.setUserAdmin(true);
+
+        users.putUser(currUserLogin, currUser);
+
+        return (UserMenuResult)userMenu(ITcBotUserCreds.get(req), users, issueDetector);
     }
 
     @POST
@@ -148,7 +198,7 @@ public class UserService {
 
         IUserStorage users = appCtx.getInstance(IUserStorage.class);
         final TcHelperUser currUser = users.getUser(currUserLogin);
-        ensureCanAccessUser(currUser, currUserLogin, login);
+        ensureCanAccessUser(currUser, currUserLogin, login, appCtx.getInstance(ITcBotConfig.class));
 
         final TcHelperUser user = users.getUser(login);
         if (user == null)
@@ -188,17 +238,36 @@ public class UserService {
         final String currUserLogin = ITcBotUserCreds.get(req).getPrincipalId();
         final String login = Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
         TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        ITcBotConfig cfg = appCtx.getInstance(ITcBotConfig.class);
 
         IUserStorage users = appCtx.getInstance(IUserStorage.class);
         final TcHelperUser currUser = users.getUser(currUserLogin);
-        ensureCanAccessUser(currUser, currUserLogin, login);
+        ensureCanAccessUser(currUser, currUserLogin, login, cfg);
 
         final TcHelperUser user = users.getUser(login);
         if (user == null)
             throw new NotFoundException("User not found: " + login);
 
-        return new GitHubUserResolutionUi(appCtx.getInstance(GitHubUserResolver.class).resolve(user,
-            cachedPullRequestAuthors(appCtx, srvCode, ITcBotUserCreds.get(req))));
+        Collection<GitHubUser> cachedAuthors = cachedPullRequestAuthorsOrEmpty(appCtx, srvCode, ITcBotUserCreds.get(req));
+
+        return new GitHubUserResolutionUi(appCtx.getInstance(GitHubUserResolver.class).resolve(user, cachedAuthors));
+    }
+
+    /**
+     * @param appCtx Application context.
+     * @param srvCode Optional server id.
+     * @param prov Current user credentials.
+     */
+    private static Collection<GitHubUser> cachedPullRequestAuthorsOrEmpty(TcBotApplicationContext appCtx,
+        @Nullable String srvCode, ITcBotUserCreds prov) {
+        try {
+            return cachedPullRequestAuthors(appCtx, srvCode, prov);
+        }
+        catch (RuntimeException e) {
+            logger.debug("Failed to load cached PR authors for GitHub profile resolution [serverId={}]", srvCode, e);
+
+            return java.util.Collections.emptyList();
+        }
     }
 
     /**
@@ -234,9 +303,10 @@ public class UserService {
         final String currUserLogin = ITcBotUserCreds.get(req).getPrincipalId();
         final String login = Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
 
-        final IUserStorage users = CtxListener.getApplicationContext(ctx).getInstance(IUserStorage.class);
+        final TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        final IUserStorage users = appCtx.getInstance(IUserStorage.class);
         final TcHelperUser currUser = users.getUser(currUserLogin);
-        ensureCanAccessUser(currUser, currUserLogin, login);
+        ensureCanAccessUser(currUser, currUserLogin, login, appCtx.getInstance(ITcBotConfig.class));
 
         final TcHelperUser user = users.getUser(login);
         if (user == null)
@@ -293,9 +363,10 @@ public class UserService {
         final String currUserLogin = ITcBotUserCreds.get(req).getPrincipalId();
         final String login = Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
 
-        final IUserStorage users = CtxListener.getApplicationContext(ctx).getInstance(IUserStorage.class);
+        final TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        final IUserStorage users = appCtx.getInstance(IUserStorage.class);
         final TcHelperUser currUser = users.getUser(currUserLogin);
-        ensureCanAccessUser(currUser, currUserLogin, login);
+        ensureCanAccessUser(currUser, currUserLogin, login, appCtx.getInstance(ITcBotConfig.class));
 
         final TcHelperUser user = users.getUser(login);
         if (user == null)
@@ -327,9 +398,61 @@ public class UserService {
      * @param currUserLogin Current user login.
      * @param requestedLogin Requested user login.
      */
-    private void ensureCanAccessUser(TcHelperUser currUser, String currUserLogin, String requestedLogin) {
-        if (!Objects.equals(currUserLogin, requestedLogin) && (currUser == null || !currUser.isAdmin()))
-            throw new ForbiddenException("Only bot admin can access other users");
+    private void ensureCanAccessUser(TcHelperUser currUser, String currUserLogin, String requestedLogin,
+        ITcBotConfig cfg) {
+        if (!Objects.equals(currUserLogin, requestedLogin) && !isUserAdmin(currUser, cfg))
+            throw new ForbiddenException("Only user admin can access other users");
+    }
+
+    /**
+     * @param currUser Current user.
+     * @param cfg Config.
+     */
+    private void ensureUserAdmin(TcHelperUser currUser, ITcBotConfig cfg) {
+        if (!isUserAdmin(currUser, cfg))
+            throw new ForbiddenException("Only user admin can access users");
+    }
+
+    /**
+     * @param user User.
+     * @param cfg Config.
+     */
+    private boolean isUserAdmin(@Nullable TcHelperUser user, ITcBotConfig cfg) {
+        return user != null && (user.isUserAdmin() || isConfigUserAdmin(user.username, cfg));
+    }
+
+    /**
+     * @param users Users.
+     * @param cfg Config.
+     */
+    private boolean anyUserAdminExists(IUserStorage users, ITcBotConfig cfg) {
+        Collection<String> cfgUserAdmins = cfg.userAdmins();
+
+        if (cfgUserAdmins != null && !cfgUserAdmins.isEmpty())
+            return true;
+
+        return users.allUsers().anyMatch(TcHelperUser::isUserAdmin);
+    }
+
+    /**
+     * @param username Username.
+     * @param cfg Config.
+     */
+    private boolean isConfigUserAdmin(@Nullable String username, ITcBotConfig cfg) {
+        if (Strings.isNullOrEmpty(username))
+            return false;
+
+        Collection<String> cfgUserAdmins = cfg.userAdmins();
+
+        if (cfgUserAdmins == null)
+            return false;
+
+        String normalized = username.toLowerCase(Locale.ROOT);
+
+        return cfgUserAdmins.stream()
+            .filter(Objects::nonNull)
+            .map(s -> s.toLowerCase(Locale.ROOT))
+            .anyMatch(normalized::equals);
     }
 
     /**
@@ -356,5 +479,66 @@ public class UserService {
         }
 
         return res;
+    }
+
+    /** User list row. */
+    public static class UserListItem {
+        /** */
+        public String login;
+
+        /** */
+        public String displayName;
+
+        /** */
+        public String fullName;
+
+        /** */
+        public String email;
+
+        /** */
+        public String githubIds;
+
+        /** */
+        public String autoResolvedGithubIds;
+
+        /** */
+        public boolean admin;
+
+        /** */
+        public Long adminLastCheckedTs;
+
+        /** */
+        public boolean userAdmin;
+
+        /** */
+        public boolean configUserAdmin;
+
+        /** */
+        public Long lastLoginTs;
+
+        /** */
+        public int credentials;
+
+        /** */
+        public int staleCredentials;
+
+        /** */
+        public UserListItem(TcHelperUser user, boolean configUserAdmin, GitHubUserResolver.Resolution gitHubResolution) {
+            login = user.username;
+            displayName = user.getDisplayName();
+            fullName = user.fullName;
+            email = user.email;
+            githubIds = String.join(", ", user.getGithubIds());
+            autoResolvedGithubIds = String.join(", ", gitHubResolution.autoResolvedLogins);
+            admin = user.isAdmin();
+            adminLastCheckedTs = user.adminLastCheckedTs;
+            userAdmin = user.isUserAdmin() || configUserAdmin;
+            this.configUserAdmin = configUserAdmin;
+            lastLoginTs = user.lastLoginTs;
+            credentials = user.getCredentialsList().size();
+            staleCredentials = (int)user.getCredentialsList().stream()
+                .filter(TcHelperUser.Credentials::isStale)
+                .count();
+        }
     }
 }

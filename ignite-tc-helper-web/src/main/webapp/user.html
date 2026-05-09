@@ -18,7 +18,7 @@
 <script>
 $(document).ready(function() {
     $(document).tooltip();
-    loadUsersList();
+    loadUserAdminLink();
     loadData();
 
     var username = findGetParameter("username");
@@ -148,18 +148,16 @@ function loadData() {
     });
 }
 
-function loadUsersList() {
+function loadUserAdminLink() {
     $.ajax({
         url: "rest/user/currentUserName",
-        success: showUsersList,
+        success: function(menuData) {
+            renderUserAdminLink(menuData, "#userAdminBlock");
+        },
         error: function() {
-            $("#adminUsersBlock").hide();
+            $("#userAdminBlock").hide();
         }
     });
-}
-
-function showUsersList(menuData) {
-    renderAdminUsersList(menuData, "#adminUsersBlock", "#adminUsers");
 }
 
 function loadGithubResolution(login) {
@@ -276,10 +274,7 @@ function showData(userUi) {
 </script>
 
 <div id="form_container">
-    <div id="adminUsersBlock" style="display: none">
-        <h3>Users</h3>
-        <div id="adminUsers"></div>
-    </div>
+    <div id="userAdminBlock" style="display: none"></div>
 
     <form id="userData" class="appnitro">
         <div class="form_description">

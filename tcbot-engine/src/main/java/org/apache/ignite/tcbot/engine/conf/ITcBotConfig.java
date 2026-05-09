@@ -78,6 +78,13 @@ public interface ITcBotConfig extends IDataSourcesConfigSupplier {
     }
 
     /**
+     * @return User logins allowed to manage bot users from config.
+     */
+    default Collection<String> userAdmins() {
+        return Collections.emptyList();
+    }
+
+    /**
      * @return notification settings config.
      */
     NotificationsConfig notifications();

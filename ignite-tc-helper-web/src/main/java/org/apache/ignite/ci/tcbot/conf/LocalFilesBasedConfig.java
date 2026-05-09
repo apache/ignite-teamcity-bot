@@ -144,6 +144,13 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
             : botAdminGroups;
     }
 
+    /** {@inheritDoc} */
+    @Override public Collection<String> userAdmins() {
+        Collection<String> userAdmins = getConfig().userAdmins();
+
+        return userAdmins == null ? Collections.emptyList() : userAdmins;
+    }
+
     @Override
     public ITrackedBranchesConfig getTrackedBranches() {
         return getConfig();

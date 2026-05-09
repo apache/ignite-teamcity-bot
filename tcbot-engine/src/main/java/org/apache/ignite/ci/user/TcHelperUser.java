@@ -60,11 +60,17 @@ public class TcHelperUser implements IVersionedEntity, INotificationChannel {
     /** Explicit GitHub logins configured by the user. */
     public Set<String> githubIds = new LinkedHashSet<>();
 
+    /** Last successful login timestamp. */
+    public Long lastLoginTs;
+
     public Set<String> additionalEmails = new LinkedHashSet<>();
 
     private Boolean admin;
 
     public Long adminLastCheckedTs;
+
+    /** User management administrator flag. */
+    private Boolean userAdmin;
 
     /** Subscribed to all failures in following tracked branches. */
     @Nullable private Set<String> subscribedToAllFailures;
@@ -266,6 +272,20 @@ public class TcHelperUser implements IVersionedEntity, INotificationChannel {
      */
     public boolean isAdmin() {
         return Boolean.TRUE.equals(admin);
+    }
+
+    /**
+     * @param userAdmin User management administrator.
+     */
+    public void setUserAdmin(Boolean userAdmin) {
+        this.userAdmin = userAdmin;
+    }
+
+    /**
+     * @return {@code true} if this user can manage bot users.
+     */
+    public boolean isUserAdmin() {
+        return Boolean.TRUE.equals(userAdmin);
     }
 
     public static class Credentials {

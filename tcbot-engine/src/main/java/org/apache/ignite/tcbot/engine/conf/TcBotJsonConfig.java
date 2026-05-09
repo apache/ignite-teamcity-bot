@@ -50,6 +50,9 @@ public class TcBotJsonConfig implements ITrackedBranchesConfig {
     /** TeamCity groups allowed to administer bot settings. */
     @Nullable private List<String> botAdminGroups;
 
+    /** Bot user logins allowed to manage users. */
+    @Nullable private List<String> userAdmins;
+
     /** Additional list Servers to be used for validation of PRs, but not for tracking any branches. */
     private List<TcServerConfig> tcServers = new ArrayList<>();
 
@@ -123,6 +126,13 @@ public class TcBotJsonConfig implements ITrackedBranchesConfig {
      */
     @Nullable public List<String> botAdminGroups() {
         return botAdminGroups;
+    }
+
+    /**
+     * @return Bot user logins allowed to manage users.
+     */
+    @Nullable public List<String> userAdmins() {
+        return userAdmins;
     }
 
     public Optional<TcServerConfig> getTcConfig(String code) {

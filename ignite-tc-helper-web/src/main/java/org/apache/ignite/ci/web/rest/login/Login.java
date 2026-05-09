@@ -184,6 +184,8 @@ public class Login {
         if (tcUser != null)
             user.updateAdmin(tcUser.belongsToAnyGroup(botAdminGroups), System.currentTimeMillis());
 
+        user.lastLoginTs = System.currentTimeMillis();
+
         users.putUser(username, user);
 
         //todo may be enrich user data here as well.

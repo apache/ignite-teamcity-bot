@@ -727,41 +727,36 @@ function showMenu(menuData) {
     $(document.body).prepend(res);
 }
 
-function renderAdminUsersList(menuData, blockSelector, usersSelector) {
-    if (!menuData || menuData.admin !== true) {
-        $(usersSelector).html("");
-        $(blockSelector).hide();
+function renderUserAdminLink(menuData, blockSelector) {
+    var block = $(blockSelector);
+
+    if (!menuData || (menuData.userAdmin !== true && menuData.canClaimUserAdmin !== true)) {
+        block.html("");
+        block.hide();
 
         return;
     }
 
-    var users = Array.isArray(menuData.users) ? menuData.users : [];
-    var res = "";
+    if (menuData.userAdmin === true) {
+        block.html("<a href='/users.html'>Manage users</a>");
+        block.show();
 
-    if (users.length === 0) {
-        res = "No other users";
-    }
-    else {
-        res += "<table class='stat'>";
-        res += "<tr><th>User</th><th>Login</th><th>Role</th></tr>";
-
-        for (var i = 0; i < users.length; i++) {
-            var user = users[i];
-            var login = user.username || "";
-            var label = user.displayName || login;
-
-            res += "<tr>";
-            res += "<td><a href='/user.html?login=" + encodeURIComponent(login) + "'>" + escapeHtml(label) + "</a></td>";
-            res += "<td>" + escapeHtml(login) + "</td>";
-            res += "<td>" + (user.admin ? "admin" : "") + "</td>";
-            res += "</tr>";
-        }
-
-        res += "</table>";
+        return;
     }
 
-    $(usersSelector).html(res);
-    $(blockSelector).show();
+    block.html("<button type='button' onclick='claimUserAdmin(\"" + blockSelector + "\")'>Claim user admin</button>");
+    block.show();
+}
+
+function claimUserAdmin(blockSelector) {
+    $.ajax({
+        method: "POST",
+        url: "/rest/user/claimUserAdmin",
+        success: function(menuData) {
+            renderUserAdminLink(menuData, blockSelector);
+        },
+        error: showErrInLoadStatus
+    });
 }
 
 function authorizeServer() {
