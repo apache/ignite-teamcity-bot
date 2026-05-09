@@ -138,7 +138,16 @@ public class TcBotTriggerAndSignOffServiceTest {
      * Checks compact Visa result can be absent in old JSON entries.
      */
     @Test public void compactVisaResultCodeIsOptionalForOldJson() throws Exception {
+        IStringCompactor compactor = mock(IStringCompactor.class);
+
+        when(compactor.getStringId(Visa.COMMENTED)).thenReturn(12);
+        when(compactor.getStringFromId(12)).thenReturn(Visa.COMMENTED);
+
+        CompactVisa restoredFromOldJson = new CompactVisa(Visa.failure(Visa.COMMENTED), compactor);
+        restoredFromOldJson.result = Visa.Result.UNKNOWN.ordinal();
+
         assertFalse(Modifier.isFinal(CompactVisa.class.getDeclaredField("result").getModifiers()));
+        assertTrue(restoredFromOldJson.toVisa(compactor).isSuccess());
     }
 
     /**

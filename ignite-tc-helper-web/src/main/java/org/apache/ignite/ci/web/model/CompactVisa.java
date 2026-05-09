@@ -33,7 +33,7 @@ public class CompactVisa {
     /** */
     public final int blockers;
 
-    /** */
+    /** Machine-readable result. Keep UNKNOWN default for persisted entries created before this field existed. */
     public int result = Visa.Result.UNKNOWN.ordinal();
 
     /** */
