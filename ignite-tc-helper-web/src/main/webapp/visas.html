@@ -259,12 +259,12 @@ function reportLinkHtml(row, label) {
         return "";
 
     return "<a href='" + escapeHtml(row.reportUrl) + "' target='_blank' rel='noopener noreferrer'>" +
-        escapeHtml(label || "Current bot report") + "</a>";
+        escapeHtml(label || "Report") + "</a>";
 }
 
 function branchHtml(row) {
     var res = escapeHtml(row.branchName || "");
-    var report = reportLinkHtml(row, "Current bot report");
+    var report = reportLinkHtml(row, "Report");
 
     if (report !== "")
         res += "<div style='font-size:12px; margin-top:4px'>" + report + "</div>";
@@ -297,21 +297,13 @@ function runningProgressHtml(row) {
 function optionsHtml(row) {
     var targets = isDefinedAndFilled(row.commentTargets) ? row.commentTargets : "(not stored)";
     var policy = row.commentOnlyIfNoBlockers ? "only clean run (no blockers)" : "always";
-    var rerun = row.rerun ? "rerun / observed run" : "direct comment";
 
     return "<div><b>Targets:</b> " + escapeHtml(targets) + "</div>" +
-        "<div><b>Policy:</b> " + escapeHtml(policy) + "</div>" +
-        "<div><b>Mode:</b> " + escapeHtml(rerun) + "</div>";
+        "<div><b>Policy:</b> " + escapeHtml(policy) + "</div>";
 }
 
 function sliceHtml(row) {
-    var res = escapeHtml(row.analysisSlice || "");
-
-    if (isDefinedAndFilled(row.buildIds))
-        res += "<div style='color:#666; font-size:12px'>rerun/observed build ids: " +
-            escapeHtml(row.buildIds) + "</div>";
-
-    return res;
+    return escapeHtml(row.analysisSlice || "");
 }
 
 function showVisasTable(result) {
