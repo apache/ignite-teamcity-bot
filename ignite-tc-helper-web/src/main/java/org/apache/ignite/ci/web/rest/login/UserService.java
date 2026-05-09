@@ -375,7 +375,7 @@ public class UserService {
         final User tcAddUser = loginResult.user();
 
         if (tcAddUser == null)
-            return new SimpleResult("Service rejected credentials/user not found");
+            return new SimpleResult(Login.serviceLoginErrorMessage(svcId, loginResult));
 
         final TcHelperUser.Credentials creds = user.getOrCreateCreds(svcId).setLogin(svcLogin);
 

@@ -429,6 +429,19 @@ public class LoginAuthTest {
     }
 
     @Test
+    public void testNewUserNotCheckedShowsInternalError() {
+        UserAndSessionsStorage storage = mockOneSessionStor();
+
+        LoginResponse failedLogin = createLogin().doLogin("user", "password", storage, "public",
+            Collections.emptySet(), tcLoginWithFallback(TcLoginResult.notChecked()));
+
+        assertNull(failedLogin.fullToken);
+        assertEquals("Service public login check failed: Internal Server Error [500]. Please check bot logs.",
+            failedLogin.errorMessage);
+        assertNull(storage.getUser("user"));
+    }
+
+    @Test
     public void testOldLocalPasswordRejectedByTeamcityKeepsCredentialsActive() {
         UserAndSessionsStorage storage = mockOneSessionStor();
 

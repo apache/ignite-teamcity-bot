@@ -59,4 +59,9 @@ public class TcLoginResult {
     public boolean isUnauthorized() {
         return unauthorized;
     }
+
+    /** */
+    public boolean isNotChecked() {
+        return user == null && !unauthorized;
+    }
 }

@@ -145,8 +145,7 @@ public class Login {
 
         if (user.userKeyKcv == null) {
             if (tcUser == null) {
-                loginRes.errorMessage =
-                        "Service " + primarySrvId + " rejected credentials/user not found";
+                loginRes.errorMessage = serviceLoginErrorMessage(primarySrvId, loginResult);
 
                 return loginRes;
             }
@@ -270,6 +269,13 @@ public class Login {
      */
     private long tcLoginCheckTimeoutMs() {
         return Long.getLong(TC_LOGIN_CHECK_TIMEOUT_MS, DFLT_TC_LOGIN_CHECK_TIMEOUT_MS);
+    }
+
+    /** */
+    static String serviceLoginErrorMessage(String srvId, TcLoginResult loginResult) {
+        return loginResult.isNotChecked()
+            ? "Service " + srvId + " login check failed: Internal Server Error [500]. Please check bot logs."
+            : "Service " + srvId + " rejected credentials/user not found";
     }
 
     private TcHelperUser getOrCreateUser(@FormParam("uname") String username,
