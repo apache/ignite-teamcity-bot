@@ -18,6 +18,7 @@ const prReportDefaultSuites = new Map();
 const contributionsByServer = new Map();
 const myGithubLoginsByServer = new Map();
 const ONLY_MY_PRS_STORAGE_PREFIX = "tcbot.prs.onlyMyPrs.";
+const ONLY_MY_PRS_SHARED_STORAGE_KEY = "tcbot.prs.onlyMyPrs";
 
 function onlyMyPrsStorageKey(srvId) {
     return ONLY_MY_PRS_STORAGE_PREFIX + srvId;
@@ -25,7 +26,12 @@ function onlyMyPrsStorageKey(srvId) {
 
 function loadOnlyMyPrsPreference(srvId) {
     try {
-        return window.localStorage.getItem(onlyMyPrsStorageKey(srvId)) === "true";
+        let serverValue = window.localStorage.getItem(onlyMyPrsStorageKey(srvId));
+
+        if (serverValue !== null)
+            return serverValue === "true";
+
+        return window.localStorage.getItem(ONLY_MY_PRS_SHARED_STORAGE_KEY) === "true";
     }
     catch (e) {
         return false;
@@ -35,6 +41,7 @@ function loadOnlyMyPrsPreference(srvId) {
 function saveOnlyMyPrsPreference(srvId, value) {
     try {
         window.localStorage.setItem(onlyMyPrsStorageKey(srvId), value ? "true" : "false");
+        window.localStorage.setItem(ONLY_MY_PRS_SHARED_STORAGE_KEY, value ? "true" : "false");
     }
     catch (e) {
         // Ignore unavailable storage; page filtering still works for this session.

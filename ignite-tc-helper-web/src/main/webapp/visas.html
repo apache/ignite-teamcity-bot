@@ -24,14 +24,18 @@
     <br>
     <div style="margin:0 0 10px 0">
         Show latest
-        <select id="historyLimit">
+        <select id="historyLimit" onchange="loadData()">
             <option value="50" selected>50</option>
             <option value="100">100</option>
             <option value="1000">1000</option>
             <option value="0">all</option>
         </select>
         visa requests
-        <button type="button" onclick="loadData()">Refresh</button>
+        <label id="onlyMyPrsBlock" style="display:none; margin-left:12px"
+            title="Show only visa requests for PRs whose GitHub author matches your bot profile">
+            <input id="onlyMyPrs" type="checkbox" onchange="saveOnlyMyPrsPreference(); showVisasTable(currentVisas)">
+            Only my PRs
+        </label>
     </div>
     <table id="visasTable" class="row-border" style="width:100%">
         <thead>
@@ -52,6 +56,10 @@
     <br>
     <div id="version"></div>
 <script>
+var currentVisas = [];
+var myGithubLogins = new Set();
+const ONLY_MY_PRS_STORAGE_KEY = "tcbot.visas.onlyMyPrs";
+
 function showErrInLoadStatus(jqXHR, exception) {
     if (jqXHR.status === 0) {
         $("#loadStatus").html('Not connect.\n Verify Network.');
@@ -83,10 +91,76 @@ function showErrInLoadStatus(jqXHR, exception) {
 }
 
 $(document).ready(function() {
+    $("#onlyMyPrs").prop("checked", loadOnlyMyPrsPreference());
+    loadGithubResolution();
     loadData();
 
     $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
 });
+
+function loadOnlyMyPrsPreference() {
+    try {
+        return window.localStorage.getItem(ONLY_MY_PRS_STORAGE_KEY) === "true";
+    }
+    catch (e) {
+        return false;
+    }
+}
+
+function saveOnlyMyPrsPreference() {
+    try {
+        window.localStorage.setItem(ONLY_MY_PRS_STORAGE_KEY, $("#onlyMyPrs").prop("checked") ? "true" : "false");
+    }
+    catch (e) {
+        // Ignore unavailable storage; page filtering still works for this session.
+    }
+}
+
+function loadGithubResolution() {
+    $.ajax({
+        url: "rest/user/githubResolution",
+        success: function (result) {
+            myGithubLogins = new Set();
+
+            if (isDefinedAndFilled(result) && isDefinedAndFilled(result.allLogins)) {
+                for (var i = 0; i < result.allLogins.length; i++)
+                    myGithubLogins.add(String(result.allLogins[i]).toLowerCase());
+            }
+
+            updateOnlyMyPrsControl();
+            showVisasTable(currentVisas);
+        },
+        error: function () {
+            myGithubLogins = new Set();
+            updateOnlyMyPrsControl();
+            showVisasTable(currentVisas);
+        }
+    });
+}
+
+function updateOnlyMyPrsControl() {
+    if (myGithubLogins.size > 0) {
+        $("#onlyMyPrs").prop("checked", loadOnlyMyPrsPreference());
+        $("#onlyMyPrsBlock").show()
+            .attr("title", "Show only visa requests for PRs authored by: " + Array.from(myGithubLogins).join(", "));
+    }
+    else {
+        $("#onlyMyPrs").prop("checked", false);
+        $("#onlyMyPrsBlock").hide();
+    }
+}
+
+function isMyGithubPr(row) {
+    return isDefinedAndFilled(row) && isDefinedAndFilled(row.prAuthor) &&
+        myGithubLogins.has(String(row.prAuthor).toLowerCase());
+}
+
+function filteredVisas(rows) {
+    if (!$("#onlyMyPrs").prop("checked") || myGithubLogins.size === 0)
+        return rows || [];
+
+    return (rows || []).filter(isMyGithubPr);
+}
 
 function executeCancelRequest(url) {
     $.ajax({
@@ -233,12 +307,16 @@ function sliceHtml(row) {
 
 function showVisasTable(result) {
     let visasTable = $('#visasTable');
+    var rows = filteredVisas(result);
 
-    visasTable.dataTable().fnDestroy();
+    if ($.fn.DataTable.isDataTable('#visasTable')) {
+        visasTable.DataTable().destroy();
+        visasTable.find('tbody').empty();
+    }
 
     var table = visasTable.DataTable({
         "order": [[ 1, 'desc' ]],
-        data: result,
+        data: rows,
         "iDisplayLength": 30, //rows to be shown by default
         stateSave: false,
         deferRender: true,
@@ -377,7 +455,8 @@ function loadData() {
     $.ajax({
             url: "rest/visa/history?limit=" + encodeURIComponent(limit),
             success: function (result) {
-                showVisasTable(result);
+                currentVisas = result || [];
+                showVisasTable(currentVisas);
                 $("#loadStatus").html("");
             },
             error: showErrInLoadStatus

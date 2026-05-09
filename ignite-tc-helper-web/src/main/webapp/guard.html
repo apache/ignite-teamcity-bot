@@ -59,9 +59,19 @@
         }
 
         .guard-section-title {
+            align-items: center;
             font-size: 16px;
             font-weight: 700;
             color: #000;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .guard-section-title label {
+            color: #333;
+            font-size: 13px;
+            font-weight: 400;
         }
 
         .guard-section-note {
@@ -268,6 +278,8 @@ var currentRunningVisas = [];
 var runningVisasLoaded = false;
 var myGithubLogins = new Set();
 const ONLY_MY_RUNNING_PRS_STORAGE_KEY = "tcbot.guard.runningVisas.onlyMyPrs";
+const ONLY_MY_PRS_SHARED_STORAGE_KEY = "tcbot.prs.onlyMyPrs";
+const ONLY_MY_PRS_STORAGE_PREFIX = "tcbot.prs.onlyMyPrs.";
 
 function loadData() {
     $("#loadStatus").html("&#8987; Please wait");
@@ -354,7 +366,25 @@ function loadGithubResolutionForRunningVisas() {
 
 function loadOnlyMyRunningPrsPreference() {
     try {
-        return window.localStorage.getItem(ONLY_MY_RUNNING_PRS_STORAGE_KEY) === "true";
+        var own = window.localStorage.getItem(ONLY_MY_RUNNING_PRS_STORAGE_KEY);
+
+        if (own !== null)
+            return own === "true";
+
+        var shared = window.localStorage.getItem(ONLY_MY_PRS_SHARED_STORAGE_KEY);
+
+        if (shared !== null)
+            return shared === "true";
+
+        for (var i = 0; i < window.localStorage.length; i++) {
+            var key = window.localStorage.key(i);
+
+            if (key && key.indexOf(ONLY_MY_PRS_STORAGE_PREFIX) === 0 &&
+                window.localStorage.getItem(key) === "true")
+                return true;
+        }
+
+        return false;
     }
     catch (e) {
         return false;
@@ -363,8 +393,10 @@ function loadOnlyMyRunningPrsPreference() {
 
 function saveOnlyMyRunningPrsPreference() {
     try {
-        window.localStorage.setItem(ONLY_MY_RUNNING_PRS_STORAGE_KEY,
-            $("#onlyMyRunningPrs").prop("checked") ? "true" : "false");
+        var value = $("#onlyMyRunningPrs").prop("checked") ? "true" : "false";
+
+        window.localStorage.setItem(ONLY_MY_RUNNING_PRS_STORAGE_KEY, value);
+        window.localStorage.setItem(ONLY_MY_PRS_SHARED_STORAGE_KEY, value);
     }
     catch (e) {
         // Ignore unavailable storage; page filtering still works for this session.
@@ -387,13 +419,11 @@ function runningVisasOnlyMineHtml() {
     if (myGithubLogins.size === 0)
         return "";
 
-    return "<div style='padding:10px 16px 0 16px'>" +
-        "<label title='Show only running visas for PRs authored by: " +
+    return "<label title='Show only running visas for PRs authored by: " +
         escapeHtml(Array.from(myGithubLogins).join(", ")) + "'>" +
         "<input id='onlyMyRunningPrs' type='checkbox' " +
         (loadOnlyMyRunningPrsPreference() ? "checked" : "") +
-        " onchange='saveOnlyMyRunningPrsPreference(); showRunningVisas(currentRunningVisas)'> Only my PRs</label>" +
-        "</div>";
+        " onchange='saveOnlyMyRunningPrsPreference(); showRunningVisas(currentRunningVisas)'> Only my PRs</label>";
 }
 
 function pollRunningVisasRefresh(processId) {
@@ -495,10 +525,10 @@ function checkAroundHtml(row) {
     return "<span class='guard-stat-muted'>" + escapeHtml(row.estimatedCompletion) + "</span>";
 }
 
-function guardSection(title, note, body) {
+function guardSection(title, note, body, titleControls) {
     return "<div class='guard-section'>" +
         "<div class='guard-section-header'>" +
-        "<div class='guard-section-title'>" + escapeHtml(title) + "</div>" +
+        "<div class='guard-section-title'>" + escapeHtml(title) + (titleControls || "") + "</div>" +
         "<div class='guard-section-note'>" + escapeHtml(note || "") + "</div>" +
         "</div>" + body + "</div>";
 }
@@ -588,6 +618,7 @@ function branchActionsHtml(id) {
 
 function showRunningVisas(result) {
     var rows = filteredRunningVisas(result);
+    var titleControls = runningVisasOnlyMineHtml();
 
     if (!isDefinedAndFilled(rows) || rows.length === 0) {
         var emptyText = loadOnlyMyRunningPrsPreference() && myGithubLogins.size > 0 &&
@@ -595,13 +626,13 @@ function showRunningVisas(result) {
             "No running visas for my PRs." : "No running visas.";
 
         $("#runningVisasStatus").html(guardSection("Running visas", "",
-            runningVisasOnlyMineHtml() + "<div class='guard-empty'>" + emptyText + "</div>" +
-            runningVisasRefreshHtml()));
+            "<div class='guard-empty'>" + emptyText + "</div>" +
+            runningVisasRefreshHtml(), titleControls));
 
         return;
     }
 
-    var res = runningVisasOnlyMineHtml() + "<table class='guard-table'>";
+    var res = "<table class='guard-table'>";
     res += "<tr><th>Requested</th><th>PR author</th><th>Branch / report</th><th>PR / Ticket</th><th>Suite</th>" +
         "<th>Targets</th><th>Progress</th><th>Estimate</th></tr>";
 
@@ -622,7 +653,7 @@ function showRunningVisas(result) {
 
     res += "</table>" + runningVisasRefreshHtml();
 
-    $("#runningVisasStatus").html(guardSection("Running visas", rows.length + " active", res));
+    $("#runningVisasStatus").html(guardSection("Running visas", rows.length + " active", res, titleControls));
 }
 
 function runningVisasRefreshHtml() {
