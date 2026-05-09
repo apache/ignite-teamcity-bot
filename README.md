@@ -132,30 +132,3 @@ standalone module uses the same Ignite version as the rest of the project throug
 Heavyweight persistent-storage integration tests are excluded from the regular `test` and `build` tasks. Run them
 explicitly with `./gradlew :migrator:integrationTest --no-daemon` when checking old Ignite 2.14 persistent storage
 compatibility or migration recovery for corrupted binary metadata.
-
-<details>
-<summary>Windows clean PR check</summary>
-
-```bat
-call gradlew.bat clean build --no-daemon
-
-rem Optional heavyweight persistent-storage checks:
-rem call gradlew.bat :migrator:integrationTest --no-daemon
-```
-
-The `migrator\check.bat` helper keeps the same integration command commented for local manual runs and uses
-`migrator\prod` as the production-copy root.
-
-</details>
-
-<details>
-<summary>Linux clean PR check</summary>
-
-```bash
-./gradlew clean build --no-daemon
-
-# Optional heavyweight persistent-storage checks:
-# ./gradlew :migrator:integrationTest --no-daemon
-```
-
-</details>

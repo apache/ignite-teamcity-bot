@@ -22,6 +22,9 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 public class TcBotWorkDir {
+    /** Directory for JVM and migration diagnostics under TC Bot work dir. */
+    public static final String DIAGNOSTIC_DIR = "diagnostic";
+
     public static File ensureDirExist(File workDir) {
         if (!workDir.exists())
             checkState(workDir.mkdirs(), "Unable to make directory [" + workDir + "]");
@@ -42,5 +45,9 @@ public class TcBotWorkDir {
             workDir = new File(property);
 
         return ensureDirExist(workDir);
+    }
+
+    public static File resolveDiagnosticDir() {
+        return ensureDirExist(new File(resolveWorkDir(), DIAGNOSTIC_DIR));
     }
 }

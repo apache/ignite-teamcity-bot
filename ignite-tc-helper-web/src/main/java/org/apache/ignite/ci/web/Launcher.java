@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.Reader;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.tcbot.common.conf.TcBotSystemProperties;
+import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.ee8.webapp.WebAppContext;
@@ -45,6 +46,8 @@ public class Launcher {
     public static void runServer(boolean dev) throws Exception {
         if(dev)
             System.setProperty(TcBotSystemProperties.DEV_MODE, "true");
+
+        TcBotWorkDir.resolveDiagnosticDir();
 
         Server srv = new Server();
 

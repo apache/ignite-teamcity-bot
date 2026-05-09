@@ -135,6 +135,42 @@ public class GridIntListMigratorTest {
     }
 
     /**
+     * Checks that a diagnostic dump failure does not stop automatic migration recovery.
+     */
+    @Test public void migrationRemovesFailedEntryWhenDumpFails() throws Exception {
+        System.setProperty(GridIntListMigrator.AUTO_REPAIR_WAIT_MILLIS_PROPERTY, "1");
+
+        try {
+            Long failedKey = 6062419808021002488L;
+            Ignite ignite = mock(Ignite.class);
+            IgniteCache<Object, Object> rawCache = mock(IgniteCache.class);
+            IgniteCache<Object, Object> binCache = mock(IgniteCache.class);
+            QueryCursor<Cache.Entry<Object, Object>> cursor = mock(QueryCursor.class);
+            IgniteSnapshot snapshot = mock(IgniteSnapshot.class);
+            java.io.File workDir = tmp.newFolder("ignite-work-dump-fails");
+
+            when(ignite.cacheNames()).thenReturn(Collections.singleton("buildLogCheckResult"));
+            when(ignite.cache(BUILD_LOG_CHECK_RESULT)).thenReturn(rawCache);
+            when(ignite.configuration()).thenReturn(new IgniteConfiguration()
+                .setWorkDirectory(workDir.getAbsolutePath()));
+            when(ignite.snapshot()).thenReturn(snapshot);
+            when(snapshot.createDump(anyString(), anyCollection())).thenThrow(new RuntimeException("dump failed"));
+            when(rawCache.withKeepBinary()).thenReturn(binCache);
+            when(binCache.query(any(ScanQuery.class))).thenReturn(cursor);
+            when(cursor.iterator()).thenReturn(Collections.<Cache.Entry<Object, Object>>singletonList(
+                new TestEntry(failedKey, new BrokenBinaryObject())).iterator());
+            when(binCache.remove(failedKey)).thenReturn(true);
+
+            GridIntListMigrator.migrateOnInstance(ignite, null, true, false, 1);
+
+            verify(binCache).remove(failedKey);
+        }
+        finally {
+            System.clearProperty(GridIntListMigrator.AUTO_REPAIR_WAIT_MILLIS_PROPERTY);
+        }
+    }
+
+    /**
      * Test cache entry.
      */
     private static class TestEntry implements Cache.Entry<Object, Object> {

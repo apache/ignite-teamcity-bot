@@ -339,7 +339,7 @@ public final class GridIntListMigrator {
         sb.append(System.lineSeparator())
             .append("- If you want to repair these entries manually, stop this service now.");
         sb.append(System.lineSeparator())
-            .append("- If the service is not stopped, this migrator will dump and remove all ")
+            .append("- If the service is not stopped, this migrator will try to dump and remove all ")
             .append("failed entries automatically after the timeout.");
         sb.append(System.lineSeparator()).append("- This is safe for disposable derived caches such as ")
             .append("buildLogCheckResult: missing entries will be recalculated when needed.");
@@ -364,19 +364,11 @@ public final class GridIntListMigrator {
         if (failures.isEmpty())
             return false;
 
-        waitBeforeAutoRepair();
-
-        if (dump == null) {
-            String msg = "GridIntList migration auto-repair aborted: failed entries were not dumped.";
-
-            System.err.println(msg);
-            log.error(msg);
-
-            return false;
-        }
+        waitBeforeAutoRepair(dump != null);
 
         long removed = removeFailedEntries(ignite, failures);
-        String msg = "GridIntList migration auto-repair removed " + removed + " entries. Recovery dump: " + dump;
+        String msg = "GridIntList migration auto-repair removed " + removed + " entries. Recovery dump: " +
+            (dump == null ? "not created; see previous dump error" : dump);
 
         System.err.println(msg);
         log.warn(msg);
@@ -399,7 +391,7 @@ public final class GridIntListMigrator {
 
             return dump;
         }
-        catch (IOException e) {
+        catch (Exception e) {
             String msg = "GridIntList migration failed to dump failed entries.";
 
             System.err.println(msg + " " + e);
@@ -413,8 +405,9 @@ public final class GridIntListMigrator {
      * Waits before automatic repair. System.in is intentionally not consumed here: in the web launcher it is already
      * used as the service stop signal.
      */
-    private static void waitBeforeAutoRepair() {
-        String prompt = "GridIntList migration can dump and remove the listed failed entries. "
+    private static void waitBeforeAutoRepair(boolean dumpAvailable) {
+        String prompt = "GridIntList migration can remove the listed failed entries. "
+            + (dumpAvailable ? "Recovery dump was created. " : "Recovery dump was not created. ")
             + "If you want to repair them manually, stop this service now within "
             + autoRepairWaitSecondsForDisplay()
             + " seconds. If the service keeps running, auto-repair will start.";
