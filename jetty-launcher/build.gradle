@@ -20,22 +20,68 @@ apply plugin: 'application'
 
 application {
     mainClass = 'org.apache.ignite.ci.TcHelperJettyLauncher'
-    applicationDefaultJvmArgs = igniteJava17JvmArgs + ["-Dteamcity.helper.home=../work",
-                                                       "-Dfile.encoding=UTF-8",
-                                                       "-Dteamcity.bot.regionsize=16", // 16g Durable Memory region
-                                                       "-Dhttp.maxConnections=30",
-                                                       "-server",
-                                                       "-Xmx16g",
-                                                       "-XX:+AlwaysPreTouch",
-                                                       "-XX:+UseG1GC",
-                                                       "-XX:+ScavengeBeforeFullGC",
-                                                       "-XX:+UseStringDeduplication",
-                                                       "-Djava.rmi.server.hostname=app02",
-                                                       "-Dcom.sun.management.jmxremote",
-                                                       "-Dcom.sun.management.jmxremote.port=9010",
-                                                       "-Dcom.sun.management.jmxremote.local.only=false",
-                                                       "-Dcom.sun.management.jmxremote.authenticate=false",
-                                                       "-Dcom.sun.management.jmxremote.ssl=false"]
+    applicationDefaultJvmArgs = igniteJava17JvmArgs + ["-Dfile.encoding=UTF-8",
+                                                        "-Dteamcity.bot.regionsize=16", // 16g Durable Memory region
+                                                        "-Dhttp.maxConnections=30",
+                                                        "-server",
+                                                        "-Xmx16g",
+                                                        "-XX:+AlwaysPreTouch",
+                                                        "-XX:+UseG1GC",
+                                                        "-XX:+ScavengeBeforeFullGC",
+                                                        "-XX:+UseStringDeduplication",
+                                                        "-Djava.rmi.server.hostname=app02",
+                                                        "-Dcom.sun.management.jmxremote",
+                                                        "-Dcom.sun.management.jmxremote.port=9010",
+                                                        "-Dcom.sun.management.jmxremote.local.only=false",
+                                                        "-Dcom.sun.management.jmxremote.authenticate=false",
+                                                        "-Dcom.sun.management.jmxremote.ssl=false"]
+}
+
+tasks.named('startScripts') {
+    doLast {
+        def unixDiagnosticOpts = '''if [ -z "${TCBOT_WORK_DIR:-}" ]; then
+    for opt in $JETTY_LAUNCHER_OPTS
+    do
+        case "$opt" in
+            -Dteamcity.helper.home=*) TCBOT_WORK_DIR=${opt#-Dteamcity.helper.home=} ;;
+        esac
+    done
+fi
+TCBOT_WORK_DIR=${TCBOT_WORK_DIR:-"$APP_HOME/work"}
+mkdir -p "$TCBOT_WORK_DIR/diagnostic"
+JAVA_OPTS="\\"-Dteamcity.helper.home=$TCBOT_WORK_DIR\\" \\"-XX:+HeapDumpOnOutOfMemoryError\\" ''' +
+            '''\\"-XX:HeapDumpPath=$TCBOT_WORK_DIR/diagnostic\\" ''' +
+            '''\\"-XX:ErrorFile=$TCBOT_WORK_DIR/diagnostic/hs_err_pid%p.log\\" $JAVA_OPTS"
+
+'''
+        def windowsDiagnosticOpts = '''if "%TCBOT_WORK_DIR%"=="" (
+    for %%A in (%JETTY_LAUNCHER_OPTS%) do (
+        set "TCBOT_OPT=%%~A"
+        if "!TCBOT_OPT:~0,23!"=="-Dteamcity.helper.home=" set "TCBOT_WORK_DIR=!TCBOT_OPT:~23!"
+    )
+)
+if "%TCBOT_WORK_DIR%"=="" set "TCBOT_WORK_DIR=%APP_HOME%\\work"
+if not exist "%TCBOT_WORK_DIR%\\diagnostic" mkdir "%TCBOT_WORK_DIR%\\diagnostic"
+set DEFAULT_JVM_OPTS=%DEFAULT_JVM_OPTS% "-Dteamcity.helper.home=%TCBOT_WORK_DIR%" ''' +
+            '''"-XX:+HeapDumpOnOutOfMemoryError" "-XX:HeapDumpPath=%TCBOT_WORK_DIR%\\diagnostic" ''' +
+            '''"-XX:ErrorFile=%TCBOT_WORK_DIR%\\diagnostic\\hs_err_pid%%p.log"
+
+'''
+
+        unixScript.text = unixScript.text.replace(
+            '# Use "xargs" to parse quoted args.',
+            unixDiagnosticOpts + '# Use "xargs" to parse quoted args.'
+        )
+
+        windowsScript.text = windowsScript.text.replace(
+            '@rem Execute jetty-launcher',
+            windowsDiagnosticOpts + '@rem Execute jetty-launcher'
+        )
+        windowsScript.text = windowsScript.text.replace(
+            'setlocal EnableExtensions',
+            'setlocal EnableExtensions EnableDelayedExpansion'
+        )
+    }
 }
 
 distributions {
@@ -58,6 +104,7 @@ tasks.register('prepareLocalWarRun') {
             into workDir
         }
         mkdir new File(workDir, 'tcbot_logs')
+        mkdir new File(workDir, 'diagnostic')
     }
 }
 
