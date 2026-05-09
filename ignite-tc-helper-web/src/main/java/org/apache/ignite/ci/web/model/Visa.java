@@ -30,8 +30,50 @@ public class Visa {
     /** Message to show user when JIRA ticket was successfully commented by the Bot. */
     public static final String JIRA_COMMENTED = "JIRA commented.";
 
+    /** Message to show user when requested run result targets were successfully commented by the Bot. */
+    public static final String COMMENTED = "Run result commented.";
+
+    /** Message to show user when some requested targets were not commented. */
+    public static final String PARTIALLY_COMMENTED =
+        "Run result partially commented - GitHub wasn't commented.";
+
+    /** Message prefix to show user when comment was intentionally skipped. */
+    public static final String COMMENT_SKIPPED = "Run result comment skipped:";
+
+    /** */
+    private static final String JIRA_COMMENTED_PREFIX = "JIRA ticket commented:";
+
+    /** */
+    private static final String JIRA_ALREADY_COMMENTED_PREFIX =
+        "JIRA ticket already has a valid TCBot comment for this build:";
+
+    /** */
+    private static final String GITHUB_COMMENTED_PREFIX = "GitHub PR commented:";
+
+    /** */
+    private static final String GITHUB_ALREADY_COMMENTED_PREFIX =
+        "GitHub PR already has a valid TCBot comment for this build:";
+
+    /** Machine-readable result, independent from user-visible {@link #status}. */
+    public enum Result {
+        /** Legacy compacted entries did not store a result code. */
+        UNKNOWN,
+
+        /** Empty placeholder. */
+        EMPTY,
+
+        /** Comment flow is complete and observer can stop retrying. */
+        SUCCESS,
+
+        /** Comment flow failed and may be retried by observer. */
+        FAILURE
+    }
+
     /** */
     public final String status;
+
+    /** Machine-readable result. */
+    public final Result result;
 
     /** */
     @Nullable public final JiraCommentResponse jiraCommentRes;
@@ -43,21 +85,65 @@ public class Visa {
      * @return instance of {@link Visa} with {@link #EMPTY_VISA_STATUS}
      */
     public static Visa emptyVisa() {
-        return new Visa(EMPTY_VISA_STATUS);
+        return new Visa(EMPTY_VISA_STATUS, null, 0, Result.EMPTY);
+    }
+
+    /**
+     * @param status User-visible status.
+     * @param res JIRA response.
+     * @param blockers Blockers count.
+     */
+    public static Visa success(String status, @Nullable JiraCommentResponse res, int blockers) {
+        return new Visa(status, res, blockers, Result.SUCCESS);
+    }
+
+    /**
+     * @param status User-visible status.
+     */
+    public static Visa failure(String status) {
+        return new Visa(status, null, 0, Result.FAILURE);
+    }
+
+    /**
+     * @param blockers Blockers count.
+     * @return User-visible status for skipped result comment.
+     */
+    public static String commentSkipped(int blockers) {
+        return COMMENT_SKIPPED + " " + blockers + " " + (blockers == 1 ? "blocker" : "blockers") + " found.";
+    }
+
+    /**
+     * @param target Existing comment target.
+     * @return User-visible status for duplicate run result comment.
+     */
+    public static String duplicateCommentSkipped(@Nullable String target) {
+        return COMMENT_SKIPPED + " duplicate comment already exists" +
+            (target == null || target.isEmpty() ? "." : ": " + target);
+    }
+
+    /**
+     * @param blockers Blockers count.
+     */
+    public static Visa skipped(int blockers) {
+        return success(commentSkipped(blockers), null, blockers);
     }
 
     /** */
     public Visa(String status) {
-        this.status = status;
-        this.jiraCommentRes = null;
-        this.blockers = 0;
+        this(status, null, 0);
     }
 
     /** */
-    public Visa(String status, JiraCommentResponse res, Integer blockers) {
+    public Visa(String status, @Nullable JiraCommentResponse res, Integer blockers) {
+        this(status, res, blockers, legacyResult(status, res));
+    }
+
+    /** */
+    public Visa(String status, @Nullable JiraCommentResponse res, Integer blockers, Result result) {
         this.status = status;
         this.jiraCommentRes = res;
         this.blockers = blockers;
+        this.result = result;
     }
 
     /** */
@@ -72,13 +158,46 @@ public class Visa {
 
     /** */
     public boolean isSuccess() {
-        return JIRA_COMMENTED.equals(status)
-            && jiraCommentRes != null;
+        return result == Result.SUCCESS;
+    }
+
+    /** */
+    public boolean isSkipped() {
+        return result == Result.SUCCESS && status != null && status.startsWith(COMMENT_SKIPPED);
+    }
+
+    /**
+     * Compatibility only: old compacted Visa entries did not store {@link #result}.
+     *
+     * @param status User-visible status.
+     * @param jiraCommentRes JIRA comment response.
+     */
+    static Result legacyResult(String status, @Nullable JiraCommentResponse jiraCommentRes) {
+        if (status == null)
+            return Result.FAILURE;
+
+        if (EMPTY_VISA_STATUS.equals(status))
+            return Result.EMPTY;
+
+        if ((JIRA_COMMENTED.equals(status) && jiraCommentRes != null)
+            || COMMENTED.equals(status)
+            || (PARTIALLY_COMMENTED.equals(status) && jiraCommentRes != null)
+            || ((status.startsWith(JIRA_COMMENTED_PREFIX) || status.startsWith(PARTIALLY_COMMENTED)) &&
+                jiraCommentRes != null)
+            || status.startsWith(JIRA_ALREADY_COMMENTED_PREFIX)
+            || status.startsWith(GITHUB_COMMENTED_PREFIX)
+            || status.startsWith(GITHUB_ALREADY_COMMENTED_PREFIX)
+            || status.contains("; " + GITHUB_COMMENTED_PREFIX)
+            || status.contains("; " + GITHUB_ALREADY_COMMENTED_PREFIX)
+            || status.startsWith(COMMENT_SKIPPED))
+            return Result.SUCCESS;
+
+        return Result.FAILURE;
     }
 
     /** */
     public boolean isEmpty() {
-        return EMPTY_VISA_STATUS.equals(status);
+        return result == Result.EMPTY;
     }
 
     /** */

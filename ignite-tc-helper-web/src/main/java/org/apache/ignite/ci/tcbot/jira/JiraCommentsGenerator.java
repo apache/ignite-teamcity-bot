@@ -36,6 +36,21 @@ public class JiraCommentsGenerator {
 
     public static final String PASSED_TEST_COLOR = "#013220";
 
+    /*
+     * Duplicate markers identify the analyzed result slice, not just the main chain build.
+     * The slice key currently contains chainBuildId and rerunBuildIds. It intentionally does
+     * not include all analyzed suites, only builds explicitly triggered by the bot as reruns.
+     */
+    private static final String MARKER_PREFIX = "tcbot-analysis-comment ";
+
+    /**
+     * @param analysisSliceKey Analysis slice key.
+     * @return Stable marker for duplicate detection.
+     */
+    public static String duplicateMarker(String analysisSliceKey) {
+        return MARKER_PREFIX + analysisSliceKey;
+    }
+
     /**
      * @param apiVer Jira API version.
      * @param compactor String compactor.
@@ -60,6 +75,36 @@ public class JiraCommentsGenerator {
         String branchName,
         String baseBranch
     ) {
+        return generateJiraComment(apiVer, compactor, suites, newTestsStatuses, webUrl, buildTypeId, tcIgnited,
+            blockers, branchName, baseBranch, null);
+    }
+
+    /**
+     * @param apiVer Jira API version.
+     * @param compactor String compactor.
+     * @param suites Suite Current Status.
+     * @param webUrl Build URL.
+     * @param buildTypeId Build type ID, for which visa was ordered.
+     * @param tcIgnited TC service.
+     * @param blockers Count of blockers.
+     * @param branchName TC Branch name, which was tested.
+     * @param baseBranch TC Base branch used for comment.
+     * @param analysisSliceKey Analysis slice key.
+     * @return Comment, which should be sent to the JIRA ticket.
+     */
+    public static String generateJiraComment(
+        JiraApiVersion apiVer,
+        IStringCompactor compactor,
+        List<ShortSuiteUi> suites,
+        List<ShortSuiteNewTestsUi> newTestsStatuses,
+        String webUrl,
+        String buildTypeId,
+        ITeamcityIgnited tcIgnited,
+        int blockers,
+        String branchName,
+        String baseBranch,
+        String analysisSliceKey
+    ) {
         switch (apiVer) {
             case V2: return JiraCommentsGeneratorV2.generateJiraComment(
                 compactor,
@@ -70,7 +115,8 @@ public class JiraCommentsGenerator {
                 tcIgnited,
                 blockers,
                 branchName,
-                baseBranch);
+                baseBranch,
+                analysisSliceKey);
 
             case V3: return JiraCommentsGeneratorV3.generateJiraComment(
                 compactor,
@@ -81,7 +127,8 @@ public class JiraCommentsGenerator {
                 tcIgnited,
                 blockers,
                 branchName,
-                baseBranch);
+                baseBranch,
+                analysisSliceKey);
 
             default:
                 throw new IllegalArgumentException("Unsupported jira api version [version=" + apiVer + ']');

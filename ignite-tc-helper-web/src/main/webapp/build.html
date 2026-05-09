@@ -10,8 +10,8 @@
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 
-    <script src="js/common-1.7.js"></script>
-    <script src="js/testfails-2.3.js"></script>
+    <script src="js/common-1.7.js?v=20260509-6"></script>
+    <script src="js/testfails-2.3.js?v=20260509-22"></script>
 </head>
 <body>
 <script>
@@ -19,8 +19,6 @@ let g_shownDataHashCodeHex = "";
 let g_checkForUpdateSched = false;
 
 $(document).ready(function() {
-    $.getScript("js/testfails-2.3.js", function(data, textStatus, jqxhr){ });
-    
     $( document ).tooltip();
     loadData();
 

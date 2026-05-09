@@ -32,6 +32,9 @@ package org.apache.ignite.ci.tcbot.visa;
     /** Pr author. */
     public String prAuthor;
 
+    /** Pr author GitHub profile url. */
+    public String prAuthorUrl;
+
     /** Pr author avatar url. */
     public String prAuthorAvatarUrl;
 

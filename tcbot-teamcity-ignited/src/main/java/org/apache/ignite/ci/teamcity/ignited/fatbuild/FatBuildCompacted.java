@@ -135,6 +135,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     /** Build parameters compacted, excluding dynamic parameters. */
     @Nullable private ParametersCompacted buildParameters;
 
+    /** Running build progress. */
+    @Nullable private RunningInfoCompacted runningInfo;
+
     /** {@inheritDoc} */
     @Override public int version() {
         return _ver;
@@ -237,6 +240,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             if (!propList.isEmpty())
                 this.buildParameters = new ParametersCompacted(compactor, propList);
         }
+
+        if (build.runningInfo() != null)
+            runningInfo = new RunningInfoCompacted(compactor, build.runningInfo());
     }
 
     public FatBuildCompacted setFakeStub(boolean val) {
@@ -360,6 +366,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
             res.parameters(new Parameters(props));
         }
+
+        if (runningInfo != null)
+            res.runningInfo(runningInfo.toProgressInfo(compactor));
     }
 
     /**
@@ -435,6 +444,11 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         return startDate;
     }
 
+    /** */
+    public long getQueuedDateTs() {
+        return queuedDate;
+    }
+
     /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)
@@ -459,13 +473,14 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             Arrays.equals(changesIds, that.changesIds) &&
             Objects.equals(triggered, that.triggered) &&
             Arrays.equals(revisions, that.revisions) &&
-            Objects.equals(buildParameters, that.buildParameters);
+            Objects.equals(buildParameters, that.buildParameters) &&
+            Objects.equals(runningInfo, that.runningInfo);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
         int res = Objects.hash(super.hashCode(), _ver, startDate, finishDate, queuedDate, projectId, name, tests,
-            testsV2, flags, problems, statistics, triggered, buildParameters);
+            testsV2, flags, problems, statistics, triggered, buildParameters, runningInfo);
         res = 31 * res + Arrays.hashCode(snapshotDeps);
         res = 31 * res + Arrays.hashCode(changesIds);
         res = 31 * res + Arrays.hashCode(revisions);
@@ -605,6 +620,11 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         this.statistics = new StatisticsCompacted(compactor, statistics);
     }
 
+    /** */
+    @Nullable public RunningInfoCompacted runningInfo() {
+        return runningInfo;
+    }
+
     /**
      * @param changes Changes.
      */
@@ -646,6 +666,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             .add("statistics", statistics)
             .add("changesIds", changesIds)
             .add("triggered", triggered)
+            .add("runningInfo", runningInfo)
             .add("revisions", revisions)
             .toString();
     }

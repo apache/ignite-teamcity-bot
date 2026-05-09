@@ -20,8 +20,10 @@ package org.apache.ignite.ci.web.rest.exception;
 import java.net.SocketException;
 import javax.ws.rs.core.Response;
 import javax.xml.bind.UnmarshalException;
+import org.apache.ignite.tcbot.common.exeption.ServicesStartingException;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -43,5 +45,17 @@ public class ExeptionsTraceLoggerTest {
         assertTrue(msg.contains("Reason: SocketException: Connection reset"));
         assertTrue(msg.contains("RuntimeException: TeamCity request failed"));
         assertTrue(msg.contains("UnmarshalException: Failed to parse TeamCity XML"));
+    }
+
+    /** */
+    @Test
+    public void wrappedServicesStartingExceptionReturnsTeapot() {
+        RuntimeException exception = new RuntimeException("Guice wrapper",
+            new ServicesStartingException(new RuntimeException("Ignite is not yet available")));
+
+        Response response = new ExeptionsTraceLogger().toResponse(exception);
+
+        assertEquals(418, response.getStatus());
+        assertEquals("Ignite is not yet available", response.getEntity());
     }
 }

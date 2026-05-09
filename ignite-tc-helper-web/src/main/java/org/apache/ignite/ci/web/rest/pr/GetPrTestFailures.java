@@ -140,7 +140,8 @@ public class GetPrTestFailures {
         @Nullable @QueryParam("maxDetailsChars") Integer maxDetailsChars,
         @Nullable @QueryParam("testName") String testName,
         @Nullable @QueryParam("promptSuiteId") String promptSuiteId,
-        @Nullable @QueryParam("waitForTc") Boolean waitForTc) {
+        @Nullable @QueryParam("waitForTc") Boolean waitForTc,
+        @Nullable @QueryParam("processId") Long processId) {
         final TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
 
         return appCtx.getInstance(PrChainsProcessor.class).getPrFailuresAiPrompt(
@@ -154,6 +155,7 @@ public class GetPrTestFailures {
             TestFailuresAiPromptBuilder.restMaxDetailsChars(maxDetailsChars),
             testName,
             promptSuiteId,
-            waitForTc == null || waitForTc);
+            waitForTc == null || waitForTc,
+            processId);
     }
 }

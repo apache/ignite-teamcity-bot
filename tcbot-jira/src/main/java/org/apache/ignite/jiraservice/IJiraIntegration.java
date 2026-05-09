@@ -39,6 +39,12 @@ public interface IJiraIntegration {
     public String postJiraComment(String ticket, String comment) throws IOException;
 
     /**
+     * @param ticket JIRA ticket full name. E.g 'IGNITE-5555'.
+     * @return Raw JIRA comments response.
+     */
+    public String getJiraComments(String ticket) throws IOException;
+
+    /**
      * Produce wrapper for collection of Jira tickets for given server.
      *
      * @param url Tickets loading URL and parameters, URL is relative, should not contain any start slashes.

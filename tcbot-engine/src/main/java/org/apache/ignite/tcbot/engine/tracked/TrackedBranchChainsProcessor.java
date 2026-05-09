@@ -22,6 +22,8 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,6 +36,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.tcbot.common.conf.IBuildParameterSpec;
 import org.apache.ignite.tcbot.common.conf.IParameterValueSpec;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
@@ -49,6 +52,7 @@ import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
 import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
+import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.GuardBranchStatusUi;
@@ -105,6 +109,9 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
     /** TC update pool for best-effort AI prompt refreshes. */
     @Inject private TcUpdatePool tcUpdatePool;
 
+    /** User-visible process monitor. */
+    @Inject private BotProcessMonitor processMonitor;
+
     /**
      * @param branch Branch.
      * @param buildResMergeCnt Build results merge count.
@@ -128,7 +135,27 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         @Nullable String testName,
         @Nullable String suiteId,
         boolean waitForTc) {
+        return getTrackedBranchFailuresAiPrompt(branch, buildResMergeCnt, creds, syncMode, tagForHistSelected,
+            sortOption, maxDetailsChars, testName, suiteId, waitForTc, null);
+    }
+
+    /**
+     * @param processId User-visible process id.
+     */
+    @Nonnull public String getTrackedBranchFailuresAiPrompt(
+        @Nullable String branch,
+        int buildResMergeCnt,
+        ICredentialsProv creds,
+        SyncMode syncMode,
+        @Nullable String tagForHistSelected,
+        @Nullable SortOption sortOption,
+        @Nullable Integer maxDetailsChars,
+        @Nullable String testName,
+        @Nullable String suiteId,
+        boolean waitForTc,
+        @Nullable Long processId) {
         long reqId = aiPromptMonitor.start("trackedBranch", branch, null, null, testName);
+        processMonitor.start(processId, "aiPrompt", "Preparing AI prompt generation.");
         StringBuilder res = new StringBuilder();
 
         try {
@@ -144,7 +171,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
                     String baseBranchTc = chainTracked.tcBaseBranch().orElse(branchForTc);
                     String suiteIdMandatory = chainTracked.tcSuiteId();
 
-                    aiPromptMonitor.stage(reqId, "loading history: " + srvCodeOrAlias + "/" + suiteIdMandatory);
+                    promptStatus(processId, reqId, "Loading build history for the prompt.");
 
                     ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, creds);
 
@@ -158,30 +185,32 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
 
                     LatestRebuildMode rebuild = buildResMergeCnt > 1 ? LatestRebuildMode.ALL : LatestRebuildMode.LATEST;
 
-                    aiPromptMonitor.stage(reqId, "loading chain context: " + srvCodeOrAlias + "/" + suiteIdMandatory);
+                    promptStatus(processId, reqId, "Collecting build and test details for the prompt.");
 
                     FullChainRunCtx ctx = loadAiPromptContextBestEffort(reqId, tcIgnited, chains, rebuild,
                         buildResMergeCnt == 1, baseBranchTc, syncMode, sortOption, requireParamVal,
-                        srvCodeOrAlias + "/" + suiteIdMandatory, waitForTc);
+                        srvCodeOrAlias + "/" + suiteIdMandatory, waitForTc, processId);
 
                     if (waitForTc)
-                        waitForAiPromptLogs(reqId, ctx, srvCodeOrAlias + "/" + suiteIdMandatory);
+                        waitForAiPromptLogs(reqId, ctx, srvCodeOrAlias + "/" + suiteIdMandatory, processId);
 
                     if (res.length() > 0)
                         res.append("\n\n");
 
-                    aiPromptMonitor.stage(reqId, "building prompt: " + srvCodeOrAlias + "/" + suiteIdMandatory);
+                    promptStatus(processId, reqId, "Assembling the final prompt text.");
 
                     res.append(new TestFailuresAiPromptBuilder(compactor)
                         .buildPrompt(tcIgnited, ctx, baseBranchTc, maxDetails, testName, suiteId));
                 });
 
             aiPromptMonitor.finish(reqId, "chars=" + res.length());
+            processMonitor.finish(processId, "Prompt text is ready.");
 
             return res.toString();
         }
         catch (RuntimeException e) {
             aiPromptMonitor.fail(reqId, e);
+            processMonitor.fail(processId, e);
 
             throw e;
         }
@@ -211,9 +240,10 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         @Nullable SortOption sortOption,
         @Nullable Map<Integer, Integer> requireParamVal,
         String stageSuffix,
-        boolean waitForTc) {
+        boolean waitForTc,
+        @Nullable Long processId) {
         if (!waitForTc) {
-            aiPromptMonitor.stage(reqId, "using cached context without waiting for TeamCity: " + stageSuffix);
+            promptStatus(processId, reqId, "Using cached build and test details for the prompt.");
 
             return chainProc.loadFullChainContext(
                 tcIgnited,
@@ -231,8 +261,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         Future<FullChainRunCtx> live = null;
 
         try {
-            aiPromptMonitor.stage(reqId, "loading fresh build chain from TeamCity for up to "
-                + TimeUnit.MILLISECONDS.toSeconds(AI_PROMPT_CONTEXT_WAIT_MS) + "s: " + stageSuffix);
+            promptStatus(processId, reqId, "Requesting fresh TeamCity data for the prompt.");
 
             live = tcUpdatePool.getService().submit(() -> chainProc.loadFullChainContext(
                 tcIgnited,
@@ -252,8 +281,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
             if (live != null)
                 live.cancel(true);
 
-            aiPromptMonitor.stage(reqId, "fresh TeamCity reload timed out, loading best-effort cached context: "
-                + stageSuffix);
+            promptStatus(processId, reqId, "TeamCity refresh timed out; using cached build context.");
         }
         catch (InterruptedException e) {
             if (live != null)
@@ -261,13 +289,12 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
 
             Thread.currentThread().interrupt();
 
-            aiPromptMonitor.stage(reqId, "fresh context interrupted: " + stageSuffix);
+            promptStatus(processId, reqId, "TeamCity refresh was interrupted.");
 
             throw new IllegalStateException("Interrupted while loading fresh TeamCity context: " + stageSuffix, e);
         }
         catch (Exception e) {
-            aiPromptMonitor.stage(reqId, "fresh TeamCity reload failed, loading best-effort cached context: "
-                + stageSuffix + " - " + e.getMessage());
+            promptStatus(processId, reqId, "TeamCity refresh failed; using cached build context.");
         }
 
         return chainProc.loadFullChainContext(
@@ -288,24 +315,33 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
      * @param ctx Chain context.
      * @param stageSuffix Stage suffix.
      */
-    private void waitForAiPromptLogs(long reqId, FullChainRunCtx ctx, String stageSuffix) {
+    private void waitForAiPromptLogs(long reqId, FullChainRunCtx ctx, String stageSuffix, @Nullable Long processId) {
         long started = ctx.logChecksStartedCount();
 
         if (started == 0)
             return;
 
-        aiPromptMonitor.stage(reqId, "processing build logs: " + started + " task(s), waiting up to "
-            + TimeUnit.MILLISECONDS.toSeconds(AI_PROMPT_LOG_WAIT_MS) + "s: " + stageSuffix);
+        promptStatus(processId, reqId, "Analyzing build logs for the prompt.");
 
         ctx.awaitLogChecks(AI_PROMPT_LOG_WAIT_MS);
 
         long pending = ctx.pendingLogChecksCount();
 
         if (pending > 0)
-            aiPromptMonitor.stage(reqId, "build log processing timeout: " + pending
-                + " task(s) still running: " + stageSuffix);
+            promptStatus(processId, reqId, "Build log analysis timed out; using available log context.");
         else
-            aiPromptMonitor.stage(reqId, "build log processing finished: " + stageSuffix);
+            promptStatus(processId, reqId, "Build log analysis finished.");
+    }
+
+    /**
+     * @param processId User-visible process id.
+     * @param reqId AI prompt monitor request id.
+     * @param stage Shared process stage.
+     * @param text Detailed AI prompt stage text.
+     */
+    private void promptStatus(@Nullable Long processId, long reqId, String text) {
+        aiPromptMonitor.stage(reqId, text);
+        processMonitor.status(processId, text);
     }
 
     /** {@inheritDoc} */
@@ -483,16 +519,31 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         for (ITrackedChain chain : accessibleChains) {
             String srvCodeOrAlias = chain.serverCode();
             ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvCodeOrAlias, prov);
+            String suiteId = chain.tcSuiteId();
 
-            List<BuildRefCompacted> hist = tcIgn.getAllBuildsCompacted(chain.tcSuiteId(), chain.tcBranch());
+            if (chain.triggerBuild())
+                statusUi.addAutoTriggerSuite(suiteId);
+
+            List<BuildRefCompacted> hist = tcIgn.getAllBuildsCompacted(suiteId, chain.tcBranch());
 
             AtomicInteger finished = new AtomicInteger();
             AtomicInteger running = new AtomicInteger();
             AtomicInteger queued = new AtomicInteger();
 
-            hist.stream()
+            List<BuildRefCompacted> validHist = hist.stream()
                 .filter(ref -> !ref.isFakeStub())
                 .filter(t -> !t.isCancelled(compactor))
+                .collect(Collectors.toList());
+
+            List<BuildRefCompacted> lastFinished = validHist.stream()
+                .filter(ref -> ref.isFinished(compactor))
+                .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
+                .limit(10)
+                .collect(Collectors.toList());
+
+            addChainCompositionStats(statusUi, tcIgn, lastFinished);
+
+            validHist.stream()
                 .peek(ref -> {
                     if (ref.isRunning(compactor))
                         running.incrementAndGet();
@@ -517,6 +568,100 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         }
 
         return statusUi;
+    }
+
+    /**
+     * Adds cached suite composition stats for last and last-10 chain builds.
+     *
+     * @param statusUi Guard status UI.
+     * @param tcIgn TeamCity facade.
+     * @param lastFinished Last finished chain builds, newest first.
+     */
+    private void addChainCompositionStats(GuardBranchStatusUi statusUi, ITeamcityIgnited tcIgn,
+        List<BuildRefCompacted> lastFinished) {
+        if (lastFinished.isEmpty())
+            return;
+
+        statusUi.addLastBuildsChecked(1);
+        statusUi.addTenBuildsChecked(lastFinished.size());
+
+        ChainComposition last = chainComposition(tcIgn, lastFinished.get(0));
+
+        last.failedSuites.forEach(statusUi::addLastFailedSuite);
+        last.stableSuites.forEach(statusUi::addLastStableSuite);
+
+        Map<String, Boolean> stableBySuite = new LinkedHashMap<>();
+
+        for (BuildRefCompacted chainBuild : lastFinished) {
+            ChainComposition composition = chainComposition(tcIgn, chainBuild);
+
+            composition.stableSuites.forEach(suiteId -> stableBySuite.putIfAbsent(suiteId, true));
+            composition.failedSuites.forEach(suiteId -> stableBySuite.put(suiteId, false));
+        }
+
+        stableBySuite.forEach((suiteId, stable) -> {
+            if (stable)
+                statusUi.addTenBuildStableSuite(suiteId);
+            else
+                statusUi.addTenBuildFailedSuite(suiteId);
+        });
+    }
+
+    /**
+     * @param tcIgn TeamCity facade.
+     * @param chainBuildRef Chain build ref.
+     */
+    private ChainComposition chainComposition(ITeamcityIgnited tcIgn, BuildRefCompacted chainBuildRef) {
+        ChainComposition res = new ChainComposition();
+
+        FatBuildCompacted chainBuild = cachedFatBuild(tcIgn, chainBuildRef.id());
+
+        if (chainBuild == null)
+            return res;
+
+        for (int depId : chainBuild.snapshotDependencies()) {
+            FatBuildCompacted dep = cachedFatBuild(tcIgn, depId);
+
+            if (dep == null || dep.isFakeStub())
+                continue;
+
+            String depSuiteId = dep.buildTypeId(compactor);
+
+            if (Strings.isNullOrEmpty(depSuiteId))
+                continue;
+
+            if (dep.isSuccess(compactor))
+                res.stableSuites.add(depSuiteId);
+            else
+                res.failedSuites.add(depSuiteId);
+        }
+
+        return res;
+    }
+
+    /**
+     * @param tcIgn TeamCity facade.
+     * @param buildId Build id.
+     */
+    @Nullable private FatBuildCompacted cachedFatBuild(ITeamcityIgnited tcIgn, Integer buildId) {
+        if (buildId == null)
+            return null;
+
+        try {
+            return tcIgn.getFatBuild(buildId, SyncMode.NONE);
+        }
+        catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    /** Cached composition of one chain run. */
+    private static class ChainComposition {
+        /** Failed suites. */
+        private final Set<String> failedSuites = new LinkedHashSet<>();
+
+        /** Stable suites. */
+        private final Set<String> stableSuites = new LinkedHashSet<>();
     }
 
     @Override public Map<Integer, Integer> getTrackedBranchUpdateCounters(@Nullable String branch,

@@ -20,6 +20,7 @@ package org.apache.ignite.ci.user;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.ws.rs.container.ContainerRequestContext;
 import org.apache.ignite.tcbot.engine.user.UserAndSessionsStorage;
@@ -327,6 +328,41 @@ public class LoginAuthTest {
     }
 
     @Test
+    public void testStoredPasswordAllowsLoginWhenTeamcityCheckTimesOut() {
+        UserAndSessionsStorage storage = mockOneSessionStor();
+
+        Login login = createLogin();
+
+        LoginResponse initialLogin = login.doLogin("user", "password", storage, "public", Collections.emptySet(),
+            tcLogin);
+
+        assertNotNull(initialLogin.fullToken);
+
+        String oldTimeout = System.getProperty(Login.TC_LOGIN_CHECK_TIMEOUT_MS);
+
+        try {
+            System.setProperty(Login.TC_LOGIN_CHECK_TIMEOUT_MS, "25");
+
+            long startNanos = System.nanoTime();
+
+            LoginResponse timedOutLogin = login.doLogin("user", "password", storage, "public",
+                Collections.emptySet(), hangingTcLogin());
+
+            assertNotNull(timedOutLogin.fullToken);
+            assertTrue(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos) < 1000);
+            assertTrue(storage.getUser("user").getCredentialsList().stream()
+                .noneMatch(TcHelperUser.Credentials::isStale));
+            assertEquals("password", credentialPassword(storage, timedOutLogin.fullToken, "public"));
+        }
+        finally {
+            if (oldTimeout == null)
+                System.clearProperty(Login.TC_LOGIN_CHECK_TIMEOUT_MS);
+            else
+                System.setProperty(Login.TC_LOGIN_CHECK_TIMEOUT_MS, oldTimeout);
+        }
+    }
+
+    @Test
     public void testPasswordRotationStalesServiceWithoutAcceptedNewCredentials() {
         UserAndSessionsStorage storage = mockOneSessionStor();
 
@@ -393,6 +429,19 @@ public class LoginAuthTest {
     }
 
     @Test
+    public void testNewUserNotCheckedShowsInternalError() {
+        UserAndSessionsStorage storage = mockOneSessionStor();
+
+        LoginResponse failedLogin = createLogin().doLogin("user", "password", storage, "public",
+            Collections.emptySet(), tcLoginWithFallback(TcLoginResult.notChecked()));
+
+        assertNull(failedLogin.fullToken);
+        assertEquals("Service public login check failed: Internal Server Error [500]. Please check bot logs.",
+            failedLogin.errorMessage);
+        assertNull(storage.getUser("user"));
+    }
+
+    @Test
     public void testOldLocalPasswordRejectedByTeamcityKeepsCredentialsActive() {
         UserAndSessionsStorage storage = mockOneSessionStor();
 
@@ -452,6 +501,29 @@ public class LoginAuthTest {
 
     private static ITcLogin tcLoginWithFallback(TcLoginResult fallback) {
         return tcLoginAcceptingWithFallback(fallback);
+    }
+
+    private static ITcLogin hangingTcLogin() {
+        return new ITcLogin() {
+            @Override public User checkServiceUserAndPassword(String srvId, String username, String pwd) {
+                return checkServiceUserAndPasswordResult(srvId, username, pwd).user();
+            }
+
+            @Override public TcLoginResult checkServiceUserAndPasswordResult(String srvId, String username,
+                String pwd) {
+                try {
+                    Thread.sleep(TimeUnit.SECONDS.toMillis(10));
+                }
+                catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                }
+
+                User user = new User();
+                user.username = username;
+
+                return TcLoginResult.accepted(user);
+            }
+        };
     }
 
     private static ITcLogin tcLoginAccepting(String... acceptedServerPasswordPairs) {

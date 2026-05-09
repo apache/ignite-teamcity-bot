@@ -41,13 +41,26 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Path("login")
 @Produces("application/json")
 public class Login {
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(Login.class);
+
     public static final int TOKEN_LEN = 128/8;
     public static final int SESS_ID_LEN = 8;
     public static final int SALT_LEN = 16;
+    public static final String TC_LOGIN_CHECK_TIMEOUT_MS = "tcbot.login.tcCheckTimeoutMs";
+
+    /** TeamCity login check timeout. */
+    private static final long DFLT_TC_LOGIN_CHECK_TIMEOUT_MS = 10000L;
 
     /** Context. */
     @Context
@@ -127,13 +140,12 @@ public class Login {
         byte[] userKeyCandidateKcv = CryptUtil.aesKcv(userKeyCandidate);
 
 
-        final TcLoginResult loginResult = tcLogin.checkServiceUserAndPasswordResult(primarySrvId, username, pwd);
+        final TcLoginResult loginResult = checkTeamCityLogin(primarySrvId, username, pwd, tcLogin);
         final User tcUser = loginResult.user();
 
         if (user.userKeyKcv == null) {
             if (tcUser == null) {
-                loginRes.errorMessage =
-                        "Service " + primarySrvId + " rejected credentials/user not found";
+                loginRes.errorMessage = serviceLoginErrorMessage(primarySrvId, loginResult);
 
                 return loginRes;
             }
@@ -171,6 +183,8 @@ public class Login {
         if (tcUser != null)
             user.updateAdmin(tcUser.belongsToAnyGroup(botAdminGroups), System.currentTimeMillis());
 
+        user.lastLoginTs = System.currentTimeMillis();
+
         users.putUser(username, user);
 
         //todo may be enrich user data here as well.
@@ -202,7 +216,7 @@ public class Login {
 
         for (String addSrvId : srvIds) {
             if (!addSrvId.equals(primarySrvId)) {
-                final User tcAddUser = tcLogin.checkServiceUserAndPasswordResult(addSrvId, username, pwd).user();
+                final User tcAddUser = checkTeamCityLogin(addSrvId, username, pwd, tcLogin).user();
 
                 if (tcAddUser != null) {
                     user.getOrCreateCreds(addSrvId).setLogin(username).setPassword(pwd, userKeyCandidate);
@@ -211,6 +225,57 @@ public class Login {
                 }
             }
         }
+    }
+
+    /**
+     * Checks TeamCity credentials with a bounded wait.
+     *
+     * @param srvId Server id.
+     * @param username User name.
+     * @param pwd Password.
+     * @param tcLogin TeamCity login service.
+     */
+    private TcLoginResult checkTeamCityLogin(String srvId, String username, String pwd, ITcLogin tcLogin) {
+        CompletableFuture<TcLoginResult> fut = CompletableFuture.supplyAsync(
+            () -> tcLogin.checkServiceUserAndPasswordResult(srvId, username, pwd));
+
+        try {
+            return fut.get(tcLoginCheckTimeoutMs(), TimeUnit.MILLISECONDS);
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+
+            logger.warn("TeamCity login check was interrupted [srv={}, user={}]", srvId, username);
+
+            return TcLoginResult.notChecked();
+        }
+        catch (TimeoutException e) {
+            fut.cancel(true);
+
+            logger.warn("TeamCity login check timed out [srv={}, user={}, timeoutMs={}]",
+                srvId, username, tcLoginCheckTimeoutMs());
+
+            return TcLoginResult.notChecked();
+        }
+        catch (ExecutionException e) {
+            logger.error("TeamCity login check failed [srv={}, user={}]", srvId, username, e);
+
+            return TcLoginResult.notChecked();
+        }
+    }
+
+    /**
+     * @return TeamCity login check timeout.
+     */
+    private long tcLoginCheckTimeoutMs() {
+        return Long.getLong(TC_LOGIN_CHECK_TIMEOUT_MS, DFLT_TC_LOGIN_CHECK_TIMEOUT_MS);
+    }
+
+    /** */
+    static String serviceLoginErrorMessage(String srvId, TcLoginResult loginResult) {
+        return loginResult.isNotChecked()
+            ? "Service " + srvId + " login check failed: Internal Server Error [500]. Please check bot logs."
+            : "Service " + srvId + " rejected credentials/user not found";
     }
 
     private TcHelperUser getOrCreateUser(@FormParam("uname") String username,

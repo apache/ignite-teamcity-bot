@@ -137,6 +137,24 @@ public class DsChainUi {
     /** Special flag if chain entry point not found */
     public boolean buildNotFound;
 
+    /** Special flag if chain entry point exists but is still queued or running. */
+    public boolean buildInProgress;
+
+    /** Running or queued build id used as entry point for the in-progress UI. */
+    @Nullable public Integer runningBuildId;
+
+    /** Current observed builds progress. */
+    @Nullable public String runningProgress;
+
+    /** Estimated completion based on TeamCity running-info. */
+    @Nullable public String estimatedCompletion;
+
+    /** Running builds count. */
+    public int runningBuilds;
+
+    /** Queued builds count. */
+    public int queuedBuilds;
+
     @Nullable public String baseBranchForTc;
 
     /** Total blockers count. */
@@ -300,9 +318,20 @@ public class DsChainUi {
         String failRateNormalizedBranch = normalizeBranch(baseBranchTc);
         Integer baseBranchId = compactor.getStringIdIfPresent(failRateNormalizedBranch);
 
+        if (baseBranchId == null) {
+            newTestsUi = new ArrayList<>();
+
+            return;
+        }
+
         newTestsUi = ctx
             .suites()
             .map((suite) -> {
+                IRunHistory suiteHistory = suite.history(tcIgnited, baseBranchId, null);
+
+                if (suiteHistory == null)
+                    return null;
+
                 List<ShortTestUi> missingTests = suite.getFilteredTests(test -> {
                     IRunHistory history = test.history(tcIgnited, baseBranchId, null);
 
@@ -355,6 +384,9 @@ public class DsChainUi {
             return false;
         DsChainUi status = (DsChainUi)o;
         return buildNotFound == status.buildNotFound &&
+            buildInProgress == status.buildInProgress &&
+            runningBuilds == status.runningBuilds &&
+            queuedBuilds == status.queuedBuilds &&
             Objects.equals(chainName, status.chainName) &&
             Objects.equals(serverId, status.serverId) &&
             Objects.equals(serverCode, status.serverCode) &&
@@ -378,6 +410,9 @@ public class DsChainUi {
             Objects.equals(lostInTimeouts, status.lostInTimeouts) &&
             Objects.equals(topLongRunning, status.topLongRunning) &&
             Objects.equals(logConsumers, status.logConsumers) &&
+            Objects.equals(runningBuildId, status.runningBuildId) &&
+            Objects.equals(runningProgress, status.runningProgress) &&
+            Objects.equals(estimatedCompletion, status.estimatedCompletion) &&
             Objects.equals(baseBranchForTc, status.baseBranchForTc);
     }
 
@@ -387,7 +422,8 @@ public class DsChainUi {
             ticketFullName, webToTicket, prNum, webToPr, suites, failedTests, failedToFinish, durationPrintable,
             durationNetTimePrintable,  sourceUpdateDurationPrintable, artifcactPublishingDurationPrintable,
             dependeciesResolvingDurationPrintable,  testsDurationPrintable, lostInTimeouts, topLongRunning,
-            logConsumers, buildNotFound, baseBranchForTc);
+            logConsumers, buildNotFound, buildInProgress, runningBuildId, runningProgress, estimatedCompletion,
+            runningBuilds, queuedBuilds, baseBranchForTc);
     }
 
     public DsChainUi setBuildNotFound(boolean buildNotFound) {

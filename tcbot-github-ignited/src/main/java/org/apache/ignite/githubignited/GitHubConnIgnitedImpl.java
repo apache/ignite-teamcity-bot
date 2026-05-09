@@ -20,6 +20,7 @@ import java.io.FileNotFoundException;
 import java.io.UncheckedIOException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -40,6 +41,8 @@ import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.ci.github.GitHubBranchKey;
 import org.apache.ignite.ci.github.GitHubBranchShort;
+import org.apache.ignite.ci.github.GitHubIssueComment;
+import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
 import org.slf4j.Logger;
@@ -75,6 +78,9 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     /** PPs cache. */
     private IgniteCache<GitHubBranchKey, GitHubBranchShort> branchCache;
 
+    /** GitHub users cache. */
+    private IgniteCache<String, GitHubUser> userCache;
+
     /**
      * @param conn Connection.
      */
@@ -90,6 +96,7 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
         Ignite ignite = igniteProvider.get();
         prCache = ignite.getOrCreateCache(CacheConfigs.getCache8PartsConfig(GIT_HUB_PR));
         branchCache = ignite.getOrCreateCache(CacheConfigs.getCache8PartsConfig(GIT_HUB_BRANCHES));
+        userCache = ignite.getOrCreateCache(CacheConfigs.getCache8PartsConfig(GIT_HUB_USERS));
     }
 
     /** {@inheritDoc} */
@@ -97,6 +104,17 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     @Nullable
     @Override public PullRequest getPullRequest(int prNum) {
         return prCache.get(prNumberToCacheKey(prNum));
+    }
+
+    @AutoProfiling
+    @Override public List<GitHubIssueComment> getIssueComments(int prNum) {
+        return conn.getIssueComments(prNum);
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public String postIssueCommentError(int prNum, String body) {
+        return conn.postIssueCommentError(prNum, body);
     }
 
     /** {@inheritDoc} */
@@ -123,6 +141,12 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
 
     /** {@inheritDoc} */
     @AutoProfiling
+    @Override public String refreshPullRequests() {
+        return runActualizePrs(srvCode, false);
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
     @Override public List<String> getBranches() {
         final int rescanIntervalMins = config().isPreferBranches() ? 5 : 120;
 
@@ -135,6 +159,12 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
             .map(javax.cache.Cache.Entry::getKey)
             .map(GitHubBranchKey::branchName)
             .collect(Collectors.toList());
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public String refreshBranches() {
+        return runActualizeBranches(srvCode, false);
     }
 
     private void actualizeBranches() {
@@ -180,6 +210,8 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
 
         Set<Integer> actualPrs = new HashSet<>();
 
+        enrichPullRequestAuthors(ghData);
+
         int cntSaved = savePrsChunk(ghData);
         int totalChecked = ghData.size();
         if (fullReindex)
@@ -188,6 +220,7 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
         while (outLinkNext.get() != null) {
             String nextPageUrl = outLinkNext.get();
             ghData = conn.getPullRequestsPage(nextPageUrl, outLinkNext);
+            enrichPullRequestAuthors(ghData);
             int savedThisChunk = savePrsChunk(ghData);
             cntSaved += savedThisChunk;
             totalChecked += ghData.size();
@@ -203,6 +236,42 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
             refreshOutdatedPrs(srvId, actualPrs);
 
         return "Entries saved " + cntSaved + " PRs checked " + totalChecked;
+    }
+
+    /**
+     * Loads full public GitHub profiles for PR authors when GitHub /pulls returned compact users without email.
+     *
+     * @param prs Pull requests.
+     */
+    private void enrichPullRequestAuthors(List<PullRequest> prs) {
+        for (PullRequest pr : prs) {
+            GitHubUser author = pr.gitHubUser();
+
+            if (author == null || isEmpty(author.login()) || !isEmpty(author.email()))
+                continue;
+
+            String cacheKey = userCacheKey(author.login());
+            GitHubUser cached = userCache.get(cacheKey);
+
+            if (cached != null) {
+                pr.gitHubUser(cached);
+
+                continue;
+            }
+
+            try {
+                GitHubUser fullUser = conn.getUser(author.login());
+
+                if (fullUser != null && !isEmpty(fullUser.login())) {
+                    userCache.put(cacheKey, fullUser);
+                    pr.gitHubUser(fullUser);
+                }
+            }
+            catch (RuntimeException e) {
+                logger.warn("Failed to enrich GitHub PR author [srv={}, pr={}, login={}]",
+                    srvCode, pr.getNumber(), author.login(), e);
+            }
+        }
     }
 
     /** */
@@ -320,6 +389,20 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
 
     private long prNumberToCacheKey(int prNum) {
         return (long)prNum | (long)srvIdMaskHigh << 32;
+    }
+
+    /**
+     * @param login GitHub login.
+     */
+    private String userCacheKey(String login) {
+        return srvCode + ":" + login.toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * @param value String.
+     */
+    private static boolean isEmpty(String value) {
+        return value == null || value.isEmpty();
     }
 
     /**

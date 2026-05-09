@@ -17,19 +17,19 @@
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.2/css/all.css"
           integrity="sha384-/rXc/GQVaYpyDdyxK+ecHPVYJSN9bmVFBvjA/9eOB+pb3F2w2N6fc5qB9Ew5yIns" crossorigin="anonymous">
 
-    <script src="js/common-1.7.js"></script>
-    <script src="js/testfails-2.3.js"></script>
-    <script src="js/prs-1.3.js"></script>
+    <script src="js/common-1.7.js?v=20260509-6"></script>
+    <script src="js/testfails-2.3.js?v=20260509-22"></script>
+    <script src="js/prs-1.3.js?v=20260510-2"></script>
 
     <style>
 
     </style>
     <script>
+        const JIRA_SITE_URL = "https://issues.apache.org/jira";
+        const GITHUB_SITE_URL = "https://github.com";
         const prs = new Map();
 
         $(document).ready(function() {
-            $.getScript("js/common-1.7.js", function(data, textStatus, jqxhr){ });
-
             $( document ).tooltip();
 
             loadData();
@@ -99,6 +99,7 @@
                 url: "rest/branches/suites",
                 success: function(result) {
                     $("#loadStatus").html("");
+                    rememberDefaultSuitesForPrReport(result);
                     showSuitesForTeamCityRunData(result);
                     showFormAndSuitesForPrCheck(result);
                     showCommentJiraForm(result);
@@ -136,9 +137,12 @@
                 res += "Branch: <input type='text' name='branchForTc' class='branchForTc" + chainAtServer.serverId +
                     "' required> ";
                 res += "Ticket: <input type='text' name='ticketId'>";
-                res += "<button name='jira' type='button' onclick='trigBuild(\"tests\")'>Start tests</button>";
-                res += "<button name='jira' onclick='trigBuild(\"tests+jira\")'>Start tests and comment JIRA ticket on ready</button><br>";
-                //res += "<button name='git' onclick='trigBuild(\"tests+jira\")'>Start tests and comment GitHub PR on ready</button>";
+                res += "<button name='jira' type='button' onclick='trigBuild(\"tests\")'>" +
+                    buttonLabel("Start tests", null, null) + "</button>";
+                res += "<button name='jira' onclick='trigBuild(\"tests+comment\")'>" +
+                    buttonLabel("Start tests and comment on ready", null, JIRA_SITE_URL) + "</button>";
+                res += "<button name='github' onclick='trigBuild(\"tests+github\")'>" +
+                    buttonLabel("Build and Comment GitHub", null, GITHUB_SITE_URL) + "</button><br>";
                 /*
                 res+="Server: <input type='text' name='serverId' value=" + serverId +" readonly>" ;
                 res+="Pull Request #<input type='text' name='prId' onkeypress='return trigBuild(event)'> ";
@@ -163,7 +167,8 @@
                 res += "Branch: <input type='text' name='branchForTc' class='branchForTc" + chainAtServer.serverId +
                     "' required> ";
                 res += "Ticket: <input type='text' name='ticketId'> ";
-                res += "<button name='action' onclick='notifyJira()'>Notify</button><br>";
+                res += "<button name='action' onclick='notifyJira()'>" +
+                    buttonLabel("Notify", JIRA_SITE_URL, null) + "</button><br>";
             }
 
             $("#notifyJira").html(res);
@@ -182,7 +187,18 @@
 
             let parentSuiteId  = suiteId;
             let observe = trigCase !== "tests";
-            triggerBuilds(srvId, parentSuiteId , suiteId, branchName, false, observe, ticketId, null, null);
+            let cleanRebuild = false;
+            let commentTargets = trigCase === "tests+github" ? "GITHUB" : null;
+            let commentOnlyIfNoBlockers = trigCase === "tests+github";
+            let uiOptions = trigCase === "tests+github"
+                ? {
+                    commentPolicyHint: "By default GitHub will be commented only if no blockers are found. " +
+                        "If you need a GitHub comment for any result, switch the option to Comment always."
+                }
+                : null;
+
+            triggerBuilds(srvId, parentSuiteId , suiteId, branchName, false, observe, ticketId, null, null,
+                cleanRebuild, commentTargets, commentOnlyIfNoBlockers, uiOptions);
         }
 
         /**
@@ -196,7 +212,7 @@
             var branchName = fields.namedItem("branchForTc").value;
             var ticketId = fields.namedItem("ticketId").value;
 
-            commentJira(srvId, branchName, suiteId, ticketId, "");
+            commentJira(srvId, branchName, suiteId, ticketId, "", null);
         }
 
         function showFormAndSuitesForPrCheck(result) {
@@ -249,6 +265,7 @@
 
 <div id="version"></div>
 
-<div style="visibility:hidden"><div id="triggerConfirm" title="Trigger Confirmation"></div><div id="triggerDialog" title="Trigger Result"></div></div>
+<div id="triggerConfirm" title="Trigger Confirmation" style="display:none"></div>
+<div id="triggerDialog" title="Trigger Result" style="display:none"></div>
 </body>
 </html>

@@ -81,11 +81,12 @@ public class GetSingleBuildTestFailuresRest {
     public String getTestFailsAiPrompt(
         @QueryParam("serverId") String srvCodeOrAlias,
         @QueryParam("buildId") Integer buildId,
-        @Nullable @QueryParam("maxDetailsChars") Integer maxDetailsChars) throws ServiceUnauthorizedException {
+        @Nullable @QueryParam("maxDetailsChars") Integer maxDetailsChars,
+        @Nullable @QueryParam("processId") Long processId) throws ServiceUnauthorizedException {
         return CtxListener.getApplicationContext(ctx)
             .getInstance(SingleBuildResultsService.class)
             .getSingleBuildFailuresAiPrompt(srvCodeOrAlias, buildId, maxDetailsChars, SyncMode.RELOAD_QUEUED,
-                ITcBotUserCreds.get(req));
+                ITcBotUserCreds.get(req), processId);
     }
 
     @GET

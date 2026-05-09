@@ -24,6 +24,8 @@ public class UserMenuResult extends SimpleResult {
     public String username;
     public boolean authorizedState;
     public boolean admin;
+    public boolean userAdmin;
+    public boolean canClaimUserAdmin;
     public List<User> users = new ArrayList<>();
 
     public UserMenuResult(String result) {

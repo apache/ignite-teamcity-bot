@@ -20,6 +20,7 @@ import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -39,6 +40,9 @@ import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.ContributionKey;
+import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
+import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
+import org.apache.ignite.tcignited.SyncMode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -67,10 +71,61 @@ public class TcBotVisaService {
      */
     @GET
     @Path("history")
-    public Collection<VisaStatus> history() {
+    public Collection<VisaStatus> history(@Nullable @QueryParam("limit") Integer limit) {
         return CtxListener.getApplicationContext(ctx)
             .getInstance(TcBotTriggerAndSignOffService.class)
-            .getVisasStatus(ITcBotUserCreds.get(req));
+            .getVisasStatus(ITcBotUserCreds.get(req), limit == null ? 50 : limit, false);
+    }
+
+    /**
+     */
+    @GET
+    @Path("running")
+    public Collection<VisaStatus> running(@Nullable @QueryParam("limit") Integer limit,
+        @Nullable @QueryParam("processId") Long processId) {
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        ITcBotUserCreds creds = ITcBotUserCreds.get(req);
+        int effectiveLimit = limit == null ? 100 : limit;
+
+        if (processId != null)
+            refreshRunningVisasAsync(appCtx, creds, effectiveLimit, processId);
+
+        return appCtx
+            .getInstance(TcBotTriggerAndSignOffService.class)
+            .getVisasStatus(creds, effectiveLimit, true, SyncMode.NONE)
+            .stream()
+            .filter(status -> status.cancelUrl != null)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * @param appCtx Application context.
+     * @param creds Credentials.
+     * @param limit History limit.
+     * @param processId User-visible process id.
+     */
+    private void refreshRunningVisasAsync(TcBotApplicationContext appCtx, ITcBotUserCreds creds, int limit,
+        Long processId) {
+        BotProcessMonitor process = appCtx.getInstance(BotProcessMonitor.class);
+
+        process.start(processId, "runningVisasRefresh", "Running visas loaded from cached bot data.");
+
+        appCtx.getInstance(TcUpdatePool.class).getService().submit(() -> {
+            try {
+                process.status(processId, "Refreshing running visa build state from TeamCity.");
+
+                long cnt = appCtx.getInstance(TcBotTriggerAndSignOffService.class)
+                    .getVisasStatus(creds, limit, true, SyncMode.RELOAD_QUEUED)
+                    .stream()
+                    .filter(status -> status.cancelUrl != null)
+                    .count();
+
+                process.finish(processId, "Running visa cache refreshed: " + cnt + " active.");
+            }
+            catch (RuntimeException e) {
+                process.fail(processId, e);
+            }
+        });
     }
 
     /**
@@ -87,6 +142,38 @@ public class TcBotVisaService {
         appCtx.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, credsProv);
 
         return appCtx.getInstance(TcBotTriggerAndSignOffService.class).getContributionsToCheck(srvCode, credsProv);
+    }
+
+    /**
+     * @param srvCode Server id.
+     * @return Contribution list after immediate GitHub refresh.
+     */
+    @GET
+    @Path("contributions/refresh")
+    public List<ContributionToCheck> refreshContributions(@Nullable @QueryParam("serverId") String srvCode,
+        @Nullable @QueryParam("processId") Long processId) {
+        ITcBotUserCreds credsProv = ITcBotUserCreds.get(req);
+
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        BotProcessMonitor process = appCtx.getInstance(BotProcessMonitor.class);
+
+        process.start(processId, "refreshContributions", "Sending PR refresh request to the bot REST API.");
+
+        try {
+            appCtx.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, credsProv);
+
+            List<ContributionToCheck> res = appCtx.getInstance(TcBotTriggerAndSignOffService.class)
+                .refreshContributionsToCheck(srvCode, credsProv, processId);
+
+            process.finish(processId, "count=" + res.size());
+
+            return res;
+        }
+        catch (RuntimeException e) {
+            process.fail(processId, e);
+
+            throw e;
+        }
     }
 
     @GET

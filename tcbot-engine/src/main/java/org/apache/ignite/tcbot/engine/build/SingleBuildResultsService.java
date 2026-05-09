@@ -32,6 +32,7 @@ import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
 import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
 import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
+import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -57,6 +58,7 @@ public class SingleBuildResultsService {
     @Inject UpdateCountersStorage updateCounters;
     @Inject AiPromptRequestMonitor aiPromptMonitor;
     @Inject TcUpdatePool tcUpdatePool;
+    @Inject BotProcessMonitor processMonitor;
 
     @Nonnull public DsSummaryUi getSingleBuildResults(String srvCodeOrAlias, Integer buildId,
         @Nullable Boolean checkAllLogs, SyncMode syncMode, ICredentialsProv prov) {
@@ -87,28 +89,40 @@ public class SingleBuildResultsService {
      */
     @Nonnull public String getSingleBuildFailuresAiPrompt(String srvCodeOrAlias, Integer buildId,
         @Nullable Integer maxDetailsChars, SyncMode syncMode, ICredentialsProv prov) {
+        return getSingleBuildFailuresAiPrompt(srvCodeOrAlias, buildId, maxDetailsChars, syncMode, prov, null);
+    }
+
+    /**
+     * @param processId User-visible process id.
+     */
+    @Nonnull public String getSingleBuildFailuresAiPrompt(String srvCodeOrAlias, Integer buildId,
+        @Nullable Integer maxDetailsChars, SyncMode syncMode, ICredentialsProv prov, @Nullable Long processId) {
         long reqId = aiPromptMonitor.start("singleBuild", null, srvCodeOrAlias, String.valueOf(buildId), null);
+        processMonitor.start(processId, "aiPrompt", "Preparing AI prompt generation.");
 
         try {
-            aiPromptMonitor.stage(reqId, "loading build context");
+            promptStatus(processId, reqId, "Collecting build and test details for the prompt.");
 
-            FullChainRunCtx ctx = loadSingleBuildContextBestEffort(reqId, srvCodeOrAlias, buildId, syncMode, prov);
+            FullChainRunCtx ctx = loadSingleBuildContextBestEffort(reqId, srvCodeOrAlias, buildId, syncMode, prov,
+                processId);
 
             ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, prov);
 
             int maxDetails = TestFailuresAiPromptBuilder.restMaxDetailsChars(maxDetailsChars);
 
-            aiPromptMonitor.stage(reqId, "building prompt");
+            promptStatus(processId, reqId, "Assembling the final prompt text.");
 
             String res = new TestFailuresAiPromptBuilder(compactor)
                 .buildPrompt(tcIgnited, ctx, ITeamcity.DEFAULT, maxDetails);
 
             aiPromptMonitor.finish(reqId, "chars=" + res.length());
+            processMonitor.finish(processId, "Prompt text is ready.");
 
             return res;
         }
         catch (RuntimeException e) {
             aiPromptMonitor.fail(reqId, e);
+            processMonitor.fail(processId, e);
 
             throw e;
         }
@@ -153,12 +167,11 @@ public class SingleBuildResultsService {
      * @param prov Credentials provider.
      */
     private FullChainRunCtx loadSingleBuildContextBestEffort(long reqId, String srvCodeOrAlias, Integer buildId,
-        SyncMode liveSyncMode, ICredentialsProv prov) {
+        SyncMode liveSyncMode, ICredentialsProv prov, @Nullable Long processId) {
         Future<FullChainRunCtx> live = null;
 
         try {
-            aiPromptMonitor.stage(reqId, "loading fresh build context from TeamCity for up to "
-                + TimeUnit.MILLISECONDS.toSeconds(AI_PROMPT_CONTEXT_WAIT_MS) + "s");
+            promptStatus(processId, reqId, "Requesting fresh TeamCity data for the prompt.");
 
             live = tcUpdatePool.getService().submit(() ->
                 loadSingleBuildContext(srvCodeOrAlias, buildId, null, liveSyncMode, prov, ProcessLogsMode.ALL));
@@ -169,7 +182,7 @@ public class SingleBuildResultsService {
             if (live != null)
                 live.cancel(true);
 
-            aiPromptMonitor.stage(reqId, "fresh TeamCity reload timed out, loading best-effort cached context");
+            promptStatus(processId, reqId, "TeamCity refresh timed out; using cached build context.");
         }
         catch (InterruptedException e) {
             if (live != null)
@@ -177,16 +190,26 @@ public class SingleBuildResultsService {
 
             Thread.currentThread().interrupt();
 
-            aiPromptMonitor.stage(reqId, "fresh context interrupted");
+            promptStatus(processId, reqId, "TeamCity refresh was interrupted.");
 
             throw new IllegalStateException("Interrupted while loading fresh TeamCity context", e);
         }
         catch (Exception e) {
-            aiPromptMonitor.stage(reqId, "fresh TeamCity reload failed, loading best-effort cached context: "
-                + e.getMessage());
+            promptStatus(processId, reqId, "TeamCity refresh failed; using cached build context.");
         }
 
         return loadSingleBuildContext(srvCodeOrAlias, buildId, null, SyncMode.NONE, prov, ProcessLogsMode.CACHED_ONLY);
+    }
+
+    /**
+     * @param processId User-visible process id.
+     * @param reqId AI prompt monitor request id.
+     * @param stage Shared process stage.
+     * @param text Detailed AI prompt stage text.
+     */
+    private void promptStatus(@Nullable Long processId, long reqId, String text) {
+        aiPromptMonitor.stage(reqId, text);
+        processMonitor.status(processId, text);
     }
 
     /**

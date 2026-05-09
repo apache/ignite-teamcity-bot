@@ -78,6 +78,11 @@ class JiraIgnited implements IJiraIgnited {
     }
 
     /** {@inheritDoc} */
+    @Override public String getJiraComments(String ticket) throws IOException {
+        return jira.getJiraComments(ticket);
+    }
+
+    /** {@inheritDoc} */
     @Override public IJiraServerConfig config() {
         return jira.config();
     }

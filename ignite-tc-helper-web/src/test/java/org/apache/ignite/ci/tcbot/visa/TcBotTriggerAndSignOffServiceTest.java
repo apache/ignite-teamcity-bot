@@ -1,0 +1,393 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.ignite.ci.tcbot.visa;
+
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.concurrent.TimeUnit;
+import org.apache.ignite.ci.github.GitHubIssueComment;
+import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.observer.BuildsInfo;
+import org.apache.ignite.ci.observer.CompactBuildsInfo;
+import org.apache.ignite.ci.web.model.CompactVisa;
+import org.apache.ignite.ci.web.model.CompactVisaRequest;
+import org.apache.ignite.ci.web.model.JiraCommentResponse;
+import org.apache.ignite.ci.web.model.Visa;
+import org.apache.ignite.ci.web.model.VisaRequest;
+import org.apache.ignite.githubignited.IGitHubConnIgnited;
+import org.apache.ignite.jiraignited.IJiraIgnited;
+import org.apache.ignite.tcbot.persistence.InMemoryStringCompactor;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+/**
+ * Tests comment target validation and GitHub/JIRA comment result handling.
+ */
+public class TcBotTriggerAndSignOffServiceTest {
+    /**
+     * Checks comment target normalization.
+     */
+    @Test public void commentTargetsNormalizeAllowsOnlyKnownTargets() {
+        assertEquals(CommentTargets.JIRA, CommentTargets.normalize(null));
+        assertEquals("JIRA,GITHUB", CommentTargets.normalize("jira, github, JIRA"));
+
+        IllegalArgumentException err = assertThrows(IllegalArgumentException.class,
+            () -> CommentTargets.normalize("FOO"));
+
+        assertTrue(err.getMessage().contains("FOO"));
+    }
+
+    /**
+     * Checks GitHub-only comment result statuses.
+     */
+    @Test public void githubOnlyResultReflectsSuccessAndFailure() {
+        Visa success = TcBotTriggerAndSignOffService.commentResult(CommentTargets.GITHUB, true, null, 0);
+
+        assertEquals(Visa.COMMENTED, success.status);
+        assertTrue(success.isSuccess());
+
+        Visa failure = TcBotTriggerAndSignOffService.commentResult(CommentTargets.GITHUB, false, null, 0);
+
+        assertTrue(failure.status.contains("GitHub wasn't commented"));
+        assertFalse(failure.isSuccess());
+
+        Visa detailedFailure = TcBotTriggerAndSignOffService.commentResult(CommentTargets.GITHUB, false,
+            "related PR was not found [prNum=42]", null, 0);
+
+        assertTrue(detailedFailure.status.contains("related PR was not found [prNum=42]"));
+        assertFalse(detailedFailure.isSuccess());
+    }
+
+    /**
+     * Checks partial status when JIRA was commented but GitHub was not.
+     */
+    @Test public void bothTargetsReturnPartialStatusWhenGitHubFailsAfterJiraSuccess() {
+        Visa partial = TcBotTriggerAndSignOffService.commentResult("JIRA,GITHUB", false,
+            new JiraCommentResponse(), 2);
+
+        assertTrue(partial.status.startsWith(Visa.PARTIALLY_COMMENTED));
+        assertTrue(partial.status.contains("GitHub wasn't commented"));
+        assertTrue(partial.isSuccess());
+        assertEquals(2, partial.getBlockers());
+    }
+
+    /**
+     * Checks skipped run result comment status names blockers count.
+     */
+    @Test public void skippedRunResultCommentNamesBlockersCount() {
+        Visa skipped = Visa.skipped(3);
+
+        assertEquals("Run result comment skipped: 3 blockers found.", skipped.status);
+        assertTrue(skipped.isSuccess());
+        assertTrue(skipped.isSkipped());
+        assertEquals(3, skipped.getBlockers());
+    }
+
+    /**
+     * Checks machine-readable result is not inferred from user-visible status in new Visa instances.
+     */
+    @Test public void visaSuccessDoesNotDependOnStatusText() {
+        JiraCommentResponse res = new JiraCommentResponse();
+
+        assertFalse(Visa.failure("JIRA ticket commented: IGNITE-1 https://issues.example/IGNITE-1").isSuccess());
+        assertTrue(Visa.success("GitHub wasn't commented - ignored text in explicit success", res, 0).isSuccess());
+    }
+
+    /**
+     * Checks compact Visa stores machine-readable result.
+     */
+    @Test public void compactVisaStoresResultCode() {
+        IStringCompactor compactor = mock(IStringCompactor.class);
+        JiraCommentResponse res = new JiraCommentResponse();
+
+        when(compactor.getStringId("Any visible text")).thenReturn(12);
+        when(compactor.getStringFromId(12)).thenReturn("Any visible text");
+
+        Visa restored = new CompactVisa(Visa.success("Any visible text", res, 1), compactor).toVisa(compactor);
+
+        assertTrue(restored.isSuccess());
+        assertEquals("Any visible text", restored.status);
+        assertEquals(1, restored.blockers);
+    }
+
+    /**
+     * Checks compact Visa result can be absent in old JSON entries.
+     */
+    @Test public void compactVisaResultCodeIsOptionalForOldJson() throws Exception {
+        IStringCompactor compactor = mock(IStringCompactor.class);
+
+        when(compactor.getStringId(Visa.COMMENTED)).thenReturn(12);
+        when(compactor.getStringFromId(12)).thenReturn(Visa.COMMENTED);
+
+        CompactVisa restoredFromOldJson = new CompactVisa(Visa.failure(Visa.COMMENTED), compactor);
+        restoredFromOldJson.result = Visa.Result.UNKNOWN.ordinal();
+
+        assertFalse(Modifier.isFinal(CompactVisa.class.getDeclaredField("result").getModifiers()));
+        assertTrue(restoredFromOldJson.toVisa(compactor).isSuccess());
+    }
+
+    /**
+     * Checks duplicate detection by marker.
+     */
+    @Test public void duplicateDetectionIsDefensiveAndChecksMarker() {
+        TcBotTriggerAndSignOffService svc = new TcBotTriggerAndSignOffService();
+        IGitHubConnIgnited gh = mock(IGitHubConnIgnited.class);
+
+        when(gh.getIssueComments(42)).thenReturn(null);
+
+        assertFalse(svc.hasExistingGitHubComment(gh, 42, "marker"));
+
+        GitHubIssueComment markerComment = mock(GitHubIssueComment.class);
+
+        when(markerComment.body()).thenReturn("existing marker comment");
+        when(gh.getIssueComments(42)).thenReturn(Arrays.asList(markerComment));
+
+        assertTrue(svc.hasExistingGitHubComment(gh, 42, "marker"));
+
+        GitHubIssueComment buildUrlComment = mock(GitHubIssueComment.class);
+
+        when(buildUrlComment.body()).thenReturn("existing build-url comment");
+        when(gh.getIssueComments(42)).thenReturn(Arrays.asList(buildUrlComment));
+
+        assertFalse(svc.hasExistingGitHubComment(gh, 42, "marker"));
+    }
+
+    /**
+     * Checks detailed successful comment result statuses.
+     */
+    @Test public void detailedCommentResultNamesCommentedTargets() {
+        Visa github = TcBotTriggerAndSignOffService.commentResult(CommentTargets.GITHUB, true, null,
+            Visa.duplicateCommentSkipped("PR #13114 https://github.com/apache/ignite/pull/13114"),
+            null, null, 0);
+
+        assertTrue(github.status.contains("comment skipped"));
+        assertTrue(github.status.contains("duplicate"));
+        assertTrue(github.status.contains("https://github.com/apache/ignite/pull/13114"));
+        assertTrue(github.isSuccess());
+
+        Visa jira = TcBotTriggerAndSignOffService.commentResult(CommentTargets.JIRA, true, null, null,
+            "JIRA ticket commented: IGNITE-28641 https://issues.apache.org/jira/browse/IGNITE-28641",
+            new JiraCommentResponse(), 0);
+
+        assertTrue(jira.status.contains("JIRA ticket commented: IGNITE-28641"));
+        assertTrue(jira.isSuccess());
+
+        Visa jiraDuplicate = TcBotTriggerAndSignOffService.commentResult(CommentTargets.JIRA, true, null, null,
+            Visa.duplicateCommentSkipped("IGNITE-28641 https://issues.apache.org/jira/browse/IGNITE-28641"),
+            null, 0);
+
+        assertTrue(jiraDuplicate.status.contains("comment skipped"));
+        assertTrue(jiraDuplicate.status.contains("duplicate"));
+        assertTrue(jiraDuplicate.isSuccess());
+    }
+
+    /**
+     * Checks duplicate marker includes only rerun build ids, not every analyzed suite build id.
+     */
+    @Test public void analysisSliceKeyIncludesOnlyRerunBuildIds() {
+        assertEquals("chainBuildId=100 rerunBuildIds=200,300",
+            TcBotTriggerAndSignOffService.analysisSliceKey(100, Arrays.asList(300, 100, 200)));
+
+        assertEquals("chainBuildId=100 rerunBuildIds=none",
+            TcBotTriggerAndSignOffService.analysisSliceKey(100, null));
+    }
+
+    /**
+     * Checks JIRA duplicate detection by analysis marker.
+     */
+    @Test public void jiraDuplicateDetectionChecksMarker() throws Exception {
+        TcBotTriggerAndSignOffService svc = new TcBotTriggerAndSignOffService();
+        IJiraIgnited jira = mock(IJiraIgnited.class);
+
+        when(jira.getJiraComments("IGNITE-1")).thenReturn("{\"comments\":[{\"body\":\"" +
+            "tcbot-analysis-comment chainBuildId=100 rerunBuildIds=200\"}]}");
+
+        assertTrue(svc.hasExistingJiraComment(jira, "IGNITE-1",
+            "tcbot-analysis-comment chainBuildId=100 rerunBuildIds=200"));
+        assertFalse(svc.hasExistingJiraComment(jira, "IGNITE-1",
+            "tcbot-analysis-comment chainBuildId=100 rerunBuildIds=300"));
+    }
+
+    /**
+     * Checks explicit PR lookup refreshes stale GitHub cache before reporting miss.
+     */
+    @Test public void findPullRequestByNumberRefreshesCacheOnMiss() {
+        TcBotTriggerAndSignOffService svc = new TcBotTriggerAndSignOffService();
+        IGitHubConnIgnited gh = mock(IGitHubConnIgnited.class);
+        PullRequest pr = mock(PullRequest.class);
+
+        when(pr.getNumber()).thenReturn(42);
+        when(gh.getPullRequest(42)).thenReturn(null);
+        when(gh.getPullRequests()).thenReturn(Collections.emptyList()).thenReturn(Collections.singletonList(pr));
+        when(gh.refreshPullRequests()).thenReturn("refreshed");
+
+        assertSame(pr, svc.findPullRequestByNumber(gh, 42));
+
+        verify(gh).refreshPullRequests();
+    }
+
+    /**
+     * Checks tested commit link points to the commit inside PR context.
+     */
+    @Test public void commitHtmlUrlUsesPullRequestCommitView() {
+        TcBotTriggerAndSignOffService svc = new TcBotTriggerAndSignOffService();
+
+        assertEquals("https://github.com/apache/ignite/pull/13114/commits/abcdef",
+            svc.commitHtmlUrl("https://api.github.com/repos/apache/ignite", "abcdef", 13114));
+    }
+
+    /**
+     * Checks GitHub PR fallback links for history rows when PR details are not in cache.
+     */
+    @Test public void pullRequestUrlUsesGithubHtmlHostForPublicGithubApi() {
+        assertEquals("https://github.com/apache/ignite/pull/13114",
+            TcBotTriggerAndSignOffService.pullRequestUrl("https://api.github.com/repos/apache/ignite", 13114));
+
+        assertEquals("https://github.example.com/apache/ignite/pull/13114",
+            TcBotTriggerAndSignOffService.pullRequestUrl(
+                "https://github.example.com/api/v3/repos/apache/ignite", 13114));
+
+        assertEquals("https://github.com/some-org/some-repo/pull/42",
+            TcBotTriggerAndSignOffService.pullRequestUrl(
+                "https://api.github.com/repos/some-org/some-repo/", 42));
+
+        assertEquals("https://github.example.com/some-org/some-repo/pull/42",
+            TcBotTriggerAndSignOffService.pullRequestUrl(
+                "https://github.example.com/api/v3/repos/some-org/some-repo", 42));
+    }
+
+    /**
+     * Checks requested age is compact enough for running visas table.
+     */
+    @Test public void requestedAgoOmitsSubsecondPrecision() {
+        assertEquals("0s ago", TcBotTriggerAndSignOffService.requestedAgo(853));
+        assertEquals("59s ago", TcBotTriggerAndSignOffService.requestedAgo(59_853));
+        assertEquals("1m ago", TcBotTriggerAndSignOffService.requestedAgo(TimeUnit.MINUTES.toMillis(1) + 853));
+        assertEquals("1h 55m ago", TcBotTriggerAndSignOffService.requestedAgo(
+            TimeUnit.HOURS.toMillis(1) + TimeUnit.MINUTES.toMillis(55) + 32_853));
+        assertEquals("2d 3h ago", TcBotTriggerAndSignOffService.requestedAgo(
+            TimeUnit.DAYS.toMillis(2) + TimeUnit.HOURS.toMillis(3) + TimeUnit.MINUTES.toMillis(10)));
+    }
+
+    /**
+     * Checks new GitHub-only direct comments persist and restore all history options without a JIRA ticket.
+     */
+    @Test public void compactVisaRequestRestoresGithubOnlyDirectCommentFields() {
+        InMemoryStringCompactor compactor = new InMemoryStringCompactor();
+        BuildsInfo src = new BuildsInfo("apache", null, "pull/13114/head", "IgniteTests24Java8_RunAll",
+            null, "zstan", CommentTargets.GITHUB, 13114, true);
+
+        VisaRequest restored = new CompactVisaRequest(
+            new VisaRequest(src).setResult(Visa.success("GitHub PR commented", null, 0)),
+            compactor).toVisaRequest(compactor);
+
+        BuildsInfo info = restored.getInfo();
+
+        assertEquals("apache", info.srvId);
+        assertEquals("pull/13114/head", info.branchForTc);
+        assertEquals("IgniteTests24Java8_RunAll", info.buildTypeId);
+        assertEquals("zstan", info.userName);
+        assertEquals(CommentTargets.GITHUB, info.commentTargets);
+        assertEquals(Integer.valueOf(13114), info.prNum);
+        assertTrue(info.commentOnlyIfNoBlockers);
+        assertEquals(null, info.ticket);
+        assertTrue(restored.getResult().isSuccess());
+        assertFalse(restored.wasEverObserved());
+    }
+
+    /**
+     * Checks finished observed visa keeps a durable observe marker for guard recent results.
+     */
+    @Test public void compactVisaRequestKeepsObservedMarkerAfterFinish() {
+        InMemoryStringCompactor compactor = new InMemoryStringCompactor();
+        BuildsInfo src = new BuildsInfo("apache", "IGNITE-1", "pull/1/head", "Suite",
+            "master", "zstan", CommentTargets.GITHUB, 1, true, build(100));
+
+        VisaRequest observedReq = new VisaRequest(src)
+            .setObservingStatus(true)
+            .setObservingStatus(false)
+            .setResult(Visa.skipped(2));
+
+        VisaRequest restored = new CompactVisaRequest(observedReq, compactor).toVisaRequest(compactor);
+
+        assertFalse(restored.isObserving());
+        assertTrue(restored.wasEverObserved());
+        assertTrue(restored.getResult().isSkipped());
+    }
+
+    /**
+     * Checks history row helper fields for old and new compact entries.
+     */
+    @Test public void historyHelpersFillRequesterAndSliceMarkers() {
+        BuildsInfo direct = new BuildsInfo("apache", null, "pull/13114/head", "IgniteTests24Java8_RunAll",
+            null, "zstan", CommentTargets.GITHUB, 13114, true);
+
+        assertEquals(Integer.valueOf(13114), TcBotTriggerAndSignOffService.prNumFromTcBranch("pull/13114/head"));
+        assertEquals(Integer.valueOf(13114), TcBotTriggerAndSignOffService.prNumFromTcBranch("pull/13114/merge"));
+        assertEquals(null, TcBotTriggerAndSignOffService.prNumFromTcBranch("pull/abc/head"));
+        assertEquals(null, TcBotTriggerAndSignOffService.prNumFromTcBranch("pull/13114/unknown"));
+        assertEquals(null, TcBotTriggerAndSignOffService.prNumFromTcBranch("ignite-123"));
+
+        assertEquals("branch=pull/13114/head; base=<default>; suite=IgniteTests24Java8_RunAll; direct comment",
+            TcBotTriggerAndSignOffService.analysisSlice(direct));
+
+        BuildsInfo observed = new BuildsInfo("apache", "IGNITE-1", "pull/1/head", "Suite",
+            "master", "zstan", CommentTargets.JIRA, null, false, build(100), build(200));
+
+        assertEquals("branch=pull/1/head; base=master; suite=Suite; observed run buildIds=100,200",
+            TcBotTriggerAndSignOffService.analysisSlice(observed));
+    }
+
+    /**
+     * Checks old compacted entries with missing comment target id are restored without compactor lookup for {@code -1}.
+     */
+    @Test public void compactBuildsInfoOldCommentTargetsDoNotLookupNegativeStringId() {
+        CompactBuildsInfo compact = new CompactBuildsInfo();
+        IStringCompactor compactor = mock(IStringCompactor.class);
+
+        when(compactor.getStringFromId(0)).thenReturn("value");
+
+        BuildsInfo info = new BuildsInfo(compact, compactor);
+
+        assertEquals(CommentTargets.JIRA, info.commentTargets);
+        verify(compactor, never()).getStringFromId(-1);
+    }
+
+    /**
+     * @param id Build id.
+     */
+    private static org.apache.ignite.tcservice.model.result.Build build(int id) {
+        org.apache.ignite.tcservice.model.result.Build build = new org.apache.ignite.tcservice.model.result.Build();
+
+        build.setId(id);
+        build.buildTypeId = "Suite";
+
+        return build;
+    }
+}

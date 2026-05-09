@@ -51,6 +51,9 @@ import java.util.List;
     /** Web links to queued suites. */
     public List<String> webLinksQueuedSuites = new LinkedList<>();
 
+    /** TeamCity web URL. */
+    public String teamcityWebUrl;
+
     /** Default build type. */
     public boolean defaultBuildType = false;
 

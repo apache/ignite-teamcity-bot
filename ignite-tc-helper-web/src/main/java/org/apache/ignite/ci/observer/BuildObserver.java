@@ -21,6 +21,7 @@ import java.util.Objects;
 import java.util.Timer;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import org.apache.ignite.ci.tcbot.visa.CommentTargets;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -102,7 +103,40 @@ public class BuildObserver {
     public void observe(String srvId, String ticket, String branchForTc, String parentSuiteId,
         @Nullable String baseBranchForTc, String userName,
         Build... builds) {
-        BuildsInfo buildsInfo = new BuildsInfo(srvId, ticket, branchForTc, parentSuiteId, baseBranchForTc, userName, builds);
+        observe(srvId, ticket, branchForTc, parentSuiteId, baseBranchForTc, userName,
+            CommentTargets.DFLT, builds);
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param ticket JIRA ticket name.
+     * @param branchForTc Branch for TC.
+     * @param baseBranchForTc Base branch in TC identification.
+     * @param userName User name.
+     * @param commentTargets Comment targets.
+     */
+    public void observe(String srvId, String ticket, String branchForTc, String parentSuiteId,
+        @Nullable String baseBranchForTc, String userName, @Nullable String commentTargets,
+        Build... builds) {
+        observe(srvId, ticket, branchForTc, parentSuiteId, baseBranchForTc, userName, commentTargets,
+            null, false, builds);
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param ticket JIRA ticket name.
+     * @param branchForTc Branch for TC.
+     * @param baseBranchForTc Base branch in TC identification.
+     * @param userName User name.
+     * @param commentTargets Comment targets.
+     * @param prNum Pull request number selected by user.
+     * @param commentOnlyIfNoBlockers Comment only if analysis has no blockers.
+     */
+    public void observe(String srvId, String ticket, String branchForTc, String parentSuiteId,
+        @Nullable String baseBranchForTc, String userName, @Nullable String commentTargets,
+        @Nullable Integer prNum, boolean commentOnlyIfNoBlockers, Build... builds) {
+        BuildsInfo buildsInfo = new BuildsInfo(srvId, ticket, branchForTc, parentSuiteId, baseBranchForTc, userName,
+            commentTargets, prNum, commentOnlyIfNoBlockers, builds);
 
         observerTask.addInfo(buildsInfo);
     }
@@ -120,10 +154,16 @@ public class BuildObserver {
         ITeamcityIgnited teamcity = teamcityIgnitedProvider.server(key.srvId, creds);
 
         if (Objects.nonNull(buildsInfo)) {
-            sb.append(buildsInfo.ticket).append(" to be commented, waiting for builds. ");
-            sb.append(buildsInfo.finishedBuildsCount(teamcity, strCompactor));
-            sb.append(" builds done from ");
-            sb.append(buildsInfo.buildsCount());
+            int buildsCnt = buildsInfo.buildsCount();
+            int finishedCnt = buildsInfo.finishedBuildsCount(teamcity, strCompactor);
+            String targets = CommentTargets.normalize(buildsInfo.commentTargets);
+
+            if (finishedCnt >= buildsCnt)
+                sb.append(targets).append(" comment is pending: all ")
+                    .append(buildsCnt).append(" observed builds are finished; waiting for the observer to publish it.");
+            else
+                sb.append(targets).append(" comment scheduled: waiting for builds (")
+                    .append(finishedCnt).append('/').append(buildsCnt).append(" finished).");
         }
 
         return sb.toString();

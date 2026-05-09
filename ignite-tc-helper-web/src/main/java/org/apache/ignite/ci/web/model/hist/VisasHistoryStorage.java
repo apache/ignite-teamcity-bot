@@ -20,8 +20,11 @@ package org.apache.ignite.ci.web.model.hist;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.PriorityQueue;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.cache.Cache;
@@ -168,5 +171,43 @@ public class VisasHistoryStorage {
             .collect(Collectors.toList())));
 
         return Collections.unmodifiableCollection(res);
+    }
+
+    /**
+     * @param limit Max entries to return. Non-positive means all entries.
+     * @return Latest {@link VisaRequest}s across all stored contribution keys.
+     */
+    public Collection<VisaRequest> getVisas(int limit) {
+        if (limit <= 0)
+            return getVisas();
+
+        PriorityQueue<CompactVisaRequest> latest = new PriorityQueue<>(Comparator.comparingLong(
+            VisasHistoryStorage::dateTs));
+
+        visas().forEach(entry -> {
+            for (CompactVisaRequest req : entry.getValue()) {
+                latest.add(req);
+
+                if (latest.size() > limit)
+                    latest.poll();
+            }
+        });
+
+        List<CompactVisaRequest> compactReqs = new ArrayList<>(latest);
+
+        compactReqs.sort(Comparator.comparingLong(VisasHistoryStorage::dateTs).reversed());
+
+        return Collections.unmodifiableCollection(compactReqs.stream()
+            .map(v -> v.toVisaRequest(strCompactor))
+            .collect(Collectors.toList()));
+    }
+
+    /**
+     * @param req Compact request.
+     */
+    private static long dateTs(CompactVisaRequest req) {
+        Date date = req.compactInfo.date();
+
+        return date == null ? Long.MIN_VALUE : date.getTime();
     }
 }

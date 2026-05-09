@@ -91,11 +91,11 @@ public class MonitoringServiceSecurityTest {
     }
 
     @Test
-    public void monitoringPageContainsAdminUsersList() throws IOException {
+    public void monitoringPageContainsUserAdminLinkBlock() throws IOException {
         String html = readFile(monitoringHtml());
 
-        assertTrue(html.contains("renderAdminUsersList(result, \"#adminUsersBlock\", \"#adminUsers\")"));
-        assertTrue(html.contains("id=\"adminUsersBlock\" class=\"adminOnly\""));
+        assertTrue(html.contains("renderUserAdminLink(result, \"#userAdminBlock\")"));
+        assertTrue(html.contains("id=\"userAdminBlock\" style=\"display: none\""));
         assertTrue(html.contains("<b>Users:</b>"));
     }
 

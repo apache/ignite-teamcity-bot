@@ -20,6 +20,9 @@ package org.apache.ignite.ci.tcbot.visa;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -42,10 +45,13 @@ import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.ci.github.GitHubBranch;
+import org.apache.ignite.ci.github.GitHubIssueComment;
 import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.tcbot.github.GitHubCommentsGenerator;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.BuildsInfo;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.RunningInfoCompacted;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
 import org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
@@ -53,6 +59,7 @@ import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
+import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.ci.web.model.JiraCommentResponse;
 import org.apache.ignite.ci.web.model.SimpleResult;
@@ -61,6 +68,7 @@ import org.apache.ignite.ci.web.model.VisaRequest;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.apache.ignite.githubignited.IGitHubConnIgnited;
 import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
+import org.apache.ignite.githubservice.IGitHubConnection;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.internal.util.typedef.T2;
 import org.apache.ignite.jiraignited.IJiraIgnited;
@@ -71,9 +79,12 @@ import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
 import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
+import org.apache.ignite.tcbot.common.util.TimeUtil;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.pr.BranchTicketMatcher;
 import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
+import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
+import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.apache.ignite.tcbot.engine.ui.ShortSuiteNewTestsUi;
 import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -110,6 +121,13 @@ public class TcBotTriggerAndSignOffService {
         }
     };
 
+    /** */
+    private static final ThreadLocal<DateFormat> THREAD_TIME_FORMATTER = new ThreadLocal<DateFormat>() {
+        @Override protected DateFormat initialValue() {
+            return new SimpleDateFormat("HH:mm");
+        }
+    };
+
     /** Build observer provider. */
     @Inject Provider<BuildObserver> buildObserverProvider;
 
@@ -124,6 +142,12 @@ public class TcBotTriggerAndSignOffService {
 
     /** */
     @Inject private VisasHistoryStorage visasHistStorage;
+
+    /** */
+    @Inject private IUserStorage userStorage;
+
+    /** */
+    @Inject private GitHubUserResolver gitHubUserResolver;
 
     /** */
     @Inject private IStringCompactor strCompactor;
@@ -143,6 +167,9 @@ public class TcBotTriggerAndSignOffService {
     @Inject
     BranchTicketMatcher ticketMatcher;
 
+    /** User-visible process monitor. */
+    @Inject BotProcessMonitor processMonitor;
+
     /** Jackson serializer. */
     private final ObjectMapper objMapper = new ObjectMapper();
 
@@ -153,10 +180,39 @@ public class TcBotTriggerAndSignOffService {
 
     /** */
     public List<VisaStatus> getVisasStatus(ITcBotUserCreds prov) {
+        return getVisasStatus(prov, 50);
+    }
+
+    /** */
+    public List<VisaStatus> getVisasStatus(ITcBotUserCreds prov, int limit) {
+        return getVisasStatus(prov, limit, true, SyncMode.RELOAD_QUEUED);
+    }
+
+    /**
+     * @param prov Credentials.
+     * @param limit History limit.
+     * @param loadLiveDetails Whether TeamCity live state should be refreshed.
+     */
+    public List<VisaStatus> getVisasStatus(ITcBotUserCreds prov, int limit, boolean loadLiveDetails) {
+        return getVisasStatus(prov, limit, loadLiveDetails, loadLiveDetails ? SyncMode.RELOAD_QUEUED : SyncMode.NONE);
+    }
+
+    /**
+     * @param prov Credentials.
+     * @param limit History limit.
+     * @param loadLiveDetails Whether TeamCity state should be included.
+     * @param syncMode TeamCity build sync mode.
+     */
+    public List<VisaStatus> getVisasStatus(ITcBotUserCreds prov, int limit, boolean loadLiveDetails,
+        SyncMode syncMode) {
         List<VisaStatus> visaStatuses = new ArrayList<>();
+        Map<String, ITeamcityIgnited> tcBySrv = new HashMap<>();
+        Map<String, IJiraIgnited> jiraBySrv = new HashMap<>();
+        Map<String, IGitHubConnIgnited> ghBySrv = new HashMap<>();
+        Map<String, String> buildTypeNameByKey = new HashMap<>();
+        Map<String, TcHelperUser> userByName = new HashMap<>();
 
-
-        for (VisaRequest visaRequest : visasHistStorage.getVisas()) {
+        for (VisaRequest visaRequest : visasHistStorage.getVisas(limit)) {
             VisaStatus visaStatus = new VisaStatus();
 
             String srvCodeOrAlias = visaRequest.getInfo().srvId;
@@ -164,35 +220,60 @@ public class TcBotTriggerAndSignOffService {
             if(!prov.hasAccess(srvCodeOrAlias))
                 continue;
 
-            ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvCodeOrAlias, prov);
-
-            IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCodeOrAlias);
-
             BuildsInfo info = visaRequest.getInfo();
-
             Visa visa = visaRequest.getResult();
-
             boolean isObserving = visaRequest.isObserving();
 
             visaStatus.date = THREAD_FORMATTER.get().format(info.date);
+            visaStatus.requestedAgeMs = Math.max(0, System.currentTimeMillis() - info.date.getTime());
+            visaStatus.requestedAgo = requestedAgo(visaStatus.requestedAgeMs);
             visaStatus.branchName = info.branchForTc;
             visaStatus.userName = info.userName;
+            TcHelperUser requester = requester(visaStatus.userName, userByName);
+            fillRequesterLinks(visaStatus, requester, null);
             visaStatus.ticket = info.ticket;
+            visaStatus.prNum = info.prNum != null ? info.prNum : prNumFromTcBranch(info.branchForTc);
+            visaStatus.commentTargets = info.commentTargets;
+            visaStatus.commentOnlyIfNoBlockers = info.commentOnlyIfNoBlockers;
+            visaStatus.commentStatus = visa.status;
+            visaStatus.buildIds = buildIds(info);
+            visaStatus.rerun = !info.getBuilds().isEmpty();
+            visaStatus.wasEverObserved = visaRequest.wasEverObserved();
+            visaStatus.analysisSlice = analysisSlice(info);
             visaStatus.buildTypeId = info.buildTypeId;
+            visaStatus.reportUrl = reportUrl(srvCodeOrAlias, info.buildTypeId, info.branchForTc);
 
-            BuildTypeRefCompacted bt = tcIgn.getBuildTypeRef(info.buildTypeId);
-            visaStatus.buildTypeName = (bt != null ? bt.name(compactor) : visaStatus.buildTypeId);
+            ITeamcityIgnited tcIgn = loadLiveDetails ? tcBySrv.computeIfAbsent(srvCodeOrAlias,
+                srv -> tcIgnitedProv.server(srv, prov)) : null;
+
+            visaStatus.buildTypeName = loadLiveDetails ? buildTypeNameByKey.computeIfAbsent(
+                srvCodeOrAlias + '\n' + info.buildTypeId,
+                key -> buildTypeName(tcIgn, srvCodeOrAlias, info.buildTypeId)) : info.buildTypeId;
             visaStatus.baseBranchForTc = info.baseBranchForTc;
+            visaStatus.blockers = visa.getBlockers();
 
-            String buildsStatus = visaStatus.status = info.getStatus(tcIgn, strCompactor);
+            if (!Strings.isNullOrEmpty(visaStatus.ticket) || visa.getJiraCommentResponse() != null)
+                fillTicketLinks(visaStatus, jiraBySrv.computeIfAbsent(srvCodeOrAlias, jiraIgnProv::server), visa);
 
-            if (FINISHED_STATUS.equals(buildsStatus)) {
+            if (visaStatus.prNum != null && visaStatus.prNum > 0) {
+                GitHubUser prAuthor = fillPullRequestLinks(visaStatus, ghBySrv.computeIfAbsent(srvCodeOrAlias,
+                    gitHubConnIgnitedProvider::server));
+
+                fillRequesterLinks(visaStatus, requester, prAuthor);
+            }
+
+            String buildsStatus = isObserving && loadLiveDetails ? info.getStatus(tcIgn, strCompactor, syncMode) : null;
+
+            if (isObserving && loadLiveDetails)
+                fillRunningDetails(visaStatus, info, tcIgn, syncMode);
+
+            if (!isObserving)
+                visaStatus.status = visa.isSkipped() ? "skipped" : visa.isSuccess() ? FINISHED_STATUS :
+                    CANCELLED_STATUS;
+            else if (!loadLiveDetails)
+                visaStatus.status = RUNNING_STATUS;
+            else if (FINISHED_STATUS.equals(buildsStatus)) {
                 if (visa.isSuccess()) {
-                    visaStatus.commentUrl = jiraIntegration.generateCommentUrl(
-                        visaStatus.ticket, visa.getJiraCommentResponse().getId());
-
-                    visaStatus.blockers = visa.getBlockers();
-
                     visaStatus.status = FINISHED_STATUS;
                 }
                 else
@@ -204,12 +285,556 @@ public class TcBotTriggerAndSignOffService {
                 visaStatus.status = buildsStatus;
 
             if (isObserving)
-                visaStatus.cancelUrl = "/rest/visa/cancel?server=" + srvCodeOrAlias + "&branch=" + info.branchForTc;
+                visaStatus.cancelUrl = "/rest/visa/cancel?server=" + encodeUrlParam(srvCodeOrAlias) +
+                    "&branch=" + encodeUrlParam(info.branchForTc);
 
             visaStatuses.add(visaStatus);
         }
 
         return visaStatuses;
+    }
+
+    /**
+     * @param visaStatus Visa status DTO.
+     * @param info Builds info.
+     * @param tcIgn TeamCity.
+     * @param syncMode TeamCity build sync mode.
+     */
+    private void fillRunningDetails(VisaStatus visaStatus, BuildsInfo info, ITeamcityIgnited tcIgn, SyncMode syncMode) {
+        if (info.getBuilds().isEmpty())
+            return;
+
+        RunningVisaDetails details = runningVisaDetails(info, tcIgn, syncMode);
+
+        visaStatus.runningProgress = details.progressText();
+        visaStatus.runningBuildUrl = details.buildUrl();
+        visaStatus.estimatedCompletion = details.estimatedCompletion();
+    }
+
+    /**
+     * @param info Builds info.
+     * @param tcIgn TeamCity.
+     * @param syncMode TeamCity build sync mode.
+     */
+    private RunningVisaDetails runningVisaDetails(BuildsInfo info, ITeamcityIgnited tcIgn, SyncMode syncMode) {
+        int total = info.getBuilds().size();
+        int finished = 0;
+        int running = 0;
+        int queued = 0;
+        int cancelled = 0;
+        int progressSum = 0;
+        int progressCnt = 0;
+        long maxEstimatedFinishTs = -1;
+        long maxQueuedAgeMs = -1;
+        String stage = null;
+        boolean probablyHanging = false;
+        String activeBuildUrl = null;
+
+        for (Integer id : info.getBuilds()) {
+            FatBuildCompacted build = tcIgn.getFatBuild(id, syncMode);
+
+            if (build.isFakeStub() || build.isCancelled(strCompactor)) {
+                cancelled++;
+
+                continue;
+            }
+
+            if (build.isFinished(strCompactor)) {
+                finished++;
+
+                continue;
+            }
+
+            if (build.isQueued(strCompactor)) {
+                queued++;
+
+                if (activeBuildUrl == null)
+                    activeBuildUrl = tcIgn.host() + "viewQueued.html?itemId=" + id;
+
+                long queuedAgeMs = queuedAgeMs(build);
+
+                if (queuedAgeMs >= 0)
+                    maxQueuedAgeMs = Math.max(maxQueuedAgeMs, queuedAgeMs);
+
+                continue;
+            }
+
+            if (build.isRunning(strCompactor)) {
+                running++;
+
+                activeBuildUrl = tcIgn.host() + "viewLog.html?buildId=" + id +
+                    "&buildTypeId=" + encodeUrlParam(build.buildTypeId(strCompactor));
+            }
+
+            RunningInfoCompacted runningInfo = build.runningInfo();
+
+            if (runningInfo == null)
+                continue;
+
+            Integer percent = runningInfo.percentageComplete();
+
+            if (percent != null) {
+                progressSum += percent;
+                progressCnt++;
+            }
+
+            Long estimatedFinishTs = estimatedFinishTs(build, runningInfo);
+
+            if (estimatedFinishTs != null)
+                maxEstimatedFinishTs = Math.max(maxEstimatedFinishTs, estimatedFinishTs);
+
+            String stageText = runningInfo.currentStageText(strCompactor);
+
+            if (!Strings.isNullOrEmpty(stageText) && Strings.isNullOrEmpty(stage))
+                stage = shorten(stageText, 160);
+
+            if (Boolean.TRUE.equals(runningInfo.probablyHanging()))
+                probablyHanging = true;
+        }
+
+        String progress = runningProgressText(total, finished, running, queued, cancelled,
+            progressCnt == 0 ? null : progressSum / progressCnt, stage, probablyHanging);
+
+        String eta = maxEstimatedFinishTs >= 0 ? estimatedCompletionText(maxEstimatedFinishTs, queued,
+            maxQueuedAgeMs) : estimatedCompletionUnavailableText(running, queued, maxQueuedAgeMs);
+
+        return new RunningVisaDetails(progress, activeBuildUrl, eta);
+    }
+
+    /**
+     * @param total Total builds.
+     * @param finished Finished builds.
+     * @param running Running builds.
+     * @param queued Queued builds.
+     * @param cancelled Cancelled builds.
+     * @param percent Average TeamCity percentage.
+     * @param stage Current TeamCity stage.
+     * @param probablyHanging Whether TeamCity suspects hang.
+     */
+    private static String runningProgressText(int total, int finished, int running, int queued, int cancelled,
+        @Nullable Integer percent, @Nullable String stage, boolean probablyHanging) {
+        List<String> parts = new ArrayList<>();
+
+        parts.add(finished + "/" + total + " builds finished");
+
+        if (running > 0)
+            parts.add(running + " running");
+
+        if (queued > 0)
+            parts.add(queued + " queued");
+
+        if (cancelled > 0)
+            parts.add(cancelled + " cancelled");
+
+        if (percent != null)
+            parts.add("about " + percent + "%");
+
+        if (probablyHanging)
+            parts.add("TeamCity suspects hanging build");
+
+        String res = String.join(", ", parts);
+
+        return Strings.isNullOrEmpty(stage) ? res : res + ": " + stage;
+    }
+
+    /**
+     * @param build Build.
+     * @param runningInfo TeamCity running info.
+     */
+    @Nullable private static Long estimatedFinishTs(FatBuildCompacted build, RunningInfoCompacted runningInfo) {
+        long startTs = build.getStartDateTs();
+
+        if (startTs <= 0)
+            return null;
+
+        Long estimatedTotalSeconds = runningInfo.estimatedTotalSeconds();
+
+        if (estimatedTotalSeconds != null && estimatedTotalSeconds >= 0)
+            return startTs + TimeUnit.SECONDS.toMillis(estimatedTotalSeconds);
+
+        Long elapsedSeconds = runningInfo.elapsedSeconds();
+        Long leftSeconds = runningInfo.leftSeconds();
+
+        if (elapsedSeconds != null && elapsedSeconds >= 0 && leftSeconds != null && leftSeconds >= 0)
+            return startTs + TimeUnit.SECONDS.toMillis(elapsedSeconds + leftSeconds);
+
+        return null;
+    }
+
+    /**
+     * @param estimatedFinishTs TeamCity estimated finish timestamp.
+     * @param queued Queued builds count.
+     * @param queuedAgeMs Max queued build age.
+     */
+    private static String estimatedCompletionText(long estimatedFinishTs, int queued, long queuedAgeMs) {
+        long leftMs = estimatedFinishTs - System.currentTimeMillis();
+        String moment = estimateMoment(estimatedFinishTs);
+        String eta = leftMs <= 0
+            ? "last TeamCity running estimate was " + moment + " (already past)"
+            : (queued > 0 ? "at least " : "") + hoursMinutes(leftMs) + " left (" + moment + ")";
+
+        return queued > 0 ? eta + "; " + queuedBuildsText(queued, queuedAgeMs) : eta;
+    }
+
+    /**
+     * @param running Running builds count.
+     * @param queued Queued builds count.
+     * @param queuedAgeMs Max queued build age.
+     */
+    @Nullable private static String estimatedCompletionUnavailableText(int running, int queued, long queuedAgeMs) {
+        if (queued > 0)
+            return running > 0 ? "TeamCity running estimate unavailable; " + queuedBuildsText(queued, queuedAgeMs) :
+                queuedBuildsText(queued, queuedAgeMs);
+
+        if (running > 0)
+            return "TeamCity estimate unavailable";
+
+        return null;
+    }
+
+    /**
+     * @param ts Timestamp.
+     */
+    private static String estimateMoment(long ts) {
+        return "around " + THREAD_TIME_FORMATTER.get().format(new Date(ts));
+    }
+
+    /**
+     * @param queued Queued builds count.
+     * @param queuedAgeMs Max queued build age.
+     */
+    private static String queuedBuildsText(int queued, long queuedAgeMs) {
+        String builds = queued + " queued " + (queued == 1 ? "build" : "builds") + " not started";
+
+        return queuedAgeMs >= 0 ? builds + " for " + durationText(queuedAgeMs) + ", start estimate unavailable" :
+            builds + ", start estimate unavailable";
+    }
+
+    /**
+     * @param ms Duration in millis.
+     */
+    private static String hoursMinutes(long ms) {
+        return "in " + durationText(ms);
+    }
+
+    /**
+     * @param ms Duration in millis.
+     */
+    private static String durationText(long ms) {
+        long totalMins = Math.max(1, TimeUnit.MILLISECONDS.toMinutes(ms));
+        long hours = totalMins / 60;
+        long mins = totalMins % 60;
+
+        if (hours == 0)
+            return mins + "m";
+
+        if (mins == 0)
+            return hours + "h";
+
+        return hours + "h " + mins + "m";
+    }
+
+    /**
+     * @param build Build.
+     */
+    private static long queuedAgeMs(FatBuildCompacted build) {
+        long queuedTs = build.getQueuedDateTs();
+
+        return queuedTs > 0 ? Math.max(0, System.currentTimeMillis() - queuedTs) : -1;
+    }
+
+    /**
+     * @param text Text to shorten.
+     * @param limit Max chars.
+     */
+    private static String shorten(String text, int limit) {
+        if (text == null || text.length() <= limit)
+            return text;
+
+        return text.substring(0, Math.max(0, limit - 3)) + "...";
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param buildTypeId Build type id.
+     * @param branchForTc Branch for TC.
+     */
+    private static String reportUrl(String srvId, String buildTypeId, String branchForTc) {
+        return "/pr.html?serverId=" + encodeUrlParam(srvId) +
+            "&suiteId=" + encodeUrlParam(buildTypeId) +
+            "&branchForTc=" + encodeUrlParam(branchForTc) +
+            "&action=Latest";
+    }
+
+    /**
+     * @param val Query parameter value.
+     */
+    private static String encodeUrlParam(@Nullable String val) {
+        try {
+            return URLEncoder.encode(val == null ? "" : val, StandardCharsets.UTF_8.name());
+        }
+        catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** Running visa details. */
+    private static class RunningVisaDetails {
+        /** */
+        private final String progressText;
+
+        /** */
+        @Nullable private final String estimatedCompletion;
+
+        /** */
+        @Nullable private final String buildUrl;
+
+        /**
+         * @param progressText Progress text.
+         * @param buildUrl TeamCity build URL.
+         * @param estimatedCompletion Estimated completion.
+         */
+        private RunningVisaDetails(String progressText, @Nullable String buildUrl,
+            @Nullable String estimatedCompletion) {
+            this.progressText = progressText;
+            this.buildUrl = buildUrl;
+            this.estimatedCompletion = estimatedCompletion;
+        }
+
+        /** */
+        private String progressText() {
+            return progressText;
+        }
+
+        /** */
+        @Nullable private String buildUrl() {
+            return buildUrl;
+        }
+
+        /** */
+        @Nullable private String estimatedCompletion() {
+            return estimatedCompletion;
+        }
+    }
+
+    /**
+     * @param info Build info.
+     */
+    private static String buildIds(BuildsInfo info) {
+        return info.getBuilds().stream().map(String::valueOf).collect(Collectors.joining(","));
+    }
+
+    /**
+     * @param branchForTc TeamCity branch.
+     */
+    @Nullable static Integer prNumFromTcBranch(@Nullable String branchForTc) {
+        if (Strings.isNullOrEmpty(branchForTc))
+            return null;
+
+        if (!branchForTc.startsWith("pull/"))
+            return null;
+
+        String[] parts = branchForTc.split("/");
+
+        if (parts.length != 3 || (!"head".equals(parts[2]) && !"merge".equals(parts[2])))
+            return null;
+
+        try {
+            int prNum = Integer.parseInt(parts[1]);
+
+            return prNum > 0 ? prNum : null;
+        }
+        catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * @param info Build info.
+     */
+    static String analysisSlice(BuildsInfo info) {
+        String builds = buildIds(info);
+
+        return "branch=" + info.branchForTc + "; base=" +
+            (Strings.isNullOrEmpty(info.baseBranchForTc) ? "<default>" : info.baseBranchForTc) +
+            "; suite=" + info.buildTypeId + "; " +
+            (Strings.isNullOrEmpty(builds) ? "direct comment" : "observed run buildIds=" + builds);
+    }
+
+    /**
+     * @param tcIgn TeamCity.
+     * @param srvCodeOrAlias Server code.
+     * @param buildTypeId Build type id.
+     */
+    private String buildTypeName(ITeamcityIgnited tcIgn, String srvCodeOrAlias, String buildTypeId) {
+        BuildTypeRefCompacted bt = null;
+
+        try {
+            bt = tcIgn.getBuildTypeRef(buildTypeId);
+        }
+        catch (RuntimeException e) {
+            logger.debug("Failed to load build type name for visa history [srv={}, buildTypeId={}]",
+                srvCodeOrAlias, buildTypeId, e);
+        }
+
+        return bt != null ? bt.name(compactor) : buildTypeId;
+    }
+
+    /**
+     * @param userName User name.
+     * @param userByName Users cache.
+     */
+    @Nullable private TcHelperUser requester(@Nullable String userName, Map<String, TcHelperUser> userByName) {
+        if (Strings.isNullOrEmpty(userName))
+            return null;
+
+        return userByName.computeIfAbsent(userName, userStorage::getUser);
+    }
+
+    /**
+     * @param visaStatus Status DTO.
+     * @param user Bot user.
+     * @param gitHubUser Optional GitHub user candidate to match by public email.
+     */
+    private void fillRequesterLinks(VisaStatus visaStatus, @Nullable TcHelperUser user,
+        @Nullable GitHubUser gitHubUser) {
+        GitHubUserResolver.Resolution resolution = gitHubUserResolver.resolve(user,
+            gitHubUser == null ? Collections.emptyList() : Collections.singletonList(gitHubUser));
+        String githubId = resolution.configuredLogins.stream().findFirst().orElse(null);
+        String avatarUrl = null;
+
+        if (Strings.isNullOrEmpty(githubId))
+            githubId = resolution.autoResolvedLogins.stream().findFirst().orElse(null);
+
+        if (!Strings.isNullOrEmpty(githubId) && gitHubUser != null && githubId.equalsIgnoreCase(gitHubUser.login()))
+            avatarUrl = gitHubUser.avatarUrl();
+
+        if (Strings.isNullOrEmpty(githubId))
+            return;
+
+        visaStatus.userUrl = "https://github.com/" + githubId;
+        visaStatus.userAvatarUrl = Strings.isNullOrEmpty(avatarUrl) ? "https://github.com/" + githubId + ".png?size=44" :
+            avatarUrl;
+    }
+
+    /**
+     * @param visaStatus Status DTO.
+     * @param jiraIntegration JIRA.
+     * @param visa Visa result.
+     */
+    private void fillTicketLinks(VisaStatus visaStatus, IJiraIgnited jiraIntegration, Visa visa) {
+        if (Strings.isNullOrEmpty(visaStatus.ticket))
+            return;
+
+        try {
+            visaStatus.ticketUrl = jiraIntegration.generateTicketUrl(visaStatus.ticket);
+
+            if (visa.getJiraCommentResponse() != null)
+                visaStatus.commentUrl = jiraIntegration.generateCommentUrl(
+                    visaStatus.ticket, visa.getJiraCommentResponse().getId());
+        }
+        catch (RuntimeException e) {
+            logger.debug("Failed to build JIRA links for visa history [ticket={}]", visaStatus.ticket, e);
+        }
+    }
+
+    /**
+     * @param visaStatus Status DTO.
+     * @param gh GitHub.
+     */
+    @Nullable private GitHubUser fillPullRequestLinks(VisaStatus visaStatus, IGitHubConnIgnited gh) {
+        if (visaStatus.prNum == null || visaStatus.prNum <= 0)
+            return null;
+
+        PullRequest pr = null;
+
+        try {
+            pr = gh.getPullRequest(visaStatus.prNum);
+        }
+        catch (RuntimeException e) {
+            logger.debug("Failed to load PR from cache for visa history [pr={}]", visaStatus.prNum, e);
+        }
+
+        GitHubUser author = null;
+
+        if (pr != null) {
+            visaStatus.prUrl = pr.htmlUrl();
+
+            author = pr.gitHubUser();
+
+            if (author != null) {
+                visaStatus.prAuthor = author.login();
+                visaStatus.prAuthorAvatarUrl = author.avatarUrl();
+
+                if (!Strings.isNullOrEmpty(author.login()))
+                    visaStatus.prAuthorUrl = "https://github.com/" + author.login();
+            }
+        }
+
+        if (Strings.isNullOrEmpty(visaStatus.prUrl))
+            visaStatus.prUrl = pullRequestUrl(gh.config().gitApiUrl(), visaStatus.prNum);
+
+        return author;
+    }
+
+    /**
+     * @param gitApiUrl GitHub API URL.
+     * @param prNum PR number.
+     */
+    @Nullable static String pullRequestUrl(@Nullable String gitApiUrl, int prNum) {
+        if (Strings.isNullOrEmpty(gitApiUrl))
+            return null;
+
+        String apiUrl = gitApiUrl;
+
+        while (apiUrl.endsWith("/"))
+            apiUrl = apiUrl.substring(0, apiUrl.length() - 1);
+
+        String marker = "/repos/";
+        int idx = apiUrl.indexOf(marker);
+
+        if (idx < 0)
+            return null;
+
+        String host = apiUrl.substring(0, idx);
+        String repoPath = apiUrl.substring(idx + marker.length());
+        String[] path = repoPath.split("/");
+
+        if (path.length < 2)
+            return null;
+
+        if ("https://api.github.com".equals(host))
+            host = "https://github.com";
+        else if (host.endsWith("/api/v3"))
+            host = host.substring(0, host.length() - "/api/v3".length());
+
+        return host + "/" + path[0] + "/" + path[1] + "/pull/" + prNum;
+    }
+
+    /**
+     * @param ageMs Request age, milliseconds.
+     */
+    static String requestedAgo(long ageMs) {
+        long seconds = Math.max(0, TimeUnit.MILLISECONDS.toSeconds(ageMs));
+
+        if (seconds < 60)
+            return seconds + "s ago";
+
+        long minutes = seconds / 60;
+
+        if (minutes < 60)
+            return minutes + "m ago";
+
+        long hours = minutes / 60;
+        long mins = minutes % 60;
+
+        if (hours < 24)
+            return hours + "h" + (mins == 0 ? "" : " " + mins + "m") + " ago";
+
+        long days = hours / 24;
+        long hrs = hours % 24;
+
+        return days + "d" + (hrs == 0 ? "" : " " + hrs + "h") + " ago";
     }
 
     /**
@@ -274,8 +899,33 @@ public class TcBotTriggerAndSignOffService {
         @Nullable String ticketId,
         @Nullable String prNum,
         @Nullable String baseBranchForTc,
-        @Nonnull Boolean cleanRebuild,
+        @Nullable Boolean cleanRebuild,
+        @Nullable String commentTargets,
+        @Nullable Boolean commentOnlyIfNoBlockers,
         @Nullable ITcBotUserCreds prov) {
+        return triggerBuildsAndObserve(srvCodeOrAlias, branchForTc, parentSuiteId, suiteIdList, top, observe, ticketId,
+            prNum, baseBranchForTc, cleanRebuild, commentTargets, commentOnlyIfNoBlockers, prov, null);
+    }
+
+    /**
+     * @param processId User-visible process id.
+     */
+    @AutoProfiling
+    @NotNull public String triggerBuildsAndObserve(
+        @Nullable String srvCodeOrAlias,
+        @Nullable String branchForTc,
+        @Nonnull String parentSuiteId,
+        @Nonnull String suiteIdList,
+        @Nullable Boolean top,
+        @Nullable Boolean observe,
+        @Nullable String ticketId,
+        @Nullable String prNum,
+        @Nullable String baseBranchForTc,
+        @Nullable Boolean cleanRebuild,
+        @Nullable String commentTargets,
+        @Nullable Boolean commentOnlyIfNoBlockers,
+        @Nullable ITcBotUserCreds prov,
+        @Nullable Long processId) {
         long startNanos = System.nanoTime();
         long initNanos = 0;
         long prLookupNanos = 0;
@@ -287,15 +937,19 @@ public class TcBotTriggerAndSignOffService {
         String jiraRes = "";
 
         long stepStart = System.nanoTime();
+        processMonitor.status(processId, "Preparing the selected trigger action.");
+
         ITeamcityIgnited teamcity = tcIgnitedProv.server(srvCodeOrAlias, prov);
 
         IGitHubConnIgnited ghIgn = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
         initNanos = System.nanoTime() - stepStart;
 
-        if(!Strings.isNullOrEmpty(prNum)) {
+        Integer parsedPrNum = parsePrNum(prNum);
+
+        if(parsedPrNum != null) {
             try {
                 stepStart = System.nanoTime();
-                PullRequest pr = ghIgn.getPullRequest(Integer.parseInt(prNum));
+                PullRequest pr = ghIgn.getPullRequest(parsedPrNum);
                 prLookupNanos += System.nanoTime() - stepStart;
 
                 if(pr!=null) {
@@ -305,7 +959,7 @@ public class TcBotTriggerAndSignOffService {
                          jiraRes = "Actual commit: " + shaShort + ". ";
                 }
             }
-            catch (NumberFormatException e) {
+            catch (RuntimeException e) {
                 logger.error("PR & TC state checking failed" , e);
             }
         }
@@ -313,11 +967,14 @@ public class TcBotTriggerAndSignOffService {
         String[] suiteIds = Objects.requireNonNull(suiteIdList).split(",");
         Build[] builds = new Build[suiteIds.length];
         Set<Integer> buildidsToSync = new HashSet<>();
+        boolean clean = cleanRebuild != null && cleanRebuild;
+
+        processMonitor.status(processId, "Starting selected builds in TeamCity.");
 
         for (int i = 0; i < suiteIds.length; i++) {
             stepStart = System.nanoTime();
-            T2<Build, Set<Integer>> objects = teamcity.triggerBuild(suiteIds[i], branchForTc, cleanRebuild, top != null && top, new HashMap<>(),
-                false, "");
+            T2<Build, Set<Integer>> objects = teamcity.triggerBuild(suiteIds[i], branchForTc, clean,
+                top != null && top, new HashMap<>(), false, "");
             triggerNanos += System.nanoTime() - stepStart;
             triggeredBuilds++;
             buildidsToSync.addAll(objects.get2());
@@ -325,12 +982,15 @@ public class TcBotTriggerAndSignOffService {
         }
 
         stepStart = System.nanoTime();
+        processMonitor.status(processId, "Synchronizing triggered builds back into the bot cache.");
         teamcity.fastBuildsSync(buildidsToSync);
         syncNanos = System.nanoTime() - stepStart;
 
         if (observe != null && observe) {
             stepStart = System.nanoTime();
-            jiraRes += observeJira(srvCodeOrAlias, branchForTc, ticketId, prov, parentSuiteId, baseBranchForTc, builds);
+            processMonitor.status(processId, "Scheduling a result comment after builds finish.");
+            jiraRes += observeComments(srvCodeOrAlias, branchForTc, ticketId, prov, parentSuiteId, baseBranchForTc,
+                commentTargets, parsedPrNum, commentOnlyIfNoBlockers != null && commentOnlyIfNoBlockers, builds);
             observeNanos = System.nanoTime() - stepStart;
         }
 
@@ -365,8 +1025,47 @@ public class TcBotTriggerAndSignOffService {
         String baseBranchForTc,
         Build... builds
     ) {
+        return observeComments(srvId, branchForTc, ticketFullName, prov, parentSuiteId, baseBranchForTc,
+            CommentTargets.DFLT, null, false, builds);
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param branchForTc Branch for TeamCity.
+     * @param ticketFullName JIRA ticket number.
+     * @param prov Credentials.
+     * @param parentSuiteId Parent suite id.
+     * @param baseBranchForTc Reference branch in TC identification.
+     * @param commentTargets Comment targets.
+     * @param prNum Pull request number selected by user.
+     * @param commentOnlyIfNoBlockers Comment only if analysis has no blockers.
+     * @param builds Builds.
+     * @return Message with result.
+     */
+    private String observeComments(
+        String srvId,
+        String branchForTc,
+        @Nullable String ticketFullName,
+        ITcBotUserCreds prov,
+        String parentSuiteId,
+        String baseBranchForTc,
+        @Nullable String commentTargets,
+        @Nullable Integer prNum,
+        boolean commentOnlyIfNoBlockers,
+        Build... builds
+    ) {
+        String targets;
+
         try {
-            ticketFullName = ticketMatcher.resolveTicketFromBranch(srvId, ticketFullName, branchForTc);
+            targets = CommentTargets.normalize(commentTargets);
+        }
+        catch (IllegalArgumentException e) {
+            return "Comment targets are invalid: " + e.getMessage();
+        }
+
+        try {
+            if (CommentTargets.jira(targets))
+                ticketFullName = ticketMatcher.resolveTicketFromBranch(srvId, ticketFullName, branchForTc);
         }
         catch (BranchTicketMatcher.TicketNotFoundException e) {
             logger.info("", e);
@@ -379,12 +1078,16 @@ public class TcBotTriggerAndSignOffService {
         if (user == null)
             user = prov.getPrincipalId();
 
-        buildObserverProvider.get().observe(srvId, ticketFullName, branchForTc, parentSuiteId, baseBranchForTc, user, builds);
+        Integer effectivePrNum = prNum != null ? prNum : prNumFromTcBranch(branchForTc);
+
+        buildObserverProvider.get().observe(srvId, ticketFullName, branchForTc, parentSuiteId, baseBranchForTc,
+            user, targets, effectivePrNum, commentOnlyIfNoBlockers, builds);
 
         if (!tcBotBgAuth.isServerAuthorized())
-            return "Ask server administrator to authorize the Bot to enable JIRA notifications.";
+            return "Warning: builds were queued, but result comments will stay pending until Server state -> " +
+                "Authorize Server is done.";
 
-        return "JIRA ticket " + ticketFullName + " will be notified after the tests are completed.";
+        return "Comment targets " + targets + " will be notified after the tests are completed.";
     }
 
     /**
@@ -403,9 +1106,95 @@ public class TcBotTriggerAndSignOffService {
         @Nullable String ticketFullName,
         @Nullable String baseBranchForTc,
         ITcBotUserCreds prov) {
+        return commentJiraEx(srvId, branchForTc, suiteId, ticketFullName, baseBranchForTc, prov,
+            CommentTargets.DFLT);
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param branchForTc Branch for tc.
+     * @param suiteId Suite id.
+     * @param ticketFullName Ticket full name with IGNITE- prefix.
+     * @param baseBranchForTc Base branch in TC identification.
+     * @param prov Prov.
+     * @param commentTargets Comment targets.
+     */
+    @NotNull
+    public SimpleResult commentJiraEx(
+        @Nullable String srvId,
+        @Nullable String branchForTc,
+        @Nullable String suiteId,
+        @Nullable String ticketFullName,
+        @Nullable String baseBranchForTc,
+        ITcBotUserCreds prov,
+        @Nullable String commentTargets) {
+        return commentJiraEx(srvId, branchForTc, suiteId, ticketFullName, baseBranchForTc, prov,
+            commentTargets, null, false);
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param branchForTc Branch for tc.
+     * @param suiteId Suite id.
+     * @param ticketFullName Ticket full name with IGNITE- prefix.
+     * @param baseBranchForTc Base branch in TC identification.
+     * @param prov Prov.
+     * @param commentTargets Comment targets.
+     * @param prNum Pull request number selected by user.
+     * @param commentOnlyIfNoBlockers Comment only if analysis has no blockers.
+     */
+    @NotNull
+    public SimpleResult commentJiraEx(
+        @Nullable String srvId,
+        @Nullable String branchForTc,
+        @Nullable String suiteId,
+        @Nullable String ticketFullName,
+        @Nullable String baseBranchForTc,
+        ITcBotUserCreds prov,
+        @Nullable String commentTargets,
+        @Nullable String prNum,
+        boolean commentOnlyIfNoBlockers) {
+        return commentJiraEx(srvId, branchForTc, suiteId, ticketFullName, baseBranchForTc, prov, commentTargets, prNum,
+            commentOnlyIfNoBlockers, null);
+    }
+
+    /**
+     * @param processId User-visible process id.
+     */
+    @NotNull
+    public SimpleResult commentJiraEx(
+        @Nullable String srvId,
+        @Nullable String branchForTc,
+        @Nullable String suiteId,
+        @Nullable String ticketFullName,
+        @Nullable String baseBranchForTc,
+        ITcBotUserCreds prov,
+        @Nullable String commentTargets,
+        @Nullable String prNum,
+        boolean commentOnlyIfNoBlockers,
+        @Nullable Long processId) {
+        processMonitor.status(processId, "Preparing the selected comment action.");
+
+        String targets;
 
         try {
-            ticketFullName = ticketMatcher.resolveTicketFromBranch(srvId, ticketFullName, branchForTc);
+            targets = CommentTargets.normalize(commentTargets);
+        }
+        catch (IllegalArgumentException e) {
+            return new SimpleResult("Analysis wasn't commented - " + e.getMessage());
+        }
+
+        Integer parsedPrNum = parsePrNum(prNum);
+
+        if (!Strings.isNullOrEmpty(prNum) && parsedPrNum == null)
+            return new SimpleResult("Analysis wasn't commented - invalid PR number: " + prNum);
+
+        if (parsedPrNum == null)
+            parsedPrNum = prNumFromTcBranch(branchForTc);
+
+        try {
+            if (CommentTargets.jira(targets))
+                ticketFullName = ticketMatcher.resolveTicketFromBranch(srvId, ticketFullName, branchForTc);
         }
         catch (BranchTicketMatcher.TicketNotFoundException e) {
             logger.info("", e);
@@ -416,7 +1205,8 @@ public class TcBotTriggerAndSignOffService {
         if (user == null)
             user = prov.getPrincipalId();
 
-        BuildsInfo buildsInfo = new BuildsInfo(srvId, ticketFullName, branchForTc, suiteId, baseBranchForTc, user);
+        BuildsInfo buildsInfo = new BuildsInfo(srvId, ticketFullName, branchForTc, suiteId, baseBranchForTc, user,
+            targets, parsedPrNum, commentOnlyIfNoBlockers);
 
         VisaRequest lastVisaReq = visasHistStorage.getLastVisaRequest(buildsInfo.getContributionKey());
 
@@ -425,9 +1215,14 @@ public class TcBotTriggerAndSignOffService {
                 " \"Re-run possible blockers & Comment JIRA\" was triggered for current branch." +
                 " Wait for the end or cancel exsiting observing.");
 
-        Visa visa = notifyJira(srvId, prov, suiteId, branchForTc, ticketFullName, baseBranchForTc);
+        processMonitor.status(processId, "Collecting build analysis for the comment.");
+
+        Visa visa = notifyComments(srvId, prov, suiteId, branchForTc, ticketFullName, baseBranchForTc, targets,
+            parsedPrNum, commentOnlyIfNoBlockers, processId);
 
         visasHistStorage.put(new VisaRequest(buildsInfo).setResult(visa));
+
+        processMonitor.status(processId, "Comment operation finished: " + visa.status);
 
         return new SimpleResult(visa.status);
     }
@@ -439,6 +1234,16 @@ public class TcBotTriggerAndSignOffService {
     @AutoProfiling
     public List<ContributionToCheck> getContributionsToCheck(String srvCodeOrAlias,
         ITcBotUserCreds credsProv) {
+        return getContributionsToCheck(srvCodeOrAlias, credsProv, null);
+    }
+
+    /**
+     * @param processId User-visible process id.
+     */
+    @AutoProfiling
+    public List<ContributionToCheck> getContributionsToCheck(String srvCodeOrAlias,
+        ITcBotUserCreds credsProv,
+        @Nullable Long processId) {
         long startNanos = System.nanoTime();
         long serviceResolveNanos;
         long prsLoadNanos;
@@ -457,6 +1262,8 @@ public class TcBotTriggerAndSignOffService {
         AtomicInteger activeBuildLookupCnt = new AtomicInteger();
 
         long stepStart = System.nanoTime();
+        processMonitor.status(processId, "Building the contribution list from cached bot data.");
+
         IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCodeOrAlias);
 
         IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
@@ -465,10 +1272,12 @@ public class TcBotTriggerAndSignOffService {
         serviceResolveNanos = System.nanoTime() - stepStart;
 
         stepStart = System.nanoTime();
+        processMonitor.status(processId, "Loading pull request details from GitHub.");
         List<PullRequest> prs = gitHubConnIgnited.getPullRequests();
         prsLoadNanos = System.nanoTime() - stepStart;
 
         stepStart = System.nanoTime();
+        processMonitor.status(processId, "Loading JIRA tickets for contribution matching.");
         Set<Ticket> tickets = jiraIntegration.getTickets();
         ticketsLoadNanos = System.nanoTime() - stepStart;
 
@@ -486,6 +1295,7 @@ public class TcBotTriggerAndSignOffService {
         List<ContributionToCheck> contribsList = new ArrayList<>();
 
         stepStart = System.nanoTime();
+        processMonitor.status(processId, "Matching pull requests, JIRA tickets, and TeamCity branches.");
         if (prs != null) {
             prs.forEach(pr -> {
                 ContributionToCheck c = new ContributionToCheck();
@@ -500,10 +1310,12 @@ public class TcBotTriggerAndSignOffService {
                 GitHubUser user = pr.gitHubUser();
                 if (user != null) {
                     c.prAuthor = user.login();
+                    c.prAuthorUrl = Strings.isNullOrEmpty(user.login()) ? "" : "https://github.com/" + user.login();
                     c.prAuthorAvatarUrl = user.avatarUrl();
                 }
                 else {
                     c.prAuthor = "";
+                    c.prAuthorUrl = "";
                     c.prAuthorAvatarUrl = "";
                 }
 
@@ -541,6 +1353,7 @@ public class TcBotTriggerAndSignOffService {
         prLoopNanos = System.nanoTime() - stepStart;
 
         stepStart = System.nanoTime();
+        processMonitor.status(processId, "Loading repository branches.");
         List<String> branches = gitHubConnIgnited.getBranches();
         Set<String> branchesSet = new HashSet<>(branches);
         branchesLoadNanos = System.nanoTime() - stepStart;
@@ -600,6 +1413,7 @@ public class TcBotTriggerAndSignOffService {
             contribution.prTimeUpdate = "";
 
             contribution.prAuthor = "";
+            contribution.prAuthorUrl = "";
             contribution.prAuthorAvatarUrl = "";
 
             contribsList.add(contribution);
@@ -624,7 +1438,41 @@ public class TcBotTriggerAndSignOffService {
                 activeBuildLookupCnt.get());
         }
 
+        processMonitor.status(processId, "The contribution list is ready.");
+
         return contribsList;
+    }
+
+    /**
+     * Refreshes GitHub data immediately and returns contribution list built on top of the updated cache.
+     *
+     * @param srvCodeOrAlias Server id.
+     * @param credsProv Credentials.
+     */
+    @AutoProfiling
+    public List<ContributionToCheck> refreshContributionsToCheck(String srvCodeOrAlias,
+        ITcBotUserCreds credsProv) {
+        return refreshContributionsToCheck(srvCodeOrAlias, credsProv, null);
+    }
+
+    /**
+     * @param processId User-visible process id.
+     */
+    @AutoProfiling
+    public List<ContributionToCheck> refreshContributionsToCheck(String srvCodeOrAlias,
+        ITcBotUserCreds credsProv,
+        @Nullable Long processId) {
+        IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
+
+        processMonitor.status(processId, "Refreshing pull requests from GitHub.");
+        gitHubConnIgnited.refreshPullRequests();
+
+        if (gitHubConnIgnited.config().isPreferBranches()) {
+            processMonitor.status(processId, "Refreshing repository branches.");
+            gitHubConnIgnited.refreshBranches();
+        }
+
+        return getContributionsToCheck(srvCodeOrAlias, credsProv, processId);
     }
 
     /**
@@ -780,6 +1628,7 @@ public class TcBotTriggerAndSignOffService {
             ContributionCheckStatus contributionAgainstSuite = buildsForBt.isEmpty()
                 ? new ContributionCheckStatus(btId, branchForTcDefault(prId, ghConn))
                 : contributionStatus(srvCodeOrAlias, btId, buildsForBt, teamcity, ghConn, prId);
+            contributionAgainstSuite.teamcityWebUrl = teamcity.host();
             statusBuildNanos += System.nanoTime() - stepStart;
 
             if(Objects.equals(btId, defaultBuildType))
@@ -979,17 +1828,128 @@ public class TcBotTriggerAndSignOffService {
         String branchForTc,
         String ticket,
         @Nullable String baseBranchForTc) {
+        return notifyComments(srvCodeOrAlias, prov, buildTypeId, branchForTc, ticket, baseBranchForTc,
+            CommentTargets.DFLT);
+    }
+
+    /**
+     * Produce visa message based on passed parameters and publish it as requested comments.
+     *
+     * @param srvCodeOrAlias TC Server ID to take information about token from.
+     * @param prov Credentials.
+     * @param buildTypeId Build type ID, for which visa was ordered.
+     * @param branchForTc Branch for TeamCity.
+     * @param ticket JIRA ticket full name. E.g. IGNITE-5555
+     * @param baseBranchForTc Base branch in TC identification.
+     * @param commentTargets Comment targets.
+     * @return {@link Visa} instance.
+     */
+    @AutoProfiling
+    public Visa notifyComments(
+        String srvCodeOrAlias,
+        ITcBotUserCreds prov,
+        String buildTypeId,
+        String branchForTc,
+        @Nullable String ticket,
+        @Nullable String baseBranchForTc,
+        @Nullable String commentTargets) {
+        return notifyComments(srvCodeOrAlias, prov, buildTypeId, branchForTc, ticket, baseBranchForTc,
+            commentTargets, null, false);
+    }
+
+    /**
+     * Produce visa message based on passed parameters and publish it as requested comments.
+     *
+     * @param srvCodeOrAlias TC Server ID to take information about token from.
+     * @param prov Credentials.
+     * @param buildTypeId Build type ID, for which visa was ordered.
+     * @param branchForTc Branch for TeamCity.
+     * @param ticket JIRA ticket full name. E.g. IGNITE-5555
+     * @param baseBranchForTc Base branch in TC identification.
+     * @param commentTargets Comment targets.
+     * @param prNum Pull request number selected by user.
+     * @param commentOnlyIfNoBlockers Comment only if analysis has no blockers.
+     * @return {@link Visa} instance.
+     */
+    @AutoProfiling
+    public Visa notifyComments(
+        String srvCodeOrAlias,
+        ITcBotUserCreds prov,
+        String buildTypeId,
+        String branchForTc,
+        @Nullable String ticket,
+        @Nullable String baseBranchForTc,
+        @Nullable String commentTargets,
+        @Nullable Integer prNum,
+        boolean commentOnlyIfNoBlockers) {
+        return notifyComments(srvCodeOrAlias, prov, buildTypeId, branchForTc, ticket, baseBranchForTc, commentTargets,
+            prNum, commentOnlyIfNoBlockers, null);
+    }
+
+    /**
+     * @param processId User-visible process id.
+     */
+    @AutoProfiling
+    public Visa notifyComments(
+        String srvCodeOrAlias,
+        ITcBotUserCreds prov,
+        String buildTypeId,
+        String branchForTc,
+        @Nullable String ticket,
+        @Nullable String baseBranchForTc,
+        @Nullable String commentTargets,
+        @Nullable Integer prNum,
+        boolean commentOnlyIfNoBlockers,
+        @Nullable Long processId) {
+        return notifyComments(srvCodeOrAlias, prov, buildTypeId, branchForTc, ticket, baseBranchForTc, commentTargets,
+            prNum, commentOnlyIfNoBlockers, processId, null);
+    }
+
+    /**
+     * @param processId User-visible process id.
+     * @param rerunBuildIds Build ids triggered by the bot for this observed rerun slice.
+     */
+    @AutoProfiling
+    public Visa notifyComments(
+        String srvCodeOrAlias,
+        ITcBotUserCreds prov,
+        String buildTypeId,
+        String branchForTc,
+        @Nullable String ticket,
+        @Nullable String baseBranchForTc,
+        @Nullable String commentTargets,
+        @Nullable Integer prNum,
+        boolean commentOnlyIfNoBlockers,
+        @Nullable Long processId,
+        @Nullable Collection<Integer> rerunBuildIds) {
         long startNanos = System.nanoTime();
+        String targets;
+
+        processMonitor.status(processId, "Collecting build analysis for the comment.");
+
+        try {
+            targets = CommentTargets.normalize(commentTargets);
+        }
+        catch (IllegalArgumentException e) {
+            return Visa.failure("Analysis wasn't commented - " + e.getMessage());
+        }
+
+        boolean githubRequested = CommentTargets.github(targets);
+        boolean jiraRequested = CommentTargets.jira(targets);
+        Integer effectivePrNum = prNum != null ? prNum : prNumFromTcBranch(branchForTc);
+
         ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, prov);
 
-        IJiraIgnited jira = jiraIgnProv.server(srvCodeOrAlias);
+        IJiraIgnited jira = jiraRequested ? jiraIgnProv.server(srvCodeOrAlias) : null;
+
+        processMonitor.status(processId, "Loading the latest finished build for the comment.");
 
         List<Integer> builds = tcIgnited.getLastNBuildsFromHistory(buildTypeId, branchForTc, 1);
 
         if (builds.isEmpty()) {
             logSlowVisaOperation(startNanos, "notifyJiraNoBuilds", srvCodeOrAlias, buildTypeId, branchForTc, 0);
 
-            return new Visa("JIRA wasn't commented - no finished builds to analyze.");
+            return Visa.failure("JIRA wasn't commented - no finished builds to analyze.");
         }
 
         Integer buildId = builds.get(0);
@@ -1001,41 +1961,537 @@ public class TcBotTriggerAndSignOffService {
 
         int blockers;
 
-        JiraCommentResponse res;
+        JiraCommentResponse res = null;
+        String jiraCommentStatus = null;
+        GitHubCommentResult gitHubComment = GitHubCommentResult.commented(null);
 
         try {
-            String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? prChainsProcessor.dfltBaseTcBranch(srvCodeOrAlias) : baseBranchForTc;
+            String baseBranch = Strings.isNullOrEmpty(baseBranchForTc)
+                ? prChainsProcessor.dfltBaseTcBranch(srvCodeOrAlias) : baseBranchForTc;
 
-            List<ShortSuiteUi> suitesStatuses = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, build.branchName, srvCodeOrAlias, prov,
-                SyncMode.RELOAD_QUEUED,
-                baseBranch);
+            processMonitor.status(processId, "Resolving the base branch for build analysis: " + baseBranch + ".");
 
-            List<ShortSuiteNewTestsUi> newTestsStatuses = prChainsProcessor.getNewTestsSuitesStatuses(buildTypeId, build.branchName, srvCodeOrAlias, prov,
-                SyncMode.RELOAD_QUEUED,
-                baseBranch);
+            processMonitor.status(processId, "Loading blocker analysis for the latest finished build.");
+            List<ShortSuiteUi> suitesStatuses = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId,
+                build.branchName, srvCodeOrAlias, prov, SyncMode.RELOAD_QUEUED, baseBranch);
+
+            processMonitor.status(processId, "Loading new-tests analysis for the latest finished build.");
+            List<ShortSuiteNewTestsUi> newTestsStatuses = prChainsProcessor.getNewTestsSuitesStatuses(buildTypeId,
+                build.branchName, srvCodeOrAlias, prov, SyncMode.RELOAD_QUEUED, baseBranch);
 
             if (suitesStatuses == null)
-                return new Visa("JIRA wasn't commented - no finished builds to analyze." +
+                return Visa.failure("JIRA wasn't commented - no finished builds to analyze." +
                     " Check builds availability for branch: " + build.branchName + "/" + baseBranch);
 
             blockers = suitesStatuses.stream().mapToInt(ShortSuiteUi::totalBlockers).sum();
 
-            String comment = JiraCommentsGenerator.generateJiraComment(jira.config().getApiVersion(), compactor, suitesStatuses, newTestsStatuses, build.webUrl, buildTypeId, tcIgnited, blockers, build.branchName, baseBranch);
+            processMonitor.status(processId, "Build analysis is ready: " + blockers + " blockers, " +
+                newTestsStatuses.size() + " new-test suites.");
 
-            res = objMapper.readValue(jira.postJiraComment(ticket, comment), JiraCommentResponse.class);
+            if (commentOnlyIfNoBlockers && blockers > 0)
+                return Visa.skipped(blockers);
+
+            String analysisSliceKey = analysisSliceKey(build.getId(), rerunBuildIds);
+
+            if (githubRequested) {
+                processMonitor.status(processId, "Publishing the analysis comment to GitHub.");
+
+                gitHubComment = notifyGitHubPullRequest(srvCodeOrAlias, buildTypeId, branchForTc, effectivePrNum, build,
+                    fatBuild, tcIgnited, suitesStatuses, newTestsStatuses, blockers, baseBranch, analysisSliceKey);
+            }
+
+            if (jiraRequested) {
+                if (Strings.isNullOrEmpty(ticket))
+                    return Visa.failure("JIRA wasn't commented - ticket is not specified.");
+
+                processMonitor.status(processId, "Publishing the analysis comment to JIRA.");
+
+                String marker = JiraCommentsGenerator.duplicateMarker(analysisSliceKey);
+
+                if (hasExistingJiraComment(jira, ticket, marker)) {
+                    logger.info("JIRA ticket already has TCBot analysis comment [srv={}, ticket={}, build={}, slice={}]",
+                        srvCodeOrAlias, ticket, build.getId(), analysisSliceKey);
+
+                    jiraCommentStatus = Visa.duplicateCommentSkipped(ticketTarget(jira, ticket, null));
+                }
+                else {
+                    String comment = JiraCommentsGenerator.generateJiraComment(jira.config().getApiVersion(), compactor,
+                        suitesStatuses, newTestsStatuses, build.webUrl, buildTypeId, tcIgnited, blockers,
+                        build.branchName, baseBranch, analysisSliceKey);
+
+                    res = objMapper.readValue(jira.postJiraComment(ticket, comment), JiraCommentResponse.class);
+                    jiraCommentStatus = "JIRA ticket commented: " + ticketTarget(jira, ticket, res);
+                }
+            }
+
+            if (githubRequested && !gitHubComment.commented)
+                return commentResult(targets, gitHubComment.commented, gitHubComment.error, gitHubComment.status,
+                    jiraCommentStatus, res, blockers);
         }
         catch (Exception e) {
-            String errMsg = "Exception happened during commenting JIRA ticket " +
+            String errMsg = "Exception happened during commenting TCBot analysis " +
                 "[build=" + build.getId() + ", errMsg=" + e.getMessage() + ']';
 
             logger.error(errMsg);
 
-            return new Visa("JIRA wasn't commented - " + errMsg);
+            return Visa.failure("Analysis wasn't commented - " + errMsg);
         }
 
-        logSlowVisaOperation(startNanos, "notifyJira", srvCodeOrAlias, buildTypeId, branchForTc, blockers);
+        logSlowVisaOperation(startNanos, "notifyComments", srvCodeOrAlias, buildTypeId, branchForTc, blockers);
 
-        return new Visa(Visa.JIRA_COMMENTED, res, blockers);
+        return commentResult(targets, true, null, gitHubComment.status, jiraCommentStatus, res, blockers);
+    }
+
+    /**
+     * @param targets Comment targets.
+     * @param gitHubCommented Whether GitHub target was commented successfully.
+     * @param res JIRA response.
+     * @param blockers Blockers count.
+     */
+    static Visa commentResult(String targets, boolean gitHubCommented, JiraCommentResponse res, int blockers) {
+        return commentResult(targets, gitHubCommented, null, res, blockers);
+    }
+
+    /**
+     * @param targets Comment targets.
+     * @param gitHubCommented Whether GitHub target was commented successfully.
+     * @param gitHubError GitHub comment error.
+     * @param res JIRA response.
+     * @param blockers Blockers count.
+     */
+    static Visa commentResult(String targets, boolean gitHubCommented, @Nullable String gitHubError,
+        JiraCommentResponse res, int blockers) {
+        return commentResult(targets, gitHubCommented, gitHubError, null, null, res, blockers);
+    }
+
+    /**
+     * @param targets Comment targets.
+     * @param gitHubCommented Whether GitHub target was commented successfully.
+     * @param gitHubError GitHub comment error.
+     * @param gitHubStatus GitHub comment status.
+     * @param jiraStatus JIRA comment status.
+     * @param res JIRA response.
+     * @param blockers Blockers count.
+     */
+    static Visa commentResult(String targets, boolean gitHubCommented, @Nullable String gitHubError,
+        @Nullable String gitHubStatus, @Nullable String jiraStatus, JiraCommentResponse res, int blockers) {
+        boolean githubRequested = CommentTargets.github(targets);
+        boolean jiraRequested = CommentTargets.jira(targets);
+
+        if (githubRequested && !gitHubCommented && jiraRequested)
+            return Visa.success(partialCommentStatus(jiraStatus, gitHubError), res, blockers);
+
+        if (githubRequested && !gitHubCommented)
+            return Visa.failure("GitHub wasn't commented - " +
+                (Strings.isNullOrEmpty(gitHubError) ? "unknown GitHub comment error." : gitHubError));
+
+        if (jiraRequested && githubRequested)
+            return Visa.success(joinCommentStatuses(jiraStatus, gitHubStatus), res, blockers);
+
+        if (jiraRequested)
+            return Visa.success(Strings.isNullOrEmpty(jiraStatus) ? Visa.JIRA_COMMENTED : jiraStatus, res, blockers);
+
+        return Visa.success(Strings.isNullOrEmpty(gitHubStatus) ? Visa.COMMENTED : gitHubStatus, res, blockers);
+    }
+
+    /**
+     * @param jiraStatus JIRA comment status.
+     * @param gitHubError GitHub comment error.
+     */
+    private static String partialCommentStatus(@Nullable String jiraStatus, @Nullable String gitHubError) {
+        String prefix = Strings.isNullOrEmpty(jiraStatus) ? Visa.PARTIALLY_COMMENTED : jiraStatus;
+
+        return prefix + "; GitHub wasn't commented - " +
+            (Strings.isNullOrEmpty(gitHubError) ? "unknown GitHub comment error." : gitHubError);
+    }
+
+    /**
+     * @param jiraStatus JIRA comment status.
+     * @param gitHubStatus GitHub comment status.
+     */
+    private static String joinCommentStatuses(@Nullable String jiraStatus, @Nullable String gitHubStatus) {
+        List<String> statuses = new ArrayList<>();
+
+        if (!Strings.isNullOrEmpty(jiraStatus))
+            statuses.add(jiraStatus);
+
+        if (!Strings.isNullOrEmpty(gitHubStatus))
+            statuses.add(gitHubStatus);
+
+        return statuses.isEmpty() ? Visa.COMMENTED : String.join("; ", statuses);
+    }
+
+    /**
+     * @param jira JIRA.
+     * @param ticket Ticket.
+     * @param res JIRA comment response.
+     */
+    private static String ticketTarget(IJiraIgnited jira, String ticket, @Nullable JiraCommentResponse res) {
+        try {
+            if (res != null && res.getId() > 0)
+                return ticket + " " + jira.generateCommentUrl(ticket, res.getId());
+
+            return ticket + " " + jira.generateTicketUrl(ticket);
+        }
+        catch (RuntimeException e) {
+            return ticket;
+        }
+    }
+
+    /**
+     * @param pr Pull request.
+     */
+    private static String pullRequestTarget(PullRequest pr) {
+        String target = "PR #" + pr.getNumber();
+
+        return Strings.isNullOrEmpty(pr.htmlUrl()) ? target : target + " " + pr.htmlUrl();
+    }
+
+    /**
+     * @param chainBuildId Main chain build id.
+     * @param rerunBuildIds Build ids triggered by the bot for this observed rerun slice.
+     */
+    static String analysisSliceKey(int chainBuildId, @Nullable Collection<Integer> rerunBuildIds) {
+        List<Integer> sortedBuildIds = new ArrayList<>();
+
+        if (rerunBuildIds != null) {
+            for (Integer buildId : rerunBuildIds) {
+                if (buildId != null && buildId != chainBuildId)
+                    sortedBuildIds.add(buildId);
+            }
+        }
+
+        Collections.sort(sortedBuildIds);
+
+        return "chainBuildId=" + chainBuildId + " rerunBuildIds=" +
+            (sortedBuildIds.isEmpty() ? "none" : sortedBuildIds.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining(",")));
+    }
+
+    /**
+     * @param srvCodeOrAlias Server code.
+     * @param buildTypeId Build type id.
+     * @param requestedBranchForTc Branch requested by caller.
+     * @param prNum Pull request number selected by user.
+     * @param build Build.
+     * @param fatBuild Compacted build.
+     * @param tcIgnited TeamCity.
+     * @param suitesStatuses Suites statuses.
+     * @param newTestsStatuses New tests statuses.
+     * @param blockers Blockers count.
+     * @param baseBranch Base branch.
+     * @param analysisSliceKey Analysis slice key.
+     */
+    private GitHubCommentResult notifyGitHubPullRequest(
+        String srvCodeOrAlias,
+        String buildTypeId,
+        String requestedBranchForTc,
+        @Nullable Integer prNum,
+        Build build,
+        FatBuildCompacted fatBuild,
+        ITeamcityIgnited tcIgnited,
+        List<ShortSuiteUi> suitesStatuses,
+        List<ShortSuiteNewTestsUi> newTestsStatuses,
+        int blockers,
+        String baseBranch,
+        String analysisSliceKey) {
+        try {
+            IGitHubConnIgnited gh = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
+            PullRequest pr = prNum == null ? findPullRequestForBuild(gh, requestedBranchForTc, build.branchName)
+                : findPullRequestByNumber(gh, prNum);
+
+            if (pr == null) {
+                String err = "related PR was not found [srv=" + srvCodeOrAlias +
+                    ", prNum=" + prNum +
+                    ", requestedBranch=" + requestedBranchForTc +
+                    ", buildBranch=" + build.branchName + ']';
+
+                logger.info("GitHub PR was not found for TCBot analysis comment [{}]", err);
+
+                return GitHubCommentResult.failed(err);
+            }
+
+            String marker = GitHubCommentsGenerator.duplicateMarker(analysisSliceKey);
+            String prTarget = pullRequestTarget(pr);
+
+            if (hasExistingGitHubComment(gh, pr.getNumber(), marker)) {
+                logger.info("GitHub PR already has TCBot analysis comment [srv={}, pr={}, build={}, slice={}]",
+                    srvCodeOrAlias, pr.getNumber(), build.getId(), analysisSliceKey);
+
+                return GitHubCommentResult.alreadyCommented(prTarget);
+            }
+
+            String testedCommit = tcIgnited.getLatestCommitVersion(fatBuild);
+            String testedCommitLink = testedCommitLink(gh, testedCommit, pr.getNumber());
+
+            String comment = GitHubCommentsGenerator.generateGitHubComment(compactor, suitesStatuses,
+                newTestsStatuses, build.webUrl, buildTypeId, tcIgnited, blockers, build.branchName, baseBranch,
+                testedCommitLink, analysisSliceKey);
+
+            String notifyErr = gh.postIssueCommentError(pr.getNumber(), comment);
+
+            if (notifyErr != null) {
+                String err = "GitHub issue comment POST failed [srv=" + srvCodeOrAlias +
+                    ", pr=" + pr.getNumber() +
+                    ", build=" + build.getId() +
+                    ", err=" + notifyErr + ']';
+
+                logger.warn("GitHub PR was not commented [{}]", err);
+
+                return GitHubCommentResult.failed(err);
+            }
+
+            return GitHubCommentResult.commented(prTarget);
+        }
+        catch (Exception e) {
+            String err = "exception happened during commenting GitHub PR [srv=" + srvCodeOrAlias +
+                ", requestedBranch=" + requestedBranchForTc + ", build=" + build.getId() +
+                ", errType=" + e.getClass().getSimpleName() +
+                ", errMsg=" + e.getMessage() + ']';
+
+            logger.error(err, e);
+
+            return GitHubCommentResult.failed(err);
+        }
+    }
+
+    /** GitHub comment attempt result. */
+    private static class GitHubCommentResult {
+        /** */
+        private final boolean commented;
+
+        /** */
+        @Nullable private final String error;
+
+        /** */
+        @Nullable private final String status;
+
+        /**
+         * @param commented Commented flag.
+         * @param error Error.
+         * @param status User-visible status.
+         */
+        private GitHubCommentResult(boolean commented, @Nullable String error, @Nullable String status) {
+            this.commented = commented;
+            this.error = error;
+            this.status = status;
+        }
+
+        /**
+         * @param target Comment target.
+         */
+        private static GitHubCommentResult commented(@Nullable String target) {
+            return new GitHubCommentResult(true, null,
+                Strings.isNullOrEmpty(target) ? null : "GitHub PR commented: " + target);
+        }
+
+        /**
+         * @param target Comment target.
+         */
+        private static GitHubCommentResult alreadyCommented(String target) {
+            return new GitHubCommentResult(true, null,
+                Visa.duplicateCommentSkipped(target));
+        }
+
+        /**
+         * @param error Error.
+         */
+        private static GitHubCommentResult failed(String error) {
+            return new GitHubCommentResult(false, error, null);
+        }
+    }
+
+    /**
+     * @param gh GitHub.
+     * @param prNum Pull request number.
+     */
+    @Nullable PullRequest findPullRequestByNumber(IGitHubConnIgnited gh, int prNum) {
+        PullRequest pr = findPullRequestByNumberInCache(gh, prNum);
+
+        if (pr != null)
+            return pr;
+
+        logger.info("GitHub PR was not found in cache, refreshing pull requests [pr={}]", prNum);
+
+        gh.refreshPullRequests();
+
+        return findPullRequestByNumberInCache(gh, prNum);
+    }
+
+    /**
+     * @param gh GitHub.
+     * @param prNum Pull request number.
+     */
+    @Nullable private PullRequest findPullRequestByNumberInCache(IGitHubConnIgnited gh, int prNum) {
+        PullRequest pr = gh.getPullRequest(prNum);
+
+        if (pr != null)
+            return pr;
+
+        List<PullRequest> prs = gh.getPullRequests();
+
+        if (prs == null)
+            return null;
+
+        for (PullRequest next : prs) {
+            if (next.getNumber() == prNum)
+                return next;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param gh GitHub.
+     * @param branches Branch names to check.
+     */
+    @Nullable private PullRequest findPullRequestForBuild(IGitHubConnIgnited gh, String... branches) {
+        for (String branch : branches) {
+            Integer prId = IGitHubConnection.convertBranchToPrId(branch);
+
+            if (prId != null) {
+                PullRequest pr = gh.getPullRequest(prId);
+
+                if (pr != null)
+                    return pr;
+
+                List<PullRequest> prs = gh.getPullRequests();
+
+                if (prs != null) {
+                    for (PullRequest next : prs) {
+                        if (next.getNumber() == prId)
+                            return next;
+                    }
+                }
+            }
+        }
+
+        List<PullRequest> prs = gh.getPullRequests();
+
+        if (prs == null)
+            return null;
+
+        for (String branch : branches) {
+            if (Strings.isNullOrEmpty(branch))
+                continue;
+
+            for (PullRequest pr : prs) {
+                GitHubBranch head = pr.head();
+
+                if (head != null && branch.equals(head.ref()))
+                    return pr;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param gh GitHub.
+     * @param prNum PR number.
+     * @param marker Marker.
+     */
+    boolean hasExistingGitHubComment(IGitHubConnIgnited gh, int prNum, String marker) {
+        List<GitHubIssueComment> comments = gh.getIssueComments(prNum);
+
+        if (comments == null)
+            return false;
+
+        for (GitHubIssueComment comment : comments) {
+            String body = comment.body();
+
+            if (body != null && body.contains(marker))
+                return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param jira JIRA.
+     * @param ticket Ticket.
+     * @param marker Marker.
+     */
+    boolean hasExistingJiraComment(IJiraIgnited jira, String ticket, String marker) {
+        try {
+            String comments = jira.getJiraComments(ticket);
+
+            return comments != null && comments.contains(marker);
+        }
+        catch (Exception e) {
+            logger.warn("Unable to check existing JIRA comments [ticket={}]. Comment will be posted.", ticket, e);
+
+            return false;
+        }
+    }
+
+    /**
+     * @param prNum Pull request number.
+     */
+    @Nullable private Integer parsePrNum(@Nullable String prNum) {
+        if (Strings.isNullOrEmpty(prNum))
+            return null;
+
+        try {
+            return Integer.parseInt(prNum);
+        }
+        catch (NumberFormatException e) {
+            logger.warn("Invalid PR number: {}", prNum);
+
+            return null;
+        }
+    }
+
+    /**
+     * @param gh GitHub.
+     * @param commit Commit hash.
+     * @param prNum Pull request number.
+     */
+    private String testedCommitLink(IGitHubConnIgnited gh, @Nullable String commit, int prNum) {
+        if (Strings.isNullOrEmpty(commit))
+            return null;
+
+        String shortCommit = commit.length() > PullRequest.INCLUDE_SHORT_VER
+            ? commit.substring(0, PullRequest.INCLUDE_SHORT_VER) : commit;
+        String url = commitHtmlUrl(gh.config().gitApiUrl(), commit, prNum);
+
+        return url == null ? "`" + shortCommit + "`" : "[" + shortCommit + "](" + url + ")";
+    }
+
+    /**
+     * @param gitApiUrl GitHub API URL.
+     * @param commit Commit hash.
+     * @param prNum Pull request number.
+     */
+    @Nullable String commitHtmlUrl(@Nullable String gitApiUrl, String commit, int prNum) {
+        if (Strings.isNullOrEmpty(gitApiUrl))
+            return null;
+
+        String apiUrl = gitApiUrl;
+
+        while (apiUrl.endsWith("/"))
+            apiUrl = apiUrl.substring(0, apiUrl.length() - 1);
+
+        String marker = "/repos/";
+        int idx = apiUrl.indexOf(marker);
+
+        if (idx < 0)
+            return null;
+
+        String host = apiUrl.substring(0, idx);
+        String repoPath = apiUrl.substring(idx + marker.length());
+        String[] path = repoPath.split("/");
+
+        if (path.length < 2)
+            return null;
+
+        if ("https://api.github.com".equals(host))
+            host = "https://github.com";
+        else if (host.endsWith("/api/v3"))
+            host = host.substring(0, host.length() - "/api/v3".length());
+
+        return host + "/" + path[0] + "/" + path[1] + "/pull/" + prNum + "/commits/" + commit;
     }
 
     /**

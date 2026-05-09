@@ -37,6 +37,9 @@ public class VisaRequest {
      */
     private boolean isObserving;
 
+    /** Whether this request has ever been scheduled for observation. */
+    private boolean wasEverObserved;
+
     /**
      * @param info Common information to determine visa request.
      */
@@ -66,11 +69,26 @@ public class VisaRequest {
     public VisaRequest setObservingStatus(boolean status) {
         isObserving = status;
 
+        if (status)
+            wasEverObserved = true;
+
         return this;
     }
 
     /** */
     public boolean isObserving() {
         return isObserving;
+    }
+
+    /** */
+    public VisaRequest setWasEverObserved(boolean wasEverObserved) {
+        this.wasEverObserved = wasEverObserved;
+
+        return this;
+    }
+
+    /** */
+    public boolean wasEverObserved() {
+        return wasEverObserved;
     }
 }

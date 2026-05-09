@@ -29,7 +29,7 @@
                 monitoringAdmin = result.admin === true;
 
                 initAdminControls();
-                renderAdminUsersList(result, "#adminUsersBlock", "#adminUsers");
+                renderUserAdminLink(result, "#userAdminBlock");
                 loadData();
                 setInterval(loadAiPromptsData, 5000);
             },
@@ -37,7 +37,7 @@
                 monitoringAdmin = false;
 
                 initAdminControls();
-                $("#adminUsersBlock").hide();
+                $("#userAdminBlock").hide();
                 loadData();
                 setInterval(loadAiPromptsData, 5000);
             }
@@ -361,10 +361,9 @@
     <br>
 </div>
 
-<div id="adminUsersBlock" class="adminOnly" style="display: none">
+<div id="userAdminBlock" style="display: none">
     <hr>
     <b>Users:</b>
-    <div id="adminUsers"></div>
     <br>
 </div>
 

@@ -38,7 +38,7 @@ import static javax.xml.bind.DatatypeConverter.printHexBinary;
  */
 @Persisted
 public class TcHelperUser implements IVersionedEntity, INotificationChannel {
-    public static final int LATEST_VERSION = 2;
+    public static final int LATEST_VERSION = 3;
     @SuppressWarnings("FieldCanBeLocal")
     public Integer _version = LATEST_VERSION;
 
@@ -57,11 +57,20 @@ public class TcHelperUser implements IVersionedEntity, INotificationChannel {
 
     public String email;
 
+    /** Explicit GitHub logins configured by the user. */
+    public Set<String> githubIds = new LinkedHashSet<>();
+
+    /** Last successful login timestamp. */
+    public Long lastLoginTs;
+
     public Set<String> additionalEmails = new LinkedHashSet<>();
 
     private Boolean admin;
 
     public Long adminLastCheckedTs;
+
+    /** User management administrator flag. */
+    private Boolean userAdmin;
 
     /** Subscribed to all failures in following tracked branches. */
     @Nullable private Set<String> subscribedToAllFailures;
@@ -131,6 +140,13 @@ public class TcHelperUser implements IVersionedEntity, INotificationChannel {
             credentialsList = new ArrayList<>();
 
         return credentialsList;
+    }
+
+    public Set<String> getGithubIds() {
+        if (githubIds == null)
+            githubIds = new LinkedHashSet<>();
+
+        return githubIds;
     }
 
     public String getDisplayName() {
@@ -222,8 +238,9 @@ public class TcHelperUser implements IVersionedEntity, INotificationChannel {
         if (Strings.isNullOrEmpty(email))
             return false;
 
-        return (this.email != null && this.email.equals(email))
-            || (additionalEmails != null && additionalEmails.contains(email));
+        return (this.email != null && this.email.equalsIgnoreCase(email))
+            || (additionalEmails != null && additionalEmails.stream()
+                .anyMatch(next -> next != null && next.equalsIgnoreCase(email)));
     }
 
     /**
@@ -255,6 +272,20 @@ public class TcHelperUser implements IVersionedEntity, INotificationChannel {
      */
     public boolean isAdmin() {
         return Boolean.TRUE.equals(admin);
+    }
+
+    /**
+     * @param userAdmin User management administrator.
+     */
+    public void setUserAdmin(Boolean userAdmin) {
+        this.userAdmin = userAdmin;
+    }
+
+    /**
+     * @return {@code true} if this user can manage bot users.
+     */
+    public boolean isUserAdmin() {
+        return Boolean.TRUE.equals(userAdmin);
     }
 
     public static class Credentials {
@@ -341,6 +372,7 @@ public class TcHelperUser implements IVersionedEntity, INotificationChannel {
             .add("username", username)
             .add("fullName", fullName)
             .add("email", email)
+            .add("githubIds", githubIds)
             .add("additionalEmails", additionalEmails)
             .add("salt", salt == null ? "" : printHexBinary(salt))
             .add("userKeyKcv", userKeyKcv == null ? "" : printHexBinary(userKeyKcv))

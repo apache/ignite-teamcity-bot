@@ -22,23 +22,45 @@
     <br>
     <div id="loadStatus"></div>
     <br>
+    <div style="margin:0 0 10px 0">
+        Show latest
+        <select id="historyLimit" onchange="loadData()">
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+            <option value="1000">1000</option>
+            <option value="0">all</option>
+        </select>
+        visa requests
+        <label id="onlyMyPrsBlock" style="display:none; margin-left:12px"
+            title="Show only visa requests for PRs whose GitHub author matches your bot profile">
+            <input id="onlyMyPrs" type="checkbox" onchange="saveOnlyMyPrsPreference(); showVisasTable(currentVisas)">
+            Only my PRs
+        </label>
+    </div>
     <table id="visasTable" class="row-border" style="width:100%">
         <thead>
             <tr class="ui-widget-header ">
-                <th>.</th>
-                <th>.</th>
-                <th>.</th>
-                <th>.</th>
-                <th>.</th>
-                <th>.</th>
-                <th>.</th>
-                <th>.</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Requested by</th>
+                <th>PR author</th>
+                <th>Branch</th>
+                <th>Ticket / PR</th>
+                <th>Options</th>
+                <th>Slice</th>
+                <th>Suite</th>
+                <th>Blockers</th>
             </tr>
         </thead>
     </table>
     <br>
     <div id="version"></div>
 <script>
+var currentVisas = [];
+var myGithubLogins = new Set();
+const ONLY_MY_PRS_SHARED_STORAGE_KEY = "tcbot.prs.onlyMyPrs";
+const ONLY_MY_PRS_LEGACY_STORAGE_KEY = "tcbot.visas.onlyMyPrs";
+
 function showErrInLoadStatus(jqXHR, exception) {
     if (jqXHR.status === 0) {
         $("#loadStatus").html('Not connect.\n Verify Network.');
@@ -70,12 +92,86 @@ function showErrInLoadStatus(jqXHR, exception) {
 }
 
 $(document).ready(function() {
+    $("#onlyMyPrs").prop("checked", loadOnlyMyPrsPreference());
+    loadGithubResolution();
     loadData();
 
     $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
 });
 
-function sendCancelRequest(url) {
+function loadOnlyMyPrsPreference() {
+    try {
+        var shared = window.localStorage.getItem(ONLY_MY_PRS_SHARED_STORAGE_KEY);
+
+        if (shared !== null)
+            return shared === "true";
+
+        return window.localStorage.getItem(ONLY_MY_PRS_LEGACY_STORAGE_KEY) === "true";
+    }
+    catch (e) {
+        return false;
+    }
+}
+
+function saveOnlyMyPrsPreference() {
+    try {
+        var value = $("#onlyMyPrs").prop("checked") ? "true" : "false";
+
+        window.localStorage.setItem(ONLY_MY_PRS_SHARED_STORAGE_KEY, value);
+        window.localStorage.setItem(ONLY_MY_PRS_LEGACY_STORAGE_KEY, value);
+    }
+    catch (e) {
+        // Ignore unavailable storage; page filtering still works for this session.
+    }
+}
+
+function loadGithubResolution() {
+    $.ajax({
+        url: "rest/user/githubResolution",
+        success: function (result) {
+            myGithubLogins = new Set();
+
+            if (isDefinedAndFilled(result) && isDefinedAndFilled(result.allLogins)) {
+                for (var i = 0; i < result.allLogins.length; i++)
+                    myGithubLogins.add(String(result.allLogins[i]).toLowerCase());
+            }
+
+            updateOnlyMyPrsControl();
+            showVisasTable(currentVisas);
+        },
+        error: function () {
+            myGithubLogins = new Set();
+            updateOnlyMyPrsControl();
+            showVisasTable(currentVisas);
+        }
+    });
+}
+
+function updateOnlyMyPrsControl() {
+    if (myGithubLogins.size > 0) {
+        $("#onlyMyPrs").prop("checked", loadOnlyMyPrsPreference());
+        $("#onlyMyPrsBlock").show()
+            .attr("title", "Show only visa requests for PRs authored by: " + Array.from(myGithubLogins).join(", "));
+    }
+    else {
+        $("#onlyMyPrs").prop("checked", false);
+        $("#onlyMyPrsBlock").hide();
+    }
+}
+
+function isMyGithubPr(row) {
+    return isDefinedAndFilled(row) && isDefinedAndFilled(row.prAuthor) &&
+        myGithubLogins.has(String(row.prAuthor).toLowerCase());
+}
+
+function filteredVisas(rows) {
+    if (!$("#onlyMyPrs").prop("checked") || myGithubLogins.size === 0)
+        return rows || [];
+
+    return (rows || []).filter(isMyGithubPr);
+}
+
+function executeCancelRequest(url) {
     $.ajax({
         url: url,
         success: function (result) {
@@ -85,16 +181,148 @@ function sendCancelRequest(url) {
     });
 }
 
+function confirmCancelVisa(url, branchName) {
+    var dialog = $("#cancelVisaDialog");
+
+    if (dialog.length > 0)
+        dialog.remove();
+
+    dialog = $("<div>", {id: "cancelVisaDialog"});
+    dialog.append($("<p>").text("Cancel the running visa observation?"));
+
+    if (isDefinedAndFilled(branchName))
+        dialog.append($("<p>", {css: {"font-family": "monospace"}}).text(branchName));
+
+    $("body").append(dialog);
+
+    var buttons = {};
+
+    buttons["Cancel visa"] = function () {
+        executeCancelRequest(url);
+        $(this).dialog("close");
+    };
+    buttons["Keep running"] = function () {
+        $(this).dialog("close");
+    };
+
+    openCenteredDialog(dialog, {
+        modal: true,
+        resizable: false,
+        title: "Confirm visa cancellation",
+        width: Math.min(520, $(window).width() - 40),
+        buttons: buttons,
+        close: function () {
+            dialog.remove();
+        }
+    });
+}
+
+function linkOrText(url, text) {
+    if (isDefinedAndFilled(url))
+        return "<a href='" + escapeHtml(url) + "' target='_blank' rel='noopener noreferrer'>" +
+            escapeHtml(text) + "</a>";
+
+    return escapeHtml(text || "");
+}
+
+function userHtml(name, url, avatarUrl) {
+    if (!isDefinedAndFilled(name))
+        return "";
+
+    var img = isDefinedAndFilled(avatarUrl)
+        ? "<img src='" + escapeHtml(avatarUrl) + "' loading='lazy' onerror='this.style.display=\"none\"' " +
+            "style='width:22px; height:22px; border-radius:50%; object-fit:cover; vertical-align:middle; " +
+            "margin-right:6px'>"
+        : "";
+
+    return img + linkOrText(url, name);
+}
+
+function prAuthorHtml(row) {
+    return userHtml(row.prAuthor, row.prAuthorUrl, row.prAuthorAvatarUrl);
+}
+
+function ticketPrHtml(row) {
+    var res = [];
+
+    if (isDefinedAndFilled(row.ticket))
+        res.push(linkOrText(row.ticketUrl, row.ticket));
+
+    if (isDefinedAndFilled(row.prNum))
+        res.push(linkOrText(row.prUrl, "#" + row.prNum));
+
+    return res.join("<br>");
+}
+
+function reportLinkHtml(row, label) {
+    if (!isDefinedAndFilled(row.reportUrl))
+        return "";
+
+    return "<a href='" + escapeHtml(row.reportUrl) + "' target='_blank' rel='noopener noreferrer'>" +
+        escapeHtml(label || "Report") + "</a>";
+}
+
+function branchHtml(row) {
+    var res = escapeHtml(row.branchName || "");
+    var report = reportLinkHtml(row, "Report");
+
+    if (report !== "")
+        res += "<div style='font-size:12px; margin-top:4px'>" + report + "</div>";
+
+    return res;
+}
+
+function dateHtml(row) {
+    var res = escapeHtml(row.date || "");
+
+    if (isDefinedAndFilled(row.cancelUrl) && isDefinedAndFilled(row.requestedAgo))
+        res += "<div style='color:#666; font-size:12px'>requested " + escapeHtml(row.requestedAgo) + "</div>";
+
+    if (isDefinedAndFilled(row.estimatedCompletion))
+        res += "<div style='color:#666; font-size:12px'>ETA " + escapeHtml(row.estimatedCompletion) + "</div>";
+
+    return res;
+}
+
+function runningProgressHtml(row) {
+    var text = row.runningProgress || "";
+
+    if (!isDefinedAndFilled(row.runningBuildUrl))
+        return escapeHtml(text);
+
+    return "<a href='" + escapeHtml(row.runningBuildUrl) + "' target='_blank' rel='noopener noreferrer'>" +
+        escapeHtml(text) + "</a>";
+}
+
+function optionsHtml(row) {
+    var targets = isDefinedAndFilled(row.commentTargets) ? row.commentTargets : "(not stored)";
+    var policy = row.commentOnlyIfNoBlockers ? "only clean run (no blockers)" : "always";
+
+    return "<div><b>Targets:</b> " + escapeHtml(targets) + "</div>" +
+        "<div><b>Policy:</b> " + escapeHtml(policy) + "</div>";
+}
+
+function sliceHtml(row) {
+    return escapeHtml(row.analysisSlice || "");
+}
+
 function showVisasTable(result) {
     let visasTable = $('#visasTable');
+    var rows = filteredVisas(result);
 
-    visasTable.dataTable().fnDestroy();
+    if ($.fn.DataTable.isDataTable('#visasTable')) {
+        visasTable.DataTable().destroy();
+        visasTable.find('tbody').empty();
+    }
 
     var table = visasTable.DataTable({
         "order": [[ 1, 'desc' ]],
-        data: result,
+        data: rows,
         "iDisplayLength": 30, //rows to be shown by default
-        stateSave: true,
+        stateSave: false,
+        deferRender: true,
+        processing: true,
+        autoWidth: false,
         columnDefs: [
             {
                 targets: '_all',
@@ -108,18 +336,31 @@ function showVisasTable(result) {
                 "render": function (data, type, row, meta) {
                     let res = '';
 
+                    if (type !== 'display')
+                        return data;
+
                     if (type === 'display') {
                         res += "<table width='100%'><tr><td width='70%' style='vertical-align: middle'>";
 
                         if (data === 'finished' && row.commentUrl)
                             res += "<a href='" + row.commentUrl + "'>" + data + "</a>";
                         else
-                            res += data;
+                            res += escapeHtml(data);
+
+                        if (isDefinedAndFilled(row.commentStatus))
+                            res += "<div style='color:#666; font-size:12px'>" +
+                                escapeHtml(row.commentStatus) + "</div>";
+
+                        if (isDefinedAndFilled(row.runningProgress))
+                            res += "<div style='color:#666; font-size:12px'>" +
+                                runningProgressHtml(row) + "</div>";
 
                         res += "</td><td width=\"30%\">";
 
                         if (row.cancelUrl != null)
-                            res += '<button class="more white short" onclick="sendCancelRequest(\'' + row.cancelUrl + '\')">&times</button>';
+                            res += '<button class="more white short" title="Cancel visa" onclick="' +
+                                jsCallAttr("confirmCancelVisa", [row.cancelUrl, row.branchName]) +
+                                '">&times</button>';
 
                         res += "</td></tr>";
                     }
@@ -129,23 +370,57 @@ function showVisasTable(result) {
             },
             {
                 "data": "date",
-                title: "Date"
+                title: "Date",
+                "render": function (data, type, row, meta) {
+                    return type === 'display' ? dateHtml(row) : data;
+                }
             },
             {
                 "data": "userName",
-                title: "User"
+                title: "Requested by",
+                defaultContent: "",
+                "render": function (data, type, row, meta) {
+                    return type === 'display' ? userHtml(row.userName, row.userUrl, row.userAvatarUrl) : data;
+                }
+            },
+            {
+                "data": "prAuthor",
+                title: "PR author",
+                defaultContent: "",
+                "render": function (data, type, row, meta) {
+                    return type === 'display' ? prAuthorHtml(row) : data;
+                }
             },
             {
                 "data": "branchName",
-                title: "Branch"
-            },
-            {
-                "data": "baseBranchForTc",
-                title: "Base Branch"
+                title: "Branch",
+                "render": function (data, type, row, meta) {
+                    return type === 'display' ? branchHtml(row) : data;
+                }
             },
             {
                 "data": "ticket",
-                title: "Ticket"
+                title: "Ticket / PR",
+                defaultContent: "",
+                "render": function (data, type, row, meta) {
+                    return type === 'display' ? ticketPrHtml(row) : (data || "") + " #" + (row.prNum || "");
+                }
+            },
+            {
+                "data": "commentTargets",
+                title: "Options",
+                defaultContent: "",
+                "render": function (data, type, row, meta) {
+                    return type === 'display' ? optionsHtml(row) : data;
+                }
+            },
+            {
+                "data": "analysisSlice",
+                title: "Slice",
+                defaultContent: "",
+                "render": function (data, type, row, meta) {
+                    return type === 'display' ? sliceHtml(row) : data;
+                }
             },
             {
                 "data": "buildTypeName",
@@ -174,10 +449,16 @@ function showVisasTable(result) {
 }
 
 function loadData() {
+    var limit = $("#historyLimit").val() || "50";
+
+    $("#loadStatus").html("Loading latest " + (limit === "0" ? "all" : limit) + " visa requests...");
+
     $.ajax({
-            url: "rest/visa/history",
+            url: "rest/visa/history?limit=" + encodeURIComponent(limit),
             success: function (result) {
-                showVisasTable(result);
+                currentVisas = result || [];
+                showVisasTable(currentVisas);
+                $("#loadStatus").html("");
             },
             error: showErrInLoadStatus
         }

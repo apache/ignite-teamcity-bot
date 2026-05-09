@@ -34,12 +34,15 @@ public class TcHelperUserUi {
 
     public String email;
 
+    public String githubIds;
+
     public boolean admin;
 
     public TcHelperUserUi(TcHelperUser user, List<String> allTrackedBranches) {
         login = user.username;
         fullName = user.fullName;
         email = user.email;
+        githubIds = String.join(", ", user.getGithubIds());
         admin = user.isAdmin();
         allTrackedBranches.forEach(
             branchId -> subscribedAllToBranchFailures.put(branchId, user.isSubscribedToBranch(branchId))

@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.ignite.ci.github.GitHubBranchShort;
+import org.apache.ignite.ci.github.GitHubIssueComment;
+import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
 
@@ -37,10 +39,42 @@ public interface IGitHubConnection {
     public PullRequest getPullRequest(Integer id);
 
     /**
+     * @param login GitHub login.
+     * @return Full public GitHub user profile.
+     */
+    public GitHubUser getUser(String login);
+
+    /**
      * @param fullUrl Full url - null for first page, not null for next page.
      * @param outLinkNext Out link for return next page full url.
      */
     public List<PullRequest> getPullRequestsPage(@Nullable String fullUrl, @Nullable AtomicReference<String> outLinkNext);
+
+    /**
+     * @param prNum Pull request number.
+     * @return Pull request issue comments.
+     */
+    public List<GitHubIssueComment> getIssueComments(int prNum);
+
+    /**
+     * Publishes pull request issue comment.
+     *
+     * @param prNum Pull request number.
+     * @param body Comment markdown.
+     * @return {@code True} - if GitHub was notified. {@code False} - otherwise.
+     */
+    public default boolean postIssueComment(int prNum, String body) {
+        return postIssueCommentError(prNum, body) == null;
+    }
+
+    /**
+     * Publishes pull request issue comment.
+     *
+     * @param prNum Pull request number.
+     * @param body Comment markdown.
+     * @return {@code null} if comment was posted, otherwise detailed error.
+     */
+    @Nullable public String postIssueCommentError(int prNum, String body);
 
     /**
      * @param fullUrl Full url - null for first page, not null for next page.
@@ -52,22 +86,26 @@ public interface IGitHubConnection {
      * @return PR id from string "pull/XXXX/head"
      */
     @Nullable public static Integer convertBranchToPrId(String branchForTc) {
-        Integer res = null;
-
         if (Objects.isNull(branchForTc))
-            return res;
+            return null;
 
-        String id = null;
+        String pullPrefix = "pull/";
+        String refsPullPrefix = "refs/pull/";
+        int start;
 
-        for (int i = 5; i < branchForTc.length(); i++) {
-            char c = branchForTc.charAt(i);
+        if (branchForTc.startsWith(pullPrefix))
+            start = pullPrefix.length();
+        else if (branchForTc.startsWith(refsPullPrefix))
+            start = refsPullPrefix.length();
+        else
+            return null;
 
-            if (!Character.isDigit(c)) {
-                id = branchForTc.substring(5, i);
+        int end = start;
 
-                break;
-            }
-        }
+        while (end < branchForTc.length() && Character.isDigit(branchForTc.charAt(end)))
+            end++;
+
+        String id = branchForTc.substring(start, end);
 
         return Strings.isNullOrEmpty(id) ? null : Integer.parseInt(id);
     }

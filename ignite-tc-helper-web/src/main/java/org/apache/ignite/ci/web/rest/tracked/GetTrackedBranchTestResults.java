@@ -97,7 +97,8 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("maxDetailsChars") Integer maxDetailsChars,
         @Nullable @QueryParam("testName") String testName,
         @Nullable @QueryParam("promptSuiteId") String promptSuiteId,
-        @Nullable @QueryParam("waitForTc") Boolean waitForTc) {
+        @Nullable @QueryParam("waitForTc") Boolean waitForTc,
+        @Nullable @QueryParam("processId") Long processId) {
         int actualMergeBuilds = (mergeCnt == null || mergeCnt < 1) ? 1 : mergeCnt;
 
         return CtxListener.getApplicationContext(ctx)
@@ -111,7 +112,8 @@ public class GetTrackedBranchTestResults {
                 maxDetailsChars,
                 testName,
                 promptSuiteId,
-                waitForTc == null || waitForTc);
+                waitForTc == null || waitForTc,
+                processId);
     }
 
     @GET

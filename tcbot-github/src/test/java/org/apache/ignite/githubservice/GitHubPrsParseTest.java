@@ -29,6 +29,7 @@ import org.apache.ignite.ci.github.PullRequest;
 import org.junit.Test;
 
 import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertNull;
 
 public class GitHubPrsParseTest {
 
@@ -50,6 +51,23 @@ public class GitHubPrsParseTest {
         String nextLink = GitHubConnectionImpl.parseNextLinkFromLinkRspHeader(s);
 
         assertEquals("https://api.github.com/repositories/31006158/pulls?sort=updated&direction=desc&page=2", nextLink);
+    }
+
+    @Test
+    public void convertBranchToPrId() {
+        assertEquals(Integer.valueOf(123), IGitHubConnection.convertBranchToPrId("pull/123/head"));
+        assertEquals(Integer.valueOf(123), IGitHubConnection.convertBranchToPrId("pull/123"));
+        assertEquals(Integer.valueOf(123), IGitHubConnection.convertBranchToPrId("refs/pull/123/head"));
+        assertNull(IGitHubConnection.convertBranchToPrId("ignite-123"));
+    }
+
+    @Test
+    public void userApiUrlFromRepoApiUrl() {
+        assertEquals("https://api.github.com/users/dspavlov-github",
+            GitHubConnectionImpl.userApiUrl("https://api.github.com/repos/apache/ignite/", "dspavlov-github"));
+
+        assertEquals("https://github.example.com/api/v3/users/dspavlov-github",
+            GitHubConnectionImpl.userApiUrl("https://github.example.com/api/v3/repos/apache/ignite/", "dspavlov-github"));
     }
 
 }

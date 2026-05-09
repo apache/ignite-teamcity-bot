@@ -11,6 +11,283 @@
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 
     <script src="js/common-1.7.js"></script>
+    <style>
+        body {
+            background: #fff;
+            color: #000;
+        }
+
+        .guard-page {
+            margin: 22px 18px 34px 18px;
+            max-width: 1320px;
+            padding: 0;
+        }
+
+        .guard-header {
+            align-items: baseline;
+            display: flex;
+            gap: 12px;
+            margin: 8px 0 10px 0;
+        }
+
+        .guard-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 0;
+        }
+
+        .guard-subtitle {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .guard-section {
+            background: #fff;
+            border: 1px solid #cfcfcf;
+            border-radius: 4px;
+            box-shadow: 3px 2px 6px -2px rgba(0,0,0,0.30);
+            margin: 16px 0;
+            overflow: hidden;
+        }
+
+        .guard-section-header {
+            align-items: center;
+            border-bottom: 1px solid #d8d8d8;
+            display: flex;
+            justify-content: space-between;
+            padding: 13px 16px;
+        }
+
+        .guard-section-title {
+            align-items: center;
+            font-size: 16px;
+            font-weight: 700;
+            color: #000;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .guard-section-note {
+            align-items: center;
+            color: #666;
+            display: flex;
+            gap: 12px;
+            font-size: 12px;
+        }
+
+        .guard-section-note label {
+            color: #333;
+            font-size: 13px;
+            font-weight: 400;
+            white-space: nowrap;
+        }
+
+        .guard-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+        }
+
+        .guard-table th {
+            background: #f5f5f5;
+            border-bottom: 1px solid #d8d8d8;
+            color: #333;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 10px 14px;
+            text-align: left;
+            text-transform: uppercase;
+        }
+
+        .guard-table td {
+            border-bottom: 1px solid #eeeeee;
+            padding: 12px 14px;
+            vertical-align: middle;
+        }
+
+        .guard-table tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .guard-branch {
+            background: #f7f7f7;
+            border: 1px solid #d8d8d8;
+            border-radius: 4px;
+            color: #000;
+            display: inline-block;
+            font-family: Consolas, "Lucida Console", monospace;
+            font-size: 12px;
+            padding: 4px 7px;
+        }
+
+        .guard-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .guard-actions .guard-action,
+        .guard-actions .guard-action:link,
+        .guard-actions .guard-action:visited {
+            background: #12AD5E;
+            border: 1px solid #12AD5E;
+            border-radius: 4px;
+            color: #fff;
+            display: inline-block;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 5px 9px;
+            text-decoration: none;
+        }
+
+        .guard-actions .guard-action:hover,
+        .guard-actions .guard-action:active {
+            background: #128c46;
+            border-color: #128c46;
+            color: #fff;
+        }
+
+        .guard-report-action,
+        .guard-report-action:link,
+        .guard-report-action:visited {
+            align-items: center;
+            background: #12AD5E;
+            border: 1px solid #12AD5E;
+            border-radius: 4px;
+            color: #fff;
+            display: inline-flex;
+            flex-wrap: wrap;
+            font-size: 13px;
+            font-weight: 700;
+            gap: 8px;
+            padding: 5px 9px;
+            text-decoration: none;
+        }
+
+        .guard-report-action:hover,
+        .guard-report-action:active {
+            background: #128c46;
+            border-color: #128c46;
+            color: #fff;
+        }
+
+        .guard-report-action-muted,
+        .guard-report-action-muted:link,
+        .guard-report-action-muted:visited {
+            background: #f2f2f2;
+            border-color: #b8b8b8;
+            color: #333;
+        }
+
+        .guard-report-action-muted:hover,
+        .guard-report-action-muted:active {
+            background: #e6e6e6;
+            border-color: #999;
+            color: #000;
+        }
+
+        .guard-report-branch {
+            font-family: Consolas, "Lucida Console", monospace;
+            font-size: 12px;
+        }
+
+        .guard-count {
+            border-radius: 12px;
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 700;
+            min-width: 24px;
+            padding: 3px 8px;
+            text-align: center;
+        }
+
+        .guard-count-ok {
+            background: #f0fff6;
+            color: #24743c;
+        }
+
+        .guard-count-warn {
+            background: #fff7e5;
+            color: #8a5a00;
+        }
+
+        .guard-count-run {
+            background: #f0fff6;
+            color: #128c46;
+        }
+
+        .guard-count-muted {
+            background: #f2f2f2;
+            color: #666;
+        }
+
+        .guard-stat {
+            white-space: nowrap;
+        }
+
+        .guard-stat-ok {
+            color: #24743c;
+            font-weight: 700;
+        }
+
+        .guard-stat-bad {
+            color: #8b0000;
+            font-weight: 700;
+        }
+
+        .guard-stat-warn {
+            color: #8a5a00;
+            font-weight: 700;
+        }
+
+        .guard-stat-muted {
+            color: #666;
+        }
+
+        .guard-meta {
+            color: #666;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .guard-meta a,
+        .guard-table a {
+            color: #125CAA;
+        }
+
+        .guard-user {
+            align-items: center;
+            display: inline-flex;
+            gap: 6px;
+        }
+
+        .guard-user img {
+            border-radius: 50%;
+            height: 22px;
+            object-fit: cover;
+            width: 22px;
+        }
+
+        .guard-empty {
+            color: #666;
+            padding: 14px 16px;
+        }
+
+        #loadStatus {
+            margin: 10px 0;
+        }
+
+        #version {
+            margin: 18px 0 0 0;
+        }
+
+        #version hr {
+            margin-left: calc(50% - 50vw);
+            margin-right: calc(50% - 50vw);
+            width: 100vw;
+        }
+    </style>
     <script>
 $(document).ready(function() {
     $.getScript("js/common-1.7.js", function(data, textStatus, jqxhr){ });
@@ -19,8 +296,24 @@ $(document).ready(function() {
     loadData();
 });
 
+var runningVisasRefreshText = "";
+var runningVisasRefreshPollStop = null;
+var currentRunningVisas = [];
+var currentRecentVisaResults = [];
+var runningVisasLoaded = false;
+var myGithubLogins = new Set();
+const ONLY_MY_RUNNING_PRS_STORAGE_KEY = "tcbot.guard.runningVisas.onlyMyPrs";
+const ONLY_MY_PRS_SHARED_STORAGE_KEY = "tcbot.prs.onlyMyPrs";
+const ONLY_MY_PRS_STORAGE_PREFIX = "tcbot.prs.onlyMyPrs.";
+const ONLY_MY_VISAS_LEGACY_STORAGE_KEY = "tcbot.visas.onlyMyPrs";
+const RECENT_VISA_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
+
 function loadData() {
     $("#loadStatus").html("&#8987; Please wait");
+
+    loadGithubResolutionForRunningVisas();
+    loadRunningVisas(true);
+    loadRecentVisaResults();
 
     $.ajax({
         url: "rest/branches/version",
@@ -50,58 +343,513 @@ function loadData() {
 
 }
 
-function showTrackedBranchesLinks2(result) {
-    var res = "<table >";
-    res+="<tr><td>Branch name</td><td>Report</td><td>Merged 10</td><td>Finished last day</td><td>Running</td><td>Queued</td></tr>";
-    for (var i = 0; i < result.length; i++) {
-        let summary = result[i];
-        var id = summary.name;
-        res += "<tr>";
-        res += "<td align='right'>" + id + ":</td>";
-        res += "<td>" + "<a href='current.html?branch=" + id + "'><button>Latest (" + id + ")</button></a>" + "</td>";
-        res += "<td>" + " &nbsp;&nbsp;<a href='current.html?branch=" + id + "&count=10'><button title='Failures from last 10 runs merged'>History (" + id + ")</button></a>" + "</td>";
+function loadRunningVisas(refresh) {
+    runningVisasLoaded = false;
+    $("#runningVisasStatus").html("Loading running visas...");
 
-        res += "<td>" +  JSON.stringify(summary.finishedLastDay)+ "</td>";
-        res += "<td>" +  JSON.stringify(summary.runningList)+ "</td>";
-        res += "<td>" +  JSON.stringify(summary.queuedList)+ "</td>";
+    var processId = refresh === false ? null : createBotProcessId("runningVisasRefresh");
+    var url = "rest/visa/running?limit=100" +
+        (isDefinedAndFilled(processId) ? "&processId=" + encodeURIComponent(processId) : "");
+
+    $.ajax({
+        url: url,
+        success: function(result) {
+            currentRunningVisas = result || [];
+            runningVisasLoaded = true;
+            showRunningVisas(currentRunningVisas);
+
+            if (isDefinedAndFilled(processId))
+                pollRunningVisasRefresh(processId);
+        },
+        error: function(jqXHR, exception) {
+            runningVisasLoaded = true;
+            $("#runningVisasStatus").text("Running visas are unavailable.");
+            showErrInLoadStatus(jqXHR, exception);
+        }
+    });
+}
+
+function loadGithubResolutionForRunningVisas() {
+    $.ajax({
+        url: "rest/user/githubResolution",
+        success: function(result) {
+            myGithubLogins = new Set();
+
+            if (isDefinedAndFilled(result) && isDefinedAndFilled(result.allLogins)) {
+                for (var i = 0; i < result.allLogins.length; i++)
+                    myGithubLogins.add(String(result.allLogins[i]).toLowerCase());
+            }
+
+            if (runningVisasLoaded)
+                showRunningVisas(currentRunningVisas);
+
+            showRecentVisaResults(currentRecentVisaResults);
+        },
+        error: function() {
+            myGithubLogins = new Set();
+
+            if (runningVisasLoaded)
+                showRunningVisas(currentRunningVisas);
+
+            showRecentVisaResults(currentRecentVisaResults);
+        }
+    });
+}
+
+function loadOnlyMyRunningPrsPreference() {
+    try {
+        var shared = window.localStorage.getItem(ONLY_MY_PRS_SHARED_STORAGE_KEY);
+
+        if (shared !== null)
+            return shared === "true";
+
+        for (var i = 0; i < window.localStorage.length; i++) {
+            var key = window.localStorage.key(i);
+
+            if (key && key.indexOf(ONLY_MY_PRS_STORAGE_PREFIX) === 0 &&
+                window.localStorage.getItem(key) === "true")
+                return true;
+        }
+
+        if (window.localStorage.getItem(ONLY_MY_VISAS_LEGACY_STORAGE_KEY) === "true")
+            return true;
+
+        if (window.localStorage.getItem(ONLY_MY_RUNNING_PRS_STORAGE_KEY) === "true")
+            return true;
+
+        return false;
+    }
+    catch (e) {
+        return false;
+    }
+}
+
+function saveOnlyMyRunningPrsPreference() {
+    try {
+        var value = $("#onlyMyRunningPrs").prop("checked") ? "true" : "false";
+
+        window.localStorage.setItem(ONLY_MY_RUNNING_PRS_STORAGE_KEY, value);
+        window.localStorage.setItem(ONLY_MY_PRS_SHARED_STORAGE_KEY, value);
+    }
+    catch (e) {
+        // Ignore unavailable storage; page filtering still works for this session.
+    }
+}
+
+function isMyGithubRunningVisa(row) {
+    return isDefinedAndFilled(row) && isDefinedAndFilled(row.prAuthor) &&
+        myGithubLogins.has(String(row.prAuthor).toLowerCase());
+}
+
+function filteredRunningVisas(rows) {
+    if (!loadOnlyMyRunningPrsPreference() || myGithubLogins.size === 0)
+        return rows || [];
+
+    return (rows || []).filter(isMyGithubRunningVisa);
+}
+
+function runningVisasOnlyMineHtml() {
+    if (myGithubLogins.size === 0)
+        return "";
+
+    return "<label title='Show only running visas for PRs authored by: " +
+        escapeHtml(Array.from(myGithubLogins).join(", ")) + "'>" +
+        "<input id='onlyMyRunningPrs' type='checkbox' " +
+        (loadOnlyMyRunningPrsPreference() ? "checked" : "") +
+        " onchange='saveOnlyMyRunningPrsPreference(); showRunningVisas(currentRunningVisas); " +
+        "showRecentVisaResults(currentRecentVisaResults)'> Only my PRs</label>";
+}
+
+function pollRunningVisasRefresh(processId) {
+    if (runningVisasRefreshPollStop)
+        runningVisasRefreshPollStop();
+
+    runningVisasRefreshText = "Refreshing TeamCity state in background...";
+    $("#runningVisasRefreshStatus").text(runningVisasRefreshText);
+
+    runningVisasRefreshPollStop = startBotProcessPolling(processId, function(status) {
+        runningVisasRefreshText = botProcessStatusText(status);
+        $("#runningVisasRefreshStatus").text(runningVisasRefreshText);
+
+        if (status.running === false) {
+            loadRunningVisas(false);
+            loadRecentVisaResults();
+        }
+    }, {
+        intervalMs: 2000,
+        skipUnknown: false
+    });
+}
+
+function linkOrText(url, text) {
+    if (isDefinedAndFilled(url))
+        return "<a href='" + escapeHtml(url) + "' target='_blank' rel='noopener noreferrer'>" +
+            escapeHtml(text) + "</a>";
+
+    return escapeHtml(text || "");
+}
+
+function userHtml(name, url, avatarUrl) {
+    if (!isDefinedAndFilled(name))
+        return "";
+
+    var img = isDefinedAndFilled(avatarUrl)
+        ? "<img src='" + escapeHtml(avatarUrl) + "' loading='lazy' onerror='this.style.display=\"none\"' " +
+            "alt=''>"
+        : "";
+
+    return "<span class='guard-user'>" + img + linkOrText(url, name) + "</span>";
+}
+
+function reportLinkHtml(row) {
+    if (!isDefinedAndFilled(row.reportUrl))
+        return "";
+
+    return "<a href='" + escapeHtml(row.reportUrl) + "' target='_blank' rel='noopener noreferrer'>Current report</a>";
+}
+
+function runningVisaTimeHtml(row) {
+    return isDefinedAndFilled(row.requestedAgo) ? escapeHtml(row.requestedAgo) : "";
+}
+
+function runningVisaBranchHtml(row) {
+    var report = reportLinkHtml(row);
+    var res = "";
+
+    if (report !== "") {
+        var cls = visaReachedResult(row) ? "guard-report-action" :
+            "guard-report-action guard-report-action-muted";
+
+        res += "<a class='" + cls + "' href='" + escapeHtml(row.reportUrl) +
+            "' target='_blank' rel='noopener noreferrer'>" +
+            "<span class='guard-report-branch'>" + escapeHtml(row.branchName || "") + "</span>" +
+            "<span>Current report</span></a>";
+    }
+    else
+        res += "<span class='guard-branch'>" + escapeHtml(row.branchName || "") + "</span>";
+
+    return res;
+}
+
+function runningVisaRefsHtml(row) {
+    var refs = [];
+
+    if (isDefinedAndFilled(row.prUrl))
+        refs.push(linkOrText(row.prUrl, "PR #" + row.prNum));
+    else if (isDefinedAndFilled(row.prNum))
+        refs.push("PR #" + escapeHtml(row.prNum));
+
+    if (isDefinedAndFilled(row.ticketUrl))
+        refs.push(linkOrText(row.ticketUrl, row.ticket || "JIRA"));
+    else if (isDefinedAndFilled(row.ticket))
+        refs.push(escapeHtml(row.ticket));
+
+    return refs.join("<br>");
+}
+
+function runningProgressHtml(row) {
+    var text = row.runningProgress || row.status || "";
+
+    if (!isDefinedAndFilled(row.runningBuildUrl))
+        return escapeHtml(text);
+
+    return "<a href='" + escapeHtml(row.runningBuildUrl) + "' target='_blank' rel='noopener noreferrer'>" +
+        escapeHtml(text) + "</a>";
+}
+
+function checkAroundHtml(row) {
+    if (!isDefinedAndFilled(row.estimatedCompletion))
+        return "";
+
+    return "<span class='guard-stat-muted'>" + escapeHtml(row.estimatedCompletion) + "</span>";
+}
+
+function visaResultTextHtml(row) {
+    var status = row.status || "";
+    var cls = "guard-stat-muted";
+
+    if (status === "finished")
+        cls = "guard-stat-ok";
+    else if (status === "skipped")
+        cls = "guard-stat-warn";
+    else if (status === "cancelled")
+        cls = "guard-stat-bad";
+
+    var res = "<span class='" + cls + "'>" + escapeHtml(status) + "</span>";
+
+    if (isDefinedAndFilled(row.commentStatus))
+        res += "<div class='guard-meta'>" + escapeHtml(row.commentStatus) + "</div>";
+
+    return res;
+}
+
+function visaReachedResult(row) {
+    return isDefinedAndFilled(row) && (row.status === "finished" || row.status === "skipped");
+}
+
+function guardSection(title, note, body, headerControls) {
+    var noteHtml = "";
+
+    if (headerControls)
+        noteHtml += "<span class='guard-section-controls'>" + headerControls + "</span>";
+
+    if (note)
+        noteHtml += "<span>" + escapeHtml(note) + "</span>";
+
+    return "<div class='guard-section'>" +
+        "<div class='guard-section-header'>" +
+        "<div class='guard-section-title'>" + escapeHtml(title) + "</div>" +
+        "<div class='guard-section-note'>" + noteHtml + "</div>" +
+        "</div>" + body + "</div>";
+}
+
+function statusCountHtml(value, tone) {
+    var text = statusValueText(value);
+    var cls = text === "0" ? "guard-count-muted" : tone;
+    var title = JSON.stringify(value == null ? 0 : value);
+
+    return "<span class='guard-count " + cls + "' title='" + escapeHtml(title) + "'>" +
+        escapeHtml(text) + "</span>";
+}
+
+function statusValueText(value) {
+    if (!isDefinedAndFilled(value))
+        return "0";
+
+    if (Array.isArray(value) && value.length === 1 && typeof value[0] === "number")
+        return String(value[0]);
+
+    if (Array.isArray(value))
+        return String(value.length);
+
+    return String(value);
+}
+
+function suiteTitle(suites, checkedBuilds) {
+    var parts = [];
+
+    if (isDefinedAndFilled(checkedBuilds))
+        parts.push("checked chain builds: " + checkedBuilds);
+
+    if (!isDefinedAndFilled(suites) || suites.length === 0)
+        return parts.join("; ");
+
+    parts.push("suites: " + suites.join(", "));
+
+    return parts.join("; ");
+}
+
+function suiteCount(suites) {
+    return isDefinedAndFilled(suites) ? suites.length : 0;
+}
+
+function suiteStatHtml(label, suites, cls, checkedBuilds) {
+    var count = suiteCount(suites);
+
+    return "<span class='" + cls + "' title='" + escapeHtml(suiteTitle(suites, checkedBuilds)) + "'>" +
+        escapeHtml(label + " " + count) + "</span>";
+}
+
+function autoTriggerHtml(summary) {
+    var suites = summary.autoTriggerSuites || [];
+
+    if (suiteCount(suites) === 0)
+        return "<span class='guard-stat-muted'>off</span>";
+
+    return "<span class='guard-stat-ok' title='" + escapeHtml(suiteTitle(suites)) + "'>on " +
+        suiteCount(suites) + "</span>";
+}
+
+function lastBuildStatsHtml(summary) {
+    return "<span class='guard-stat'>" +
+        suiteStatHtml("failed", summary.lastFailedSuites || [], "guard-stat-bad", summary.lastBuildsChecked) +
+        " / " +
+        suiteStatHtml("ok", summary.lastStableSuites || [], "guard-stat-ok", summary.lastBuildsChecked) +
+        "</span>";
+}
+
+function tenBuildStatsHtml(summary) {
+    return "<span class='guard-stat'>" +
+        suiteStatHtml("unstable", summary.tenBuildFailedSuites || [], "guard-stat-bad", summary.tenBuildsChecked) +
+        " / " +
+        suiteStatHtml("stable", summary.tenBuildStableSuites || [], "guard-stat-ok", summary.tenBuildsChecked) +
+        "</span>";
+}
+
+function branchActionsHtml(id) {
+    var branch = encodeURIComponent(id);
+
+    return "<div class='guard-actions'>" +
+        "<a class='guard-action' href='current.html?branch=" + branch + "'>Latest</a>" +
+        "<a class='guard-action' href='current.html?branch=" + branch +
+        "&count=10' title='Failures from last 10 runs merged'>History 10</a>" +
+        "</div>";
+}
+
+function showRunningVisas(result) {
+    var rows = filteredRunningVisas(result);
+    var titleControls = runningVisasOnlyMineHtml();
+
+    if (!isDefinedAndFilled(rows) || rows.length === 0) {
+        var emptyText = loadOnlyMyRunningPrsPreference() && myGithubLogins.size > 0 &&
+            isDefinedAndFilled(result) && result.length > 0 ?
+            "No running visas for my PRs." : "No running visas.";
+
+        $("#runningVisasStatus").html(guardSection("Running visas", "",
+            "<div class='guard-empty'>" + emptyText + "</div>" +
+            runningVisasRefreshHtml(), titleControls));
+
+        return;
+    }
+
+    var res = "<table class='guard-table'>";
+    res += "<tr><th>Requested</th><th>PR author</th><th>Branch / report</th><th>PR / Ticket</th><th>Suite</th>" +
+        "<th>Targets</th><th>Progress</th><th>Estimate</th></tr>";
+
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+
+        res += "<tr>";
+        res += "<td>" + runningVisaTimeHtml(row) + "</td>";
+        res += "<td>" + userHtml(row.prAuthor, row.prAuthorUrl, row.prAuthorAvatarUrl) + "</td>";
+        res += "<td>" + runningVisaBranchHtml(row) + "</td>";
+        res += "<td>" + runningVisaRefsHtml(row) + "</td>";
+        res += "<td>" + escapeHtml(row.buildTypeName || row.buildTypeId || "") + "</td>";
+        res += "<td>" + escapeHtml(row.commentTargets || "") + "</td>";
+        res += "<td>" + runningProgressHtml(row) + "</td>";
+        res += "<td>" + checkAroundHtml(row) + "</td>";
+        res += "</tr>";
+    }
+
+    res += "</table>" + runningVisasRefreshHtml();
+
+    $("#runningVisasStatus").html(guardSection("Running visas", rows.length + " active", res, titleControls));
+}
+
+function runningVisasRefreshHtml() {
+    return "<div id='runningVisasRefreshStatus' class='guard-meta' style='padding: 0 16px 12px 16px'>" +
+        escapeHtml(runningVisasRefreshText || "Showing cached bot data.") + "</div>";
+}
+
+function loadRecentVisaResults() {
+    $("#recentVisaResultsStatus").html("Loading recent visa results...");
+
+    $.ajax({
+        url: "rest/visa/history?limit=20",
+        success: function(result) {
+            currentRecentVisaResults = result || [];
+            showRecentVisaResults(currentRecentVisaResults);
+        },
+        error: function(jqXHR, exception) {
+            $("#recentVisaResultsStatus").text("Recent visa results are unavailable.");
+            showErrInLoadStatus(jqXHR, exception);
+        }
+    });
+}
+
+function filteredRecentVisaResults(result) {
+    var rows = (result || []).filter(function(row) {
+        return row.status !== "running" && row.wasEverObserved === true &&
+            row.requestedAgeMs <= RECENT_VISA_MAX_AGE_MS;
+    });
+
+    if (loadOnlyMyRunningPrsPreference() && myGithubLogins.size > 0)
+        rows = rows.filter(isMyGithubRunningVisa);
+
+    return rows.slice(0, 5);
+}
+
+function showRecentVisaResults(result) {
+    var rows = filteredRecentVisaResults(result);
+
+    if (!isDefinedAndFilled(rows) || rows.length === 0) {
+        $("#recentVisaResultsStatus").html(guardSection("Recent visa results", "",
+            "<div class='guard-empty'>No recent finished visas.</div>"));
+
+        return;
+    }
+
+    var res = "<table class='guard-table'>";
+    res += "<tr><th>Requested</th><th>PR author</th><th>Branch / report</th><th>PR / Ticket</th><th>Suite</th>" +
+        "<th>Targets</th><th>Result</th><th>Blockers</th></tr>";
+
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+
+        res += "<tr>";
+        res += "<td>" + runningVisaTimeHtml(row) + "</td>";
+        res += "<td>" + userHtml(row.prAuthor, row.prAuthorUrl, row.prAuthorAvatarUrl) + "</td>";
+        res += "<td>" + runningVisaBranchHtml(row) + "</td>";
+        res += "<td>" + runningVisaRefsHtml(row) + "</td>";
+        res += "<td>" + escapeHtml(row.buildTypeName || row.buildTypeId || "") + "</td>";
+        res += "<td>" + escapeHtml(row.commentTargets || "") + "</td>";
+        res += "<td>" + visaResultTextHtml(row) + "</td>";
+        res += "<td>" + escapeHtml(row.blockers || "") + "</td>";
         res += "</tr>";
     }
 
     res += "</table>";
 
+    $("#recentVisaResultsStatus").html(guardSection("Recent visa results", rows.length + " latest", res));
+}
 
-    $("#branchesStatus").html(res);
+function showTrackedBranchesLinks2(result) {
+    var res = "<table class='guard-table'>";
+    res += "<tr><th>Branch</th><th>Reports</th><th>Auto trigger</th><th>Last cached build</th>" +
+        "<th>Last 10 cached</th><th>Finished 24h</th><th>Running</th><th>Queued</th></tr>";
+
+    for (var i = 0; i < result.length; i++) {
+        let summary = result[i];
+        var id = summary.name;
+
+        res += "<tr>";
+        res += "<td><span class='guard-branch'>" + escapeHtml(id) + "</span></td>";
+        res += "<td>" + branchActionsHtml(id) + "</td>";
+        res += "<td>" + autoTriggerHtml(summary) + "</td>";
+        res += "<td>" + (summary.lastBuildStatsAvailable ? lastBuildStatsHtml(summary) : "") + "</td>";
+        res += "<td>" + (summary.tenBuildStatsAvailable ? tenBuildStatsHtml(summary) : "") + "</td>";
+        res += "<td>" + statusCountHtml(summary.finishedLastDay, "guard-count-ok") + "</td>";
+        res += "<td>" + statusCountHtml(summary.runningList, "guard-count-run") + "</td>";
+        res += "<td>" + statusCountHtml(summary.queuedList, "guard-count-warn") + "</td>";
+        res += "</tr>";
+    }
+
+    res += "</table>";
+
+    $("#branchesStatus").html(guardSection("Tracked branches", result.length + " branches", res));
 }
 
 function showTrackedBranchesLinks(result) {
-    var res = "<table>";
-    res+="<tr><td>Branch name</td><td>Report</td><td>Merged 10</td><td>Finished last day</td><td>Running</td><td>Queued</td></tr>";
+    var res = "<table class='guard-table'>";
+    res += "<tr><th>Branch</th><th>Reports</th></tr>";
 
     for (var i = 0; i < result.length; i++) {
         var id = result[i];
         res += "<tr>";
-        res += "<td align='right'>" + id + ":</td>";
-        res += "<td>" + "<a href='current.html?branch=" + id + "'><button>Latest (" + id + ")</button></a>" + "</td>";
-        res += "<td>" + " &nbsp;&nbsp;<a href='current.html?branch=" + id + "&count=10'><button title='Failures from last 10 runs merged'>History (" + id + ")</button></a>" + "</td>";
+        res += "<td><span class='guard-branch'>" + escapeHtml(id) + "</span></td>";
+        res += "<td>" + branchActionsHtml(id) + "</td>";
         res += "</tr>";
     }
 
     res += "</table>";
 
-
-    $("#branchesStatus").html(res);
+    $("#branchesStatus").html(guardSection("Tracked branches", result.length + " branches", res));
 }
 
 </script>
 </head>
 <body>
-<div class="formgroup">
-    Monitoring. Current Failed Tests: <br>
+<div class="guard-page">
+    <div class="guard-header">
+        <div class="guard-title">Test Status</div>
+        <div class="guard-subtitle">Tracked branch failures and currently running contribution checks.</div>
+    </div>
     <div id="branchesStatus"></div>
-</div>
-<br>
+    <div id="runningVisasStatus"></div>
+    <div id="recentVisaResultsStatus"></div>
 
-<div id="loadStatus"></div>
+    <div id="loadStatus"></div>
+</div>
 <div id="version"></div>
 
 </body>

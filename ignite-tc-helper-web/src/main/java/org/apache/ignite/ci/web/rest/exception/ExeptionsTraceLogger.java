@@ -24,6 +24,7 @@ import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 import javax.ws.rs.core.Response;
 import org.apache.ignite.tcbot.common.conf.TcBotSystemProperties;
+import org.apache.ignite.tcbot.common.exeption.ServicesStartingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +41,14 @@ public class ExeptionsTraceLogger implements ExceptionMapper<Throwable> {
 
     /** {@inheritDoc} */
     @Override public Response toResponse(Throwable t) {
+        ServicesStartingException starting = findCause(t, ServicesStartingException.class);
+
+        if (starting != null) {
+            logger.info("Service is still starting: " + starting.getMessage(), t);
+
+            return Response.status(418).entity(starting.getMessage()).type("text/plain").build();
+        }
+
         logger.error("Error during processing request (Internal Server Error [500]). Caused by: ", t);
 
         if (Boolean.valueOf(System.getProperty(TcBotSystemProperties.DEV_MODE)))
@@ -125,5 +134,23 @@ public class ExeptionsTraceLogger implements ExceptionMapper<Throwable> {
             return cls;
 
         return cls + ": " + msg.replace('\r', ' ').replace('\n', ' ').trim();
+    }
+
+    /**
+     * @param t Exception.
+     * @param type Cause type.
+     */
+    private static <T extends Throwable> T findCause(Throwable t, Class<T> type) {
+        Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+        Throwable cur = t;
+
+        while (cur != null && seen.add(cur)) {
+            if (type.isInstance(cur))
+                return type.cast(cur);
+
+            cur = nextCause(cur);
+        }
+
+        return null;
     }
 }

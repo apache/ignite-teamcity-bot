@@ -76,6 +76,92 @@ function escapeHtml(str) {
         .replace(/'/g, "&#039;");
 }
 
+function escapeJsString(str) {
+    return JSON.stringify(str == null ? "" : String(str));
+}
+
+function jsArg(value) {
+    if (typeof value === "undefined" || value === null)
+        return "null";
+
+    if (typeof value === "number" || typeof value === "boolean")
+        return String(value);
+
+    if (typeof value === "object")
+        return JSON.stringify(value);
+
+    return escapeJsString(value);
+}
+
+function jsCall(name, args) {
+    return name + "(" + (args || []).map(jsArg).join(", ") + ")";
+}
+
+function jsCallAttr(name, args) {
+    return escapeHtml(jsCall(name, args));
+}
+
+function jsEventAttr(calls) {
+    return escapeHtml((calls || []).join("; ") + ((calls || []).length === 0 ? "" : ";"));
+}
+
+function createBotProcessId(kind) {
+    return Date.now() * 1000 + Math.floor(Math.random() * 1000);
+}
+
+function botProcessStatusText(status) {
+    return status && isDefinedAndFilled(status.status) && status.status !== ""
+        ? status.status
+        : "Waiting for the bot to publish status.";
+}
+
+function startBotProcessPolling(processId, onStatus, options) {
+    if (!isDefinedAndFilled(processId))
+        return function () {};
+
+    var opts = options || {};
+    var lastStatus = null;
+    var stopped = false;
+    var timer;
+
+    function poll() {
+        if (stopped)
+            return;
+
+        $.ajax({
+            url: "rest/process/status",
+            data: {id: processId},
+            success: function (status) {
+                if (stopped || !status)
+                    return;
+
+                if (!isDefinedAndFilled(status.kind) && opts.skipUnknown !== false)
+                    return;
+
+                if (status.status !== lastStatus) {
+                    lastStatus = status.status;
+                    onStatus(status);
+                }
+
+                if (status.running === false)
+                    stop();
+            }
+        });
+    }
+
+    function stop() {
+        stopped = true;
+
+        if (timer)
+            clearInterval(timer);
+    }
+
+    timer = setInterval(poll, opts.intervalMs || 1500);
+    poll();
+
+    return stop;
+}
+
 function currentBackref() {
     if (isLoginUrl(window.location.href))
         return "/";
@@ -134,8 +220,9 @@ function openAiPrompt(url) {
         errorId: "aiPromptError",
         title: "Generating AI prompt",
         initialMode: true,
-        requestUrl: function (waitForTc) {
-            return aiPromptUrlWithWaitForTc(url, waitForTc);
+        processKind: "aiPrompt",
+        requestUrl: function (waitForTc, processId) {
+            return aiPromptUrlWithWaitForTc(url, waitForTc, processId);
         },
         timeoutMs: 70000,
         skip: {
@@ -171,6 +258,11 @@ function requestTextCommand(options, state, mode, firstStep) {
     if (state.timer)
         clearInterval(state.timer);
 
+    if (state.processPollStop)
+        state.processPollStop();
+
+    state.processId = options.processKind ? createBotProcessId(options.processKind) : options.processId;
+
     let skip = options.skip;
     let skipVisible = skip != null && (skip.isVisible == null || skip.isVisible(mode));
 
@@ -197,7 +289,7 @@ function requestTextCommand(options, state, mode, firstStep) {
     startTextCommandProgress(options, state, mode, firstStep);
 
     state.xhr = $.ajax({
-        url: options.requestUrl(mode),
+        url: options.requestUrl(mode, state.processId),
         timeout: options.timeoutMs == null ? 70000 : options.timeoutMs,
         success: function (result) {
             finishTextCommandDialog(options, state, result);
@@ -285,10 +377,13 @@ function createTextCommandDialog(options) {
         downloadBtn: downloadBtn,
         resultUrl: null,
         timer: null,
-        xhr: null
+        xhr: null,
+        processPollStop: null,
+        processId: null
     };
 
-    dialog.dialog({
+    openCenteredDialog(dialog, {
+        appendTo: "body",
         close: function () {
             closeTextCommandDialog(state);
         },
@@ -309,19 +404,97 @@ function createTextCommandDialog(options) {
     return state;
 }
 
-function aiPromptUrlWithWaitForTc(url, waitForTc) {
-    return url + (url.indexOf("?") >= 0 ? "&" : "?") + "waitForTc=" + waitForTc;
+function centeredDialogOptions(options) {
+    let originalOpen = options.open;
+    let scrollLeft = $(window).scrollLeft();
+    let scrollTop = $(window).scrollTop();
+
+    return $.extend({}, options, {
+        appendTo: options.appendTo || "body",
+        position: options.position || {
+            my: "center",
+            at: "center",
+            of: window
+        },
+        open: function (event, ui) {
+            if (typeof originalOpen === "function")
+                originalOpen.call(this, event, ui);
+
+            centerDialogInViewport($(this), scrollLeft, scrollTop);
+        },
+        focus: function () {
+            restoreWindowScroll(scrollLeft, scrollTop);
+        }
+    });
+}
+
+function openCenteredDialog(dialog, options) {
+    ensureCenteredDialogStyle();
+    dialog.dialog(centeredDialogOptions(options));
+    centerDialogInViewport(dialog, $(window).scrollLeft(), $(window).scrollTop());
+}
+
+function centerDialogInViewport(dialog, scrollLeft, scrollTop) {
+    setTimeout(function () {
+        if (!dialog.data("ui-dialog"))
+            return;
+
+        let widget = dialog.dialog("widget");
+
+        if (widget.length === 0 || !widget.is(":visible"))
+            return;
+
+        widget.addClass("tcbot-centered-dialog");
+
+        restoreWindowScroll(scrollLeft, scrollTop);
+    }, 0);
+}
+
+function ensureCenteredDialogStyle() {
+    if ($("#tcbot-centered-dialog-style").length > 0)
+        return;
+
+    $("head").append("<style id='tcbot-centered-dialog-style'>" +
+        ".tcbot-centered-dialog {" +
+        "left: 50vw !important;" +
+        "margin: 0 !important;" +
+        "position: fixed !important;" +
+        "top: 50vh !important;" +
+        "transform: translate(-50%, -50%) !important;" +
+        "}" +
+        "</style>");
+}
+
+function restoreWindowScroll(scrollLeft, scrollTop) {
+    if ($(window).scrollLeft() !== scrollLeft || $(window).scrollTop() !== scrollTop)
+        window.scrollTo(scrollLeft, scrollTop);
+}
+
+function aiPromptUrlWithWaitForTc(url, waitForTc, processId) {
+    return url + (url.indexOf("?") >= 0 ? "&" : "?") + "waitForTc=" + waitForTc +
+        (isDefinedAndFilled(processId) ? "&processId=" + encodeURIComponent(processId) : "");
 }
 
 function startTextCommandProgress(options, state, mode, firstStep) {
     let idx = 0;
     let startedTs = Date.now();
+    let hasProcessStatus = isDefinedAndFilled(state.processId);
 
     state.status.text(options.statusText == null ? "Running command..." : options.statusText(mode));
     state.log.empty();
 
     if (firstStep)
         appendTextCommandStep(state, firstStep);
+
+    if (hasProcessStatus) {
+        appendTextCommandStep(state, "Sending request to the bot REST API.");
+
+        state.processPollStop = startBotProcessPolling(state.processId, function (status) {
+            appendTextCommandStep(state, botProcessStatusText(status));
+        });
+
+        return;
+    }
 
     function showNextStatus() {
         let message = options.progressMessage == null
@@ -350,45 +523,27 @@ function defaultTextCommandProgressMessage(mode, idx, elapsedMs) {
 function aiPromptProgressMessage(waitForTc, idx, elapsedMs) {
     let elapsedSec = Math.round(elapsedMs / 1000);
 
-    if (!waitForTc) {
-        if (idx === 0)
-            return "Sending no-wait request to the bot server.";
-
-        if (idx === 1)
-            return "Using cached chain context and cached log analysis only.";
-
-        return "No prompt response yet after " + elapsedSec
-            + "s. Bot is still building from cache; no new TeamCity/log wait was requested.";
-    }
-
     if (idx === 0)
         return "Sending request to the bot server.";
 
-    if (idx === 1)
-        return "Bot is loading the TeamCity build list and dependency chain.";
-
-    if (idx === 2)
-        return "No prompt response yet after " + elapsedSec
-            + "s. Bot may still be downloading build/test metadata from TeamCity.";
-
-    if (idx === 3)
-        return "No prompt response yet after " + elapsedSec
-            + "s. Bot may be loading build logs for failed or incomplete suites.";
-
-    if (idx === 4)
-        return "No prompt response yet after " + elapsedSec
-            + "s. Bot may be parsing build logs and attaching cached log analysis to the prompt.";
-
-    if (elapsedSec < 65)
-        return "No prompt response yet after " + elapsedSec
-            + "s. Fresh context/log wait timeout is 60s; you can use current cached context now.";
-
-    return "No prompt response yet after " + elapsedSec
-        + "s. TeamCity loading or build-log processing is taking longer than expected; you can use current context now.";
+    return "No prompt response yet after " + elapsedSec + "s. Waiting for the bot process status.";
 }
 
 function appendTextCommandStep(state, text) {
-    let line = $("<div>").text("> " + text);
+    state.log.children(".process-log-step").css({
+        "color": "#666",
+        "opacity": "0.58"
+    });
+
+    let line = $("<div>", {
+        "class": "process-log-step",
+        css: {
+            "color": "#222",
+            "opacity": "1",
+            "transition": "color 0.2s ease, opacity 0.2s ease"
+        }
+    }).text(text);
+
     state.log.append(line);
     state.log.scrollTop(state.log[0].scrollHeight);
 }
@@ -396,6 +551,9 @@ function appendTextCommandStep(state, text) {
 function finishTextCommandDialog(options, state, result) {
     if (state.timer)
         clearInterval(state.timer);
+
+    if (state.processPollStop)
+        state.processPollStop();
 
     if (state.resultUrl)
         URL.revokeObjectURL(state.resultUrl);
@@ -413,6 +571,9 @@ function finishTextCommandDialog(options, state, result) {
 function failTextCommandDialog(options, state, jqXHR, status, error) {
     if (state.timer)
         clearInterval(state.timer);
+
+    if (state.processPollStop)
+        state.processPollStop();
 
     state.status.text(options.failureStatusText || "Command request failed.");
     state.skipBtn.hide();
@@ -444,6 +605,9 @@ function downloadTextCommandResult(options, state) {
 function closeTextCommandDialog(state) {
     if (state.timer)
         clearInterval(state.timer);
+
+    if (state.processPollStop)
+        state.processPollStop();
 
     if (state.xhr && state.xhr.readyState !== 4)
         state.xhr.abort();
@@ -563,41 +727,36 @@ function showMenu(menuData) {
     $(document.body).prepend(res);
 }
 
-function renderAdminUsersList(menuData, blockSelector, usersSelector) {
-    if (!menuData || menuData.admin !== true) {
-        $(usersSelector).html("");
-        $(blockSelector).hide();
+function renderUserAdminLink(menuData, blockSelector) {
+    var block = $(blockSelector);
+
+    if (!menuData || (menuData.userAdmin !== true && menuData.canClaimUserAdmin !== true)) {
+        block.html("");
+        block.hide();
 
         return;
     }
 
-    var users = Array.isArray(menuData.users) ? menuData.users : [];
-    var res = "";
+    if (menuData.userAdmin === true) {
+        block.html("<a href='/users.html'>Manage users</a>");
+        block.show();
 
-    if (users.length === 0) {
-        res = "No other users";
-    }
-    else {
-        res += "<table class='stat'>";
-        res += "<tr><th>User</th><th>Login</th><th>Role</th></tr>";
-
-        for (var i = 0; i < users.length; i++) {
-            var user = users[i];
-            var login = user.username || "";
-            var label = user.displayName || login;
-
-            res += "<tr>";
-            res += "<td><a href='/user.html?login=" + encodeURIComponent(login) + "'>" + escapeHtml(label) + "</a></td>";
-            res += "<td>" + escapeHtml(login) + "</td>";
-            res += "<td>" + (user.admin ? "admin" : "") + "</td>";
-            res += "</tr>";
-        }
-
-        res += "</table>";
+        return;
     }
 
-    $(usersSelector).html(res);
-    $(blockSelector).show();
+    block.html("<button type='button' onclick='claimUserAdmin(\"" + blockSelector + "\")'>Claim user admin</button>");
+    block.show();
+}
+
+function claimUserAdmin(blockSelector) {
+    $.ajax({
+        method: "POST",
+        url: "/rest/user/claimUserAdmin",
+        success: function(menuData) {
+            renderUserAdminLink(menuData, blockSelector);
+        },
+        error: showErrInLoadStatus
+    });
 }
 
 function authorizeServer() {

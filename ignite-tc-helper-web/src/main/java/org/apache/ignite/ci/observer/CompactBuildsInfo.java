@@ -43,8 +43,17 @@ public class CompactBuildsInfo {
     /** JIRA ticket full name. */
     private int ticket;
 
+    /** Comment targets. By default represents null for old entries. */
+    private int commentTargets = -1;
+
     /** Base branch ID. By default represents null */
     private int baseBranchForTc = -1;
+
+    /** Pull request number. By default represents null. */
+    private int prNum = -1;
+
+    /** Comment only when blockers are not found. */
+    private boolean commentOnlyIfNoBlockers;
 
     /** */
     private Date date;
@@ -63,9 +72,12 @@ public class CompactBuildsInfo {
         this.date = buildsInfo.date;
         this.srvId = strCompactor.getStringId(buildsInfo.srvId);
         this.ticket = strCompactor.getStringId(buildsInfo.ticket);
+        this.commentTargets = strCompactor.getStringId(buildsInfo.commentTargets);
         this.branchForTc = strCompactor.getStringId(buildsInfo.branchForTc);
         this.buildTypeId = strCompactor.getStringId(buildsInfo.buildTypeId);
         this.baseBranchForTc = strCompactor.getStringId(buildsInfo.baseBranchForTc);
+        this.prNum = buildsInfo.prNum == null ? -1 : buildsInfo.prNum;
+        this.commentOnlyIfNoBlockers = buildsInfo.commentOnlyIfNoBlockers;
         this.builds.addAll(buildsInfo.getBuilds());
     }
 
@@ -129,6 +141,13 @@ public class CompactBuildsInfo {
     }
 
     /**
+     * @return Comment targets.
+     */
+    public int commentTargets() {
+        return commentTargets;
+    }
+
+    /**
      * @param ticket New jIRA ticket full name.
      */
     public void ticket(int ticket) {
@@ -149,13 +168,17 @@ public class CompactBuildsInfo {
             Objects.equals(buildTypeId, info.buildTypeId) &&
             Objects.equals(branchForTc, info.branchForTc) &&
             Objects.equals(ticket, info.ticket) &&
+            Objects.equals(commentTargets, info.commentTargets) &&
+            Objects.equals(prNum, info.prNum) &&
+            Objects.equals(commentOnlyIfNoBlockers, info.commentOnlyIfNoBlockers) &&
             Objects.equals(builds, info.builds) &&
             Objects.equals(date, info.date);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(srvId, buildTypeId, branchForTc, ticket, builds, date);
+        return Objects.hash(srvId, buildTypeId, branchForTc, ticket, commentTargets, prNum,
+            commentOnlyIfNoBlockers, builds, date);
     }
 
     /** */
@@ -191,6 +214,26 @@ public class CompactBuildsInfo {
     /** */
     public int baseBranchForTc() {
         return baseBranchForTc;
+    }
+
+    /** */
+    public int prNum() {
+        return prNum;
+    }
+
+    /** */
+    public void prNum(int prNum) {
+        this.prNum = prNum;
+    }
+
+    /** */
+    public boolean commentOnlyIfNoBlockers() {
+        return commentOnlyIfNoBlockers;
+    }
+
+    /** */
+    public void commentOnlyIfNoBlockers(boolean commentOnlyIfNoBlockers) {
+        this.commentOnlyIfNoBlockers = commentOnlyIfNoBlockers;
     }
 
     /** */

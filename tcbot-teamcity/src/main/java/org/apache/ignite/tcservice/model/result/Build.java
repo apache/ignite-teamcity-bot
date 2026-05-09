@@ -72,6 +72,9 @@ public class Build extends BuildRef {
     /** Information about build triggering. */
     @XmlElement(name = "triggered") private Triggered triggered;
 
+    /** Running build progress. */
+    @XmlElement(name = "running-info") private ProgressInfo runningInfo;
+
     @XmlElement(name = "revisions") private Revisions revisions;
 
     /** Build parameters. */
@@ -165,6 +168,20 @@ public class Build extends BuildRef {
      */
     public void setTriggered(Triggered triggered) {
         this.triggered = triggered;
+    }
+
+    /**
+     * @return Running build progress.
+     */
+    @Nullable public ProgressInfo runningInfo() {
+        return runningInfo;
+    }
+
+    /**
+     * @param runningInfo Running build progress.
+     */
+    public void runningInfo(@Nullable ProgressInfo runningInfo) {
+        this.runningInfo = runningInfo;
     }
 
     /**

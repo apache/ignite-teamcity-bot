@@ -23,13 +23,18 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.stream.Stream;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.core.Form;
+import org.apache.ignite.ci.tcbot.issue.IssueDetector;
+import org.apache.ignite.ci.tcbot.visa.GitHubUserResolver;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.junit.Test;
 
@@ -48,6 +53,7 @@ public class UserServiceTest {
     @Test
     public void adminSavesRequestedUserData() throws Exception {
         TcHelperUser admin = user("admin", true);
+        admin.setUserAdmin(true);
         TcHelperUser other = user("other", false);
 
         IUserStorage users = mock(IUserStorage.class);
@@ -59,7 +65,7 @@ public class UserServiceTest {
         Form form = new Form();
         form.param("notify_master", "1");
 
-        svc.saveUserData("other", "other@example.org", "Other User", form);
+        svc.saveUserData("other", "other@example.org", "Other User", null, form);
 
         assertEquals("Admin User", admin.fullName);
         assertEquals("admin@example.org", admin.email);
@@ -76,6 +82,7 @@ public class UserServiceTest {
     @Test
     public void adminResetsRequestedUserCredentials() throws Exception {
         TcHelperUser admin = user("admin", true);
+        admin.setUserAdmin(true);
         TcHelperUser other = user("other", false);
         other.getOrCreateCreds("apache").setLogin("other").setPassword("password", new byte[16]);
 
@@ -107,15 +114,22 @@ public class UserServiceTest {
     }
 
     @Test
-    public void userPageHasExplicitAdminUsersList() throws IOException {
+    public void userPageLinksToUserManagementPage() throws IOException {
         String html = new String(Files.readAllBytes(userHtml()), StandardCharsets.UTF_8);
         String commonScript = new String(Files.readAllBytes(commonJs()), StandardCharsets.UTF_8);
+        String usersPage = new String(Files.readAllBytes(usersHtml()), StandardCharsets.UTF_8);
 
-        assertTrue(html.contains("loadUsersList()"));
-        assertTrue(html.contains("id=\"adminUsersBlock\""));
+        assertTrue(html.contains("loadUserAdminLink()"));
+        assertTrue(html.contains("id=\"userAdminBlock\""));
         assertTrue(html.contains("rest/user/currentUserName"));
-        assertTrue(html.contains("renderAdminUsersList(menuData, \"#adminUsersBlock\", \"#adminUsers\")"));
-        assertTrue(commonScript.contains("/user.html?login="));
+        assertTrue(commonScript.contains("renderUserAdminLink"));
+        assertTrue(commonScript.contains("/users.html"));
+        assertTrue(usersPage.contains("rest/user/list"));
+        assertTrue(usersPage.contains("Claim user admin"));
+        assertTrue(usersPage.contains("TC Ignite Committer"));
+        assertTrue(usersPage.contains("Auto GitHub IDs"));
+        assertTrue(usersPage.contains("Users without GitHub match"));
+        assertTrue(usersPage.contains("Only without GitHub match"));
     }
 
     @Test
@@ -124,11 +138,59 @@ public class UserServiceTest {
 
         assertFalse(commonScript.contains("adminUsersMenu"));
         assertFalse(commonScript.contains("dropbtn'>Users"));
+        assertFalse(commonScript.contains("renderAdminUsersList"));
+    }
+
+    @Test
+    public void userAdminListIncludesCurrentUser() throws Exception {
+        TcHelperUser admin = user("admin", true);
+        admin.setUserAdmin(true);
+        admin.lastLoginTs = 123L;
+        TcHelperUser other = user("other", false);
+
+        IUserStorage users = mock(IUserStorage.class);
+        when(users.getUser("admin")).thenReturn(admin);
+        when(users.allUsers()).thenReturn(Stream.of(admin, other));
+
+        assertEquals(2, service(users, creds("admin")).users().size());
+    }
+
+    @Test
+    public void firstUserCanClaimUserAdminWhenNoUserAdminExists() throws Exception {
+        TcHelperUser user = user("user", false);
+
+        IUserStorage users = mock(IUserStorage.class);
+        when(users.getUser("user")).thenReturn(user);
+        when(users.allUsers()).thenReturn(Stream.of(user)).thenReturn(Stream.of(user));
+
+        service(users, creds("user")).claimUserAdmin();
+
+        assertTrue(user.isUserAdmin());
+        verify(users).putUser(eq("user"), same(user));
+    }
+
+    @Test
+    public void currentUserCanClaimGithubId() throws Exception {
+        TcHelperUser user = user("user", false);
+
+        IUserStorage users = mock(IUserStorage.class);
+        when(users.getUser("user")).thenReturn(user);
+
+        service(users, creds("user")).claimGithubId("dspavlov-github", null);
+
+        assertTrue(user.getGithubIds().contains("dspavlov-github"));
+        verify(users).putUser(eq("user"), same(user));
     }
 
     private static UserService service(IUserStorage users, ITcBotUserCreds creds) throws Exception {
         TcBotApplicationContext appCtx = mock(TcBotApplicationContext.class);
         when(appCtx.getInstance(IUserStorage.class)).thenReturn(users);
+        ITcBotConfig cfg = mock(ITcBotConfig.class);
+        when(cfg.userAdmins()).thenReturn(Collections.emptyList());
+        when(appCtx.getInstance(ITcBotConfig.class)).thenReturn(cfg);
+        IssueDetector issueDetector = mock(IssueDetector.class);
+        when(appCtx.getInstance(IssueDetector.class)).thenReturn(issueDetector);
+        when(appCtx.getInstance(GitHubUserResolver.class)).thenReturn(new GitHubUserResolver());
 
         ServletContext ctx = mock(ServletContext.class);
         when(ctx.getAttribute(anyString())).thenReturn(appCtx);
@@ -197,5 +259,14 @@ public class UserServiceTest {
             return projectPath;
 
         return Paths.get("ignite-tc-helper-web/src/main/webapp/js/common-1.7.js");
+    }
+
+    private static Path usersHtml() {
+        Path projectPath = Paths.get("src/main/webapp/users.html");
+
+        if (Files.exists(projectPath))
+            return projectPath;
+
+        return Paths.get("ignite-tc-helper-web/src/main/webapp/users.html");
     }
 }
