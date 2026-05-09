@@ -20,6 +20,7 @@ import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -72,6 +73,19 @@ public class TcBotVisaService {
         return CtxListener.getApplicationContext(ctx)
             .getInstance(TcBotTriggerAndSignOffService.class)
             .getVisasStatus(ITcBotUserCreds.get(req), limit == null ? 50 : limit);
+    }
+
+    /**
+     */
+    @GET
+    @Path("running")
+    public Collection<VisaStatus> running(@Nullable @QueryParam("limit") Integer limit) {
+        return CtxListener.getApplicationContext(ctx)
+            .getInstance(TcBotTriggerAndSignOffService.class)
+            .getVisasStatus(ITcBotUserCreds.get(req), limit == null ? 100 : limit)
+            .stream()
+            .filter(status -> status.cancelUrl != null)
+            .collect(Collectors.toList());
     }
 
     /**

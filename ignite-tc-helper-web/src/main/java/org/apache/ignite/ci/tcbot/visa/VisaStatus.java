@@ -83,6 +83,21 @@ public class VisaStatus {
     /** */
     @Nullable public String date;
 
+    /** How long ago visa was requested. */
+    @Nullable public String requestedAgo;
+
+    /** Visa request age, milliseconds. */
+    public long requestedAgeMs;
+
+    /** Current bot report URL for this branch and suite. */
+    @Nullable public String reportUrl;
+
+    /** Current observed builds progress. */
+    @Nullable public String runningProgress;
+
+    /** Estimated completion based on TeamCity running-info. */
+    @Nullable public String estimatedCompletion;
+
     /** */
     @Nullable public String cancelUrl;
 

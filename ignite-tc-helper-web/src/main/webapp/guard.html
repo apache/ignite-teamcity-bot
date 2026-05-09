@@ -22,6 +22,8 @@ $(document).ready(function() {
 function loadData() {
     $("#loadStatus").html("&#8987; Please wait");
 
+    loadRunningVisas();
+
     $.ajax({
         url: "rest/branches/version",
         success: showVersionInfo,
@@ -48,6 +50,153 @@ function loadData() {
 
 
 
+}
+
+function loadRunningVisas() {
+    $("#runningVisasStatus").html("Loading running visas...");
+
+    $.ajax({
+        url: "rest/visa/running?limit=100",
+        success: showRunningVisas,
+        error: function(jqXHR, exception) {
+            $("#runningVisasStatus").text("Running visas are unavailable.");
+            showErrInLoadStatus(jqXHR, exception);
+        }
+    });
+}
+
+function executeCancelRequest(url) {
+    $.ajax({
+        url: url,
+        success: function (result) {
+            loadRunningVisas();
+        },
+        error: showErrInLoadStatus
+    });
+}
+
+function confirmCancelVisa(url, branchName) {
+    var dialog = $("#cancelVisaDialog");
+
+    if (dialog.length > 0)
+        dialog.remove();
+
+    dialog = $("<div>", {id: "cancelVisaDialog"});
+    dialog.append($("<p>").text("Cancel the running visa observation?"));
+
+    if (isDefinedAndFilled(branchName))
+        dialog.append($("<p>", {css: {"font-family": "monospace"}}).text(branchName));
+
+    $("body").append(dialog);
+
+    var buttons = {};
+
+    buttons["Cancel visa"] = function () {
+        executeCancelRequest(url);
+        $(this).dialog("close");
+    };
+    buttons["Keep running"] = function () {
+        $(this).dialog("close");
+    };
+
+    openCenteredDialog(dialog, {
+        modal: true,
+        resizable: false,
+        title: "Confirm visa cancellation",
+        width: Math.min(520, $(window).width() - 40),
+        buttons: buttons,
+        close: function () {
+            dialog.remove();
+        }
+    });
+}
+
+function linkOrText(url, text) {
+    if (isDefinedAndFilled(url))
+        return "<a href='" + escapeHtml(url) + "' target='_blank' rel='noopener noreferrer'>" +
+            escapeHtml(text) + "</a>";
+
+    return escapeHtml(text || "");
+}
+
+function userHtml(name, url, avatarUrl) {
+    if (!isDefinedAndFilled(name))
+        return "";
+
+    var img = isDefinedAndFilled(avatarUrl)
+        ? "<img src='" + escapeHtml(avatarUrl) + "' loading='lazy' onerror='this.style.display=\"none\"' " +
+            "style='width:22px; height:22px; border-radius:50%; object-fit:cover; vertical-align:middle; " +
+            "margin-right:6px'>"
+        : "";
+
+    return img + linkOrText(url, name);
+}
+
+function reportLinkHtml(row) {
+    if (!isDefinedAndFilled(row.reportUrl))
+        return "";
+
+    return "<a href='" + escapeHtml(row.reportUrl) + "' target='_blank' rel='noopener noreferrer'>Current report</a>";
+}
+
+function runningVisaTimeHtml(row) {
+    var res = isDefinedAndFilled(row.requestedAgo) ? "requested " + escapeHtml(row.requestedAgo) : "";
+
+    if (isDefinedAndFilled(row.estimatedCompletion))
+        res += "<div style='color:#666; font-size:12px'>ETA " + escapeHtml(row.estimatedCompletion) + "</div>";
+
+    return res;
+}
+
+function runningVisaBranchHtml(row) {
+    var res = escapeHtml(row.branchName || "");
+    var report = reportLinkHtml(row);
+
+    if (report !== "")
+        res += "<div style='font-size:12px; margin-top:4px'>" + report + "</div>";
+
+    if (isDefinedAndFilled(row.prUrl))
+        res += "<div style='font-size:12px; margin-top:4px'>" + linkOrText(row.prUrl, "#" + row.prNum) + "</div>";
+
+    return res;
+}
+
+function showRunningVisas(result) {
+    var res = "<h3>Running visas</h3>";
+
+    if (!isDefinedAndFilled(result) || result.length === 0) {
+        $("#runningVisasStatus").html(res + "<div>No running visas.</div>");
+
+        return;
+    }
+
+    res += "<table>";
+    res += "<tr><td>Started</td><td>PR author</td><td>Branch / report</td><td>Suite</td>" +
+        "<td>Targets</td><td>Progress</td><td></td></tr>";
+
+    for (var i = 0; i < result.length; i++) {
+        var row = result[i];
+
+        res += "<tr>";
+        res += "<td>" + runningVisaTimeHtml(row) + "</td>";
+        res += "<td>" + userHtml(row.prAuthor, row.prAuthorUrl, row.prAuthorAvatarUrl) + "</td>";
+        res += "<td>" + runningVisaBranchHtml(row) + "</td>";
+        res += "<td>" + escapeHtml(row.buildTypeName || row.buildTypeId || "") + "</td>";
+        res += "<td>" + escapeHtml(row.commentTargets || "") + "</td>";
+        res += "<td>" + escapeHtml(row.runningProgress || row.status || "") + "</td>";
+        res += "<td>";
+
+        if (isDefinedAndFilled(row.cancelUrl))
+            res += '<button class="more white short" title="Cancel visa" onclick="' +
+                jsCallAttr("confirmCancelVisa", [row.cancelUrl, row.branchName]) + '">&times</button>';
+
+        res += "</td>";
+        res += "</tr>";
+    }
+
+    res += "</table>";
+
+    $("#runningVisasStatus").html(res);
 }
 
 function showTrackedBranchesLinks2(result) {
@@ -98,6 +247,10 @@ function showTrackedBranchesLinks(result) {
 <div class="formgroup">
     Monitoring. Current Failed Tests: <br>
     <div id="branchesStatus"></div>
+</div>
+<br>
+<div class="formgroup">
+    <div id="runningVisasStatus"></div>
 </div>
 <br>
 

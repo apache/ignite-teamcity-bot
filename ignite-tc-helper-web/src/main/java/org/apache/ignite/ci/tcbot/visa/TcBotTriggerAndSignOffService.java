@@ -20,6 +20,9 @@ package org.apache.ignite.ci.tcbot.visa;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -48,6 +51,7 @@ import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.tcbot.github.GitHubCommentsGenerator;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.BuildsInfo;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.RunningInfoCompacted;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
 import org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
@@ -75,6 +79,7 @@ import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
 import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
+import org.apache.ignite.tcbot.common.util.TimeUtil;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.pr.BranchTicketMatcher;
 import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
@@ -113,6 +118,13 @@ public class TcBotTriggerAndSignOffService {
     private static final ThreadLocal<DateFormat> THREAD_FORMATTER = new ThreadLocal<DateFormat>() {
         @Override protected DateFormat initialValue() {
             return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        }
+    };
+
+    /** */
+    private static final ThreadLocal<DateFormat> THREAD_TIME_FORMATTER = new ThreadLocal<DateFormat>() {
+        @Override protected DateFormat initialValue() {
+            return new SimpleDateFormat("HH:mm:ss");
         }
     };
 
@@ -193,6 +205,8 @@ public class TcBotTriggerAndSignOffService {
             boolean isObserving = visaRequest.isObserving();
 
             visaStatus.date = THREAD_FORMATTER.get().format(info.date);
+            visaStatus.requestedAgeMs = Math.max(0, System.currentTimeMillis() - info.date.getTime());
+            visaStatus.requestedAgo = TimeUtil.millisToDurationPrintable(visaStatus.requestedAgeMs) + " ago";
             visaStatus.branchName = info.branchForTc;
             visaStatus.userName = info.userName;
             TcHelperUser requester = requester(visaStatus.userName, userByName);
@@ -206,6 +220,7 @@ public class TcBotTriggerAndSignOffService {
             visaStatus.rerun = !info.getBuilds().isEmpty();
             visaStatus.analysisSlice = analysisSlice(info);
             visaStatus.buildTypeId = info.buildTypeId;
+            visaStatus.reportUrl = reportUrl(srvCodeOrAlias, info.buildTypeId, info.branchForTc);
 
             ITeamcityIgnited tcIgn = tcBySrv.computeIfAbsent(srvCodeOrAlias,
                 srv -> tcIgnitedProv.server(srv, prov));
@@ -227,6 +242,9 @@ public class TcBotTriggerAndSignOffService {
 
             String buildsStatus = isObserving ? info.getStatus(tcIgn, strCompactor) : null;
 
+            if (isObserving)
+                fillRunningDetails(visaStatus, info, tcIgn);
+
             if (!isObserving)
                 visaStatus.status = visa.isSuccess() ? FINISHED_STATUS : CANCELLED_STATUS;
             else if (FINISHED_STATUS.equals(buildsStatus)) {
@@ -242,12 +260,213 @@ public class TcBotTriggerAndSignOffService {
                 visaStatus.status = buildsStatus;
 
             if (isObserving)
-                visaStatus.cancelUrl = "/rest/visa/cancel?server=" + srvCodeOrAlias + "&branch=" + info.branchForTc;
+                visaStatus.cancelUrl = "/rest/visa/cancel?server=" + encodeUrlParam(srvCodeOrAlias) +
+                    "&branch=" + encodeUrlParam(info.branchForTc);
 
             visaStatuses.add(visaStatus);
         }
 
         return visaStatuses;
+    }
+
+    /**
+     * @param visaStatus Visa status DTO.
+     * @param info Builds info.
+     * @param tcIgn TeamCity.
+     */
+    private void fillRunningDetails(VisaStatus visaStatus, BuildsInfo info, ITeamcityIgnited tcIgn) {
+        if (info.getBuilds().isEmpty())
+            return;
+
+        RunningVisaDetails details = runningVisaDetails(info, tcIgn);
+
+        visaStatus.runningProgress = details.progressText();
+        visaStatus.estimatedCompletion = details.estimatedCompletion();
+    }
+
+    /**
+     * @param info Builds info.
+     * @param tcIgn TeamCity.
+     */
+    private RunningVisaDetails runningVisaDetails(BuildsInfo info, ITeamcityIgnited tcIgn) {
+        int total = info.getBuilds().size();
+        int finished = 0;
+        int running = 0;
+        int queued = 0;
+        int cancelled = 0;
+        int progressSum = 0;
+        int progressCnt = 0;
+        long maxLeftSeconds = -1;
+        String stage = null;
+        boolean probablyHanging = false;
+
+        for (Integer id : info.getBuilds()) {
+            FatBuildCompacted build = tcIgn.getFatBuild(id);
+
+            if (build.isFakeStub() || build.isCancelled(strCompactor)) {
+                cancelled++;
+
+                continue;
+            }
+
+            if (build.isFinished(strCompactor)) {
+                finished++;
+
+                continue;
+            }
+
+            if (build.isQueued(strCompactor)) {
+                queued++;
+
+                continue;
+            }
+
+            if (build.isRunning(strCompactor))
+                running++;
+
+            RunningInfoCompacted runningInfo = build.runningInfo();
+
+            if (runningInfo == null)
+                continue;
+
+            Integer percent = runningInfo.percentageComplete();
+
+            if (percent != null) {
+                progressSum += percent;
+                progressCnt++;
+            }
+
+            Long leftSeconds = runningInfo.leftSeconds();
+
+            if (leftSeconds != null && leftSeconds >= 0)
+                maxLeftSeconds = Math.max(maxLeftSeconds, leftSeconds);
+
+            String stageText = runningInfo.currentStageText(strCompactor);
+
+            if (!Strings.isNullOrEmpty(stageText) && Strings.isNullOrEmpty(stage))
+                stage = shorten(stageText, 160);
+
+            if (Boolean.TRUE.equals(runningInfo.probablyHanging()))
+                probablyHanging = true;
+        }
+
+        String progress = runningProgressText(total, finished, running, queued, cancelled,
+            progressCnt == 0 ? null : progressSum / progressCnt, stage, probablyHanging);
+
+        String eta = maxLeftSeconds < 0 ? null : estimatedCompletionText(maxLeftSeconds, queued);
+
+        return new RunningVisaDetails(progress, eta);
+    }
+
+    /**
+     * @param total Total builds.
+     * @param finished Finished builds.
+     * @param running Running builds.
+     * @param queued Queued builds.
+     * @param cancelled Cancelled builds.
+     * @param percent Average TeamCity percentage.
+     * @param stage Current TeamCity stage.
+     * @param probablyHanging Whether TeamCity suspects hang.
+     */
+    private static String runningProgressText(int total, int finished, int running, int queued, int cancelled,
+        @Nullable Integer percent, @Nullable String stage, boolean probablyHanging) {
+        List<String> parts = new ArrayList<>();
+
+        parts.add(finished + "/" + total + " builds finished");
+
+        if (running > 0)
+            parts.add(running + " running");
+
+        if (queued > 0)
+            parts.add(queued + " queued");
+
+        if (cancelled > 0)
+            parts.add(cancelled + " cancelled");
+
+        if (percent != null)
+            parts.add("about " + percent + "%");
+
+        if (probablyHanging)
+            parts.add("TeamCity suspects hanging build");
+
+        String res = String.join(", ", parts);
+
+        return Strings.isNullOrEmpty(stage) ? res : res + ": " + stage;
+    }
+
+    /**
+     * @param leftSeconds TeamCity estimated remaining seconds.
+     * @param queued Queued builds count.
+     */
+    private static String estimatedCompletionText(long leftSeconds, int queued) {
+        long leftMs = TimeUnit.SECONDS.toMillis(leftSeconds);
+        String eta = "in " + TimeUtil.millisToDurationPrintable(leftMs) +
+            " (around " + THREAD_TIME_FORMATTER.get().format(new Date(System.currentTimeMillis() + leftMs)) + ")";
+
+        return queued > 0 ? eta + ", queued builds may extend it" : eta;
+    }
+
+    /**
+     * @param text Text to shorten.
+     * @param limit Max chars.
+     */
+    private static String shorten(String text, int limit) {
+        if (text == null || text.length() <= limit)
+            return text;
+
+        return text.substring(0, Math.max(0, limit - 3)) + "...";
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param buildTypeId Build type id.
+     * @param branchForTc Branch for TC.
+     */
+    private static String reportUrl(String srvId, String buildTypeId, String branchForTc) {
+        return "/pr.html?serverId=" + encodeUrlParam(srvId) +
+            "&suiteId=" + encodeUrlParam(buildTypeId) +
+            "&branchForTc=" + encodeUrlParam(branchForTc) +
+            "&action=Latest";
+    }
+
+    /**
+     * @param val Query parameter value.
+     */
+    private static String encodeUrlParam(@Nullable String val) {
+        try {
+            return URLEncoder.encode(val == null ? "" : val, StandardCharsets.UTF_8.name());
+        }
+        catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** Running visa details. */
+    private static class RunningVisaDetails {
+        /** */
+        private final String progressText;
+
+        /** */
+        @Nullable private final String estimatedCompletion;
+
+        /**
+         * @param progressText Progress text.
+         * @param estimatedCompletion Estimated completion.
+         */
+        private RunningVisaDetails(String progressText, @Nullable String estimatedCompletion) {
+            this.progressText = progressText;
+            this.estimatedCompletion = estimatedCompletion;
+        }
+
+        /** */
+        private String progressText() {
+            return progressText;
+        }
+
+        /** */
+        @Nullable private String estimatedCompletion() {
+            return estimatedCompletion;
+        }
     }
 
     /**
@@ -1619,8 +1838,7 @@ public class TcBotTriggerAndSignOffService {
                     logger.info("JIRA ticket already has TCBot analysis comment [srv={}, ticket={}, build={}, slice={}]",
                         srvCodeOrAlias, ticket, build.getId(), analysisSliceKey);
 
-                    jiraCommentStatus = "JIRA ticket already has a valid TCBot comment for this build: " +
-                        ticketTarget(jira, ticket, null);
+                    jiraCommentStatus = Visa.duplicateCommentSkipped(ticketTarget(jira, ticket, null));
                 }
                 else {
                     String comment = JiraCommentsGenerator.generateJiraComment(jira.config().getApiVersion(), compactor,
@@ -1899,7 +2117,7 @@ public class TcBotTriggerAndSignOffService {
          */
         private static GitHubCommentResult alreadyCommented(String target) {
             return new GitHubCommentResult(true, null,
-                "GitHub PR already has a valid TCBot comment for this build: " + target);
+                Visa.duplicateCommentSkipped(target));
         }
 
         /**

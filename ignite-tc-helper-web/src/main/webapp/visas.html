@@ -88,13 +88,49 @@ $(document).ready(function() {
     $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
 });
 
-function sendCancelRequest(url) {
+function executeCancelRequest(url) {
     $.ajax({
         url: url,
         success: function (result) {
             location.reload();
         },
         error: showErrInLoadStatus
+    });
+}
+
+function confirmCancelVisa(url, branchName) {
+    var dialog = $("#cancelVisaDialog");
+
+    if (dialog.length > 0)
+        dialog.remove();
+
+    dialog = $("<div>", {id: "cancelVisaDialog"});
+    dialog.append($("<p>").text("Cancel the running visa observation?"));
+
+    if (isDefinedAndFilled(branchName))
+        dialog.append($("<p>", {css: {"font-family": "monospace"}}).text(branchName));
+
+    $("body").append(dialog);
+
+    var buttons = {};
+
+    buttons["Cancel visa"] = function () {
+        executeCancelRequest(url);
+        $(this).dialog("close");
+    };
+    buttons["Keep running"] = function () {
+        $(this).dialog("close");
+    };
+
+    openCenteredDialog(dialog, {
+        modal: true,
+        resizable: false,
+        title: "Confirm visa cancellation",
+        width: Math.min(520, $(window).width() - 40),
+        buttons: buttons,
+        close: function () {
+            dialog.remove();
+        }
     });
 }
 
@@ -133,6 +169,36 @@ function ticketPrHtml(row) {
         res.push(linkOrText(row.prUrl, "#" + row.prNum));
 
     return res.join("<br>");
+}
+
+function reportLinkHtml(row, label) {
+    if (!isDefinedAndFilled(row.reportUrl))
+        return "";
+
+    return "<a href='" + escapeHtml(row.reportUrl) + "' target='_blank' rel='noopener noreferrer'>" +
+        escapeHtml(label || "Current bot report") + "</a>";
+}
+
+function branchHtml(row) {
+    var res = escapeHtml(row.branchName || "");
+    var report = reportLinkHtml(row, "Current bot report");
+
+    if (report !== "")
+        res += "<div style='font-size:12px; margin-top:4px'>" + report + "</div>";
+
+    return res;
+}
+
+function dateHtml(row) {
+    var res = escapeHtml(row.date || "");
+
+    if (isDefinedAndFilled(row.cancelUrl) && isDefinedAndFilled(row.requestedAgo))
+        res += "<div style='color:#666; font-size:12px'>requested " + escapeHtml(row.requestedAgo) + "</div>";
+
+    if (isDefinedAndFilled(row.estimatedCompletion))
+        res += "<div style='color:#666; font-size:12px'>ETA " + escapeHtml(row.estimatedCompletion) + "</div>";
+
+    return res;
 }
 
 function optionsHtml(row) {
@@ -196,10 +262,16 @@ function showVisasTable(result) {
                             res += "<div style='color:#666; font-size:12px'>" +
                                 escapeHtml(row.commentStatus) + "</div>";
 
+                        if (isDefinedAndFilled(row.runningProgress))
+                            res += "<div style='color:#666; font-size:12px'>" +
+                                escapeHtml(row.runningProgress) + "</div>";
+
                         res += "</td><td width=\"30%\">";
 
                         if (row.cancelUrl != null)
-                            res += '<button class="more white short" onclick="sendCancelRequest(\'' + row.cancelUrl + '\')">&times</button>';
+                            res += '<button class="more white short" title="Cancel visa" onclick="' +
+                                jsCallAttr("confirmCancelVisa", [row.cancelUrl, row.branchName]) +
+                                '">&times</button>';
 
                         res += "</td></tr>";
                     }
@@ -209,7 +281,10 @@ function showVisasTable(result) {
             },
             {
                 "data": "date",
-                title: "Date"
+                title: "Date",
+                "render": function (data, type, row, meta) {
+                    return type === 'display' ? dateHtml(row) : data;
+                }
             },
             {
                 "data": "userName",
@@ -229,7 +304,10 @@ function showVisasTable(result) {
             },
             {
                 "data": "branchName",
-                title: "Branch"
+                title: "Branch",
+                "render": function (data, type, row, meta) {
+                    return type === 'display' ? branchHtml(row) : data;
+                }
             },
             {
                 "data": "ticket",
