@@ -20,6 +20,8 @@
       "host": "https://ci.ignite.apache.org/",
       /** Downloaded build logs relative path. */
       "logsDir": "apache_logs",
+      /** Page size for TeamCity build history synchronization. Default is 300. */
+      "buildRefsPageSize": 200,
       /** Default tracked branch name in internal identification of TC bot. */
       "defaultTrackedBranch": "master",
       /** Time as auto-triggering build is disabled. ISO time formatting must be used, e.g. 09:00:00. Should be set simultaneusly with autoTriggeringBuildDisabledEndTime. */

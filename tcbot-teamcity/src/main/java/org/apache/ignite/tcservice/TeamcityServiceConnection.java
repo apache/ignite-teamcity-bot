@@ -473,7 +473,7 @@ public class TeamcityServiceConnection implements ITeamcity {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public List<BuildRef> getBuildRefsPage(String fullUrl, AtomicReference<String> outNextPage) {
-        String relPath = "app/rest/latest/builds?locator=defaultFilter:false";
+        String relPath = "app/rest/latest/builds?locator=defaultFilter:false,count:" + buildRefsPageSize();
         String relPathSelected = Strings.isNullOrEmpty(fullUrl) ? relPath : fullUrl;
         String url = host() + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPathSelected);
         Builds builds = sendGetXmlParseJaxb(url, Builds.class);
@@ -481,6 +481,15 @@ public class TeamcityServiceConnection implements ITeamcity {
         outNextPage.set(Strings.emptyToNull(builds.nextHref()));
 
         return builds.getBuildsNonNull();
+    }
+
+    /**
+     * @return Configured build refs page size or default if configuration is absent or invalid.
+     */
+    private int buildRefsPageSize() {
+        int pageSize = config().buildRefsPageSize();
+
+        return pageSize <= 0 ? ITcServerConfig.DEFAULT_BUILD_REFS_PAGE_SIZE : pageSize;
     }
 
     /** {@inheritDoc} */

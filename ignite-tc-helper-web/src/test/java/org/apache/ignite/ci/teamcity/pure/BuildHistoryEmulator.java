@@ -46,7 +46,7 @@ public class BuildHistoryEmulator {
             return null;
 
         int cnt = getIntFromLocator(url, "count:", 100);
-        int start = getIntFromLocator(url, "start:", 100);
+        int start = getIntFromLocator(url, "start:", 0);
 
         int totalBuilds = sharedState.size();
         int totalRemained = totalBuilds - start;

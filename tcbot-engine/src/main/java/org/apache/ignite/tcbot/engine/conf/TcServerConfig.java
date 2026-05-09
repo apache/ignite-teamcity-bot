@@ -52,6 +52,9 @@ public class TcServerConfig implements ITcServerConfig {
     /** Downloaded build logs relative path. */
     @Nullable private String logsDir;
 
+    /** Page size for TeamCity build history synchronization. */
+    @Nullable private Integer buildRefsPageSize;
+
     /** Default tracked branch name in internal identification of TC bot. */
     @Nullable private String defaultTrackedBranch;
 
@@ -111,6 +114,13 @@ public class TcServerConfig implements ITcServerConfig {
         return props != null
             ? props.getProperty(TC_BUILD_LOGS_DIR, dfltLogs)
             : dfltLogs;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int buildRefsPageSize() {
+        return buildRefsPageSize == null || buildRefsPageSize <= 0
+            ? DEFAULT_BUILD_REFS_PAGE_SIZE
+            : buildRefsPageSize;
     }
 
     /**

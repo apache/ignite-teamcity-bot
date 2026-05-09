@@ -31,6 +31,9 @@ public interface ITcServerConfig {
      */
     String DEFAULT_TRACKED_BRANCH_NAME = "master";
 
+    /** Default page size for TeamCity build history synchronization. */
+    int DEFAULT_BUILD_REFS_PAGE_SIZE = 200;
+
     /**
      * @return Another TC Server (service) config name to use settings from. Filled only for server aliases.
      */
@@ -51,6 +54,11 @@ public interface ITcServerConfig {
      * @return Directory for downloading build logs (will contain ZIP files).
      */
     @NonNull String logsDirectory();
+
+    /**
+     * @return Page size for TeamCity build history synchronization.
+     */
+    int buildRefsPageSize();
 
     /**
      * @return internal naming of default tracked branch for this server.
