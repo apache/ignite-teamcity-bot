@@ -656,22 +656,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
     } else {
         let noBuildsHtml = "No builds for " + escapeHtml(suiteIdSelected);
 
-        if (isDefinedAndFilled(status.resolvedBranch)) {
-            let triggerBuildsCall = jsCall("triggerBuilds", [
-                srvId, null, suiteIdSelected, status.resolvedBranch,
-                false, false, jiraOptional, row.prNumber, null, false, "", false, actionUiLinks
-            ]);
-
-            noBuildsHtml += "<br><button onClick='" + jsEventAttr([
-                triggerBuildsCall, jsCall("repaintLater", [srvId])
-            ]) + "'";
-
-            if (hasQueued)
-                noBuildsHtml += " class='disabledbtn' title='" + escapeHtml(queuedStatus) + "'";
-
-            noBuildsHtml += ">Trigger build</button>";
-        }
-        else
+        if (!isDefinedAndFilled(status.resolvedBranch))
             noBuildsHtml += ", please trigger it when branch is resolved";
 
         tdForPr.html(noBuildsHtml);
@@ -716,6 +701,17 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
 
         res += ">Trigger build</button>";
 
+        if (hasJiraIssue) {
+            let trigObserveCall = jsCall("triggerBuilds", [
+                srvId, null, suiteIdSelected, status.resolvedBranch,
+                false, true, jiraOptional, row.prNumber, null, false, "JIRA", false, actionUiLinks
+            ]);
+
+            res += " <button onClick='" + jsEventAttr([trigObserveCall, jsCall("repaintLater", [srvId])]) + "'";
+            res += prepareStatusOfTrigger();
+            res += ">Trigger + JIRA</button>";
+        }
+
         if (row.prNumber > 0) {
             let trigGithubCall = jsCall("triggerBuilds", [
                 srvId, null, suiteIdSelected, status.resolvedBranch,
@@ -724,29 +720,11 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
 
             res += " <button onClick='" + jsEventAttr([trigGithubCall, jsCall("repaintLater", [srvId])]) + "'";
             res += prepareStatusOfTrigger();
-            res += ">Build and Comment GitHub</button>";
+            res += ">Trigger + GitHub</button>";
         }
 
         $("#triggerBuildFor" + prId).html(res);
-    }
-
-    if (isDefinedAndFilled(status.resolvedBranch)) {
-        let buttons = "";
-
-        if (hasJiraIssue) {
-        // triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId)  defined in test fails
-            let trigObserveCall = jsCall("triggerBuilds", [
-                srvId, null, suiteIdSelected, status.resolvedBranch,
-                false, true, jiraOptional, row.prNumber, null, false, "JIRA", false, actionUiLinks
-            ]);
-            buttons += "<button onClick='" + jsEventAttr([trigObserveCall, jsCall("repaintLater", [srvId])]) + "'";
-
-            buttons += prepareStatusOfTrigger();
-
-            buttons += ">Trigger build and comment JIRA after finish</button>";
-        }
-
-        $('#triggerAndObserveBuildFor' + prId).html(buttons);
+        $('#triggerAndObserveBuildFor' + prId).empty();
     }
 
 
