@@ -49,7 +49,9 @@ public class TestFailuresAiPromptBuilderTest {
                 "junit.framework.Assert.fail(Assert.java:57)",
             "java.lang.AssertionError: Partition did not rebalance",
             "Caused by: org.apache.ignite.IgniteCheckedException",
-            "java.lang.OutOfMemoryError"
+            "java.lang.OutOfMemoryError",
+            "ava.lang.IllegalStateException: Getting affinity for too old topology version that is already out of " +
+                "history (try to increase 'IGNITE_AFFINITY_HISTORY_SIZE' system property)"
         ));
 
         assertTrue(regex.contains("IllegalStateException"));
@@ -60,7 +62,30 @@ public class TestFailuresAiPromptBuilderTest {
         assertTrue(regex.contains("IgniteCheckedException"));
         assertTrue(regex.contains("OutOfMemoryError"));
         assertTrue(regex.contains("AssertionError"));
+        assertTrue(regex.contains("Getting affinity for too old topology version"));
+        assertTrue(regex.contains("IGNITE_AFFINITY_HISTORY_SIZE"));
         assertFalse(regex.contains("Test\\.java:42"));
+    }
+
+    @Test
+    public void fastSummaryExtractsThrowableAndNearestProjectFrame() {
+        TestFailuresAiPromptBuilder builder = new TestFailuresAiPromptBuilder(null);
+        String details = "java.lang.IllegalStateException: Getting affinity for too old topology version " +
+            "that is already out of history\n" +
+            "    at org.apache.ignite.internal.processors.cache.GridCacheAffinityManager.cachedAffinity" +
+            "(GridCacheAffinityManager.java:188)\n" +
+            "    at org.apache.ignite.internal.processors.cache.CacheEventWithTxLabelTest.prepareCache" +
+            "(CacheEventWithTxLabelTest.java:402)\n";
+
+        String summary = builder.fastSummary("Cache 4", "master",
+            "Cache 4: org.apache.ignite.internal.processors.cache.CacheEventWithTxLabelTest.testPassTxLabelInCashEventForAllCases",
+            1, details, 341);
+
+        assertTrue(summary.contains("Single test failure in Cache 4 on master."));
+        assertTrue(summary.contains("within ~341 ms"));
+        assertTrue(summary.contains("Exception: IllegalStateException: Getting affinity for too old topology version"));
+        assertTrue(summary.contains("Nearest project frame: CacheEventWithTxLabelTest.prepareCache:402."));
+        assertTrue(summary.contains("Likely area: affinity/topology/cache/near prepareCache."));
     }
 
     @Test

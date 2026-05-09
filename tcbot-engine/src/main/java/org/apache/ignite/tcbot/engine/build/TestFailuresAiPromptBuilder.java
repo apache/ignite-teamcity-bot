@@ -82,11 +82,16 @@ public class TestFailuresAiPromptBuilder {
     /** Java source location in stack trace. */
     private static final Pattern JAVA_SOURCE_LOCATION = Pattern.compile("\\(([^():]+\\.java):(\\d+)\\)");
 
+    /** Java stack frame. */
+    private static final Pattern STACK_FRAME = Pattern.compile(
+        "^\\s*at\\s+((?:[\\w$]+\\.)+)([\\w$]+)\\(([^():]+\\.java):(\\d+)\\)");
+
     /** String compactor. */
     private final IStringCompactor compactor;
 
     /** Prompt section skeleton, ordered by diagnostic value rather than data source shape. */
     private enum Section {
+        FAST_SUMMARY("Fast Summary"),
         FAILURE_SIGNAL("Failure Signal"),
         SUGGESTED_LOCAL_SEARCHES("Suggested Local Searches"),
         HISTORY("History"),
@@ -168,6 +173,7 @@ public class TestFailuresAiPromptBuilder {
         Integer baseBranchId = compactor.getStringIdIfPresent(normalizedBaseBranch);
 
         appendHeader(res);
+        appendChainContext(res, tcIgnited, ctx, normalizedBaseBranch);
 
         AtomicInteger suiteCnt = new AtomicInteger();
         AtomicInteger testCnt = new AtomicInteger();
@@ -185,6 +191,7 @@ public class TestFailuresAiPromptBuilder {
 
         failedSuites.forEach(suite -> {
             suiteCnt.incrementAndGet();
+            appendSuite(res, tcIgnited, suite, baseBranchId);
 
             List<TestCompactedMult> failedTests = suite.getFailedTests()
                 .stream()
@@ -200,8 +207,6 @@ public class TestFailuresAiPromptBuilder {
                 }
             }
         });
-
-        appendChainContext(res, tcIgnited, ctx, normalizedBaseBranch);
 
         appendSection(res, Section.INCLUDED_SCOPE);
         res.append("Failed suites included: ").append(suiteCnt.get()).append('\n');
@@ -361,6 +366,23 @@ public class TestFailuresAiPromptBuilder {
         TestCompactedMult test, @Nullable Integer baseBranchId, int maxDetailsChars) {
         String fullName = test.getName();
         IRunHistory testHist = test.history(tcIgnited, baseBranchId);
+        List<ITest> failedInvocations = test.getInvocationsStream()
+            .filter(Objects::nonNull)
+            .filter(invocation -> invocation.isFailedButNotMuted(compactor))
+            .collect(Collectors.toList());
+        String primaryDetails = failedInvocations.stream()
+            .map(ITest::getDetailsText)
+            .filter(details -> !Strings.isNullOrEmpty(details))
+            .map(this::cleanDetails)
+            .findFirst()
+            .orElse(null);
+        Integer primaryDuration = failedInvocations.stream()
+            .map(ITest::getDuration)
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElse(null);
+
+        appendFastSummary(res, suite, fullName, test.failuresCount(), primaryDetails, primaryDuration);
 
         appendSection(res, Section.FAILURE_SIGNAL);
         appendLine(res, "Full test name", fullName);
@@ -370,13 +392,10 @@ public class TestFailuresAiPromptBuilder {
 
         AtomicInteger invocationIdx = new AtomicInteger();
 
-        test.getInvocationsStream()
-            .filter(Objects::nonNull)
-            .filter(invocation -> invocation.isFailedButNotMuted(compactor))
-            .forEach(invocation -> appendInvocation(res, tcIgnited, suite, invocation, fullName,
+        failedInvocations.forEach(invocation -> appendInvocation(res, tcIgnited, suite, invocation, fullName,
                 invocationIdx.incrementAndGet(), maxDetailsChars));
 
-        appendSuggestedLocalSearches(res, suite, fullName);
+        appendSuggestedLocalSearches(res, suite, fullName, failedInvocations);
 
         if (testHist != null) {
             appendSection(res, Section.HISTORY);
@@ -388,7 +407,6 @@ public class TestFailuresAiPromptBuilder {
         }
 
         appendRelevantLogChecks(res, suite, fullName);
-        appendSuite(res, tcIgnited, suite, baseBranchId);
 
         appendSection(res, Section.TEST_CONTEXT);
         appendLine(res, "Full test name", fullName);
@@ -420,12 +438,10 @@ public class TestFailuresAiPromptBuilder {
         appendProblems(res, suite);
         appendEmptyDetailsDiagnosis(res, suite);
 
-        appendSuggestedLocalSearches(res, suite, suite.suiteName());
+        appendSuggestedLocalSearches(res, suite, suite.suiteName(), Collections.emptyList());
 
         appendSection(res, Section.LOG_CONTEXT);
         appendLogChecks(res, suite);
-
-        appendSuite(res, tcIgnited, suite, baseBranchId);
 
         appendSection(res, Section.TEST_CONTEXT);
         appendLine(res, "Suite id", suite.suiteId());
@@ -497,6 +513,137 @@ public class TestFailuresAiPromptBuilder {
                 res.append("</details>\n");
             }
         }
+    }
+
+    /**
+     * @param res Result builder.
+     * @param suite Suite context.
+     * @param fullName Full TeamCity test name.
+     * @param failuresCnt Failures in loaded context.
+     * @param details Cleaned primary invocation details.
+     * @param duration Primary invocation duration.
+     */
+    private void appendFastSummary(StringBuilder res, MultBuildRunCtx suite, @Nullable String fullName, int failuresCnt,
+        @Nullable String details, @Nullable Integer duration) {
+        appendSection(res, Section.FAST_SUMMARY);
+        res.append(fastSummary(suite.suiteName(), suite.branchName(), fullName, failuresCnt, details, duration));
+        res.append('\n');
+    }
+
+    /**
+     * @param suiteName Suite name.
+     * @param branch Branch.
+     * @param fullName Full TeamCity test name.
+     * @param failuresCnt Failures in loaded context.
+     * @param details Cleaned primary invocation details.
+     * @param duration Primary invocation duration.
+     * @return Compact diagnosis-first summary.
+     */
+    String fastSummary(@Nullable String suiteName, @Nullable String branch, @Nullable String fullName, int failuresCnt,
+        @Nullable String details, @Nullable Integer duration) {
+        StringBuilder res = new StringBuilder();
+        ThrowableSignal throwable = firstThrowableSignal(details);
+        StackFrame nearestFrame = nearestProjectFrame(details, simpleClassName(testCasePart(fullName)));
+
+        res.append(failuresCnt <= 1 ? "Single test failure" : failuresCnt + " test failures");
+        res.append(" in ").append(nullToUnknown(suiteName));
+        res.append(" on ").append(nullToUnknown(branch)).append(".\n");
+
+        if (duration != null)
+            res.append("Failure happens quickly, within ~").append(duration).append(" ms.\n");
+
+        if (throwable != null) {
+            res.append("Exception: ").append(throwable.cls);
+
+            if (!Strings.isNullOrEmpty(throwable.msg))
+                res.append(": ").append(throwable.msg);
+
+            res.append(".\n");
+        }
+
+        if (nearestFrame != null)
+            res.append("Nearest project frame: ").append(nearestFrame.shortLocation()).append(".\n");
+
+        String likelyArea = likelyArea(details, nearestFrame);
+
+        if (!Strings.isNullOrEmpty(likelyArea))
+            res.append("Likely area: ").append(likelyArea).append(".\n");
+
+        return res.toString();
+    }
+
+    /**
+     * @param details Cleaned TeamCity details.
+     * @return First throwable signal.
+     */
+    @Nullable private ThrowableSignal firstThrowableSignal(@Nullable String details) {
+        if (Strings.isNullOrEmpty(details))
+            return null;
+
+        Matcher matcher = THROWABLE_SIGNAL.matcher(details);
+
+        if (!matcher.find())
+            return null;
+
+        return new ThrowableSignal(simpleThrowableName(matcher.group(1)), normalizeSearchMessage(matcher.group(2)));
+    }
+
+    /**
+     * @param details Cleaned TeamCity details.
+     * @param preferredClass Preferred test class.
+     * @return Nearest project stack frame.
+     */
+    @Nullable private StackFrame nearestProjectFrame(@Nullable String details, @Nullable String preferredClass) {
+        if (Strings.isNullOrEmpty(details))
+            return null;
+
+        StackFrame firstIgniteFrame = null;
+
+        for (String line : details.split("\\r?\\n")) {
+            Matcher matcher = STACK_FRAME.matcher(line);
+
+            if (!matcher.find())
+                continue;
+
+            StackFrame frame = new StackFrame(matcher.group(1), matcher.group(2), matcher.group(3), matcher.group(4));
+
+            if (!Strings.isNullOrEmpty(preferredClass) && frame.owner.contains("." + preferredClass + "."))
+                return frame;
+
+            if (firstIgniteFrame == null && frame.owner.startsWith("org.apache.ignite."))
+                firstIgniteFrame = frame;
+        }
+
+        return firstIgniteFrame;
+    }
+
+    /**
+     * @param details Cleaned TeamCity details.
+     * @param nearestFrame Nearest project frame.
+     * @return Likely area summary.
+     */
+    @Nullable private String likelyArea(@Nullable String details, @Nullable StackFrame nearestFrame) {
+        if (Strings.isNullOrEmpty(details) && nearestFrame == null)
+            return null;
+
+        String lower = Strings.nullToEmpty(details).toLowerCase();
+        List<String> terms = new ArrayList<>();
+
+        if (lower.contains("affinity"))
+            terms.add("affinity");
+        if (lower.contains("topology"))
+            terms.add("topology");
+        if (lower.contains("exchange"))
+            terms.add("exchange");
+        if (lower.contains("partition"))
+            terms.add("partition");
+        if (lower.contains("cache"))
+            terms.add("cache");
+
+        if (nearestFrame != null && !Strings.isNullOrEmpty(nearestFrame.method))
+            terms.add("near " + nearestFrame.method);
+
+        return terms.isEmpty() ? null : terms.stream().distinct().collect(Collectors.joining("/"));
     }
 
     /**
@@ -630,26 +777,45 @@ public class TestFailuresAiPromptBuilder {
      * @param suite Suite context.
      * @param fullName Full TeamCity test name.
      */
-    private void appendSuggestedLocalSearches(StringBuilder res, MultBuildRunCtx suite, @Nullable String fullName) {
+    private void appendSuggestedLocalSearches(StringBuilder res, MultBuildRunCtx suite, @Nullable String fullName,
+        List<ITest> failedInvocations) {
         Set<String> commands = new LinkedHashSet<>();
+        String testCase = testCasePart(fullName);
+        String className = simpleClassName(testCase);
+        String methodName = methodName(testCase);
+        List<String> details = failedInvocations.stream()
+            .map(ITest::getDetailsText)
+            .filter(detail -> !Strings.isNullOrEmpty(detail))
+            .map(this::cleanDetails)
+            .collect(Collectors.toList());
+        StackFrame nearestFrame = details.stream()
+            .map(detail -> nearestProjectFrame(detail, className))
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElse(null);
 
-        String testRegex = testSearchRegex(fullName);
+        String firstSearchRegex = joinRegex(methodName, nearestFrame == null ? null : nearestFrame.method);
 
-        if (!Strings.isNullOrEmpty(testRegex))
-            addSearch(commands, testRegex, ".");
+        if (!Strings.isNullOrEmpty(firstSearchRegex))
+            addSearch(commands, firstSearchRegex, "modules");
+
+        if (!Strings.isNullOrEmpty(className))
+            addSearch(commands, escapeRgTerm(className), "modules");
 
         List<String> warns = suite.getLogsCheckResults()
             .flatMap(map -> map.entrySet().stream())
             .filter(entry -> entry.getValue() != null)
             .flatMap(entry -> entry.getValue().getWarns().stream())
             .collect(Collectors.toList());
+        List<String> searchSources = new ArrayList<>(warns);
+        searchSources.addAll(details);
 
-        String logRegex = logSearchRegex(warns);
+        String logRegex = logSearchRegex(searchSources);
 
         if (!Strings.isNullOrEmpty(logRegex))
-            addSearch(commands, logRegex, ".");
+            addSearch(commands, logRegex, "modules");
 
-        String className = simpleClassName(testCasePart(fullName));
+        stackSearchTerms(details).forEach(term -> addSearch(commands, escapeRgTerm(term), searchPathForStackTerm(term)));
 
         if (!Strings.isNullOrEmpty(className) && warns.stream().anyMatch(warn -> warn.contains("AssertionError")))
             addSearch(commands, escapeRgTerm(className) + "|AssertionError", "modules");
@@ -709,6 +875,20 @@ public class TestFailuresAiPromptBuilder {
     }
 
     /**
+     * @param terms Plain terms.
+     * @return Regex.
+     */
+    @Nullable private String joinRegex(@Nullable String... terms) {
+        String regex = java.util.Arrays.stream(terms)
+            .filter(term -> !Strings.isNullOrEmpty(term))
+            .distinct()
+            .map(this::escapeRgTerm)
+            .collect(Collectors.joining("|"));
+
+        return Strings.isNullOrEmpty(regex) ? null : regex;
+    }
+
+    /**
      * @param warns Log scanner messages from the current compacted API.
      * @return Throwable class names and messages worth searching in the checkout.
      */
@@ -735,6 +915,61 @@ public class TestFailuresAiPromptBuilder {
         }
 
         return new ArrayList<>(terms);
+    }
+
+    /**
+     * @param details Cleaned TeamCity details.
+     * @return Stack/search terms likely useful in local checkout.
+     */
+    private List<String> stackSearchTerms(List<String> details) {
+        Set<String> terms = new LinkedHashSet<>();
+
+        for (String detail : details) {
+            if (Strings.isNullOrEmpty(detail))
+                continue;
+
+            for (String line : detail.split("\\r?\\n")) {
+                Matcher matcher = STACK_FRAME.matcher(line);
+
+                if (!matcher.find())
+                    continue;
+
+                String owner = matcher.group(1);
+                String method = matcher.group(2);
+
+                if (isInterestingStackMethod(owner, method))
+                    terms.add(method);
+            }
+        }
+
+        return terms.stream().limit(3).collect(Collectors.toList());
+    }
+
+    /**
+     * @param owner Class owner.
+     * @param method Method.
+     * @return {@code true} if method is useful for search.
+     */
+    private boolean isInterestingStackMethod(String owner, String method) {
+        String lower = owner.toLowerCase() + method.toLowerCase();
+
+        return lower.contains("affinity")
+            || lower.contains("exchange")
+            || lower.contains("topology")
+            || lower.contains("partition")
+            || lower.contains("cache")
+            || method.startsWith("await");
+    }
+
+    /**
+     * @param term Search term.
+     * @return Search path.
+     */
+    private String searchPathForStackTerm(String term) {
+        if (term.startsWith("await"))
+            return "modules/core/src/test modules/core/src/main";
+
+        return "modules/core/src/main modules/core/src/test";
     }
 
     /**
@@ -1362,6 +1597,61 @@ public class TestFailuresAiPromptBuilder {
         private BuildBoundary(Invocation lastOk, Invocation firstBadAfterOk) {
             this.lastOk = lastOk;
             this.firstBadAfterOk = firstBadAfterOk;
+        }
+    }
+
+    /** Throwable search signal. */
+    private static class ThrowableSignal {
+        /** Throwable class. */
+        private final String cls;
+
+        /** Throwable message. */
+        private final String msg;
+
+        /**
+         * @param cls Throwable class.
+         * @param msg Throwable message.
+         */
+        private ThrowableSignal(@Nullable String cls, @Nullable String msg) {
+            this.cls = Strings.nullToEmpty(cls);
+            this.msg = msg;
+        }
+    }
+
+    /** Stack frame signal. */
+    private static class StackFrame {
+        /** Owner prefix ending with dot. */
+        private final String owner;
+
+        /** Method. */
+        private final String method;
+
+        /** File. */
+        private final String file;
+
+        /** Line. */
+        private final String line;
+
+        /**
+         * @param owner Owner.
+         * @param method Method.
+         * @param file File.
+         * @param line Line.
+         */
+        private StackFrame(String owner, String method, String file, String line) {
+            this.owner = owner;
+            this.method = method;
+            this.file = file;
+            this.line = line;
+        }
+
+        /** @return Short location. */
+        private String shortLocation() {
+            String ownerNoDot = owner.endsWith(".") ? owner.substring(0, owner.length() - 1) : owner;
+            int clsSep = ownerNoDot.lastIndexOf('.');
+            String cls = clsSep >= 0 ? ownerNoDot.substring(clsSep + 1) : ownerNoDot;
+
+            return cls + "." + method + ":" + line;
         }
     }
 }
