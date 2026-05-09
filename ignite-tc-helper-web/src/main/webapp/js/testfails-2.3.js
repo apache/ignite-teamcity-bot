@@ -491,8 +491,69 @@ function selectCommentTargets(defaultTargets, onSelected) {
     });
 }
 
+var TCBOT_TRIGGER_PREF_KEY = "tcbot.trigger.options";
+var TCBOT_COMMENT_PREF_KEY = "tcbot.comment.options";
+
+function loadStoredJson(key) {
+    try {
+        var raw = window.localStorage.getItem(key);
+
+        return isDefinedAndFilled(raw) ? JSON.parse(raw) : {};
+    }
+    catch (e) {
+        return {};
+    }
+}
+
+function saveStoredJson(key, value) {
+    try {
+        window.localStorage.setItem(key, JSON.stringify(value));
+    }
+    catch (e) {
+        // Ignore unavailable storage; action defaults still work.
+    }
+}
+
+function loadCommentPreferences(defaultTargets, defaultCommentOnlyIfNoBlockers) {
+    var prefs = loadStoredJson(TCBOT_COMMENT_PREF_KEY);
+    var targets = isDefinedAndFilled(prefs.targets) ? prefs.targets : defaultTargets;
+    var policy = isDefinedAndFilled(prefs.policy) ? prefs.policy :
+        (defaultCommentOnlyIfNoBlockers ? "clean" : "always");
+
+    return {
+        targets: isDefinedAndFilled(targets) ? targets : "",
+        commentOnlyIfNoBlockers: policy === "clean"
+    };
+}
+
+function saveCommentPreferences(targets, commentOnlyIfNoBlockers) {
+    saveStoredJson(TCBOT_COMMENT_PREF_KEY, {
+        targets: isDefinedAndFilled(targets) ? targets : "",
+        policy: commentOnlyIfNoBlockers ? "clean" : "always"
+    });
+}
+
+function loadTriggerPreferences(queueAtTop, cleanRebuild) {
+    var prefs = loadStoredJson(TCBOT_TRIGGER_PREF_KEY);
+
+    return {
+        queueAtTop: typeof prefs.queueAtTop === "boolean" ? prefs.queueAtTop : queueAtTop,
+        cleanRebuild: typeof prefs.cleanRebuild === "boolean" ? prefs.cleanRebuild : cleanRebuild
+    };
+}
+
+function saveTriggerPreferences(queueAtTop, cleanRebuild) {
+    saveStoredJson(TCBOT_TRIGGER_PREF_KEY, {
+        queueAtTop: queueAtTop,
+        cleanRebuild: cleanRebuild
+    });
+}
+
 function selectCommentOptions(defaultTargets, options, onSelected) {
-    var targets = defaultTargets !== null && typeof defaultTargets !== "undefined" ? defaultTargets : "JIRA";
+    var commentPrefs = loadCommentPreferences(
+        defaultTargets !== null && typeof defaultTargets !== "undefined" ? defaultTargets : "JIRA",
+        false);
+    var targets = commentPrefs.targets;
     var hasJira = targets.indexOf("JIRA") !== -1;
     var hasGithub = targets.indexOf("GITHUB") !== -1;
     var dialog = ensureActionDialog("triggerConfirm", "Comment targets");
@@ -510,7 +571,8 @@ function selectCommentOptions(defaultTargets, options, onSelected) {
         "<label><input type='checkbox' id='commentTargetGithub' " + (hasGithub ? "checked" : "") + "> GitHub PR" +
         prLink + "</label>" +
         (showOnlyNoBlockers
-            ? "<br><label><input type='checkbox' id='commentOnlyIfNoBlockers'> Comment only if no blockers</label>"
+            ? "<br><label><input type='checkbox' id='commentOnlyIfNoBlockers' " +
+            (commentPrefs.commentOnlyIfNoBlockers ? "checked" : "") + "> Comment only if no blockers</label>"
             : "")
     );
 
@@ -529,6 +591,8 @@ function selectCommentOptions(defaultTargets, options, onSelected) {
 
                 var commentOnlyIfNoBlockers = showOnlyNoBlockers &&
                     $("#commentOnlyIfNoBlockers").prop("checked");
+
+                saveCommentPreferences(selected.join(","), commentOnlyIfNoBlockers);
 
                 $(this).dialog("close");
                 onSelected(selected.join(","), commentOnlyIfNoBlockers);
@@ -552,6 +616,9 @@ function triggerBuildsWithCommentOptions(tcServerCode, parentSuiteId, suiteIdLis
 function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top, observe, ticketId, prNum, baseBranchForTc,
     cleanRebuild=false, commentTargets, commentOnlyIfNoBlockers=false, uiOptions) {
     var queueAtTop = isDefinedAndFilled(top) && top;
+    var triggerPrefs = loadTriggerPreferences(queueAtTop, cleanRebuild);
+    queueAtTop = triggerPrefs.queueAtTop;
+    cleanRebuild = triggerPrefs.cleanRebuild;
     var observeJira = isDefinedAndFilled(observe) && observe;
     var suiteIdsNotExists = !isDefinedAndFilled(suiteIdList) || suiteIdList.length === 0;
     var branchNotExists = !isDefinedAndFilled(branchName) || branchName.length === 0;
@@ -646,10 +713,15 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
     function showTriggerStagesDialog() {
         var defaultTargets = isDefinedAndFilled(commentTargets)
             ? commentTargets : (observeJira ? "JIRA" : "");
-        var hasJira = defaultTargets.indexOf("JIRA") !== -1;
-        var hasGithub = defaultTargets.indexOf("GITHUB") !== -1;
         var opts = uiOptions || {};
         var showCommentOptions = opts.showCommentOptions || observeJira || isDefinedAndFilled(commentTargets);
+        var commentPrefs = showCommentOptions
+            ? loadCommentPreferences(defaultTargets, commentOnlyIfNoBlockers)
+            : {targets: defaultTargets, commentOnlyIfNoBlockers: commentOnlyIfNoBlockers};
+        defaultTargets = commentPrefs.targets;
+        commentOnlyIfNoBlockers = commentPrefs.commentOnlyIfNoBlockers;
+        var hasJira = defaultTargets.indexOf("JIRA") !== -1;
+        var hasGithub = defaultTargets.indexOf("GITHUB") !== -1;
         var commentPolicyHint = opts.commentPolicyHint
             ? "<div style='margin-top:8px; color:#666; font-size:12px'>" +
             escapeHtml(opts.commentPolicyHint) + "</div>"
@@ -693,11 +765,13 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
                 "Run": function () {
                     queueAtTop = triggerConfirm.find("#stageQueueAtTop").prop("checked");
                     cleanRebuild = triggerConfirm.find("#stageCleanRebuild").prop("checked");
+                    saveTriggerPreferences(queueAtTop, cleanRebuild);
 
                     if (showCommentOptions) {
                         commentTargets = collectStageCommentTargets(triggerConfirm);
                         commentOnlyIfNoBlockers = isDefinedAndFilled(commentTargets) &&
                             triggerConfirm.find("input[name='stageCommentPolicy']:checked").val() === "clean";
+                        saveCommentPreferences(commentTargets, commentOnlyIfNoBlockers);
                         observeJira = isDefinedAndFilled(commentTargets);
                     }
                     else {
@@ -857,7 +931,11 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
 
     function showCommentStagesDialog() {
         var dialog = ensureActionDialog("triggerDialog", "Post comment");
-        var defaultTargets = isDefinedAndFilled(commentTargets) ? commentTargets : "JIRA";
+        var commentPrefs = loadCommentPreferences(
+            isDefinedAndFilled(commentTargets) ? commentTargets : "JIRA",
+            commentOnlyIfNoBlockers);
+        var defaultTargets = commentPrefs.targets;
+        commentOnlyIfNoBlockers = commentPrefs.commentOnlyIfNoBlockers;
         var opts = uiOptions || {};
 
         dialog.html(
@@ -899,6 +977,7 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
                     }
 
                     commentOnlyIfNoBlockers = dialog.find("input[name='stageCommentPolicy']:checked").val() === "clean";
+                    saveCommentPreferences(commentTargets, commentOnlyIfNoBlockers);
                     showCommentProcessDialog(dialog);
                     appendActionStage(dialog, "Options selected.");
                     appendActionStage(dialog, "Will comment " + commentTargetsLabel(commentTargets) +

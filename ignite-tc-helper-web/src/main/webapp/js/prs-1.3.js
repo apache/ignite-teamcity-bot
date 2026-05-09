@@ -17,15 +17,40 @@
 const prReportDefaultSuites = new Map();
 const contributionsByServer = new Map();
 const myGithubLoginsByServer = new Map();
+const ONLY_MY_PRS_STORAGE_PREFIX = "tcbot.prs.onlyMyPrs.";
+
+function onlyMyPrsStorageKey(srvId) {
+    return ONLY_MY_PRS_STORAGE_PREFIX + srvId;
+}
+
+function loadOnlyMyPrsPreference(srvId) {
+    try {
+        return window.localStorage.getItem(onlyMyPrsStorageKey(srvId)) === "true";
+    }
+    catch (e) {
+        return false;
+    }
+}
+
+function saveOnlyMyPrsPreference(srvId, value) {
+    try {
+        window.localStorage.setItem(onlyMyPrsStorageKey(srvId), value ? "true" : "false");
+    }
+    catch (e) {
+        // Ignore unavailable storage; page filtering still works for this session.
+    }
+}
 
 function drawTable(srvId, element) {
     let tableId = "serverContributions-" + srvId;
+    let onlyMyPrsChecked = loadOnlyMyPrsPreference(srvId);
 
     element.append("<div id='contributionsActions-" + srvId + "' align='right' " +
         "style='margin-right:50px; display:flex; justify-content:flex-end; gap:4px; align-items:center'>" +
         "<label id='onlyMyPrsBlock-" + srvId + "' style='display:none' " +
         "title='Show only PRs whose cached GitHub author matches your bot profile by email or configured GitHub IDs'>" +
-        "<input id='onlyMyPrs-" + srvId + "' type='checkbox'> Only my PRs</label>" +
+        "<input id='onlyMyPrs-" + srvId + "' type='checkbox' " +
+        (onlyMyPrsChecked ? "checked" : "") + "> Only my PRs</label>" +
         "<button id='refreshContributions-" + srvId + "' type='button' title='Load current PR data from GitHub now'>" +
         "Refresh now</button>" +
         "<span id='expandAllButton-" + srvId + "'></span>" +
@@ -50,6 +75,7 @@ function drawTable(srvId, element) {
     });
 
     $("#onlyMyPrs-" + srvId).on("change", function () {
+        saveOnlyMyPrsPreference(srvId, $(this).prop("checked"));
         renderContributionsTable(srvId, "");
     });
 }
