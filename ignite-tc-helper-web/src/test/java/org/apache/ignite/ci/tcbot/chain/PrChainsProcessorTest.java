@@ -33,6 +33,7 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.tcignited.build.TestCompactedV2;
+import org.apache.ignite.tcignited.buildlog.IBuildLogProcessor;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcservice.model.conf.BuildType;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
@@ -54,7 +55,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 /**
  * Unit test for {@link PrChainsProcessor} and blockers detection. Emulates builds using Mockito. Does not start an
@@ -183,6 +190,27 @@ public class PrChainsProcessorTest {
         Optional<ShortSuiteUi> suiteOpt = blockers.stream().filter(containsTestFail(name)).findAny();
 
         return suiteOpt.flatMap(suite -> suite.testFailures().stream().filter(tf -> name.equals(tf.name)).findAny());
+    }
+
+    @Test
+    public void aiPromptNoWaitUsesCachedLogAnalysisOnly() {
+        IStringCompactor c = injector.getInstance(IStringCompactor.class);
+        IBuildLogProcessor logProcessor = injector.getInstance(IBuildLogProcessor.class);
+
+        final String btId = "RunAll";
+        final String branch = "ignite-ai-prompt";
+
+        initBuildChain(c, btId, branch);
+
+        PrChainsProcessor prcp = injector.getInstance(PrChainsProcessor.class);
+
+        String prompt = prcp.getPrFailuresAiPrompt(mock(ITcBotUserCreds.class),
+            SRV_ID, btId, branch, null, 1, null, 1024, null, null, false);
+
+        assertTrue(prompt.contains("AI Prompt"));
+
+        verify(logProcessor, atLeastOnce()).getCachedBuildLogAnalysis(any(), anyInt());
+        verify(logProcessor, never()).analyzeBuildLog(any(), anyInt(), anyBoolean());
     }
 
     /**

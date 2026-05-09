@@ -47,6 +47,9 @@ import org.apache.ignite.tcservice.ITeamcity;
  * Displays single build at server by ID.
  */
 public class SingleBuildResultsService {
+    /** Max time to wait for fresh AI prompt build context. */
+    private static final long AI_PROMPT_CONTEXT_WAIT_MS = TimeUnit.MINUTES.toMillis(1);
+
     @Inject BuildChainProcessor buildChainProcessor;
     @Inject ITeamcityIgnitedProvider tcIgnitedProv;
     @Inject BranchEquivalence branchEquivalence;
@@ -154,18 +157,19 @@ public class SingleBuildResultsService {
         Future<FullChainRunCtx> live = null;
 
         try {
-            aiPromptMonitor.stage(reqId, "trying fresh context for up to 1s");
+            aiPromptMonitor.stage(reqId, "loading fresh build context from TeamCity for up to "
+                + TimeUnit.MILLISECONDS.toSeconds(AI_PROMPT_CONTEXT_WAIT_MS) + "s");
 
             live = tcUpdatePool.getService().submit(() ->
-                loadSingleBuildContext(srvCodeOrAlias, buildId, null, liveSyncMode, prov, ProcessLogsMode.CACHED_ONLY));
+                loadSingleBuildContext(srvCodeOrAlias, buildId, null, liveSyncMode, prov, ProcessLogsMode.ALL));
 
-            return live.get(1, TimeUnit.SECONDS);
+            return live.get(AI_PROMPT_CONTEXT_WAIT_MS, TimeUnit.MILLISECONDS);
         }
         catch (TimeoutException e) {
             if (live != null)
                 live.cancel(true);
 
-            aiPromptMonitor.stage(reqId, "fresh context timed out, using stale cache");
+            aiPromptMonitor.stage(reqId, "fresh TeamCity reload timed out, loading best-effort cached context");
         }
         catch (InterruptedException e) {
             if (live != null)
@@ -178,7 +182,8 @@ public class SingleBuildResultsService {
             throw new IllegalStateException("Interrupted while loading fresh TeamCity context", e);
         }
         catch (Exception e) {
-            aiPromptMonitor.stage(reqId, "fresh context failed, using stale cache: " + e.getMessage());
+            aiPromptMonitor.stage(reqId, "fresh TeamCity reload failed, loading best-effort cached context: "
+                + e.getMessage());
         }
 
         return loadSingleBuildContext(srvCodeOrAlias, buildId, null, SyncMode.NONE, prov, ProcessLogsMode.CACHED_ONLY);

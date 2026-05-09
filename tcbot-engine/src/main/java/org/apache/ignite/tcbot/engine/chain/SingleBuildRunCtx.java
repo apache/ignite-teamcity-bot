@@ -29,6 +29,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
@@ -132,6 +134,44 @@ public class SingleBuildRunCtx implements ISuiteResults {
 
     public void setLogCheckResFut(CompletableFuture<ILogCheckResult> logCheckResFut) {
         this.logCheckResFut = logCheckResFut;
+    }
+
+    /** @return {@code True} if build log analysis was requested for this build. */
+    public boolean hasLogCheckStarted() {
+        return logCheckResFut != null;
+    }
+
+    /** @return {@code True} if build log analysis is still running. */
+    public boolean hasPendingLogCheck() {
+        return logCheckResFut != null && !logCheckResFut.isDone() && !logCheckResFut.isCancelled();
+    }
+
+    /**
+     * Waits for build log analysis to finish.
+     *
+     * @param timeoutMs Timeout in milliseconds.
+     * @return {@code True} if no log analysis was requested or it finished before the timeout.
+     */
+    public boolean awaitLogCheck(long timeoutMs) {
+        if (logCheckResFut == null || logCheckResFut.isDone() || logCheckResFut.isCancelled())
+            return true;
+
+        try {
+            logCheckResFut.get(Math.max(timeoutMs, 1), TimeUnit.MILLISECONDS);
+
+            return true;
+        }
+        catch (TimeoutException e) {
+            return false;
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+
+            return false;
+        }
+        catch (Exception e) {
+            return true;
+        }
     }
 
     @Nullable public String getCriticalFailLastStartedTest() {
