@@ -68,15 +68,19 @@
             gap: 12px;
         }
 
-        .guard-section-title label {
+        .guard-section-note {
+            align-items: center;
+            color: #666;
+            display: flex;
+            gap: 12px;
+            font-size: 12px;
+        }
+
+        .guard-section-note label {
             color: #333;
             font-size: 13px;
             font-weight: 400;
-        }
-
-        .guard-section-note {
-            color: #666;
-            font-size: 12px;
+            white-space: nowrap;
         }
 
         .guard-table {
@@ -168,6 +172,21 @@
             color: #fff;
         }
 
+        .guard-report-action-muted,
+        .guard-report-action-muted:link,
+        .guard-report-action-muted:visited {
+            background: #f2f2f2;
+            border-color: #b8b8b8;
+            color: #333;
+        }
+
+        .guard-report-action-muted:hover,
+        .guard-report-action-muted:active {
+            background: #e6e6e6;
+            border-color: #999;
+            color: #000;
+        }
+
         .guard-report-branch {
             font-family: Consolas, "Lucida Console", monospace;
             font-size: 12px;
@@ -214,6 +233,11 @@
 
         .guard-stat-bad {
             color: #8b0000;
+            font-weight: 700;
+        }
+
+        .guard-stat-warn {
+            color: #8a5a00;
             font-weight: 700;
         }
 
@@ -275,17 +299,21 @@ $(document).ready(function() {
 var runningVisasRefreshText = "";
 var runningVisasRefreshPollStop = null;
 var currentRunningVisas = [];
+var currentRecentVisaResults = [];
 var runningVisasLoaded = false;
 var myGithubLogins = new Set();
 const ONLY_MY_RUNNING_PRS_STORAGE_KEY = "tcbot.guard.runningVisas.onlyMyPrs";
 const ONLY_MY_PRS_SHARED_STORAGE_KEY = "tcbot.prs.onlyMyPrs";
 const ONLY_MY_PRS_STORAGE_PREFIX = "tcbot.prs.onlyMyPrs.";
+const ONLY_MY_VISAS_LEGACY_STORAGE_KEY = "tcbot.visas.onlyMyPrs";
+const RECENT_VISA_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
 
 function loadData() {
     $("#loadStatus").html("&#8987; Please wait");
 
     loadGithubResolutionForRunningVisas();
     loadRunningVisas(true);
+    loadRecentVisaResults();
 
     $.ajax({
         url: "rest/branches/version",
@@ -354,12 +382,16 @@ function loadGithubResolutionForRunningVisas() {
 
             if (runningVisasLoaded)
                 showRunningVisas(currentRunningVisas);
+
+            showRecentVisaResults(currentRecentVisaResults);
         },
         error: function() {
             myGithubLogins = new Set();
 
             if (runningVisasLoaded)
                 showRunningVisas(currentRunningVisas);
+
+            showRecentVisaResults(currentRecentVisaResults);
         }
     });
 }
@@ -371,11 +403,6 @@ function loadOnlyMyRunningPrsPreference() {
         if (shared !== null)
             return shared === "true";
 
-        var own = window.localStorage.getItem(ONLY_MY_RUNNING_PRS_STORAGE_KEY);
-
-        if (own !== null)
-            return own === "true";
-
         for (var i = 0; i < window.localStorage.length; i++) {
             var key = window.localStorage.key(i);
 
@@ -383,6 +410,12 @@ function loadOnlyMyRunningPrsPreference() {
                 window.localStorage.getItem(key) === "true")
                 return true;
         }
+
+        if (window.localStorage.getItem(ONLY_MY_VISAS_LEGACY_STORAGE_KEY) === "true")
+            return true;
+
+        if (window.localStorage.getItem(ONLY_MY_RUNNING_PRS_STORAGE_KEY) === "true")
+            return true;
 
         return false;
     }
@@ -423,7 +456,8 @@ function runningVisasOnlyMineHtml() {
         escapeHtml(Array.from(myGithubLogins).join(", ")) + "'>" +
         "<input id='onlyMyRunningPrs' type='checkbox' " +
         (loadOnlyMyRunningPrsPreference() ? "checked" : "") +
-        " onchange='saveOnlyMyRunningPrsPreference(); showRunningVisas(currentRunningVisas)'> Only my PRs</label>";
+        " onchange='saveOnlyMyRunningPrsPreference(); showRunningVisas(currentRunningVisas); " +
+        "showRecentVisaResults(currentRecentVisaResults)'> Only my PRs</label>";
 }
 
 function pollRunningVisasRefresh(processId) {
@@ -437,8 +471,10 @@ function pollRunningVisasRefresh(processId) {
         runningVisasRefreshText = botProcessStatusText(status);
         $("#runningVisasRefreshStatus").text(runningVisasRefreshText);
 
-        if (status.running === false)
+        if (status.running === false) {
             loadRunningVisas(false);
+            loadRecentVisaResults();
+        }
     }, {
         intervalMs: 2000,
         skipUnknown: false
@@ -481,7 +517,10 @@ function runningVisaBranchHtml(row) {
     var res = "";
 
     if (report !== "") {
-        res += "<a class='guard-report-action' href='" + escapeHtml(row.reportUrl) +
+        var cls = visaReachedResult(row) ? "guard-report-action" :
+            "guard-report-action guard-report-action-muted";
+
+        res += "<a class='" + cls + "' href='" + escapeHtml(row.reportUrl) +
             "' target='_blank' rel='noopener noreferrer'>" +
             "<span class='guard-report-branch'>" + escapeHtml(row.branchName || "") + "</span>" +
             "<span>Current report</span></a>";
@@ -525,11 +564,42 @@ function checkAroundHtml(row) {
     return "<span class='guard-stat-muted'>" + escapeHtml(row.estimatedCompletion) + "</span>";
 }
 
-function guardSection(title, note, body, titleControls) {
+function visaResultTextHtml(row) {
+    var status = row.status || "";
+    var cls = "guard-stat-muted";
+
+    if (status === "finished")
+        cls = "guard-stat-ok";
+    else if (status === "skipped")
+        cls = "guard-stat-warn";
+    else if (status === "cancelled")
+        cls = "guard-stat-bad";
+
+    var res = "<span class='" + cls + "'>" + escapeHtml(status) + "</span>";
+
+    if (isDefinedAndFilled(row.commentStatus))
+        res += "<div class='guard-meta'>" + escapeHtml(row.commentStatus) + "</div>";
+
+    return res;
+}
+
+function visaReachedResult(row) {
+    return isDefinedAndFilled(row) && (row.status === "finished" || row.status === "skipped");
+}
+
+function guardSection(title, note, body, headerControls) {
+    var noteHtml = "";
+
+    if (headerControls)
+        noteHtml += "<span class='guard-section-controls'>" + headerControls + "</span>";
+
+    if (note)
+        noteHtml += "<span>" + escapeHtml(note) + "</span>";
+
     return "<div class='guard-section'>" +
         "<div class='guard-section-header'>" +
-        "<div class='guard-section-title'>" + escapeHtml(title) + (titleControls || "") + "</div>" +
-        "<div class='guard-section-note'>" + escapeHtml(note || "") + "</div>" +
+        "<div class='guard-section-title'>" + escapeHtml(title) + "</div>" +
+        "<div class='guard-section-note'>" + noteHtml + "</div>" +
         "</div>" + body + "</div>";
 }
 
@@ -661,6 +731,68 @@ function runningVisasRefreshHtml() {
         escapeHtml(runningVisasRefreshText || "Showing cached bot data.") + "</div>";
 }
 
+function loadRecentVisaResults() {
+    $("#recentVisaResultsStatus").html("Loading recent visa results...");
+
+    $.ajax({
+        url: "rest/visa/history?limit=20",
+        success: function(result) {
+            currentRecentVisaResults = result || [];
+            showRecentVisaResults(currentRecentVisaResults);
+        },
+        error: function(jqXHR, exception) {
+            $("#recentVisaResultsStatus").text("Recent visa results are unavailable.");
+            showErrInLoadStatus(jqXHR, exception);
+        }
+    });
+}
+
+function filteredRecentVisaResults(result) {
+    var rows = (result || []).filter(function(row) {
+        return row.status !== "running" && row.wasEverObserved === true &&
+            row.requestedAgeMs <= RECENT_VISA_MAX_AGE_MS;
+    });
+
+    if (loadOnlyMyRunningPrsPreference() && myGithubLogins.size > 0)
+        rows = rows.filter(isMyGithubRunningVisa);
+
+    return rows.slice(0, 5);
+}
+
+function showRecentVisaResults(result) {
+    var rows = filteredRecentVisaResults(result);
+
+    if (!isDefinedAndFilled(rows) || rows.length === 0) {
+        $("#recentVisaResultsStatus").html(guardSection("Recent visa results", "",
+            "<div class='guard-empty'>No recent finished visas.</div>"));
+
+        return;
+    }
+
+    var res = "<table class='guard-table'>";
+    res += "<tr><th>Requested</th><th>PR author</th><th>Branch / report</th><th>PR / Ticket</th><th>Suite</th>" +
+        "<th>Targets</th><th>Result</th><th>Blockers</th></tr>";
+
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+
+        res += "<tr>";
+        res += "<td>" + runningVisaTimeHtml(row) + "</td>";
+        res += "<td>" + userHtml(row.prAuthor, row.prAuthorUrl, row.prAuthorAvatarUrl) + "</td>";
+        res += "<td>" + runningVisaBranchHtml(row) + "</td>";
+        res += "<td>" + runningVisaRefsHtml(row) + "</td>";
+        res += "<td>" + escapeHtml(row.buildTypeName || row.buildTypeId || "") + "</td>";
+        res += "<td>" + escapeHtml(row.commentTargets || "") + "</td>";
+        res += "<td>" + visaResultTextHtml(row) + "</td>";
+        res += "<td>" + escapeHtml(row.blockers || "") + "</td>";
+        res += "</tr>";
+    }
+
+    res += "</table>";
+
+    $("#recentVisaResultsStatus").html(guardSection("Recent visa results", rows.length + " latest", res));
+}
+
 function showTrackedBranchesLinks2(result) {
     var res = "<table class='guard-table'>";
     res += "<tr><th>Branch</th><th>Reports</th><th>Auto trigger</th><th>Last cached build</th>" +
@@ -714,6 +846,7 @@ function showTrackedBranchesLinks(result) {
     </div>
     <div id="branchesStatus"></div>
     <div id="runningVisasStatus"></div>
+    <div id="recentVisaResultsStatus"></div>
 
     <div id="loadStatus"></div>
 </div>
