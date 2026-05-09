@@ -105,6 +105,7 @@ public class TcBotTriggerAndSignOffServiceTest {
 
         assertEquals("Run result comment skipped: 3 blockers found.", skipped.status);
         assertTrue(skipped.isSuccess());
+        assertTrue(skipped.isSkipped());
         assertEquals(3, skipped.getBlockers());
     }
 
@@ -317,6 +318,27 @@ public class TcBotTriggerAndSignOffServiceTest {
         assertTrue(info.commentOnlyIfNoBlockers);
         assertEquals(null, info.ticket);
         assertTrue(restored.getResult().isSuccess());
+        assertFalse(restored.wasEverObserved());
+    }
+
+    /**
+     * Checks finished observed visa keeps a durable observe marker for guard recent results.
+     */
+    @Test public void compactVisaRequestKeepsObservedMarkerAfterFinish() {
+        InMemoryStringCompactor compactor = new InMemoryStringCompactor();
+        BuildsInfo src = new BuildsInfo("apache", "IGNITE-1", "pull/1/head", "Suite",
+            "master", "zstan", CommentTargets.GITHUB, 1, true, build(100));
+
+        VisaRequest observedReq = new VisaRequest(src)
+            .setObservingStatus(true)
+            .setObservingStatus(false)
+            .setResult(Visa.skipped(2));
+
+        VisaRequest restored = new CompactVisaRequest(observedReq, compactor).toVisaRequest(compactor);
+
+        assertFalse(restored.isObserving());
+        assertTrue(restored.wasEverObserved());
+        assertTrue(restored.getResult().isSkipped());
     }
 
     /**

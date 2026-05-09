@@ -238,6 +238,7 @@ public class TcBotTriggerAndSignOffService {
             visaStatus.commentStatus = visa.status;
             visaStatus.buildIds = buildIds(info);
             visaStatus.rerun = !info.getBuilds().isEmpty();
+            visaStatus.wasEverObserved = visaRequest.wasEverObserved();
             visaStatus.analysisSlice = analysisSlice(info);
             visaStatus.buildTypeId = info.buildTypeId;
             visaStatus.reportUrl = reportUrl(srvCodeOrAlias, info.buildTypeId, info.branchForTc);
@@ -267,7 +268,8 @@ public class TcBotTriggerAndSignOffService {
                 fillRunningDetails(visaStatus, info, tcIgn, syncMode);
 
             if (!isObserving)
-                visaStatus.status = visa.isSuccess() ? FINISHED_STATUS : CANCELLED_STATUS;
+                visaStatus.status = visa.isSkipped() ? "skipped" : visa.isSuccess() ? FINISHED_STATUS :
+                    CANCELLED_STATUS;
             else if (!loadLiveDetails)
                 visaStatus.status = RUNNING_STATUS;
             else if (FINISHED_STATUS.equals(buildsStatus)) {

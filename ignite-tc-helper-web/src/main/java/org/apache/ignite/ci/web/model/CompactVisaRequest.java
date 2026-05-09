@@ -33,11 +33,15 @@ public class CompactVisaRequest {
     /** */
     public final boolean isObserving;
 
+    /** Whether this request has ever been scheduled for observation. */
+    public boolean wasEverObserved;
+
     /** */
     public CompactVisaRequest(CompactVisa compactVisa, CompactBuildsInfo compactInfo, boolean isObserving) {
         this.compactVisa = compactVisa;
         this.isObserving = isObserving;
         this.compactInfo = compactInfo;
+        this.wasEverObserved = isObserving;
     }
 
     /** */
@@ -47,12 +51,14 @@ public class CompactVisaRequest {
         compactVisa = new CompactVisa(visaReq.getResult(), strCompactor);
 
         isObserving = visaReq.isObserving();
+        wasEverObserved = visaReq.wasEverObserved();
     }
 
     /** */
     public VisaRequest toVisaRequest(IStringCompactor strCompactor) {
         return new VisaRequest(compactInfo.toBuildInfo(strCompactor))
             .setResult(compactVisa.toVisa(strCompactor))
+            .setWasEverObserved(wasEverObserved || isObserving)
             .setObservingStatus(isObserving);
     }
 

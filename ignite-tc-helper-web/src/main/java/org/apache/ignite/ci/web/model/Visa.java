@@ -161,6 +161,11 @@ public class Visa {
         return result == Result.SUCCESS;
     }
 
+    /** */
+    public boolean isSkipped() {
+        return result == Result.SUCCESS && status != null && status.startsWith(COMMENT_SKIPPED);
+    }
+
     /**
      * Compatibility only: old compacted Visa entries did not store {@link #result}.
      *

@@ -77,6 +77,9 @@ public class VisaStatus {
     /** Whether this request was tied to explicitly triggered/rerun builds. */
     public boolean rerun;
 
+    /** Whether this request has ever been scheduled for observation. */
+    public boolean wasEverObserved;
+
     /** */
     @Nullable public String commentUrl;
 
