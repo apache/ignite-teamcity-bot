@@ -18,9 +18,9 @@
         }
 
         .guard-page {
-            margin: 22px auto 34px auto;
+            margin: 22px 18px 34px 18px;
             max-width: 1320px;
-            padding: 0 18px;
+            padding: 0;
         }
 
         .guard-header {
@@ -110,11 +110,13 @@
             gap: 8px;
         }
 
-        .guard-action {
-            background: #fff;
+        .guard-actions .guard-action,
+        .guard-actions .guard-action:link,
+        .guard-actions .guard-action:visited {
+            background: #12AD5E;
             border: 1px solid #12AD5E;
             border-radius: 4px;
-            color: #128c46;
+            color: #fff;
             display: inline-block;
             font-size: 13px;
             font-weight: 700;
@@ -122,10 +124,40 @@
             text-decoration: none;
         }
 
-        .guard-action:hover {
-            background: #f0fff6;
+        .guard-actions .guard-action:hover,
+        .guard-actions .guard-action:active {
+            background: #128c46;
             border-color: #128c46;
-            color: #128c46;
+            color: #fff;
+        }
+
+        .guard-report-action,
+        .guard-report-action:link,
+        .guard-report-action:visited {
+            align-items: center;
+            background: #12AD5E;
+            border: 1px solid #12AD5E;
+            border-radius: 4px;
+            color: #fff;
+            display: inline-flex;
+            flex-wrap: wrap;
+            font-size: 13px;
+            font-weight: 700;
+            gap: 8px;
+            padding: 5px 9px;
+            text-decoration: none;
+        }
+
+        .guard-report-action:hover,
+        .guard-report-action:active {
+            background: #128c46;
+            border-color: #128c46;
+            color: #fff;
+        }
+
+        .guard-report-branch {
+            font-family: Consolas, "Lucida Console", monospace;
+            font-size: 12px;
         }
 
         .guard-count {
@@ -169,11 +201,6 @@
             color: #125CAA;
         }
 
-        .guard-table td:last-child a {
-            color: #128c46;
-            font-weight: 700;
-        }
-
         .guard-user {
             align-items: center;
             display: inline-flex;
@@ -194,6 +221,16 @@
 
         #loadStatus {
             margin: 10px 0;
+        }
+
+        #version {
+            margin: 18px 0 0 0;
+        }
+
+        #version hr {
+            margin-left: calc(50% - 50vw);
+            margin-right: calc(50% - 50vw);
+            width: 100vw;
         }
     </style>
     <script>
@@ -287,16 +324,35 @@ function runningVisaTimeHtml(row) {
 }
 
 function runningVisaBranchHtml(row) {
-    var res = "<span class='guard-branch'>" + escapeHtml(row.branchName || "") + "</span>";
     var report = reportLinkHtml(row);
+    var res = "";
 
-    if (report !== "")
-        res += "<div class='guard-meta'>" + report + "</div>";
-
-    if (isDefinedAndFilled(row.prUrl))
-        res += "<div class='guard-meta'>" + linkOrText(row.prUrl, "#" + row.prNum) + "</div>";
+    if (report !== "") {
+        res += "<a class='guard-report-action' href='" + escapeHtml(row.reportUrl) +
+            "' target='_blank' rel='noopener noreferrer'>" +
+            "<span class='guard-report-branch'>" + escapeHtml(row.branchName || "") + "</span>" +
+            "<span>Current report</span></a>";
+    }
+    else
+        res += "<span class='guard-branch'>" + escapeHtml(row.branchName || "") + "</span>";
 
     return res;
+}
+
+function runningVisaRefsHtml(row) {
+    var refs = [];
+
+    if (isDefinedAndFilled(row.prUrl))
+        refs.push(linkOrText(row.prUrl, "PR #" + row.prNum));
+    else if (isDefinedAndFilled(row.prNum))
+        refs.push("PR #" + escapeHtml(row.prNum));
+
+    if (isDefinedAndFilled(row.ticketUrl))
+        refs.push(linkOrText(row.ticketUrl, row.ticket || "JIRA"));
+    else if (isDefinedAndFilled(row.ticket))
+        refs.push(escapeHtml(row.ticket));
+
+    return refs.join("<br>");
 }
 
 function runningProgressHtml(row) {
@@ -357,7 +413,7 @@ function showRunningVisas(result) {
     }
 
     var res = "<table class='guard-table'>";
-    res += "<tr><th>Requested</th><th>PR author</th><th>Branch / report</th><th>Suite</th>" +
+    res += "<tr><th>Requested</th><th>PR author</th><th>Branch / report</th><th>PR / Ticket</th><th>Suite</th>" +
         "<th>Targets</th><th>Progress</th></tr>";
 
     for (var i = 0; i < result.length; i++) {
@@ -367,6 +423,7 @@ function showRunningVisas(result) {
         res += "<td>" + runningVisaTimeHtml(row) + "</td>";
         res += "<td>" + userHtml(row.prAuthor, row.prAuthorUrl, row.prAuthorAvatarUrl) + "</td>";
         res += "<td>" + runningVisaBranchHtml(row) + "</td>";
+        res += "<td>" + runningVisaRefsHtml(row) + "</td>";
         res += "<td>" + escapeHtml(row.buildTypeName || row.buildTypeId || "") + "</td>";
         res += "<td>" + escapeHtml(row.commentTargets || "") + "</td>";
         res += "<td>" + runningProgressHtml(row) + "</td>";
@@ -429,8 +486,8 @@ function showTrackedBranchesLinks(result) {
     <div id="runningVisasStatus"></div>
 
     <div id="loadStatus"></div>
-    <div id="version"></div>
 </div>
+<div id="version"></div>
 
 </body>
 </html>
