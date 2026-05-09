@@ -201,6 +201,16 @@ function dateHtml(row) {
     return res;
 }
 
+function runningProgressHtml(row) {
+    var text = row.runningProgress || "";
+
+    if (!isDefinedAndFilled(row.runningBuildUrl))
+        return escapeHtml(text);
+
+    return "<a href='" + escapeHtml(row.runningBuildUrl) + "' target='_blank' rel='noopener noreferrer'>" +
+        escapeHtml(text) + "</a>";
+}
+
 function optionsHtml(row) {
     var targets = isDefinedAndFilled(row.commentTargets) ? row.commentTargets : "(not stored)";
     var policy = row.commentOnlyIfNoBlockers ? "only clean run (no blockers)" : "always";
@@ -264,7 +274,7 @@ function showVisasTable(result) {
 
                         if (isDefinedAndFilled(row.runningProgress))
                             res += "<div style='color:#666; font-size:12px'>" +
-                                escapeHtml(row.runningProgress) + "</div>";
+                                runningProgressHtml(row) + "</div>";
 
                         res += "</td><td width=\"30%\">";
 

@@ -11,6 +11,179 @@
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 
     <script src="js/common-1.7.js"></script>
+    <style>
+        body {
+            background: #f6f7f9;
+            color: #1f2933;
+        }
+
+        .guard-page {
+            margin: 22px auto 34px auto;
+            max-width: 1320px;
+            padding: 0 18px;
+        }
+
+        .guard-header {
+            margin: 18px 0 16px 0;
+        }
+
+        .guard-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .guard-subtitle {
+            color: #667085;
+            font-size: 13px;
+        }
+
+        .guard-section {
+            background: #fff;
+            border: 1px solid #d9dee7;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(16, 24, 40, 0.08);
+            margin: 16px 0;
+            overflow: hidden;
+        }
+
+        .guard-section-header {
+            align-items: center;
+            border-bottom: 1px solid #e6e9ef;
+            display: flex;
+            justify-content: space-between;
+            padding: 13px 16px;
+        }
+
+        .guard-section-title {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .guard-section-note {
+            color: #667085;
+            font-size: 12px;
+        }
+
+        .guard-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+        }
+
+        .guard-table th {
+            background: #f8fafc;
+            border-bottom: 1px solid #e6e9ef;
+            color: #475467;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 10px 14px;
+            text-align: left;
+            text-transform: uppercase;
+        }
+
+        .guard-table td {
+            border-bottom: 1px solid #eef1f5;
+            padding: 12px 14px;
+            vertical-align: middle;
+        }
+
+        .guard-table tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .guard-branch {
+            background: #f3f5f8;
+            border: 1px solid #e3e7ee;
+            border-radius: 4px;
+            color: #243447;
+            display: inline-block;
+            font-family: Consolas, "Lucida Console", monospace;
+            font-size: 12px;
+            padding: 4px 7px;
+        }
+
+        .guard-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .guard-action {
+            background: #fff;
+            border: 1px solid #b8c7da;
+            border-radius: 4px;
+            color: #145ea8;
+            display: inline-block;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 5px 9px;
+            text-decoration: none;
+        }
+
+        .guard-action:hover {
+            background: #edf5ff;
+            border-color: #145ea8;
+        }
+
+        .guard-count {
+            border-radius: 12px;
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 700;
+            min-width: 24px;
+            padding: 3px 8px;
+            text-align: center;
+        }
+
+        .guard-count-ok {
+            background: #edf7ed;
+            color: #24743c;
+        }
+
+        .guard-count-warn {
+            background: #fff4e5;
+            color: #a15c00;
+        }
+
+        .guard-count-run {
+            background: #e9f3ff;
+            color: #145ea8;
+        }
+
+        .guard-count-muted {
+            background: #f2f4f7;
+            color: #667085;
+        }
+
+        .guard-meta {
+            color: #667085;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .guard-user {
+            align-items: center;
+            display: inline-flex;
+            gap: 6px;
+        }
+
+        .guard-user img {
+            border-radius: 50%;
+            height: 22px;
+            object-fit: cover;
+            width: 22px;
+        }
+
+        .guard-empty {
+            color: #667085;
+            padding: 14px 16px;
+        }
+
+        #loadStatus {
+            margin: 10px 0;
+        }
+    </style>
     <script>
 $(document).ready(function() {
     $.getScript("js/common-1.7.js", function(data, textStatus, jqxhr){ });
@@ -65,52 +238,6 @@ function loadRunningVisas() {
     });
 }
 
-function executeCancelRequest(url) {
-    $.ajax({
-        url: url,
-        success: function (result) {
-            loadRunningVisas();
-        },
-        error: showErrInLoadStatus
-    });
-}
-
-function confirmCancelVisa(url, branchName) {
-    var dialog = $("#cancelVisaDialog");
-
-    if (dialog.length > 0)
-        dialog.remove();
-
-    dialog = $("<div>", {id: "cancelVisaDialog"});
-    dialog.append($("<p>").text("Cancel the running visa observation?"));
-
-    if (isDefinedAndFilled(branchName))
-        dialog.append($("<p>", {css: {"font-family": "monospace"}}).text(branchName));
-
-    $("body").append(dialog);
-
-    var buttons = {};
-
-    buttons["Cancel visa"] = function () {
-        executeCancelRequest(url);
-        $(this).dialog("close");
-    };
-    buttons["Keep running"] = function () {
-        $(this).dialog("close");
-    };
-
-    openCenteredDialog(dialog, {
-        modal: true,
-        resizable: false,
-        title: "Confirm visa cancellation",
-        width: Math.min(520, $(window).width() - 40),
-        buttons: buttons,
-        close: function () {
-            dialog.remove();
-        }
-    });
-}
-
 function linkOrText(url, text) {
     if (isDefinedAndFilled(url))
         return "<a href='" + escapeHtml(url) + "' target='_blank' rel='noopener noreferrer'>" +
@@ -125,11 +252,10 @@ function userHtml(name, url, avatarUrl) {
 
     var img = isDefinedAndFilled(avatarUrl)
         ? "<img src='" + escapeHtml(avatarUrl) + "' loading='lazy' onerror='this.style.display=\"none\"' " +
-            "style='width:22px; height:22px; border-radius:50%; object-fit:cover; vertical-align:middle; " +
-            "margin-right:6px'>"
+            "alt=''>"
         : "";
 
-    return img + linkOrText(url, name);
+    return "<span class='guard-user'>" + img + linkOrText(url, name) + "</span>";
 }
 
 function reportLinkHtml(row) {
@@ -140,39 +266,87 @@ function reportLinkHtml(row) {
 }
 
 function runningVisaTimeHtml(row) {
-    var res = isDefinedAndFilled(row.requestedAgo) ? "requested " + escapeHtml(row.requestedAgo) : "";
+    var res = isDefinedAndFilled(row.requestedAgo) ? escapeHtml(row.requestedAgo) : "";
 
     if (isDefinedAndFilled(row.estimatedCompletion))
-        res += "<div style='color:#666; font-size:12px'>ETA " + escapeHtml(row.estimatedCompletion) + "</div>";
+        res += "<div class='guard-meta'>ETA " + escapeHtml(row.estimatedCompletion) + "</div>";
 
     return res;
 }
 
 function runningVisaBranchHtml(row) {
-    var res = escapeHtml(row.branchName || "");
+    var res = "<span class='guard-branch'>" + escapeHtml(row.branchName || "") + "</span>";
     var report = reportLinkHtml(row);
 
     if (report !== "")
-        res += "<div style='font-size:12px; margin-top:4px'>" + report + "</div>";
+        res += "<div class='guard-meta'>" + report + "</div>";
 
     if (isDefinedAndFilled(row.prUrl))
-        res += "<div style='font-size:12px; margin-top:4px'>" + linkOrText(row.prUrl, "#" + row.prNum) + "</div>";
+        res += "<div class='guard-meta'>" + linkOrText(row.prUrl, "#" + row.prNum) + "</div>";
 
     return res;
 }
 
-function showRunningVisas(result) {
-    var res = "<h3>Running visas</h3>";
+function runningProgressHtml(row) {
+    var text = row.runningProgress || row.status || "";
 
+    if (!isDefinedAndFilled(row.runningBuildUrl))
+        return escapeHtml(text);
+
+    return "<a href='" + escapeHtml(row.runningBuildUrl) + "' target='_blank' rel='noopener noreferrer'>" +
+        escapeHtml(text) + "</a>";
+}
+
+function guardSection(title, note, body) {
+    return "<div class='guard-section'>" +
+        "<div class='guard-section-header'>" +
+        "<div class='guard-section-title'>" + escapeHtml(title) + "</div>" +
+        "<div class='guard-section-note'>" + escapeHtml(note || "") + "</div>" +
+        "</div>" + body + "</div>";
+}
+
+function statusCountHtml(value, tone) {
+    var text = statusValueText(value);
+    var cls = text === "0" ? "guard-count-muted" : tone;
+    var title = JSON.stringify(value == null ? 0 : value);
+
+    return "<span class='guard-count " + cls + "' title='" + escapeHtml(title) + "'>" +
+        escapeHtml(text) + "</span>";
+}
+
+function statusValueText(value) {
+    if (!isDefinedAndFilled(value))
+        return "0";
+
+    if (Array.isArray(value) && value.length === 1 && typeof value[0] === "number")
+        return String(value[0]);
+
+    if (Array.isArray(value))
+        return String(value.length);
+
+    return String(value);
+}
+
+function branchActionsHtml(id) {
+    var branch = encodeURIComponent(id);
+
+    return "<div class='guard-actions'>" +
+        "<a class='guard-action' href='current.html?branch=" + branch + "'>Latest</a>" +
+        "<a class='guard-action' href='current.html?branch=" + branch +
+        "&count=10' title='Failures from last 10 runs merged'>History 10</a>" +
+        "</div>";
+}
+
+function showRunningVisas(result) {
     if (!isDefinedAndFilled(result) || result.length === 0) {
-        $("#runningVisasStatus").html(res + "<div>No running visas.</div>");
+        $("#runningVisasStatus").html(guardSection("Running visas", "", "<div class='guard-empty'>No running visas.</div>"));
 
         return;
     }
 
-    res += "<table>";
-    res += "<tr><td>Started</td><td>PR author</td><td>Branch / report</td><td>Suite</td>" +
-        "<td>Targets</td><td>Progress</td><td></td></tr>";
+    var res = "<table class='guard-table'>";
+    res += "<tr><th>Requested</th><th>PR author</th><th>Branch / report</th><th>Suite</th>" +
+        "<th>Targets</th><th>Progress</th></tr>";
 
     for (var i = 0; i < result.length; i++) {
         var row = result[i];
@@ -183,79 +357,68 @@ function showRunningVisas(result) {
         res += "<td>" + runningVisaBranchHtml(row) + "</td>";
         res += "<td>" + escapeHtml(row.buildTypeName || row.buildTypeId || "") + "</td>";
         res += "<td>" + escapeHtml(row.commentTargets || "") + "</td>";
-        res += "<td>" + escapeHtml(row.runningProgress || row.status || "") + "</td>";
-        res += "<td>";
-
-        if (isDefinedAndFilled(row.cancelUrl))
-            res += '<button class="more white short" title="Cancel visa" onclick="' +
-                jsCallAttr("confirmCancelVisa", [row.cancelUrl, row.branchName]) + '">&times</button>';
-
-        res += "</td>";
+        res += "<td>" + runningProgressHtml(row) + "</td>";
         res += "</tr>";
     }
 
     res += "</table>";
 
-    $("#runningVisasStatus").html(res);
+    $("#runningVisasStatus").html(guardSection("Running visas", result.length + " active", res));
 }
 
 function showTrackedBranchesLinks2(result) {
-    var res = "<table >";
-    res+="<tr><td>Branch name</td><td>Report</td><td>Merged 10</td><td>Finished last day</td><td>Running</td><td>Queued</td></tr>";
+    var res = "<table class='guard-table'>";
+    res += "<tr><th>Branch</th><th>Reports</th><th>Finished 24h</th><th>Running</th><th>Queued</th></tr>";
+
     for (var i = 0; i < result.length; i++) {
         let summary = result[i];
         var id = summary.name;
-        res += "<tr>";
-        res += "<td align='right'>" + id + ":</td>";
-        res += "<td>" + "<a href='current.html?branch=" + id + "'><button>Latest (" + id + ")</button></a>" + "</td>";
-        res += "<td>" + " &nbsp;&nbsp;<a href='current.html?branch=" + id + "&count=10'><button title='Failures from last 10 runs merged'>History (" + id + ")</button></a>" + "</td>";
 
-        res += "<td>" +  JSON.stringify(summary.finishedLastDay)+ "</td>";
-        res += "<td>" +  JSON.stringify(summary.runningList)+ "</td>";
-        res += "<td>" +  JSON.stringify(summary.queuedList)+ "</td>";
+        res += "<tr>";
+        res += "<td><span class='guard-branch'>" + escapeHtml(id) + "</span></td>";
+        res += "<td>" + branchActionsHtml(id) + "</td>";
+        res += "<td>" + statusCountHtml(summary.finishedLastDay, "guard-count-ok") + "</td>";
+        res += "<td>" + statusCountHtml(summary.runningList, "guard-count-run") + "</td>";
+        res += "<td>" + statusCountHtml(summary.queuedList, "guard-count-warn") + "</td>";
         res += "</tr>";
     }
 
     res += "</table>";
 
-
-    $("#branchesStatus").html(res);
+    $("#branchesStatus").html(guardSection("Tracked branches", result.length + " branches", res));
 }
 
 function showTrackedBranchesLinks(result) {
-    var res = "<table>";
-    res+="<tr><td>Branch name</td><td>Report</td><td>Merged 10</td><td>Finished last day</td><td>Running</td><td>Queued</td></tr>";
+    var res = "<table class='guard-table'>";
+    res += "<tr><th>Branch</th><th>Reports</th></tr>";
 
     for (var i = 0; i < result.length; i++) {
         var id = result[i];
         res += "<tr>";
-        res += "<td align='right'>" + id + ":</td>";
-        res += "<td>" + "<a href='current.html?branch=" + id + "'><button>Latest (" + id + ")</button></a>" + "</td>";
-        res += "<td>" + " &nbsp;&nbsp;<a href='current.html?branch=" + id + "&count=10'><button title='Failures from last 10 runs merged'>History (" + id + ")</button></a>" + "</td>";
+        res += "<td><span class='guard-branch'>" + escapeHtml(id) + "</span></td>";
+        res += "<td>" + branchActionsHtml(id) + "</td>";
         res += "</tr>";
     }
 
     res += "</table>";
 
-
-    $("#branchesStatus").html(res);
+    $("#branchesStatus").html(guardSection("Tracked branches", result.length + " branches", res));
 }
 
 </script>
 </head>
 <body>
-<div class="formgroup">
-    Monitoring. Current Failed Tests: <br>
+<div class="guard-page">
+    <div class="guard-header">
+        <div class="guard-title">Test Status</div>
+        <div class="guard-subtitle">Tracked branch failures and currently running contribution checks.</div>
+    </div>
     <div id="branchesStatus"></div>
-</div>
-<br>
-<div class="formgroup">
     <div id="runningVisasStatus"></div>
-</div>
-<br>
 
-<div id="loadStatus"></div>
-<div id="version"></div>
+    <div id="loadStatus"></div>
+    <div id="version"></div>
+</div>
 
 </body>
 </html>

@@ -281,6 +281,7 @@ public class TcBotTriggerAndSignOffService {
         RunningVisaDetails details = runningVisaDetails(info, tcIgn);
 
         visaStatus.runningProgress = details.progressText();
+        visaStatus.runningBuildUrl = details.buildUrl();
         visaStatus.estimatedCompletion = details.estimatedCompletion();
     }
 
@@ -299,6 +300,7 @@ public class TcBotTriggerAndSignOffService {
         long maxLeftSeconds = -1;
         String stage = null;
         boolean probablyHanging = false;
+        String activeBuildUrl = null;
 
         for (Integer id : info.getBuilds()) {
             FatBuildCompacted build = tcIgn.getFatBuild(id);
@@ -318,11 +320,18 @@ public class TcBotTriggerAndSignOffService {
             if (build.isQueued(strCompactor)) {
                 queued++;
 
+                if (activeBuildUrl == null)
+                    activeBuildUrl = tcIgn.host() + "viewQueued.html?itemId=" + id;
+
                 continue;
             }
 
-            if (build.isRunning(strCompactor))
+            if (build.isRunning(strCompactor)) {
                 running++;
+
+                activeBuildUrl = tcIgn.host() + "viewLog.html?buildId=" + id +
+                    "&buildTypeId=" + encodeUrlParam(build.buildTypeId(strCompactor));
+            }
 
             RunningInfoCompacted runningInfo = build.runningInfo();
 
@@ -355,7 +364,7 @@ public class TcBotTriggerAndSignOffService {
 
         String eta = maxLeftSeconds < 0 ? null : estimatedCompletionText(maxLeftSeconds, queued);
 
-        return new RunningVisaDetails(progress, eta);
+        return new RunningVisaDetails(progress, activeBuildUrl, eta);
     }
 
     /**
@@ -449,18 +458,29 @@ public class TcBotTriggerAndSignOffService {
         /** */
         @Nullable private final String estimatedCompletion;
 
+        /** */
+        @Nullable private final String buildUrl;
+
         /**
          * @param progressText Progress text.
+         * @param buildUrl TeamCity build URL.
          * @param estimatedCompletion Estimated completion.
          */
-        private RunningVisaDetails(String progressText, @Nullable String estimatedCompletion) {
+        private RunningVisaDetails(String progressText, @Nullable String buildUrl,
+            @Nullable String estimatedCompletion) {
             this.progressText = progressText;
+            this.buildUrl = buildUrl;
             this.estimatedCompletion = estimatedCompletion;
         }
 
         /** */
         private String progressText() {
             return progressText;
+        }
+
+        /** */
+        @Nullable private String buildUrl() {
+            return buildUrl;
         }
 
         /** */

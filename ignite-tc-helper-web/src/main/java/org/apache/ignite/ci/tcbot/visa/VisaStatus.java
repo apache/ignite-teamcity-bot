@@ -95,6 +95,9 @@ public class VisaStatus {
     /** Current observed builds progress. */
     @Nullable public String runningProgress;
 
+    /** TeamCity URL for current active observed build. */
+    @Nullable public String runningBuildUrl;
+
     /** Estimated completion based on TeamCity running-info. */
     @Nullable public String estimatedCompletion;
 
