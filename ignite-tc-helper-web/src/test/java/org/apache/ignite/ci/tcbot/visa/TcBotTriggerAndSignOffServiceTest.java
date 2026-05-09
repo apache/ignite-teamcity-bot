@@ -286,6 +286,12 @@ public class TcBotTriggerAndSignOffServiceTest {
         BuildsInfo direct = new BuildsInfo("apache", null, "pull/13114/head", "IgniteTests24Java8_RunAll",
             null, "zstan", CommentTargets.GITHUB, 13114, true);
 
+        assertEquals(Integer.valueOf(13114), TcBotTriggerAndSignOffService.prNumFromTcBranch("pull/13114/head"));
+        assertEquals(Integer.valueOf(13114), TcBotTriggerAndSignOffService.prNumFromTcBranch("pull/13114/merge"));
+        assertEquals(null, TcBotTriggerAndSignOffService.prNumFromTcBranch("pull/abc/head"));
+        assertEquals(null, TcBotTriggerAndSignOffService.prNumFromTcBranch("pull/13114/unknown"));
+        assertEquals(null, TcBotTriggerAndSignOffService.prNumFromTcBranch("ignite-123"));
+
         assertEquals("branch=pull/13114/head; base=<default>; suite=IgniteTests24Java8_RunAll; direct comment",
             TcBotTriggerAndSignOffService.analysisSlice(direct));
 

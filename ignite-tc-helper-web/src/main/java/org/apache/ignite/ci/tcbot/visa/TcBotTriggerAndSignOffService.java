@@ -198,7 +198,7 @@ public class TcBotTriggerAndSignOffService {
             TcHelperUser requester = requester(visaStatus.userName, userByName);
             fillRequesterLinks(visaStatus, requester, null);
             visaStatus.ticket = info.ticket;
-            visaStatus.prNum = info.prNum;
+            visaStatus.prNum = info.prNum != null ? info.prNum : prNumFromTcBranch(info.branchForTc);
             visaStatus.commentTargets = info.commentTargets;
             visaStatus.commentOnlyIfNoBlockers = info.commentOnlyIfNoBlockers;
             visaStatus.commentStatus = visa.status;
@@ -255,6 +255,31 @@ public class TcBotTriggerAndSignOffService {
      */
     private static String buildIds(BuildsInfo info) {
         return info.getBuilds().stream().map(String::valueOf).collect(Collectors.joining(","));
+    }
+
+    /**
+     * @param branchForTc TeamCity branch.
+     */
+    @Nullable static Integer prNumFromTcBranch(@Nullable String branchForTc) {
+        if (Strings.isNullOrEmpty(branchForTc))
+            return null;
+
+        if (!branchForTc.startsWith("pull/"))
+            return null;
+
+        String[] parts = branchForTc.split("/");
+
+        if (parts.length != 3 || (!"head".equals(parts[2]) && !"merge".equals(parts[2])))
+            return null;
+
+        try {
+            int prNum = Integer.parseInt(parts[1]);
+
+            return prNum > 0 ? prNum : null;
+        }
+        catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     /**
@@ -654,11 +679,14 @@ public class TcBotTriggerAndSignOffService {
         if (user == null)
             user = prov.getPrincipalId();
 
+        Integer effectivePrNum = prNum != null ? prNum : prNumFromTcBranch(branchForTc);
+
         buildObserverProvider.get().observe(srvId, ticketFullName, branchForTc, parentSuiteId, baseBranchForTc,
-            user, targets, prNum, commentOnlyIfNoBlockers, builds);
+            user, targets, effectivePrNum, commentOnlyIfNoBlockers, builds);
 
         if (!tcBotBgAuth.isServerAuthorized())
-            return "Ask server administrator to authorize the Bot to enable notifications.";
+            return "Warning: builds were queued, but result comments will stay pending until Server state -> " +
+                "Authorize Server is done.";
 
         return "Comment targets " + targets + " will be notified after the tests are completed.";
     }
@@ -761,6 +789,9 @@ public class TcBotTriggerAndSignOffService {
 
         if (!Strings.isNullOrEmpty(prNum) && parsedPrNum == null)
             return new SimpleResult("Analysis wasn't commented - invalid PR number: " + prNum);
+
+        if (parsedPrNum == null)
+            parsedPrNum = prNumFromTcBranch(branchForTc);
 
         try {
             if (CommentTargets.jira(targets))
@@ -1198,6 +1229,7 @@ public class TcBotTriggerAndSignOffService {
             ContributionCheckStatus contributionAgainstSuite = buildsForBt.isEmpty()
                 ? new ContributionCheckStatus(btId, branchForTcDefault(prId, ghConn))
                 : contributionStatus(srvCodeOrAlias, btId, buildsForBt, teamcity, ghConn, prId);
+            contributionAgainstSuite.teamcityWebUrl = teamcity.host();
             statusBuildNanos += System.nanoTime() - stepStart;
 
             if(Objects.equals(btId, defaultBuildType))
@@ -1505,6 +1537,7 @@ public class TcBotTriggerAndSignOffService {
 
         boolean githubRequested = CommentTargets.github(targets);
         boolean jiraRequested = CommentTargets.jira(targets);
+        Integer effectivePrNum = prNum != null ? prNum : prNumFromTcBranch(branchForTc);
 
         ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, prov);
 
@@ -1564,7 +1597,7 @@ public class TcBotTriggerAndSignOffService {
             if (githubRequested) {
                 processMonitor.status(processId, "Publishing the analysis comment to GitHub.");
 
-                gitHubComment = notifyGitHubPullRequest(srvCodeOrAlias, buildTypeId, branchForTc, prNum, build,
+                gitHubComment = notifyGitHubPullRequest(srvCodeOrAlias, buildTypeId, branchForTc, effectivePrNum, build,
                     fatBuild, tcIgnited, suitesStatuses, newTestsStatuses, blockers, baseBranch, analysisSliceKey);
             }
 
