@@ -123,60 +123,100 @@ function showErrInLoadStatus(jqXHR, exception) {
 }
 
 function openAiPrompt(url) {
-    let state = createAiPromptDialog();
-
-    requestAiPrompt(url, state, true);
+    openTextCommandDialog({
+        dialogId: "aiPromptDialog",
+        statusId: "aiPromptStatus",
+        logId: "aiPromptProgressLog",
+        errorId: "aiPromptError",
+        title: "Generating AI prompt",
+        initialMode: true,
+        requestUrl: function (waitForTc) {
+            return aiPromptUrlWithWaitForTc(url, waitForTc);
+        },
+        timeoutMs: 70000,
+        skip: {
+            isVisible: function (waitForTc) {
+                return waitForTc;
+            },
+            nextMode: false,
+            buttonText: "Use current context now",
+            runningText: "Using current context...",
+            stepText: "Building prompt from current cached context."
+        },
+        statusText: function (waitForTc) {
+            return waitForTc ? "Generating prompt..." : "Generating prompt from current context...";
+        },
+        progressMessage: aiPromptProgressMessage,
+        openButtonText: "Open prompt",
+        downloadButtonText: "Download .txt",
+        downloadFileName: "ai-prompt.txt",
+        readyStatusText: "AI prompt is ready.",
+        readyStepText: "Prompt text is ready. Use Open prompt or Download .txt.",
+        failureStatusText: "AI prompt request failed.",
+        failureMessagePrefix: "AI prompt request failed: "
+    });
 }
 
-function requestAiPrompt(url, state, waitForTc) {
+function openTextCommandDialog(options) {
+    let state = createTextCommandDialog(options);
+
+    requestTextCommand(options, state, options.initialMode);
+}
+
+function requestTextCommand(options, state, mode, firstStep) {
     if (state.timer)
         clearInterval(state.timer);
 
-    let xhr;
+    let skip = options.skip;
+    let skipVisible = skip != null && (skip.isVisible == null || skip.isVisible(mode));
 
-    state.skipBtn.toggle(waitForTc).prop("disabled", false).text("Use current context now");
+    state.skipBtn.toggle(skipVisible).prop("disabled", false)
+        .text(skip == null ? "" : skip.buttonText);
     state.openBtn.hide();
     state.downloadBtn.hide();
     state.errorBlock.hide();
 
-    state.skipBtn.off("click").on("click", function () {
-        if (xhr)
-            xhr.abort();
+    state.skipBtn.off("click");
 
-        state.skipBtn.prop("disabled", true).text("Using current context...");
-        appendAiPromptStep(state, "Building prompt from current cached context.");
-        requestAiPrompt(url, state, false);
-    });
+    if (skipVisible) {
+        state.skipBtn.on("click", function () {
+            if (state.xhr)
+                state.xhr.abort();
 
-    startAiPromptProgress(state, waitForTc);
+            let nextMode = typeof skip.nextMode === "function" ? skip.nextMode(mode) : skip.nextMode;
 
-    xhr = $.ajax({
-        url: aiPromptUrlWithWaitForTc(url, waitForTc),
-        timeout: 300000,
+            state.skipBtn.prop("disabled", true).text(skip.runningText);
+            requestTextCommand(options, state, nextMode, skip.stepText);
+        });
+    }
+
+    startTextCommandProgress(options, state, mode, firstStep);
+
+    state.xhr = $.ajax({
+        url: options.requestUrl(mode),
+        timeout: options.timeoutMs == null ? 70000 : options.timeoutMs,
         success: function (result) {
-            finishAiPromptProgress(state, result);
+            finishTextCommandDialog(options, state, result);
         },
         error: function (jqXHR, status, error) {
             if (status === "abort")
                 return;
 
-            failAiPromptProgress(state, jqXHR, status, error);
+            failTextCommandDialog(options, state, jqXHR, status, error);
         }
     });
-
-    state.xhr = xhr;
 }
 
-function createAiPromptDialog() {
-    let dialog = $("#aiPromptDialog");
+function createTextCommandDialog(options) {
+    let dialog = $("#" + options.dialogId);
 
     if (dialog.length > 0)
         dialog.remove();
 
-    dialog = $("<div>", {id: "aiPromptDialog"});
+    dialog = $("<div>", {id: options.dialogId});
 
     let status = $("<div>", {
-        id: "aiPromptStatus",
+        id: options.statusId,
         css: {
             "font-weight": "600",
             "margin-bottom": "12px"
@@ -184,7 +224,7 @@ function createAiPromptDialog() {
     });
 
     let log = $("<div>", {
-        id: "aiPromptProgressLog",
+        id: options.logId,
         css: {
             "background": "#f7f7f7",
             "border": "1px solid #d8d8d8",
@@ -200,7 +240,7 @@ function createAiPromptDialog() {
     });
 
     let errorBlock = $("<pre>", {
-        id: "aiPromptError",
+        id: options.errorId,
         css: {
             "background": "#fff2f2",
             "border": "1px solid #d09090",
@@ -223,9 +263,9 @@ function createAiPromptDialog() {
         }
     });
 
-    let skipBtn = $("<button>", {type: "button", text: "Use current context now"});
-    let openBtn = $("<button>", {type: "button", text: "Open prompt"}).hide();
-    let downloadBtn = $("<button>", {type: "button", text: "Download .txt"}).hide();
+    let skipBtn = $("<button>", {type: "button", text: options.skip == null ? "" : options.skip.buttonText});
+    let openBtn = $("<button>", {type: "button", text: options.openButtonText || "Open"}).hide();
+    let downloadBtn = $("<button>", {type: "button", text: options.downloadButtonText || "Download"}).hide();
 
     actions.append(skipBtn, openBtn, downloadBtn);
     dialog.append(status, log, errorBlock, actions);
@@ -246,20 +286,20 @@ function createAiPromptDialog() {
 
     dialog.dialog({
         close: function () {
-            closeAiPromptDialog(state);
+            closeTextCommandDialog(state);
         },
         modal: true,
         resizable: false,
-        title: "Generating AI prompt",
-        width: Math.min(620, $(window).width() - 40)
+        title: options.title,
+        width: Math.min(options.width || 620, $(window).width() - 40)
     });
 
     openBtn.on("click", function () {
-        openAiPromptText(state);
+        openTextCommandResult(state);
     });
 
     downloadBtn.on("click", function () {
-        downloadAiPromptText(state);
+        downloadTextCommandResult(options, state);
     });
 
     return state;
@@ -269,22 +309,38 @@ function aiPromptUrlWithWaitForTc(url, waitForTc) {
     return url + (url.indexOf("?") >= 0 ? "&" : "?") + "waitForTc=" + waitForTc;
 }
 
-function startAiPromptProgress(state, waitForTc) {
+function startTextCommandProgress(options, state, mode, firstStep) {
     let idx = 0;
     let startedTs = Date.now();
 
-    state.status.text(waitForTc ? "Generating prompt..." : "Generating prompt from current context...");
+    state.status.text(options.statusText == null ? "Running command..." : options.statusText(mode));
     state.log.empty();
 
+    if (firstStep)
+        appendTextCommandStep(state, firstStep);
+
     function showNextStatus() {
-        appendAiPromptStep(state, aiPromptProgressMessage(waitForTc, idx, Date.now() - startedTs));
+        let message = options.progressMessage == null
+            ? defaultTextCommandProgressMessage(mode, idx, Date.now() - startedTs)
+            : options.progressMessage(mode, idx, Date.now() - startedTs);
+
+        appendTextCommandStep(state, message);
 
         idx++;
     }
 
     showNextStatus();
 
-    state.timer = setInterval(showNextStatus, 5000);
+    state.timer = setInterval(showNextStatus, options.progressIntervalMs || 5000);
+}
+
+function defaultTextCommandProgressMessage(mode, idx, elapsedMs) {
+    let elapsedSec = Math.round(elapsedMs / 1000);
+
+    if (idx === 0)
+        return "Sending request to the bot server.";
+
+    return "No response yet after " + elapsedSec + "s. Command is still running.";
 }
 
 function aiPromptProgressMessage(waitForTc, idx, elapsedMs) {
@@ -305,76 +361,83 @@ function aiPromptProgressMessage(waitForTc, idx, elapsedMs) {
         return "Sending request to the bot server.";
 
     if (idx === 1)
-        return "Bot is asking TeamCity for build history and chain context.";
+        return "Bot is loading the TeamCity build list and dependency chain.";
 
     if (idx === 2)
         return "No prompt response yet after " + elapsedSec
-            + "s. Bot may still be waiting for TeamCity build history or chain context.";
+            + "s. Bot may still be downloading build/test metadata from TeamCity.";
 
     if (idx === 3)
         return "No prompt response yet after " + elapsedSec
-            + "s. Bot may be loading build/test details or refreshing stale TeamCity cache.";
+            + "s. Bot may be loading build logs for failed or incomplete suites.";
 
-    if (elapsedSec < 35)
+    if (idx === 4)
         return "No prompt response yet after " + elapsedSec
-            + "s. Bot may be downloading/parsing build logs; log wait timeout is 30s.";
+            + "s. Bot may be parsing build logs and attaching cached log analysis to the prompt.";
+
+    if (elapsedSec < 65)
+        return "No prompt response yet after " + elapsedSec
+            + "s. Fresh context/log wait timeout is 60s; you can use current cached context now.";
 
     return "No prompt response yet after " + elapsedSec
-        + "s. TeamCity request or build-log processing is taking longer than expected; you can use current context now.";
+        + "s. TeamCity loading or build-log processing is taking longer than expected; you can use current context now.";
 }
 
-function appendAiPromptStep(state, text) {
+function appendTextCommandStep(state, text) {
     let line = $("<div>").text("> " + text);
     state.log.append(line);
     state.log.scrollTop(state.log[0].scrollHeight);
 }
 
-function finishAiPromptProgress(state, result) {
+function finishTextCommandDialog(options, state, result) {
     if (state.timer)
         clearInterval(state.timer);
 
     if (state.resultUrl)
         URL.revokeObjectURL(state.resultUrl);
 
-    state.resultUrl = URL.createObjectURL(new Blob([result], {type: "text/plain;charset=utf-8"}));
-    state.status.text("AI prompt is ready.");
-    appendAiPromptStep(state, "Prompt text is ready. Use Open prompt or Download .txt.");
+    state.resultUrl = URL.createObjectURL(new Blob([result], {
+        type: options.resultMimeType || "text/plain;charset=utf-8"
+    }));
+    state.status.text(options.readyStatusText || "Command result is ready.");
+    appendTextCommandStep(state, options.readyStepText || "Command result is ready.");
     state.skipBtn.hide();
-    state.openBtn.show();
-    state.downloadBtn.show();
+    state.openBtn.toggle(options.showOpenButton !== false);
+    state.downloadBtn.toggle(options.showDownloadButton !== false);
 }
 
-function failAiPromptProgress(state, jqXHR, status, error) {
+function failTextCommandDialog(options, state, jqXHR, status, error) {
     if (state.timer)
         clearInterval(state.timer);
 
-    state.status.text("AI prompt request failed.");
+    state.status.text(options.failureStatusText || "Command request failed.");
     state.skipBtn.hide();
-    state.errorBlock.text("AI prompt request failed: " + status + "\n\n" + jqXHR.responseText).show();
-    appendAiPromptStep(state, "Request failed: " + (error || status));
+    state.errorBlock.text((options.failureMessagePrefix || "Command request failed: ")
+        + status + "\n\n" + jqXHR.responseText).show();
+    appendTextCommandStep(state, "Request failed: " + (error || status));
     showErrInLoadStatus(jqXHR, status);
 }
 
-function openAiPromptText(state) {
+function openTextCommandResult(state) {
     if (!state.resultUrl)
         return false;
 
     return window.open(state.resultUrl, "_blank") != null;
 }
 
-function downloadAiPromptText(state) {
+function downloadTextCommandResult(options, state) {
     if (!state.resultUrl)
         return;
 
     let link = document.createElement("a");
     link.href = state.resultUrl;
-    link.download = "ai-prompt.txt";
+    link.download = options.downloadFileName || "command-result.txt";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 }
 
-function closeAiPromptDialog(state) {
+function closeTextCommandDialog(state) {
     if (state.timer)
         clearInterval(state.timer);
 

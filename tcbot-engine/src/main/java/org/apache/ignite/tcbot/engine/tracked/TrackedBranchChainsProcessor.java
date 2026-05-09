@@ -76,8 +76,11 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
     private static final long SLOW_TRACKED_BRANCH_WARN_MS =
         Long.getLong("tcbot.tracked.slowOperationWarnMs", 1000L);
 
+    /** Max time to wait for fresh AI prompt build context. */
+    private static final long AI_PROMPT_CONTEXT_WAIT_MS = TimeUnit.MINUTES.toMillis(1);
+
     /** Max time to wait for AI prompt build log processing. */
-    private static final long AI_PROMPT_LOG_WAIT_MS = TimeUnit.SECONDS.toMillis(30);
+    private static final long AI_PROMPT_LOG_WAIT_MS = TimeUnit.MINUTES.toMillis(1);
 
     /** TC ignited server provider. */
     @Inject private ITeamcityIgnitedProvider tcIgnitedProv;
@@ -228,7 +231,8 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         Future<FullChainRunCtx> live = null;
 
         try {
-            aiPromptMonitor.stage(reqId, "trying fresh context for up to 1s: " + stageSuffix);
+            aiPromptMonitor.stage(reqId, "loading fresh build chain from TeamCity for up to "
+                + TimeUnit.MILLISECONDS.toSeconds(AI_PROMPT_CONTEXT_WAIT_MS) + "s: " + stageSuffix);
 
             live = tcUpdatePool.getService().submit(() -> chainProc.loadFullChainContext(
                 tcIgnited,
@@ -242,13 +246,13 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
                 requireParamVal
             ));
 
-            return live.get(1, TimeUnit.SECONDS);
+            return live.get(AI_PROMPT_CONTEXT_WAIT_MS, TimeUnit.MILLISECONDS);
         }
         catch (TimeoutException e) {
             if (live != null)
                 live.cancel(true);
 
-            aiPromptMonitor.stage(reqId, "fresh context timed out, using stale cache: " + stageSuffix);
+            aiPromptMonitor.stage(reqId, "fresh TeamCity context timed out, using cached-only context: " + stageSuffix);
         }
         catch (InterruptedException e) {
             if (live != null)
@@ -261,14 +265,15 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
             throw new IllegalStateException("Interrupted while loading fresh TeamCity context: " + stageSuffix, e);
         }
         catch (Exception e) {
-            aiPromptMonitor.stage(reqId, "fresh context failed, using stale cache: " + stageSuffix + " - " + e.getMessage());
+            aiPromptMonitor.stage(reqId, "fresh TeamCity context failed, using cached-only context: "
+                + stageSuffix + " - " + e.getMessage());
         }
 
         return chainProc.loadFullChainContext(
             tcIgnited,
             chains,
-            rebuild,
-            ProcessLogsMode.ALL,
+            LatestRebuildMode.NONE,
+            ProcessLogsMode.CACHED_ONLY,
             false,
             baseBranchTc,
             SyncMode.NONE,
