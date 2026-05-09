@@ -398,6 +398,7 @@ function updateOnlyMyPrsControl(srvId, err) {
     else if (hasResolvedGithubLogins(srvId)) {
         let cnt = myPrsCountInTable(srvId);
 
+        checkbox.prop("checked", loadOnlyMyPrsPreference(srvId));
         block.attr("title", title + ". Resolved GitHub IDs: " + resolvedGithubLoginsText(srvId) +
             ". Matching PRs in the current table: " + cnt + ".");
         block.show();
