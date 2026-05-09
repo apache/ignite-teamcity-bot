@@ -185,7 +185,7 @@ public class TcBotTriggerAndSignOffService {
 
     /** */
     public List<VisaStatus> getVisasStatus(ITcBotUserCreds prov, int limit) {
-        return getVisasStatus(prov, limit, true);
+        return getVisasStatus(prov, limit, true, SyncMode.RELOAD_QUEUED);
     }
 
     /**
@@ -194,6 +194,17 @@ public class TcBotTriggerAndSignOffService {
      * @param loadLiveDetails Whether TeamCity live state should be refreshed.
      */
     public List<VisaStatus> getVisasStatus(ITcBotUserCreds prov, int limit, boolean loadLiveDetails) {
+        return getVisasStatus(prov, limit, loadLiveDetails, loadLiveDetails ? SyncMode.RELOAD_QUEUED : SyncMode.NONE);
+    }
+
+    /**
+     * @param prov Credentials.
+     * @param limit History limit.
+     * @param loadLiveDetails Whether TeamCity state should be included.
+     * @param syncMode TeamCity build sync mode.
+     */
+    public List<VisaStatus> getVisasStatus(ITcBotUserCreds prov, int limit, boolean loadLiveDetails,
+        SyncMode syncMode) {
         List<VisaStatus> visaStatuses = new ArrayList<>();
         Map<String, ITeamcityIgnited> tcBySrv = new HashMap<>();
         Map<String, IJiraIgnited> jiraBySrv = new HashMap<>();
@@ -250,10 +261,10 @@ public class TcBotTriggerAndSignOffService {
                 fillRequesterLinks(visaStatus, requester, prAuthor);
             }
 
-            String buildsStatus = isObserving && loadLiveDetails ? info.getStatus(tcIgn, strCompactor) : null;
+            String buildsStatus = isObserving && loadLiveDetails ? info.getStatus(tcIgn, strCompactor, syncMode) : null;
 
             if (isObserving && loadLiveDetails)
-                fillRunningDetails(visaStatus, info, tcIgn);
+                fillRunningDetails(visaStatus, info, tcIgn, syncMode);
 
             if (!isObserving)
                 visaStatus.status = visa.isSuccess() ? FINISHED_STATUS : CANCELLED_STATUS;
@@ -285,12 +296,13 @@ public class TcBotTriggerAndSignOffService {
      * @param visaStatus Visa status DTO.
      * @param info Builds info.
      * @param tcIgn TeamCity.
+     * @param syncMode TeamCity build sync mode.
      */
-    private void fillRunningDetails(VisaStatus visaStatus, BuildsInfo info, ITeamcityIgnited tcIgn) {
+    private void fillRunningDetails(VisaStatus visaStatus, BuildsInfo info, ITeamcityIgnited tcIgn, SyncMode syncMode) {
         if (info.getBuilds().isEmpty())
             return;
 
-        RunningVisaDetails details = runningVisaDetails(info, tcIgn);
+        RunningVisaDetails details = runningVisaDetails(info, tcIgn, syncMode);
 
         visaStatus.runningProgress = details.progressText();
         visaStatus.runningBuildUrl = details.buildUrl();
@@ -300,8 +312,9 @@ public class TcBotTriggerAndSignOffService {
     /**
      * @param info Builds info.
      * @param tcIgn TeamCity.
+     * @param syncMode TeamCity build sync mode.
      */
-    private RunningVisaDetails runningVisaDetails(BuildsInfo info, ITeamcityIgnited tcIgn) {
+    private RunningVisaDetails runningVisaDetails(BuildsInfo info, ITeamcityIgnited tcIgn, SyncMode syncMode) {
         int total = info.getBuilds().size();
         int finished = 0;
         int running = 0;
@@ -315,7 +328,7 @@ public class TcBotTriggerAndSignOffService {
         String activeBuildUrl = null;
 
         for (Integer id : info.getBuilds()) {
-            FatBuildCompacted build = tcIgn.getFatBuild(id);
+            FatBuildCompacted build = tcIgn.getFatBuild(id, syncMode);
 
             if (build.isFakeStub() || build.isCancelled(strCompactor)) {
                 cancelled++;

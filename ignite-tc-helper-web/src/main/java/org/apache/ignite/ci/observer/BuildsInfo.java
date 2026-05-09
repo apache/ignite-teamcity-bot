@@ -30,6 +30,7 @@ import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.tcservice.model.result.Build;
 
 /**
@@ -169,10 +170,20 @@ public class BuildsInfo {
      * @return One of {@link #FINISHED_STATUS}, {@link #CANCELLED_STATUS} or {@link #RUNNING_STATUS} statuses.
      */
     public String getStatus(ITeamcityIgnited teamcity, IStringCompactor strCompactor) {
+        return getStatus(teamcity, strCompactor, SyncMode.RELOAD_QUEUED);
+    }
+
+    /**
+     * @param teamcity Teamcity.
+     * @param strCompactor {@link IStringCompactor} instance.
+     * @param mode Sync mode to load observed builds.
+     * @return One of {@link #FINISHED_STATUS}, {@link #CANCELLED_STATUS} or {@link #RUNNING_STATUS} statuses.
+     */
+    public String getStatus(ITeamcityIgnited teamcity, IStringCompactor strCompactor, SyncMode mode) {
         boolean isFinished = true;
 
         for (Integer id : builds) {
-            FatBuildCompacted build = teamcity.getFatBuild(id);
+            FatBuildCompacted build = teamcity.getFatBuild(id, mode);
 
             if (build.isFakeStub() || build.isCancelled(strCompactor))
                 return CANCELLED_STATUS;

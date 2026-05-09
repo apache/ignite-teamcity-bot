@@ -241,10 +241,13 @@ $(document).ready(function() {
     loadData();
 });
 
+var runningVisasRefreshText = "";
+var runningVisasRefreshPollStop = null;
+
 function loadData() {
     $("#loadStatus").html("&#8987; Please wait");
 
-    loadRunningVisas();
+    loadRunningVisas(true);
 
     $.ajax({
         url: "rest/branches/version",
@@ -274,16 +277,44 @@ function loadData() {
 
 }
 
-function loadRunningVisas() {
+function loadRunningVisas(refresh) {
     $("#runningVisasStatus").html("Loading running visas...");
 
+    var processId = refresh === false ? null : createBotProcessId("runningVisasRefresh");
+    var url = "rest/visa/running?limit=100" +
+        (isDefinedAndFilled(processId) ? "&processId=" + encodeURIComponent(processId) : "");
+
     $.ajax({
-        url: "rest/visa/running?limit=100",
-        success: showRunningVisas,
+        url: url,
+        success: function(result) {
+            showRunningVisas(result);
+
+            if (isDefinedAndFilled(processId))
+                pollRunningVisasRefresh(processId);
+        },
         error: function(jqXHR, exception) {
             $("#runningVisasStatus").text("Running visas are unavailable.");
             showErrInLoadStatus(jqXHR, exception);
         }
+    });
+}
+
+function pollRunningVisasRefresh(processId) {
+    if (runningVisasRefreshPollStop)
+        runningVisasRefreshPollStop();
+
+    runningVisasRefreshText = "Refreshing TeamCity state in background...";
+    $("#runningVisasRefreshStatus").text(runningVisasRefreshText);
+
+    runningVisasRefreshPollStop = startBotProcessPolling(processId, function(status) {
+        runningVisasRefreshText = botProcessStatusText(status);
+        $("#runningVisasRefreshStatus").text(runningVisasRefreshText);
+
+        if (status.running === false)
+            loadRunningVisas(false);
+    }, {
+        intervalMs: 2000,
+        skipUnknown: false
     });
 }
 
@@ -407,7 +438,8 @@ function branchActionsHtml(id) {
 
 function showRunningVisas(result) {
     if (!isDefinedAndFilled(result) || result.length === 0) {
-        $("#runningVisasStatus").html(guardSection("Running visas", "", "<div class='guard-empty'>No running visas.</div>"));
+        $("#runningVisasStatus").html(guardSection("Running visas", "",
+            "<div class='guard-empty'>No running visas.</div>" + runningVisasRefreshHtml()));
 
         return;
     }
@@ -430,9 +462,14 @@ function showRunningVisas(result) {
         res += "</tr>";
     }
 
-    res += "</table>";
+    res += "</table>" + runningVisasRefreshHtml();
 
     $("#runningVisasStatus").html(guardSection("Running visas", result.length + " active", res));
+}
+
+function runningVisasRefreshHtml() {
+    return "<div id='runningVisasRefreshStatus' class='guard-meta' style='padding: 0 16px 12px 16px'>" +
+        escapeHtml(runningVisasRefreshText || "Showing cached bot data.") + "</div>";
 }
 
 function showTrackedBranchesLinks2(result) {

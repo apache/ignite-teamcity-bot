@@ -40,7 +40,9 @@ import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.ContributionKey;
+import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
 import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
+import org.apache.ignite.tcignited.SyncMode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -79,13 +81,51 @@ public class TcBotVisaService {
      */
     @GET
     @Path("running")
-    public Collection<VisaStatus> running(@Nullable @QueryParam("limit") Integer limit) {
-        return CtxListener.getApplicationContext(ctx)
+    public Collection<VisaStatus> running(@Nullable @QueryParam("limit") Integer limit,
+        @Nullable @QueryParam("processId") Long processId) {
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        ITcBotUserCreds creds = ITcBotUserCreds.get(req);
+        int effectiveLimit = limit == null ? 100 : limit;
+
+        if (processId != null)
+            refreshRunningVisasAsync(appCtx, creds, effectiveLimit, processId);
+
+        return appCtx
             .getInstance(TcBotTriggerAndSignOffService.class)
-            .getVisasStatus(ITcBotUserCreds.get(req), limit == null ? 100 : limit, true)
+            .getVisasStatus(creds, effectiveLimit, true, SyncMode.NONE)
             .stream()
             .filter(status -> status.cancelUrl != null)
             .collect(Collectors.toList());
+    }
+
+    /**
+     * @param appCtx Application context.
+     * @param creds Credentials.
+     * @param limit History limit.
+     * @param processId User-visible process id.
+     */
+    private void refreshRunningVisasAsync(TcBotApplicationContext appCtx, ITcBotUserCreds creds, int limit,
+        Long processId) {
+        BotProcessMonitor process = appCtx.getInstance(BotProcessMonitor.class);
+
+        process.start(processId, "runningVisasRefresh", "Running visas loaded from cached bot data.");
+
+        appCtx.getInstance(TcUpdatePool.class).getService().submit(() -> {
+            try {
+                process.status(processId, "Refreshing running visa build state from TeamCity.");
+
+                long cnt = appCtx.getInstance(TcBotTriggerAndSignOffService.class)
+                    .getVisasStatus(creds, limit, true, SyncMode.RELOAD_QUEUED)
+                    .stream()
+                    .filter(status -> status.cancelUrl != null)
+                    .count();
+
+                process.finish(processId, "Running visa cache refreshed: " + cnt + " active.");
+            }
+            catch (RuntimeException e) {
+                process.fail(processId, e);
+            }
+        });
     }
 
     /**
