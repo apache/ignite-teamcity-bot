@@ -435,7 +435,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
 
         tdForPr.html(reportLink);
 
-        let commentBtns = "";
+        let commentBtns = "<span style='white-space: nowrap'>";
 
         if (hasJiraIssue) {
             commentBtns += "<button onclick='" +
@@ -456,7 +456,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
             if (hasQueued) {
                 commentBtns += " class='disabledbtn' title='" + queuedStatus + "'";
             }
-            commentBtns += ">Comment JIRA</button>";
+            commentBtns += ">Comment JIRA</button> ";
         }
 
         if (row.prNumber > 0) {
@@ -480,6 +480,8 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
 
             commentBtns += ">Comment GitHub</button>";
         }
+
+        commentBtns += "</span>";
 
         $('#commentJiraFor' + prId).html(commentBtns);
     } else {

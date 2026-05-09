@@ -18,6 +18,7 @@ package org.apache.ignite.tcbot.engine.pr;
 
 import com.google.common.base.Strings;
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -405,9 +406,17 @@ public class PrChainsProcessor {
         String normalizedBaseBranch = BranchEquivalence.normalizeBranch(baseBranch);
         Integer baseBranchId = compactor.getStringIdIfPresent(normalizedBaseBranch);
 
+        if (baseBranchId == null)
+            return Collections.emptyList();
+
         return fullChainRunCtx
             .suites()
             .map((ctx) -> {
+                IRunHistory suiteHistory = ctx.history(tcIgnited, baseBranchId, null);
+
+                if (suiteHistory == null)
+                    return null;
+
                 List<ShortTestUi> missingTests = ctx.getFilteredTests(test -> {
                     IRunHistory history = test.history(tcIgnited, baseBranchId, null);
                     if (history == null && !test.isMutedOrIgored()) {

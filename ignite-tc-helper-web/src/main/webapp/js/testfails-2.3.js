@@ -101,8 +101,8 @@ function showChainResultsWithSettings(result, settings) {
  */
 function showNewTestsData(chain, settings) {
     var res = "";
-
-    newTestRows = "";
+    var newTestRows = "";
+    var newTestsCnt = 0;
 
     res += "<table style='width:100%'>";
 
@@ -112,9 +112,9 @@ function showNewTestsData(chain, settings) {
         newTestRows += "<td colspan='2' width='80%'><a href='" + chain[i].webToBuild + "'>" + chain[i].name + "</a>" + "</td></tr>";
         newTestRows += "<td colspan='2' width='10%'></td>";
         for (var j = 0; j < newTests.length; j++) {
-            newTestsFounded = true
+            newTestsCnt++;
             var newTest = newTests[j];
-            testColor = newTest.status ? "#013220" : "#8b0000";
+            var testColor = newTest.status ? "#013220" : "#8b0000";
             newTestRows += "<tr style='color:" + testColor + "'>";
             newTestRows += "<td colspan='2' width='10%'></td>";
             newTestRows += "<td width='5%'>" + (newTest.status ? "PASSED" : "FAILED") + "</td>";
@@ -127,7 +127,13 @@ function showNewTestsData(chain, settings) {
         }
     }
 
-    res += newTestRows !== "" ? newTestRows : "<tr><td colspan='2' width='10%'></td><td width='90%'>No new tests</td></tr>"
+    if (newTestRows !== "") {
+        res += "<tr><td colspan='4'>New tests: " + newTestsCnt +
+            " <span class='container'><a href='javascript:void(0);' class='header'>" + more + "</a>" +
+            "<div class='content'><table style='width:100%'>" + newTestRows + "</table></div></span></td></tr>";
+    }
+    else
+        res += "<tr><td colspan='2' width='10%'></td><td width='90%'>No new tests</td></tr>";
 
     res += "</table>";
 
@@ -221,7 +227,8 @@ function showChainCurrentStatusData(chain, settings) {
         if (!isDefinedAndFilled(suite.suiteId))
             continue;
 
-        //may check failure here in case mode show all
+        if (!isSuiteProblematic(suite))
+            continue;
 
         if (suitesFailedList.length !== 0)
             suitesFailedList += ",";
@@ -291,6 +298,20 @@ function showChainCurrentStatusData(chain, settings) {
 
     res += "</td><td>";
 
+    if (settings.isTeamCityAvailable() && suitesFailedList.length !== 0 &&
+        isDefinedAndFilled(srvCodeForTriggering) && isDefinedAndFilled(chain.branchName)) {
+        res += "<button onclick='triggerBuilds(\"" + srvCodeForTriggering + "\", " +
+            "\"" + parentSuitId + "\", " +
+            "\"" + suitesFailedList + "\", " +
+            "\"" + chain.branchName + "\", " +
+            "false, " +
+            "false, " +
+            "null, " +
+            "\"" + chain.prNum + "\", " +
+            "null, " +
+            "false)'>Trigger failed builds</button><br>";
+    }
+
     let baseBranchForTc = chain.baseBranchForTc;
     if ((settings.isJiraAvailable() || settings.isGithubAvailable()) && isDefinedAndFilled(srvCodeForTriggering)) {
         if (settings.isJiraAvailable()) {
@@ -336,39 +357,41 @@ function showChainCurrentStatusData(chain, settings) {
             }
         }
 
-        res += "<label for='cleanRebuild'><input id='cleanRebuild' type='checkbox'>Delete all files in checkout directory before each snapshot dependency build</label><br>"
+        if (blockersList.length !== 0) {
+            res += "<label for='cleanRebuild'><input id='cleanRebuild' type='checkbox'>Delete all files in checkout directory before each snapshot dependency build</label><br>"
 
-        res += "<button onclick='triggerBuildsWithCommentOptions(" +
-            "\"" + srvCodeForTriggering + "\", " +
-            "\"" + parentSuitId + "\", " +
-            "\"" + blockersList + "\", " +
-            "\"" + chain.branchName + "\", " +
-            "false, " + //top
-            "false, " + //observe
-            "null, " + // ticketId
-            "\"" + chain.prNum + "\", " +
-            "\"" + baseBranchForTc + "\", " +
-            "document.getElementById(\"cleanRebuild\").checked, " +
-            "\"" + (isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "") + "\", " +
-            "\"" + (isDefinedAndFilled(chain.webToPr) ? chain.webToPr : "") + "\"" +
-            ")'> " +
-            "Re-run possible blockers</button><br>";
+            res += "<button onclick='triggerBuildsWithCommentOptions(" +
+                "\"" + srvCodeForTriggering + "\", " +
+                "\"" + parentSuitId + "\", " +
+                "\"" + blockersList + "\", " +
+                "\"" + chain.branchName + "\", " +
+                "false, " + //top
+                "false, " + //observe
+                "null, " + // ticketId
+                "\"" + chain.prNum + "\", " +
+                "\"" + baseBranchForTc + "\", " +
+                "document.getElementById(\"cleanRebuild\").checked, " +
+                "\"" + (isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "") + "\", " +
+                "\"" + (isDefinedAndFilled(chain.webToPr) ? chain.webToPr : "") + "\"" +
+                ")'> " +
+                "Re-run possible blockers</button><br>";
 
-        res += "<button onclick='triggerBuildsWithCommentOptions(" +
-            "\"" + srvCodeForTriggering + "\", " +
-            "\"" + parentSuitId + "\", " +
-            "\"" + blockersList + "\", " +
-            "\"" + chain.branchName + "\", " +
-            "true, " + //top
-            "false, " + //observe
-            "null, " + // ticketId
-            "\"" + chain.prNum + "\", " + //prNum
-            "\"" + baseBranchForTc + "\", " +
-            "document.getElementById(\"cleanRebuild\").checked, " +
-            "\"" + (isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "") + "\", " +
-            "\"" + (isDefinedAndFilled(chain.webToPr) ? chain.webToPr : "") + "\"" +
-            ")'> " +
-            "Re-run possible blockers (top queue)</button><br>";
+            res += "<button onclick='triggerBuildsWithCommentOptions(" +
+                "\"" + srvCodeForTriggering + "\", " +
+                "\"" + parentSuitId + "\", " +
+                "\"" + blockersList + "\", " +
+                "\"" + chain.branchName + "\", " +
+                "true, " + //top
+                "false, " + //observe
+                "null, " + // ticketId
+                "\"" + chain.prNum + "\", " + //prNum
+                "\"" + baseBranchForTc + "\", " +
+                "document.getElementById(\"cleanRebuild\").checked, " +
+                "\"" + (isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "") + "\", " +
+                "\"" + (isDefinedAndFilled(chain.webToPr) ? chain.webToPr : "") + "\"" +
+                ")'> " +
+                "Re-run possible blockers (top queue)</button><br>";
+        }
     }
 
     if (isDefinedAndFilled(baseBranchForTc)) {
@@ -447,6 +470,9 @@ function addBlockersData(server, settings) {
  * @returns Suite without flaky tests. Or null - if suite have only flaky tests.
  */
 function filterPossibleBlocker(suite) {
+    if (!isSuiteProblematic(suite))
+        return null;
+
     var suite0 = Object.assign({}, suite);
 
     var j = 0;
@@ -483,9 +509,9 @@ function selectCommentOptions(defaultTargets, options, onSelected) {
     var hasGithub = targets.indexOf("GITHUB") !== -1;
     var dialog = $("#triggerConfirm");
     var ticketLink = options && isDefinedAndFilled(options.ticketLink) ?
-        " <a href='" + options.ticketLink + "' target='_blank'>ticket</a>" : "";
+        optionalLink(options.ticketLink, ticketLinkLabel(options.ticketLink, "ticket")) : "";
     var prLink = options && isDefinedAndFilled(options.prLink) ?
-        " <a href='" + options.prLink + "' target='_blank'>PR</a>" : "";
+        optionalLink(options.prLink, prLinkLabel(options.prLink, "PR")) : "";
     var allowNoTargets = options && options.allowNoTargets;
     var showOnlyNoBlockers = options && options.showOnlyNoBlockers;
 
@@ -500,9 +526,7 @@ function selectCommentOptions(defaultTargets, options, onSelected) {
             : "")
     );
 
-    dialog.dialog({
-        modal: true,
-        buttons: {
+    dialog.dialog(actionDialogOptions("Comment targets", {
             "Continue": function () {
                 var selected = [];
 
@@ -524,8 +548,7 @@ function selectCommentOptions(defaultTargets, options, onSelected) {
             "Cancel": function () {
                 $(this).dialog("close");
             }
-        }
-    });
+        }));
 }
 
 function triggerBuildsWithCommentOptions(tcServerCode, parentSuiteId, suiteIdList, branchName, top, observe, ticketId,
@@ -552,12 +575,9 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
     if (suiteIdsNotExists || branchNotExists) {
         triggerConfirm.html("No " + (suiteIdsNotExists ? "suites" +
             (branchNotExists ? " and branch" : "") : "branch") + " to run!");
-        triggerConfirm.dialog({
-            modal: true,
-            buttons: {
+        triggerConfirm.dialog(actionDialogOptions("Build trigger", {
                 "Ok" : closeDialog
-            }
-        });
+            }));
 
         return;
     }
@@ -566,12 +586,9 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
     var parentSuite = isDefinedAndFilled(parentSuiteId) ? parentSuiteId : suites[0];
     var fewSuites = suites.length > 1;
 
-    var message = "Trigger build" + (fewSuites ? "s" : "") + " at <b>TC server:</b> " + tcServerCode + "<br>" +
-    "<b>Branch:</b> " + branchName + "<br><b>Top:</b> " + top + "<br>" +
-    "<b>Suite ID" + (fewSuites ? "s" : "") + ":</b> ";
-
-    for (var i = 0; i < suites.length; i++)
-        message += suites[i] + "<br>";
+    var message = "<b>TC server:</b> " + escapeHtml(tcServerCode) + "<br>" +
+        "<b>Branch:</b> " + escapeHtml(branchName) + "<br><b>Top:</b> " + escapeHtml(top) + "<br>" +
+        "<b>Suite ID" + (fewSuites ? "s" : "") + ":</b> " + suitesSummaryHtml(suites);
 
     showTriggerStagesDialog();
 
@@ -630,6 +647,18 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
         var hasJira = defaultTargets.indexOf("JIRA") !== -1;
         var hasGithub = defaultTargets.indexOf("GITHUB") !== -1;
         var opts = uiOptions || {};
+        var showCommentOptions = observeJira || isDefinedAndFilled(commentTargets);
+        var commentOptionsHtml = showCommentOptions
+            ? "<div style='margin-top:12px'><b>Comment after build</b></div>" +
+            "<label><input type='checkbox' id='stageCommentJira' " + (hasJira ? "checked" : "") + "> JIRA" +
+            optionalLink(opts.ticketLink, ticketLinkLabel(opts.ticketLink, "ticket")) + "</label><br>" +
+            "<label><input type='checkbox' id='stageCommentGithub' " + (hasGithub ? "checked" : "") +
+            "> GitHub PR" + optionalLink(opts.prLink, prLinkLabel(opts.prLink, "PR")) + "</label><br>" +
+            "<label><input type='radio' name='stageCommentPolicy' value='always' " +
+            (!commentOnlyIfNoBlockers ? "checked" : "") + "> Comment always</label><br>" +
+            "<label><input type='radio' name='stageCommentPolicy' value='clean' " +
+            (commentOnlyIfNoBlockers ? "checked" : "") + "> Comment only clean run (no blockers)</label>"
+            : "";
 
         triggerConfirm.html(
             "<div><b>Build trigger</b></div>" +
@@ -637,30 +666,27 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
             "<div style='margin-top:12px'><b>Run options</b></div>" +
             "<label><input type='checkbox' id='stageCleanRebuild' " + (cleanRebuild ? "checked" : "") +
             "> Delete checkout files before snapshot dependency builds</label>" +
-            "<div style='margin-top:12px'><b>Comment result</b></div>" +
-            "<label><input type='checkbox' id='stageCommentJira' " + (hasJira ? "checked" : "") + "> JIRA" +
-            optionalLink(opts.ticketLink, "ticket") + "</label><br>" +
-            "<label><input type='checkbox' id='stageCommentGithub' " + (hasGithub ? "checked" : "") +
-            "> GitHub PR" + optionalLink(opts.prLink, "PR") + "</label><br>" +
-            "<label><input type='radio' name='stageCommentPolicy' value='always' " +
-            (!commentOnlyIfNoBlockers ? "checked" : "") + "> Comment always</label><br>" +
-            "<label><input type='radio' name='stageCommentPolicy' value='clean' " +
-            (commentOnlyIfNoBlockers ? "checked" : "") + "> Comment only clean run (no blockers)</label>" +
+            commentOptionsHtml +
             "<div class='action-stages' style='display:none; margin-top:14px; background:#f7f7f7; " +
             "border:1px solid #d8d8d8; border-radius:4px; padding:10px; white-space:pre-wrap'></div>" +
             "<pre class='action-error' style='display:none; background:#fff2f2; border:1px solid #d09090; " +
             "border-radius:4px; margin-top:12px; padding:10px; white-space:pre-wrap'></pre>"
         );
 
-        triggerConfirm.dialog({
-            modal: true,
-            width: Math.min(640, $(window).width() - 40),
-            buttons: {
+        triggerConfirm.dialog(actionDialogOptions("Build trigger", {
                 "Run": function () {
                     cleanRebuild = $("#stageCleanRebuild").prop("checked");
-                    commentTargets = collectStageCommentTargets();
-                    commentOnlyIfNoBlockers = $("input[name='stageCommentPolicy']:checked").val() === "clean";
-                    observeJira = isDefinedAndFilled(commentTargets);
+
+                    if (showCommentOptions) {
+                        commentTargets = collectStageCommentTargets();
+                        commentOnlyIfNoBlockers = $("input[name='stageCommentPolicy']:checked").val() === "clean";
+                        observeJira = isDefinedAndFilled(commentTargets);
+                    }
+                    else {
+                        commentTargets = "";
+                        commentOnlyIfNoBlockers = false;
+                        observeJira = false;
+                    }
 
                     triggerConfirm.dialog("option", "buttons", {});
                     triggerConfirm.find("input").prop("disabled", true);
@@ -676,8 +702,7 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
                     sendGetRequest();
                 },
                 "Cancel": closeDialog
-            }
-        });
+            }));
     }
 
     function closeDialog() {
@@ -709,15 +734,12 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
     if (branchNotExists) {
         var triggerConfirm = $("#triggerConfirm");
 
-        triggerConfirm.html("No branch to run!");
-        triggerConfirm.dialog({
-            modal: true,
-            buttons: {
+        triggerConfirm.html("No branch to comment!");
+        triggerConfirm.dialog(actionDialogOptions("Post comment", {
                 "Ok" : function () {
                     $(this).dialog("close");
                 }
-            }
-        });
+            }));
 
         return;
     }
@@ -778,17 +800,17 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
         var opts = uiOptions || {};
 
         dialog.html(
-            "<div><b>Comment analysis</b></div>" +
+            "<div><b>Post comment</b></div>" +
             "<div style='margin-top:8px'>Server: " + escapeHtml(serverCode) +
             "<br>Suite: " + escapeHtml(parentSuiteId) +
             "<br>Branch: " + escapeHtml(branchName) + "</div>" +
             "<div style='margin-top:12px'><b>Targets</b></div>" +
             "<label><input type='checkbox' id='stageCommentJira' " +
             (defaultTargets.indexOf("JIRA") !== -1 ? "checked" : "") + "> JIRA" +
-            optionalLink(opts.ticketLink, "ticket") + "</label><br>" +
+            optionalLink(opts.ticketLink, ticketLinkLabel(opts.ticketLink, "ticket")) + "</label><br>" +
             "<label><input type='checkbox' id='stageCommentGithub' " +
             (defaultTargets.indexOf("GITHUB") !== -1 ? "checked" : "") + "> GitHub PR" +
-            optionalLink(opts.prLink, "PR") + "</label><br>" +
+            optionalLink(opts.prLink, prLinkLabel(opts.prLink, "PR")) + "</label><br>" +
             "<label><input type='radio' name='stageCommentPolicy' value='always' " +
             (!commentOnlyIfNoBlockers ? "checked" : "") + "> Comment always</label><br>" +
             "<label><input type='radio' name='stageCommentPolicy' value='clean' " +
@@ -799,11 +821,8 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
             "border-radius:4px; margin-top:12px; padding:10px; white-space:pre-wrap'></pre>"
         );
 
-        dialog.dialog({
-            modal: true,
-            width: Math.min(640, $(window).width() - 40),
-            buttons: {
-                "Comment": function () {
+        dialog.dialog(actionDialogOptions("Post comment", {
+                "Post comment": function () {
                     commentTargets = collectStageCommentTargets();
 
                     if (!isDefinedAndFilled(commentTargets))
@@ -820,8 +839,7 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
                     sendCommentRequest(dialog);
                 },
                 "Cancel": closeDialog
-            }
-        });
+            }));
     }
 
     function closeDialog() {
@@ -845,6 +863,49 @@ function appendActionStage(dialog, text) {
     dialog.find(".action-stages").append($("<div>").text("> " + text));
 }
 
+function actionDialogOptions(title, buttons) {
+    var scrollLeft = $(window).scrollLeft();
+    var scrollTop = $(window).scrollTop();
+
+    return {
+        title: title,
+        modal: true,
+        width: Math.max(320, Math.min(640, $(window).width() - 40)),
+        maxHeight: Math.max(320, $(window).height() - 40),
+        position: {
+            my: "center",
+            at: "center",
+            of: window
+        },
+        buttons: buttons,
+        open: function () {
+            var dialog = $(this);
+            dialog.css({
+                "max-height": Math.max(180, $(window).height() - 180) + "px",
+                "overflow-y": "auto"
+            });
+            restoreWindowScroll(scrollLeft, scrollTop);
+            centerActionDialog(dialog, scrollLeft, scrollTop);
+        }
+    };
+}
+
+function centerActionDialog(dialog, scrollLeft, scrollTop) {
+    setTimeout(function () {
+        dialog.dialog("option", "position", {
+            my: "center",
+            at: "center",
+            of: window
+        });
+        restoreWindowScroll(scrollLeft, scrollTop);
+    }, 0);
+}
+
+function restoreWindowScroll(scrollLeft, scrollTop) {
+    if (typeof scrollLeft === "number" && typeof scrollTop === "number")
+        window.scrollTo(scrollLeft, scrollTop);
+}
+
 function commentTargetsLabel(targets) {
     return isDefinedAndFilled(targets) ? targets : "nothing";
 }
@@ -858,6 +919,40 @@ function optionalLink(url, label) {
         return "";
 
     return " <a href='" + escapeHtml(url) + "' target='_blank'>" + escapeHtml(label) + "</a>";
+}
+
+function ticketLinkLabel(url, fallback) {
+    var normalizedUrl = decodedUrl(url);
+    var issueMatch = normalizedUrl.match(/([A-Z][A-Z0-9]+-\d+)(?=$|[/?#&=])/);
+
+    return issueMatch ? issueMatch[1] : fallback;
+}
+
+function prLinkLabel(url, fallback) {
+    var normalizedUrl = decodedUrl(url);
+    var prMatch = normalizedUrl.match(/\/pull\/(\d+)(?=$|[/?#])/);
+
+    return prMatch ? "#" + prMatch[1] : fallback;
+}
+
+function decodedUrl(url) {
+    try {
+        return decodeURIComponent(String(url == null ? "" : url));
+    }
+    catch (e) {
+        return String(url == null ? "" : url);
+    }
+}
+
+function suitesSummaryHtml(suites) {
+    if (!isDefinedAndFilled(suites) || suites.length === 0)
+        return "";
+
+    var maxHeight = Math.min(260, Math.max(120, suites.length * 24));
+
+    return suites.length + " suite" + (suites.length === 1 ? "" : "s") + " selected" +
+        "<div style='max-height:" + maxHeight + "px; overflow-y:auto; margin-top:6px; padding-left:12px'>" +
+        suites.map(escapeHtml).join("<br>") + "</div>";
 }
 
 /**

@@ -300,9 +300,20 @@ public class DsChainUi {
         String failRateNormalizedBranch = normalizeBranch(baseBranchTc);
         Integer baseBranchId = compactor.getStringIdIfPresent(failRateNormalizedBranch);
 
+        if (baseBranchId == null) {
+            newTestsUi = new ArrayList<>();
+
+            return;
+        }
+
         newTestsUi = ctx
             .suites()
             .map((suite) -> {
+                IRunHistory suiteHistory = suite.history(tcIgnited, baseBranchId, null);
+
+                if (suiteHistory == null)
+                    return null;
+
                 List<ShortTestUi> missingTests = suite.getFilteredTests(test -> {
                     IRunHistory history = test.history(tcIgnited, baseBranchId, null);
 
