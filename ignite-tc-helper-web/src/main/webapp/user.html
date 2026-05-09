@@ -159,39 +159,7 @@ function loadUsersList() {
 }
 
 function showUsersList(menuData) {
-    if (menuData.admin !== true) {
-        $("#adminUsersBlock").hide();
-
-        return;
-    }
-
-    var users = Array.isArray(menuData.users) ? menuData.users : [];
-    var res = "";
-
-    if (users.length === 0) {
-        res = "No other users";
-    }
-    else {
-        res += "<table class='stat'>";
-        res += "<tr><th>User</th><th>Login</th><th>Role</th></tr>";
-
-        for (var i = 0; i < users.length; i++) {
-            var user = users[i];
-            var login = user.username || "";
-            var label = user.displayName || login;
-
-            res += "<tr>";
-            res += "<td><a href='/user.html?login=" + encodeURIComponent(login) + "'>" + escapeHtml(label) + "</a></td>";
-            res += "<td>" + escapeHtml(login) + "</td>";
-            res += "<td>" + (user.admin ? "admin" : "") + "</td>";
-            res += "</tr>";
-        }
-
-        res += "</table>";
-    }
-
-    $("#adminUsers").html(res);
-    $("#adminUsersBlock").show();
+    renderAdminUsersList(menuData, "#adminUsersBlock", "#adminUsers");
 }
 
 function setupEditDialog() {

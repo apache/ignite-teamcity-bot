@@ -56,7 +56,7 @@ public class MonitoringServiceSecurityTest {
 
     @Test
     public void requestTimingFieldsAreEscaped() throws IOException {
-        String html = new String(Files.readAllBytes(monitoringHtml()), StandardCharsets.UTF_8);
+        String html = readFile(monitoringHtml());
 
         assertTrue(html.contains("escapeHtml(inv.method)"));
         assertTrue(html.contains("escapeHtml(inv.path)"));
@@ -68,8 +68,8 @@ public class MonitoringServiceSecurityTest {
 
     @Test
     public void notificationTestControlsAreHiddenForNonAdmins() throws IOException, NoSuchMethodException {
-        String html = new String(Files.readAllBytes(monitoringHtml()), StandardCharsets.UTF_8);
-        String css = new String(Files.readAllBytes(styleCss()), StandardCharsets.UTF_8);
+        String html = readFile(monitoringHtml());
+        String css = readFile(styleCss());
 
         assertTrue(html.contains("<div class=\"adminOnly\">"));
         assertTrue(html.contains("testSlackNotification()"));
@@ -83,11 +83,20 @@ public class MonitoringServiceSecurityTest {
 
     @Test
     public void taskMonitoringBlockIsHiddenForNonAdmins() throws IOException {
-        String html = new String(Files.readAllBytes(monitoringHtml()), StandardCharsets.UTF_8);
+        String html = readFile(monitoringHtml());
 
         assertTrue(html.contains("<div class=\"adminOnly\">\n    Tasks Monitoring Data:"));
         assertTrue(html.contains("rest/monitoring/tasks"));
         assertFalse(html.contains("Application warnings/errors are available for bot admins."));
+    }
+
+    @Test
+    public void monitoringPageContainsAdminUsersList() throws IOException {
+        String html = readFile(monitoringHtml());
+
+        assertTrue(html.contains("renderAdminUsersList(result, \"#adminUsersBlock\", \"#adminUsers\")"));
+        assertTrue(html.contains("id=\"adminUsersBlock\" class=\"adminOnly\""));
+        assertTrue(html.contains("<b>Users:</b>"));
     }
 
     private static void assertAuthRequired(Method method) {
@@ -117,5 +126,11 @@ public class MonitoringServiceSecurityTest {
             return projectPath;
 
         return Paths.get("ignite-tc-helper-web/src/main/webapp/css/style-1.5.css");
+    }
+
+    private static String readFile(Path path) throws IOException {
+        return new String(Files.readAllBytes(path), StandardCharsets.UTF_8)
+            .replace("\r\n", "\n")
+            .replace('\r', '\n');
     }
 }

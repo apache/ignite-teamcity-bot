@@ -110,7 +110,11 @@ function showErrInLoadStatus(jqXHR, exception) {
     } else if (jqXHR.status === 424) {
         $("#loadStatus").html('Dependency problem: [424]: ' + jqXHR.responseText);
     } else if (jqXHR.status === 500) {
-        $("#loadStatus").html('Internal Server Error [500].');
+        var serverMsg = isDefinedAndFilled(jqXHR.responseText)
+            ? jqXHR.responseText
+            : 'Internal Server Error [500].';
+
+        $("#loadStatus").text(serverMsg);
     } else if (exception === 'parsererror') {
         $("#loadStatus").html('Requested JSON parse failed.');
     } else if (exception === 'timeout') {
@@ -120,6 +124,332 @@ function showErrInLoadStatus(jqXHR, exception) {
     } else {
         $("#loadStatus").html('Uncaught Error.\n' + jqXHR.responseText);
     }
+}
+
+function openAiPrompt(url) {
+    openTextCommandDialog({
+        dialogId: "aiPromptDialog",
+        statusId: "aiPromptStatus",
+        logId: "aiPromptProgressLog",
+        errorId: "aiPromptError",
+        title: "Generating AI prompt",
+        initialMode: true,
+        requestUrl: function (waitForTc) {
+            return aiPromptUrlWithWaitForTc(url, waitForTc);
+        },
+        timeoutMs: 70000,
+        skip: {
+            isVisible: function (waitForTc) {
+                return waitForTc;
+            },
+            nextMode: false,
+            buttonText: "Use current context now",
+            runningText: "Using current context...",
+            stepText: "Building prompt from current cached context."
+        },
+        statusText: function (waitForTc) {
+            return waitForTc ? "Generating prompt..." : "Generating prompt from current context...";
+        },
+        progressMessage: aiPromptProgressMessage,
+        openButtonText: "Open prompt",
+        downloadButtonText: "Download .txt",
+        downloadFileName: "ai-prompt.txt",
+        readyStatusText: "AI prompt is ready.",
+        readyStepText: "Prompt text is ready. Use Open prompt or Download .txt.",
+        failureStatusText: "AI prompt request failed.",
+        failureMessagePrefix: "AI prompt request failed: "
+    });
+}
+
+function openTextCommandDialog(options) {
+    let state = createTextCommandDialog(options);
+
+    requestTextCommand(options, state, options.initialMode);
+}
+
+function requestTextCommand(options, state, mode, firstStep) {
+    if (state.timer)
+        clearInterval(state.timer);
+
+    let skip = options.skip;
+    let skipVisible = skip != null && (skip.isVisible == null || skip.isVisible(mode));
+
+    state.skipBtn.toggle(skipVisible).prop("disabled", false)
+        .text(skip == null ? "" : skip.buttonText);
+    state.openBtn.hide();
+    state.downloadBtn.hide();
+    state.errorBlock.hide();
+
+    state.skipBtn.off("click");
+
+    if (skipVisible) {
+        state.skipBtn.on("click", function () {
+            if (state.xhr)
+                state.xhr.abort();
+
+            let nextMode = typeof skip.nextMode === "function" ? skip.nextMode(mode) : skip.nextMode;
+
+            state.skipBtn.prop("disabled", true).text(skip.runningText);
+            requestTextCommand(options, state, nextMode, skip.stepText);
+        });
+    }
+
+    startTextCommandProgress(options, state, mode, firstStep);
+
+    state.xhr = $.ajax({
+        url: options.requestUrl(mode),
+        timeout: options.timeoutMs == null ? 70000 : options.timeoutMs,
+        success: function (result) {
+            finishTextCommandDialog(options, state, result);
+        },
+        error: function (jqXHR, status, error) {
+            if (status === "abort")
+                return;
+
+            failTextCommandDialog(options, state, jqXHR, status, error);
+        }
+    });
+}
+
+function createTextCommandDialog(options) {
+    let dialog = $("#" + options.dialogId);
+
+    if (dialog.length > 0)
+        dialog.remove();
+
+    dialog = $("<div>", {id: options.dialogId});
+
+    let status = $("<div>", {
+        id: options.statusId,
+        css: {
+            "font-weight": "600",
+            "margin-bottom": "12px"
+        }
+    });
+
+    let log = $("<div>", {
+        id: options.logId,
+        css: {
+            "background": "#f7f7f7",
+            "border": "1px solid #d8d8d8",
+            "border-radius": "4px",
+            "font-family": "monospace",
+            "line-height": "1.45",
+            "max-height": "260px",
+            "min-height": "145px",
+            "overflow-y": "auto",
+            "padding": "10px",
+            "white-space": "pre-wrap"
+        }
+    });
+
+    let errorBlock = $("<pre>", {
+        id: options.errorId,
+        css: {
+            "background": "#fff2f2",
+            "border": "1px solid #d09090",
+            "border-radius": "4px",
+            "display": "none",
+            "margin-top": "12px",
+            "max-height": "180px",
+            "overflow": "auto",
+            "padding": "10px",
+            "white-space": "pre-wrap"
+        }
+    });
+
+    let actions = $("<div>", {
+        css: {
+            "display": "flex",
+            "gap": "8px",
+            "justify-content": "flex-end",
+            "margin-top": "14px"
+        }
+    });
+
+    let skipBtn = $("<button>", {type: "button", text: options.skip == null ? "" : options.skip.buttonText});
+    let openBtn = $("<button>", {type: "button", text: options.openButtonText || "Open"}).hide();
+    let downloadBtn = $("<button>", {type: "button", text: options.downloadButtonText || "Download"}).hide();
+
+    actions.append(skipBtn, openBtn, downloadBtn);
+    dialog.append(status, log, errorBlock, actions);
+    $("body").append(dialog);
+
+    let state = {
+        dialog: dialog,
+        status: status,
+        log: log,
+        errorBlock: errorBlock,
+        skipBtn: skipBtn,
+        openBtn: openBtn,
+        downloadBtn: downloadBtn,
+        resultUrl: null,
+        timer: null,
+        xhr: null
+    };
+
+    dialog.dialog({
+        close: function () {
+            closeTextCommandDialog(state);
+        },
+        modal: true,
+        resizable: false,
+        title: options.title,
+        width: Math.min(options.width || 620, $(window).width() - 40)
+    });
+
+    openBtn.on("click", function () {
+        openTextCommandResult(state);
+    });
+
+    downloadBtn.on("click", function () {
+        downloadTextCommandResult(options, state);
+    });
+
+    return state;
+}
+
+function aiPromptUrlWithWaitForTc(url, waitForTc) {
+    return url + (url.indexOf("?") >= 0 ? "&" : "?") + "waitForTc=" + waitForTc;
+}
+
+function startTextCommandProgress(options, state, mode, firstStep) {
+    let idx = 0;
+    let startedTs = Date.now();
+
+    state.status.text(options.statusText == null ? "Running command..." : options.statusText(mode));
+    state.log.empty();
+
+    if (firstStep)
+        appendTextCommandStep(state, firstStep);
+
+    function showNextStatus() {
+        let message = options.progressMessage == null
+            ? defaultTextCommandProgressMessage(mode, idx, Date.now() - startedTs)
+            : options.progressMessage(mode, idx, Date.now() - startedTs);
+
+        appendTextCommandStep(state, message);
+
+        idx++;
+    }
+
+    showNextStatus();
+
+    state.timer = setInterval(showNextStatus, options.progressIntervalMs || 5000);
+}
+
+function defaultTextCommandProgressMessage(mode, idx, elapsedMs) {
+    let elapsedSec = Math.round(elapsedMs / 1000);
+
+    if (idx === 0)
+        return "Sending request to the bot server.";
+
+    return "No response yet after " + elapsedSec + "s. Command is still running.";
+}
+
+function aiPromptProgressMessage(waitForTc, idx, elapsedMs) {
+    let elapsedSec = Math.round(elapsedMs / 1000);
+
+    if (!waitForTc) {
+        if (idx === 0)
+            return "Sending no-wait request to the bot server.";
+
+        if (idx === 1)
+            return "Using cached chain context and cached log analysis only.";
+
+        return "No prompt response yet after " + elapsedSec
+            + "s. Bot is still building from cache; no new TeamCity/log wait was requested.";
+    }
+
+    if (idx === 0)
+        return "Sending request to the bot server.";
+
+    if (idx === 1)
+        return "Bot is loading the TeamCity build list and dependency chain.";
+
+    if (idx === 2)
+        return "No prompt response yet after " + elapsedSec
+            + "s. Bot may still be downloading build/test metadata from TeamCity.";
+
+    if (idx === 3)
+        return "No prompt response yet after " + elapsedSec
+            + "s. Bot may be loading build logs for failed or incomplete suites.";
+
+    if (idx === 4)
+        return "No prompt response yet after " + elapsedSec
+            + "s. Bot may be parsing build logs and attaching cached log analysis to the prompt.";
+
+    if (elapsedSec < 65)
+        return "No prompt response yet after " + elapsedSec
+            + "s. Fresh context/log wait timeout is 60s; you can use current cached context now.";
+
+    return "No prompt response yet after " + elapsedSec
+        + "s. TeamCity loading or build-log processing is taking longer than expected; you can use current context now.";
+}
+
+function appendTextCommandStep(state, text) {
+    let line = $("<div>").text("> " + text);
+    state.log.append(line);
+    state.log.scrollTop(state.log[0].scrollHeight);
+}
+
+function finishTextCommandDialog(options, state, result) {
+    if (state.timer)
+        clearInterval(state.timer);
+
+    if (state.resultUrl)
+        URL.revokeObjectURL(state.resultUrl);
+
+    state.resultUrl = URL.createObjectURL(new Blob([result], {
+        type: options.resultMimeType || "text/plain;charset=utf-8"
+    }));
+    state.status.text(options.readyStatusText || "Command result is ready.");
+    appendTextCommandStep(state, options.readyStepText || "Command result is ready.");
+    state.skipBtn.hide();
+    state.openBtn.toggle(options.showOpenButton !== false);
+    state.downloadBtn.toggle(options.showDownloadButton !== false);
+}
+
+function failTextCommandDialog(options, state, jqXHR, status, error) {
+    if (state.timer)
+        clearInterval(state.timer);
+
+    state.status.text(options.failureStatusText || "Command request failed.");
+    state.skipBtn.hide();
+    state.errorBlock.text((options.failureMessagePrefix || "Command request failed: ")
+        + status + "\n\n" + jqXHR.responseText).show();
+    appendTextCommandStep(state, "Request failed: " + (error || status));
+    showErrInLoadStatus(jqXHR, status);
+}
+
+function openTextCommandResult(state) {
+    if (!state.resultUrl)
+        return false;
+
+    return window.open(state.resultUrl, "_blank") != null;
+}
+
+function downloadTextCommandResult(options, state) {
+    if (!state.resultUrl)
+        return;
+
+    let link = document.createElement("a");
+    link.href = state.resultUrl;
+    link.download = options.downloadFileName || "command-result.txt";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function closeTextCommandDialog(state) {
+    if (state.timer)
+        clearInterval(state.timer);
+
+    if (state.xhr && state.xhr.readyState !== 4)
+        state.xhr.abort();
+
+    if (state.resultUrl)
+        URL.revokeObjectURL(state.resultUrl);
 }
 
 
@@ -222,10 +552,6 @@ function showMenu(menuData) {
 
         res += "<a href='/monitoring.html'>Server state</a>";
 
-        if (menuData.admin) {
-            res += adminUsersMenu(menuData.users);
-        }
-
         res += "<a id='userName' href='/user.html'>" + escapeHtml(userName) + "</a>";
         var logout = "/login.html" + "?exit=true&backref=" + encodeURIComponent(window.location.href);
         res += "<a href='" + logout + "'>Logout</a>";
@@ -237,30 +563,42 @@ function showMenu(menuData) {
     $(document.body).prepend(res);
 }
 
-function adminUsersMenu(users) {
-    if (!Array.isArray(users) || users.length === 0)
-        return "";
+function renderAdminUsersList(menuData, blockSelector, usersSelector) {
+    if (!menuData || menuData.admin !== true) {
+        $(usersSelector).html("");
+        $(blockSelector).hide();
 
-    var res = "<div class='dropdown'>";
-    res += "<button class='dropbtn'>Users</button>";
-    res += "<div class='dropdown-content'>";
-
-    for (var i = 0; i < users.length; i++) {
-        var user = users[i];
-        var label = escapeHtml(user.displayName || user.username);
-
-        if (user.admin)
-            label += " <span class='admin-marker'>admin</span>";
-
-        res += "<a href='/user.html?login=" + encodeURIComponent(user.username) + "'>" + label + "</a>";
+        return;
     }
 
-    res += "</div>";
-    res += "</div>";
+    var users = Array.isArray(menuData.users) ? menuData.users : [];
+    var res = "";
 
-    return res;
+    if (users.length === 0) {
+        res = "No other users";
+    }
+    else {
+        res += "<table class='stat'>";
+        res += "<tr><th>User</th><th>Login</th><th>Role</th></tr>";
+
+        for (var i = 0; i < users.length; i++) {
+            var user = users[i];
+            var login = user.username || "";
+            var label = user.displayName || login;
+
+            res += "<tr>";
+            res += "<td><a href='/user.html?login=" + encodeURIComponent(login) + "'>" + escapeHtml(label) + "</a></td>";
+            res += "<td>" + escapeHtml(login) + "</td>";
+            res += "<td>" + (user.admin ? "admin" : "") + "</td>";
+            res += "</tr>";
+        }
+
+        res += "</table>";
+    }
+
+    $(usersSelector).html(res);
+    $(blockSelector).show();
 }
-
 
 function authorizeServer() {
     $.ajax({

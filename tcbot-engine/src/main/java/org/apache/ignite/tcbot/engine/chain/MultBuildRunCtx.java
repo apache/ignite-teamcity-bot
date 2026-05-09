@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -108,6 +109,35 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     public Stream<Map<String, ITestLogCheckResult>> getLogsCheckResults() {
         return buildsStream().map(SingleBuildRunCtx::getTestLogCheckResult).filter(Objects::nonNull);
+    }
+
+    /** @return Count of build log analyses requested for this suite. */
+    public long logChecksStartedCount() {
+        return buildsStream().filter(SingleBuildRunCtx::hasLogCheckStarted).count();
+    }
+
+    /** @return Count of build log analyses still running for this suite. */
+    public long pendingLogChecksCount() {
+        return buildsStream().filter(SingleBuildRunCtx::hasPendingLogCheck).count();
+    }
+
+    /**
+     * Waits for suite build log analyses until the shared deadline.
+     *
+     * @param deadlineNanos Absolute {@link System#nanoTime()} deadline.
+     */
+    public void awaitLogChecksUntil(long deadlineNanos) {
+        for (SingleBuildRunCtx build : builds) {
+            if (!build.hasPendingLogCheck())
+                continue;
+
+            long remainingMs = TimeUnit.NANOSECONDS.toMillis(deadlineNanos - System.nanoTime());
+
+            if (remainingMs <= 0)
+                return;
+
+            build.awaitLogCheck(remainingMs);
+        }
     }
 
     /** {@inheritDoc} */
