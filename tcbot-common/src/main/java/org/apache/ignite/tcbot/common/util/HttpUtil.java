@@ -54,6 +54,11 @@ import javax.annotation.Nullable;
 public class HttpUtil {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(HttpUtil.class);
+
+    /** */
+    private static final int ERR_RESPONSE_BODY_LIMIT = 4_096;
+
+    /** */
     private static final int TIMEOUT_MS = 60_000;
 
     /**
@@ -217,8 +222,8 @@ public class HttpUtil {
         if (resCode / 100 == 2)
             return con.getInputStream();
 
-        String detailsFromResponeText = readIsToString(con.getErrorStream());
-        String diagnostic = responseDiagnostic(con, authDiagnostic, detailsFromResponeText);
+        String detailsFromResponseText = readIsToString(con.getErrorStream());
+        String diagnostic = responseDiagnostic(con, authDiagnostic, detailsFromResponseText);
 
         if (resCode == 400)
             throw new ServiceBadRequestException(diagnostic);
@@ -265,6 +270,7 @@ public class HttpUtil {
         res.append("Response URL: ").append(con.getURL()).append('\n');
         res.append("Response host: ").append(con.getURL().getHost()).append('\n');
 
+        appendHeaderIfPresent(res, con, "Location");
         appendHeaderIfPresent(res, con, "WWW-Authenticate");
         appendHeaderIfPresent(res, con, "X-GitHub-Request-Id");
         appendHeaderIfPresent(res, con, "X-RateLimit-Limit");
@@ -277,9 +283,20 @@ public class HttpUtil {
         appendHeaderIfPresent(res, con, "X-Accepted-OAuth-Scopes");
         appendHeaderIfPresent(res, con, "X-Accepted-GitHub-Permissions");
 
-        res.append("Response body:\n").append(responseText);
+        res.append("Response body:\n").append(trimResponseBody(responseText));
 
         return res.toString();
+    }
+
+    /**
+     * @param responseText Response text.
+     */
+    private static String trimResponseBody(String responseText) {
+        if (responseText == null || responseText.length() <= ERR_RESPONSE_BODY_LIMIT)
+            return responseText;
+
+        return responseText.substring(0, ERR_RESPONSE_BODY_LIMIT) +
+            "\n... response body truncated, original length=" + responseText.length();
     }
 
     /**
@@ -377,6 +394,7 @@ public class HttpUtil {
         con.setRequestProperty("accept-charset", charset.toString());
         con.setRequestProperty("Authorization", "Basic " + jiraAuthTok);
         con.setRequestProperty("content-type", "application/json");
+        con.setInstanceFollowRedirects(false);
         useKeepAlive(con);
 
         con.setRequestMethod("POST");
@@ -409,6 +427,7 @@ public class HttpUtil {
         con.setRequestProperty("accept-charset", charset.toString());
         con.setRequestProperty("Authorization", "Basic " + jiraAuthTok);
         con.setRequestProperty("content-type", "application/json");
+        con.setInstanceFollowRedirects(false);
         useKeepAlive(con);
 
         con.setRequestMethod("GET");
