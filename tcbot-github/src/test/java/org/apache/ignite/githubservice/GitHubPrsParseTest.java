@@ -61,4 +61,13 @@ public class GitHubPrsParseTest {
         assertNull(IGitHubConnection.convertBranchToPrId("ignite-123"));
     }
 
+    @Test
+    public void userApiUrlFromRepoApiUrl() {
+        assertEquals("https://api.github.com/users/dspavlov-github",
+            GitHubConnectionImpl.userApiUrl("https://api.github.com/repos/apache/ignite/", "dspavlov-github"));
+
+        assertEquals("https://github.example.com/api/v3/users/dspavlov-github",
+            GitHubConnectionImpl.userApiUrl("https://github.example.com/api/v3/repos/apache/ignite/", "dspavlov-github"));
+    }
+
 }

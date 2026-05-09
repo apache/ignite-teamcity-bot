@@ -27,8 +27,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.net.ConnectException;
+import java.net.URLEncoder;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,6 +43,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import org.apache.ignite.ci.github.GitHubBranchShort;
 import org.apache.ignite.ci.github.GitHubIssueComment;
+import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
@@ -152,6 +155,38 @@ class GitHubConnectionImpl implements IGitHubConnection {
         throw new IllegalStateException("Unreachable");
     }
 
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public GitHubUser getUser(String login) {
+        String url = userApiUrl(getApiUrlMandatory(), login);
+
+        for (int attempt = 1; attempt <= READ_ATTEMPTS; attempt++) {
+            try (InputStream is = sendGetToGit(url, null)) {
+                InputStreamReader reader = new InputStreamReader(is);
+
+                return new Gson().fromJson(reader, GitHubUser.class);
+            }
+            catch (IOException e) {
+                if (shouldRetry(e, attempt)) {
+                    long backoffMs = retryBackoffMs(attempt);
+
+                    logger.warn("Failed to read GitHub user, will retry " +
+                        "[srv={}, login={}, url={}, attempt={}/{}, backoffMs={}]",
+                        srvCode, login, url, attempt, READ_ATTEMPTS, backoffMs, e);
+
+                    LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(backoffMs));
+
+                    continue;
+                }
+
+                throw new UncheckedIOException("Failed to read GitHub user [srv=" + srvCode +
+                    ", login=" + login + ", url=" + url + ", attempt=" + attempt + '/' + READ_ATTEMPTS + ']', e);
+            }
+        }
+
+        throw new IllegalStateException("Unreachable");
+    }
+
     /** */
     @Nullable private String notifyGitError(String url, String body) {
         try {
@@ -235,6 +270,24 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
         Preconditions.checkState(!isNullOrEmpty(gitApiUrl), "Git API URL is not configured for this server.");
         return gitApiUrl;
+    }
+
+    /**
+     * @param gitApiUrl Repository API URL.
+     * @param login GitHub login.
+     */
+    static String userApiUrl(String gitApiUrl, String login) {
+        Preconditions.checkState(!isNullOrEmpty(gitApiUrl), "Git API URL is not configured.");
+        Preconditions.checkState(!isNullOrEmpty(login), "GitHub login is empty.");
+
+        int reposIdx = gitApiUrl.indexOf("/repos/");
+
+        Preconditions.checkState(reposIdx >= 0, "Unsupported Git API URL: " + gitApiUrl);
+
+        String apiRoot = gitApiUrl.substring(0, reposIdx + 1);
+        String encodedLogin = URLEncoder.encode(login, StandardCharsets.UTF_8);
+
+        return apiRoot + "users/" + encodedLogin;
     }
 
     /** {@inheritDoc} */

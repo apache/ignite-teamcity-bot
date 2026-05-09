@@ -109,6 +109,13 @@ public class PullRequest implements IVersionedEntity {
     }
 
     /**
+     * @param gitHubUser GitHub user.
+     */
+    public void gitHubUser(GitHubUser gitHubUser) {
+        this.gitHubUser = gitHubUser;
+    }
+
+    /**
      * @return Html url.
      */
     public String htmlUrl() {

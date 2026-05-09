@@ -33,6 +33,9 @@ public interface IGitHubConnIgnited {
     /** Cache name for storing GitHub Branches. */
     public static final String GIT_HUB_BRANCHES = "gitHubBranch";
 
+    /** Cache name for storing GitHub users. */
+    public static final String GIT_HUB_USERS = "gitHubUsers";
+
     /**
      * @return Config of GH project.
      */

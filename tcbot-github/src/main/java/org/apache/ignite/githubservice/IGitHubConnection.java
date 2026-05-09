@@ -22,6 +22,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.ignite.ci.github.GitHubBranchShort;
 import org.apache.ignite.ci.github.GitHubIssueComment;
+import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
 
@@ -36,6 +37,12 @@ public interface IGitHubConnection {
 
     /** */
     public PullRequest getPullRequest(Integer id);
+
+    /**
+     * @param login GitHub login.
+     * @return Full public GitHub user profile.
+     */
+    public GitHubUser getUser(String login);
 
     /**
      * @param fullUrl Full url - null for first page, not null for next page.
