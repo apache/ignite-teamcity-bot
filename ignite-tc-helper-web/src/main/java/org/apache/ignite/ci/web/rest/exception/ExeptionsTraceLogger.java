@@ -16,6 +16,10 @@
  */
 package org.apache.ignite.ci.web.rest.exception;
 
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Set;
+import javax.xml.bind.JAXBException;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 import javax.ws.rs.core.Response;
@@ -31,6 +35,9 @@ public class ExeptionsTraceLogger implements ExceptionMapper<Throwable> {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(ExeptionsTraceLogger.class);
 
+    /** Max causes to include in HTTP response. */
+    private static final int MAX_CAUSE_DEPTH = 8;
+
     /** {@inheritDoc} */
     @Override public Response toResponse(Throwable t) {
         logger.error("Error during processing request (Internal Server Error [500]). Caused by: ", t);
@@ -38,6 +45,85 @@ public class ExeptionsTraceLogger implements ExceptionMapper<Throwable> {
         if (Boolean.valueOf(System.getProperty(TcBotSystemProperties.DEV_MODE)))
             t.printStackTrace();
 
-        return Response.serverError().entity(t.getMessage()).build();
+        return Response.serverError().entity(errorMessage(t)).build();
+    }
+
+    /**
+     * @param t Exception.
+     * @return Short user-facing error text with the useful root cause preserved.
+     */
+    private static String errorMessage(Throwable t) {
+        StringBuilder res = new StringBuilder("Internal Server Error [500].");
+        Throwable root = rootCause(t);
+        String rootMsg = formatCause(root);
+
+        if (!rootMsg.isEmpty())
+            res.append("\nReason: ").append(rootMsg);
+
+        res.append("\n\nCause chain:");
+
+        Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+        Throwable cur = t;
+        int depth = 0;
+
+        while (cur != null && seen.add(cur) && depth < MAX_CAUSE_DEPTH) {
+            res.append("\n- ").append(formatCause(cur));
+
+            cur = nextCause(cur);
+            depth++;
+        }
+
+        if (cur != null)
+            res.append("\n- ...");
+
+        return res.toString();
+    }
+
+    /**
+     * @param t Exception.
+     * @return Root cause, including JAXB linked exceptions.
+     */
+    private static Throwable rootCause(Throwable t) {
+        Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+        Throwable cur = t;
+        Throwable next;
+
+        while (cur != null && seen.add(cur) && (next = nextCause(cur)) != null)
+            cur = next;
+
+        return cur == null ? t : cur;
+    }
+
+    /**
+     * @param t Exception.
+     * @return Next cause.
+     */
+    private static Throwable nextCause(Throwable t) {
+        Throwable cause = t.getCause();
+
+        if (cause != null)
+            return cause;
+
+        if (t instanceof JAXBException)
+            return ((JAXBException)t).getLinkedException();
+
+        return null;
+    }
+
+    /**
+     * @param t Exception.
+     * @return Cause text.
+     */
+    private static String formatCause(Throwable t) {
+        if (t == null)
+            return "";
+
+        String msg = t.getMessage();
+        String cls = t.getClass().getSimpleName();
+
+        if (msg == null || msg.trim().isEmpty())
+            return cls;
+
+        return cls + ": " + msg.replace('\r', ' ').replace('\n', ' ').trim();
     }
 }

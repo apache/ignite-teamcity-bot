@@ -110,7 +110,11 @@ function showErrInLoadStatus(jqXHR, exception) {
     } else if (jqXHR.status === 424) {
         $("#loadStatus").html('Dependency problem: [424]: ' + jqXHR.responseText);
     } else if (jqXHR.status === 500) {
-        $("#loadStatus").html('Internal Server Error [500].');
+        var serverMsg = isDefinedAndFilled(jqXHR.responseText)
+            ? jqXHR.responseText
+            : 'Internal Server Error [500].';
+
+        $("#loadStatus").text(serverMsg);
     } else if (exception === 'parsererror') {
         $("#loadStatus").html('Requested JSON parse failed.');
     } else if (exception === 'timeout') {
