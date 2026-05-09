@@ -92,6 +92,17 @@ public class TcBotTriggerAndSignOffServiceTest {
     }
 
     /**
+     * Checks skipped run result comment status names blockers count.
+     */
+    @Test public void skippedRunResultCommentNamesBlockersCount() {
+        Visa skipped = new Visa(Visa.commentSkipped(3), null, 3);
+
+        assertEquals("Run result comment skipped: 3 blockers found.", skipped.status);
+        assertTrue(skipped.isSuccess());
+        assertEquals(3, skipped.getBlockers());
+    }
+
+    /**
      * Checks duplicate detection by marker.
      */
     @Test public void duplicateDetectionIsDefensiveAndChecksMarker() {

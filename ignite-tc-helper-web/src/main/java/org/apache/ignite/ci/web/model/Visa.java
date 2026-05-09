@@ -30,15 +30,15 @@ public class Visa {
     /** Message to show user when JIRA ticket was successfully commented by the Bot. */
     public static final String JIRA_COMMENTED = "JIRA commented.";
 
-    /** Message to show user when requested analysis targets were successfully commented by the Bot. */
-    public static final String COMMENTED = "Analysis commented.";
+    /** Message to show user when requested run result targets were successfully commented by the Bot. */
+    public static final String COMMENTED = "Run result commented.";
 
     /** Message to show user when some requested targets were not commented. */
     public static final String PARTIALLY_COMMENTED =
-        "Analysis partially commented - GitHub wasn't commented.";
+        "Run result partially commented - GitHub wasn't commented.";
 
-    /** Message to show user when comment was intentionally skipped. */
-    public static final String COMMENT_SKIPPED = "Analysis comment skipped: blockers found.";
+    /** Message prefix to show user when comment was intentionally skipped. */
+    public static final String COMMENT_SKIPPED = "Run result comment skipped:";
 
     /** */
     private static final String JIRA_COMMENTED_PREFIX = "JIRA ticket commented:";
@@ -68,6 +68,14 @@ public class Visa {
      */
     public static Visa emptyVisa() {
         return new Visa(EMPTY_VISA_STATUS);
+    }
+
+    /**
+     * @param blockers Blockers count.
+     * @return User-visible status for skipped result comment.
+     */
+    public static String commentSkipped(int blockers) {
+        return COMMENT_SKIPPED + " " + blockers + " " + (blockers == 1 ? "blocker" : "blockers") + " found.";
     }
 
     /** */
@@ -100,7 +108,7 @@ public class Visa {
             || COMMENTED.equals(status)
             || (PARTIALLY_COMMENTED.equals(status) && jiraCommentRes != null)
             || isDetailedSuccess(status)
-            || COMMENT_SKIPPED.equals(status);
+            || (status != null && status.startsWith(COMMENT_SKIPPED));
     }
 
     /** */

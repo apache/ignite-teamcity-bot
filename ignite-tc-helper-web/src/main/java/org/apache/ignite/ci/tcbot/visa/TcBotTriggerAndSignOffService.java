@@ -1357,7 +1357,7 @@ public class TcBotTriggerAndSignOffService {
             blockers = suitesStatuses.stream().mapToInt(ShortSuiteUi::totalBlockers).sum();
 
             if (commentOnlyIfNoBlockers && blockers > 0)
-                return new Visa(Visa.COMMENT_SKIPPED, null, blockers);
+                return new Visa(Visa.commentSkipped(blockers), null, blockers);
 
             String analysisSliceKey = analysisSliceKey(build.getId(), rerunBuildIds);
 
