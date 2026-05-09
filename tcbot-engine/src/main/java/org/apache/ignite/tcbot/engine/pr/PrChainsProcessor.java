@@ -17,9 +17,12 @@
 package org.apache.ignite.tcbot.engine.pr;
 
 import com.google.common.base.Strings;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +48,6 @@ import org.apache.ignite.jiraignited.IJiraIgnited;
 import org.apache.ignite.jiraignited.IJiraIgnitedProvider;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
-import org.apache.ignite.tcbot.common.util.TimeUtil;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
@@ -85,6 +87,13 @@ public class PrChainsProcessor {
 
     /** Max time to wait for AI prompt build log processing. */
     private static final long AI_PROMPT_LOG_WAIT_MS = TimeUnit.MINUTES.toMillis(1);
+
+    /** */
+    private static final ThreadLocal<DateFormat> THREAD_TIME_FORMATTER = new ThreadLocal<DateFormat>() {
+        @Override protected DateFormat initialValue() {
+            return new SimpleDateFormat("HH:mm");
+        }
+    };
 
     private static class Action {
         public static final String HISTORY = "History";
@@ -377,10 +386,27 @@ public class PrChainsProcessor {
      */
     private static String estimatedCompletionText(long leftSeconds, int queued) {
         long leftMs = TimeUnit.SECONDS.toMillis(leftSeconds);
-        String eta = "in " + TimeUtil.millisToDurationPrintable(leftMs) +
-            " (around " + TimeUtil.timestampToDateTimePrintable(System.currentTimeMillis() + leftMs) + ")";
+        String eta = "check around " + THREAD_TIME_FORMATTER.get().format(
+            new Date(System.currentTimeMillis() + leftMs)) + " (" + hoursMinutes(leftMs) + ")";
 
         return queued > 0 ? eta + ", queued builds may extend it" : eta;
+    }
+
+    /**
+     * @param ms Duration in millis.
+     */
+    private static String hoursMinutes(long ms) {
+        long totalMins = Math.max(1, TimeUnit.MILLISECONDS.toMinutes(ms));
+        long hours = totalMins / 60;
+        long mins = totalMins % 60;
+
+        if (hours == 0)
+            return "in " + mins + "m";
+
+        if (mins == 0)
+            return "in " + hours + "h";
+
+        return "in " + hours + "h " + mins + "m";
     }
 
     /**

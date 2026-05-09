@@ -124,7 +124,7 @@ public class TcBotTriggerAndSignOffService {
     /** */
     private static final ThreadLocal<DateFormat> THREAD_TIME_FORMATTER = new ThreadLocal<DateFormat>() {
         @Override protected DateFormat initialValue() {
-            return new SimpleDateFormat("HH:mm:ss");
+            return new SimpleDateFormat("HH:mm");
         }
     };
 
@@ -434,10 +434,27 @@ public class TcBotTriggerAndSignOffService {
      */
     private static String estimatedCompletionText(long leftSeconds, int queued) {
         long leftMs = TimeUnit.SECONDS.toMillis(leftSeconds);
-        String eta = "in " + TimeUtil.millisToDurationPrintable(leftMs) +
-            " (around " + THREAD_TIME_FORMATTER.get().format(new Date(System.currentTimeMillis() + leftMs)) + ")";
+        String eta = "check around " + THREAD_TIME_FORMATTER.get().format(
+            new Date(System.currentTimeMillis() + leftMs)) + " (" + hoursMinutes(leftMs) + ")";
 
         return queued > 0 ? eta + ", queued builds may extend it" : eta;
+    }
+
+    /**
+     * @param ms Duration in millis.
+     */
+    private static String hoursMinutes(long ms) {
+        long totalMins = Math.max(1, TimeUnit.MILLISECONDS.toMinutes(ms));
+        long hours = totalMins / 60;
+        long mins = totalMins % 60;
+
+        if (hours == 0)
+            return "in " + mins + "m";
+
+        if (mins == 0)
+            return "in " + hours + "h";
+
+        return "in " + hours + "h " + mins + "m";
     }
 
     /**
