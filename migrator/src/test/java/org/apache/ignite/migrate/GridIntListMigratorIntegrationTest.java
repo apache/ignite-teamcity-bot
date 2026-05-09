@@ -17,7 +17,6 @@
 
 package org.apache.ignite.migrate;
 
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.apache.ignite.Ignite;
@@ -35,7 +34,7 @@ import org.junit.rules.TemporaryFolder;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Integration tests for GridIntList migration recovery on real Ignite persistence.
+ * Integration tests for GridIntList migration on real Ignite persistence.
  */
 public class GridIntListMigratorIntegrationTest {
     /** Cache from the production failure. */
@@ -54,64 +53,45 @@ public class GridIntListMigratorIntegrationTest {
     @Rule public TemporaryFolder tmp = new TemporaryFolder();
 
     /**
-     * Reproduces the production failure on a persistent Ignite cache by deleting binary metadata before migration.
+     * Reproduces the production failure on a persistent Ignite cache and checks that default migration does not scan
+     * unrelated caches.
      */
-    @Test public void migrationAutoRepairsPersistentEntryWithMissingBinaryMetadata() throws Exception {
-        System.setProperty(GridIntListMigrator.AUTO_REPAIR_WAIT_MILLIS_PROPERTY, "1");
-
+    @Test public void migrationSkipsPersistentEntryWithMissingBinaryMetadataInUnrelatedCache() throws Exception {
         java.io.File workDir = tmp.newFolder("persistent-ignite-work");
 
+        Ignite ignite = Ignition.start(persistentConfiguration(workDir, "missing-binary-metadata-1"));
+
         try {
-            Ignite ignite = Ignition.start(persistentConfiguration(workDir, "missing-binary-metadata-1"));
+            ignite.cluster().state(ClusterState.ACTIVE);
 
-            try {
-                ignite.cluster().state(ClusterState.ACTIVE);
+            IgniteCache<Long, Object> cache = ignite.getOrCreateCache(new CacheConfiguration<Long, Object>(
+                BUILD_LOG_CHECK_RESULT));
+            BinaryObjectBuilder builder = ignite.binary().builder(MISSING_BINARY_METADATA_TYPE);
 
-                IgniteCache<Long, Object> cache = ignite.getOrCreateCache(new CacheConfiguration<Long, Object>(
-                    BUILD_LOG_CHECK_RESULT));
-                BinaryObjectBuilder builder = ignite.binary().builder(MISSING_BINARY_METADATA_TYPE);
+            builder.setField("field", "value");
 
-                builder.setField("field", "value");
-
-                cache.withKeepBinary().put(FAILED_BUILD_LOG_CHECK_RESULT_KEY, builder.build());
-            }
-            finally {
-                ignite.close();
-            }
-
-            deleteBinaryMetadata(workDir.toPath(), MISSING_BINARY_METADATA_TYPE_ID);
-
-            ignite = Ignition.start(persistentConfiguration(workDir, "missing-binary-metadata-2"));
-
-            try {
-                ignite.cluster().state(ClusterState.ACTIVE);
-
-                GridIntListMigrator.migrateOnInstance(ignite, BUILD_LOG_CHECK_RESULT, true, false, 1);
-
-                IgniteCache<Object, Object> cache = ignite.cache(BUILD_LOG_CHECK_RESULT);
-
-                assertTrue("Broken buildLogCheckResult entry must be removed",
-                    !cache.containsKey(FAILED_BUILD_LOG_CHECK_RESULT_KEY));
-
-                Path dumpDir = workDir.toPath().resolve("diagnostic").resolve("grid-int-list-migration-recovery");
-                Path dump = Files.list(dumpDir)
-                    .filter(path -> path.getFileName().toString().endsWith("_manifest.jsonl"))
-                    .findFirst().orElseThrow(() ->
-                    new AssertionError("Recovery dump was not written"));
-                String dumpText = new String(Files.readAllBytes(dump), StandardCharsets.UTF_8);
-
-                assertTrue(dumpText.contains(BUILD_LOG_CHECK_RESULT));
-                assertTrue(dumpText.contains(String.valueOf(FAILED_BUILD_LOG_CHECK_RESULT_KEY)));
-                assertTrue(dumpText.contains("Failed to get binary type details"));
-                assertTrue("Built-in Ignite dump must be moved to diagnostics",
-                    Files.list(dumpDir).anyMatch(Files::isDirectory));
-            }
-            finally {
-                ignite.close();
-            }
+            cache.withKeepBinary().put(FAILED_BUILD_LOG_CHECK_RESULT_KEY, builder.build());
         }
         finally {
-            System.clearProperty(GridIntListMigrator.AUTO_REPAIR_WAIT_MILLIS_PROPERTY);
+            ignite.close();
+        }
+
+        deleteBinaryMetadata(workDir.toPath(), MISSING_BINARY_METADATA_TYPE_ID);
+
+        ignite = Ignition.start(persistentConfiguration(workDir, "missing-binary-metadata-2"));
+
+        try {
+            ignite.cluster().state(ClusterState.ACTIVE);
+
+            GridIntListMigrator.migrateOnInstance(ignite, null, true, false, 1);
+
+            IgniteCache<Object, Object> cache = ignite.cache(BUILD_LOG_CHECK_RESULT);
+
+            assertTrue("Broken buildLogCheckResult entry must not be touched by default migration",
+                cache.containsKey(FAILED_BUILD_LOG_CHECK_RESULT_KEY));
+        }
+        finally {
+            ignite.close();
         }
     }
 

@@ -46,7 +46,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Offline migrator for TeamCity Bot Ignite persistence.
  * <p>
- * Recursively scans all entries in Ignite caches and replaces any occurrence of the legacy type
+ * Recursively scans entries in known TeamCity Bot caches that may contain the legacy type
  * org.apache.ignite.internal.util.GridIntList with the new type
  * org.apache.ignite.tcbot.common.util.GridIntList, preserving the int[] payload.
  * <p>
@@ -71,6 +71,15 @@ public final class GridIntListMigrator {
      * Failed entries printed to the final diagnostic report for each failed cache.
      */
     private static final int FAILURE_DETAILS_LIMIT_PER_CACHE = 5;
+
+    /**
+     * Production caches whose persisted value graph may contain GridIntList.
+     */
+    private static final List<String> GRID_INT_LIST_CACHE_NAMES = Collections.unmodifiableList(Arrays.asList(
+        "teamcityFatBuild",
+        "teamcityFatBuildType",
+        "teamcitySuiteHistory"
+    ));
 
     /**
      * Time to wait for operator input before automatic repair starts.
@@ -171,10 +180,7 @@ public final class GridIntListMigrator {
         boolean apply,
         boolean verbose,
         int reportEvery) {
-        Collection<String> cacheNames = new ArrayList<>(ignite.cacheNames());
-
-        if (cacheFilter != null && !cacheFilter.isEmpty())
-            cacheNames.removeIf(n -> !n.contains(cacheFilter));
+        Collection<String> cacheNames = cacheNamesToScan(ignite.cacheNames(), cacheFilter);
 
         log.info("GridIntList migration - Caches to scan: {}", cacheNames);
 
@@ -332,8 +338,8 @@ public final class GridIntListMigrator {
         sb.append(System.lineSeparator())
             .append("- If the service is not stopped, this migrator will try to dump and remove all ")
             .append("failed entries automatically after the timeout.");
-        sb.append(System.lineSeparator()).append("- This is safe for disposable derived caches such as ")
-            .append("buildLogCheckResult: missing entries will be recalculated when needed.");
+        sb.append(System.lineSeparator())
+            .append("- Failed entries are written to the recovery dump when dump creation succeeds.");
         sb.append(System.lineSeparator())
             .append("- If the data must be preserved, inspect the cache/key pair manually, ")
             .append("fix the value that matches the reason above, and rerun startup.");
@@ -373,6 +379,43 @@ public final class GridIntListMigrator {
                     .append(" more failed entries in this cache are omitted from the console summary.");
             }
         }
+    }
+
+    /**
+     * @param allCacheNames Existing cache names.
+     * @param cacheFilter Optional cache-name filter. Non-empty filter is treated as explicit offline override.
+     * @return Cache names that should be scanned.
+     */
+    private static Collection<String> cacheNamesToScan(Collection<String> allCacheNames, String cacheFilter) {
+        if (cacheFilter != null && !cacheFilter.isEmpty()) {
+            List<String> filtered = new ArrayList<>();
+
+            for (String cacheName : allCacheNames) {
+                if (cacheName.contains(cacheFilter))
+                    filtered.add(cacheName);
+            }
+
+            log.warn("GridIntList migration cache filter [{}] was provided. Scanning matching caches explicitly: {}",
+                cacheFilter, filtered);
+
+            return filtered;
+        }
+
+        Set<String> existing = new LinkedHashSet<>(allCacheNames);
+        List<String> selected = new ArrayList<>();
+
+        for (String cacheName : GRID_INT_LIST_CACHE_NAMES) {
+            if (existing.contains(cacheName))
+                selected.add(cacheName);
+        }
+
+        Set<String> skipped = new LinkedHashSet<>(existing);
+
+        skipped.removeAll(selected);
+
+        log.info("GridIntList migration selected known caches: {}. Other caches are skipped: {}", selected, skipped);
+
+        return selected;
     }
 
     /**

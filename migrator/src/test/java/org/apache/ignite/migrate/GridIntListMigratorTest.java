@@ -43,6 +43,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,6 +51,9 @@ import static org.mockito.Mockito.when;
  * Tests for GridIntList migration diagnostics.
  */
 public class GridIntListMigratorTest {
+    /** Production cache that may contain GridIntList. */
+    private static final String FAT_BUILD = "teamcityFatBuild";
+
     /** Cache from the production failure. */
     private static final String BUILD_LOG_CHECK_RESULT = "buildLogCheckResult";
 
@@ -101,7 +105,7 @@ public class GridIntListMigratorTest {
     }
 
     /**
-     * Checks the recovery path for the production failure where a cache value cannot resolve binary type metadata.
+     * Checks the recovery path where a migrated cache value cannot resolve binary type metadata.
      */
     @Test public void migrationDumpsAndRemovesEntryWithMissingBinaryTypeDetails() throws Exception {
         System.setProperty(GridIntListMigrator.AUTO_REPAIR_WAIT_MILLIS_PROPERTY, "1");
@@ -116,8 +120,8 @@ public class GridIntListMigratorTest {
             IgniteFuture<Void> dumpFut = mock(IgniteFuture.class);
             java.io.File workDir = tmp.newFolder("ignite-work");
 
-            when(ignite.cacheNames()).thenReturn(Collections.singleton("buildLogCheckResult"));
-            when(ignite.cache(BUILD_LOG_CHECK_RESULT)).thenReturn(rawCache);
+            when(ignite.cacheNames()).thenReturn(Collections.singleton(FAT_BUILD));
+            when(ignite.cache(FAT_BUILD)).thenReturn(rawCache);
             when(ignite.configuration()).thenReturn(new IgniteConfiguration()
                 .setWorkDirectory(workDir.getAbsolutePath()));
             when(ignite.snapshot()).thenReturn(snapshot);
@@ -147,7 +151,7 @@ public class GridIntListMigratorTest {
                 new AssertionError("Recovery dump was not written"));
             String dumpText = new String(Files.readAllBytes(dump), StandardCharsets.UTF_8);
 
-            assertTrue(dumpText.contains(BUILD_LOG_CHECK_RESULT));
+            assertTrue(dumpText.contains(FAT_BUILD));
             assertTrue(dumpText.contains(String.valueOf(failedKey)));
             assertTrue(dumpText.contains("Failed to get binary type details [typeId=-526400035]"));
         }
@@ -171,8 +175,8 @@ public class GridIntListMigratorTest {
             IgniteSnapshot snapshot = mock(IgniteSnapshot.class);
             java.io.File workDir = tmp.newFolder("ignite-work-dump-fails");
 
-            when(ignite.cacheNames()).thenReturn(Collections.singleton("buildLogCheckResult"));
-            when(ignite.cache(BUILD_LOG_CHECK_RESULT)).thenReturn(rawCache);
+            when(ignite.cacheNames()).thenReturn(Collections.singleton(FAT_BUILD));
+            when(ignite.cache(FAT_BUILD)).thenReturn(rawCache);
             when(ignite.configuration()).thenReturn(new IgniteConfiguration()
                 .setWorkDirectory(workDir.getAbsolutePath()));
             when(ignite.snapshot()).thenReturn(snapshot);
@@ -190,6 +194,20 @@ public class GridIntListMigratorTest {
         finally {
             System.clearProperty(GridIntListMigrator.AUTO_REPAIR_WAIT_MILLIS_PROPERTY);
         }
+    }
+
+    /**
+     * Checks that unrelated caches are skipped by default, including the cache that exposed the production failure.
+     */
+    @Test public void migrationSkipsNonGridIntListCachesByDefault() {
+        Ignite ignite = mock(Ignite.class);
+
+        when(ignite.cacheNames()).thenReturn(Collections.singleton(BUILD_LOG_CHECK_RESULT));
+
+        long updated = GridIntListMigrator.migrateOnInstance(ignite, null, true, false, 1);
+
+        assertTrue("No entries should be updated in skipped caches", updated == 0);
+        verify(ignite, never()).cache(BUILD_LOG_CHECK_RESULT);
     }
 
     /**

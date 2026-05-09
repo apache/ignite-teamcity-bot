@@ -111,9 +111,18 @@ The `migrate-GridIntList` database migration updates persisted TeamCity Bot data
 `org.apache.ignite.tcbot.common.util.GridIntList`.
 
 During startup, `DbMigrations` runs `GridIntListMigrator.migrateOnInstance` once and stores the migration marker only
-after the scan finishes successfully. The migrator iterates over Ignite cache entries in keep-binary mode, recursively
-checks cache values, nested binary objects, lists, sets, maps, and object arrays, and rebuilds only values that contain
-the legacy `GridIntList` type.
+after the scan finishes successfully. By default the migrator scans only the caches whose persisted value graph is known
+to contain compacted TeamCity parameters or statistics backed by `GridIntList`:
+
+| Cache | Persisted GridIntList path |
+| ----- | -------------------------- |
+| `teamcityFatBuild` | `FatBuildCompacted.buildParameters`, `FatBuildCompacted.statistics` |
+| `teamcityFatBuildType` | `BuildTypeCompacted.settings`, `BuildTypeCompacted.parameters`, snapshot dependency properties |
+| `teamcitySuiteHistory` | `SuiteInvocation.suite/tests -> Invocation.parameters` |
+
+Within those caches the migrator iterates over entries in keep-binary mode, recursively checks cache values, nested
+binary objects, lists, sets, maps, and object arrays, and rebuilds only values that contain the legacy `GridIntList`
+type. The standalone migrator's `--cache` option is an explicit offline override for targeted diagnostics.
 
 For each legacy list, the migration preserves the logical list contents, not the backing array capacity. If normal
 deserialization is available, it reads the old object through `GridIntList.array()`. If binary fallback is needed, it
