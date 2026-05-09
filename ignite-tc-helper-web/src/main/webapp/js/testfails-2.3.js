@@ -750,10 +750,17 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
                 "commentOnlyIfNoBlockers": commentOnlyIfNoBlockers
             },
             success: function(result) {
-                appendActionStage(dialog, "Server returned comment result.");
-                appendActionStage(dialog, "Result: " + result.result);
+                var resultText = simpleResultText(result);
 
-                var needTicketId = result.result.lastIndexOf("TicketNotFoundException") !== -1;
+                appendActionStage(dialog, "Server returned comment result.");
+                appendActionStage(dialog, "Result: " + resultText);
+
+                if (commentResultFailed(resultText))
+                    showActionError(dialog, resultText);
+                else
+                    showActionResult(dialog, resultText);
+
+                var needTicketId = resultText.lastIndexOf("TicketNotFoundException") !== -1;
 
                 if (needTicketId) {
                     dialog.append("<div style='margin-top:12px'>Enter JIRA ticket number: " +
@@ -773,11 +780,12 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
                 else
                     dialog.dialog("option", "buttons", {"Ok": closeDialog});
 
-                loadData(); // should be defined by page
+                if (loadData && typeof(loadData) === "function")
+                    loadData();
             },
             error: function(jqXHR, exception) {
                 appendActionStage(dialog, "Comment request failed.");
-                dialog.find(".action-error").text(jqXHR.responseText || exception).show();
+                showActionError(dialog, jqXHR.responseText || exception || "Unknown request error.");
                 dialog.dialog("option", "buttons", {"Ok": closeDialog});
                 showErrInLoadStatus(jqXHR, exception);
             }
@@ -808,6 +816,8 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
             "<div class='action-stages' style='display:none; margin-top:14px; background:#f7f7f7; " +
             "border:1px solid #d8d8d8; border-radius:4px; padding:10px; white-space:pre-wrap'></div>" +
             "<pre class='action-error' style='display:none; background:#fff2f2; border:1px solid #d09090; " +
+            "border-radius:4px; margin-top:12px; padding:10px; white-space:pre-wrap'></pre>" +
+            "<pre class='action-result' style='display:none; background:#f3fff2; border:1px solid #97c78c; " +
             "border-radius:4px; margin-top:12px; padding:10px; white-space:pre-wrap'></pre>"
         );
 
@@ -822,6 +832,8 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
                     dialog.dialog("option", "buttons", {});
                     dialog.find("input").prop("disabled", true);
                     dialog.find(".action-stages").show().empty();
+                    dialog.find(".action-error").hide().empty();
+                    dialog.find(".action-result").hide().empty();
                     appendActionStage(dialog, "Options selected.");
                     appendActionStage(dialog, "Will comment " + commentTargetsLabel(commentTargets) +
                         " with policy: " + commentPolicyLabel(commentOnlyIfNoBlockers) + ".");
@@ -851,6 +863,42 @@ function collectStageCommentTargets() {
 
 function appendActionStage(dialog, text) {
     dialog.find(".action-stages").append($("<div>").text("> " + text));
+}
+
+function simpleResultText(result) {
+    if (result && typeof result.result === "string")
+        return result.result;
+
+    if (typeof result === "string")
+        return result;
+
+    try {
+        return JSON.stringify(result);
+    }
+    catch (e) {
+        return "Unable to parse server response.";
+    }
+}
+
+function commentResultFailed(resultText) {
+    if (!isDefinedAndFilled(resultText))
+        return true;
+
+    return resultText.indexOf("wasn't commented") !== -1 ||
+        resultText.indexOf("was not commented") !== -1 ||
+        resultText.indexOf("TicketNotFoundException") !== -1 ||
+        resultText.indexOf("invalid PR number") !== -1 ||
+        resultText.indexOf("Exception happened") !== -1 ||
+        resultText.indexOf("not found") !== -1 ||
+        resultText.indexOf("API returned an error") !== -1;
+}
+
+function showActionError(dialog, text) {
+    dialog.find(".action-error").text(text).show();
+}
+
+function showActionResult(dialog, text) {
+    dialog.find(".action-result").text(text).show();
 }
 
 function actionDialogOptions(title, buttons) {
