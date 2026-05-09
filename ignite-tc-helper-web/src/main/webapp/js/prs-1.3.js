@@ -337,7 +337,7 @@ function claimGithubAuthorHtml(srvId, row) {
         isMyGithubLogin(srvId, row.prAuthor))
         return "";
 
-    return " <a href='javascript:void(0);' title='Confirm adding " + escapeHtml(row.prAuthor) +
+    return "<br><a href='javascript:void(0);' title='Confirm adding " + escapeHtml(row.prAuthor) +
         " to your GitHub IDs' onclick='" + jsCallAttr("confirmClaimGithubAuthor", [srvId, row.prAuthor]) +
         "'>it's me</a>";
 }
@@ -486,7 +486,9 @@ function renderContributionsTable(srvId, suiteId) {
 
                     if (type === 'display' && isDefinedAndFilled(row.prAuthorAvatarUrl) && row.prAuthorAvatarUrl.length >0) {
                         data = "<img src='" + escapeHtml(row.prAuthorAvatarUrl) +
-                            "' width='20px' height='20px'> " + escapeHtml(data);
+                            "' loading='lazy' onerror='this.style.display=\"none\"' " +
+                            "style='width:20px; height:20px; border-radius:50%; object-fit:cover; " +
+                            "vertical-align:middle; margin-right:6px'> " + escapeHtml(data);
                     }
                     else if (type === 'display')
                         data = escapeHtml(data);

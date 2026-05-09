@@ -112,7 +112,8 @@ function userHtml(name, url, avatarUrl) {
 
     var img = isDefinedAndFilled(avatarUrl)
         ? "<img src='" + escapeHtml(avatarUrl) + "' loading='lazy' onerror='this.style.display=\"none\"' " +
-            "style='width:22px; height:22px; border-radius:50%; vertical-align:middle; margin-right:6px'>"
+            "style='width:22px; height:22px; border-radius:50%; object-fit:cover; vertical-align:middle; " +
+            "margin-right:6px'>"
         : "";
 
     return img + linkOrText(url, name);
