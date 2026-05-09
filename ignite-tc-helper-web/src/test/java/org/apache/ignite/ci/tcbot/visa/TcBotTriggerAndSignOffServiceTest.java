@@ -26,6 +26,7 @@ import org.apache.ignite.ci.observer.CompactBuildsInfo;
 import org.apache.ignite.ci.web.model.JiraCommentResponse;
 import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.githubignited.IGitHubConnIgnited;
+import org.apache.ignite.jiraignited.IJiraIgnited;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.junit.Test;
 
@@ -134,23 +135,41 @@ public class TcBotTriggerAndSignOffServiceTest {
 
         assertTrue(jira.status.contains("JIRA ticket commented: IGNITE-28641"));
         assertTrue(jira.isSuccess());
+
+        Visa jiraDuplicate = TcBotTriggerAndSignOffService.commentResult(CommentTargets.JIRA, true, null, null,
+            "JIRA ticket already has a valid TCBot comment for this build: IGNITE-28641 " +
+                "https://issues.apache.org/jira/browse/IGNITE-28641",
+            null, 0);
+
+        assertTrue(jiraDuplicate.status.contains("already has a valid TCBot comment"));
+        assertTrue(jiraDuplicate.isSuccess());
     }
 
     /**
-     * Checks GitHub duplicate marker includes rerun suite build ids, not only the main chain id.
+     * Checks duplicate marker includes only rerun build ids, not every analyzed suite build id.
      */
-    @Test public void analysisSliceKeyIncludesSuiteBuildIds() {
-        org.apache.ignite.tcbot.engine.ui.ShortSuiteUi blockers =
-            new org.apache.ignite.tcbot.engine.ui.ShortSuiteUi();
-        org.apache.ignite.tcbot.engine.ui.ShortSuiteNewTestsUi newTests =
-            new org.apache.ignite.tcbot.engine.ui.ShortSuiteNewTestsUi();
+    @Test public void analysisSliceKeyIncludesOnlyRerunBuildIds() {
+        assertEquals("chainBuildId=100 rerunBuildIds=200,300",
+            TcBotTriggerAndSignOffService.analysisSliceKey(100, Arrays.asList(300, 100, 200)));
 
-        blockers.webToBuild = "https://ci.example/viewLog.html?buildId=200&buildTypeId=SuiteA";
-        newTests.webToBuild = "https://ci.example/viewLog.html?buildId=300&buildTypeId=SuiteB";
+        assertEquals("chainBuildId=100 rerunBuildIds=none",
+            TcBotTriggerAndSignOffService.analysisSliceKey(100, null));
+    }
 
-        assertEquals("chainBuildId=100 suiteBuildIds=200,300",
-            TcBotTriggerAndSignOffService.analysisSliceKey(100,
-                Collections.singletonList(blockers), Collections.singletonList(newTests)));
+    /**
+     * Checks JIRA duplicate detection by analysis marker.
+     */
+    @Test public void jiraDuplicateDetectionChecksMarker() throws Exception {
+        TcBotTriggerAndSignOffService svc = new TcBotTriggerAndSignOffService();
+        IJiraIgnited jira = mock(IJiraIgnited.class);
+
+        when(jira.getJiraComments("IGNITE-1")).thenReturn("{\"comments\":[{\"body\":\"" +
+            "tcbot-analysis-comment chainBuildId=100 rerunBuildIds=200\"}]}");
+
+        assertTrue(svc.hasExistingJiraComment(jira, "IGNITE-1",
+            "tcbot-analysis-comment chainBuildId=100 rerunBuildIds=200"));
+        assertFalse(svc.hasExistingJiraComment(jira, "IGNITE-1",
+            "tcbot-analysis-comment chainBuildId=100 rerunBuildIds=300"));
     }
 
     /**

@@ -53,6 +53,12 @@ public interface IJiraIgnited {
      */
     public String postJiraComment(String ticket, String comment) throws IOException;
 
+    /**
+     * @param ticket JIRA ticket full name. E.g 'IGNITE-5555'.
+     * @return Raw JIRA comments response.
+     */
+    public String getJiraComments(String ticket) throws IOException;
+
     public IJiraServerConfig config();
 
     /**

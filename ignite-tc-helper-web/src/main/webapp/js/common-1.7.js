@@ -76,6 +76,35 @@ function escapeHtml(str) {
         .replace(/'/g, "&#039;");
 }
 
+function escapeJsString(str) {
+    return JSON.stringify(str == null ? "" : String(str));
+}
+
+function jsArg(value) {
+    if (typeof value === "undefined" || value === null)
+        return "null";
+
+    if (typeof value === "number" || typeof value === "boolean")
+        return String(value);
+
+    if (typeof value === "object")
+        return JSON.stringify(value);
+
+    return escapeJsString(value);
+}
+
+function jsCall(name, args) {
+    return name + "(" + (args || []).map(jsArg).join(", ") + ")";
+}
+
+function jsCallAttr(name, args) {
+    return escapeHtml(jsCall(name, args));
+}
+
+function jsEventAttr(calls) {
+    return escapeHtml((calls || []).join("; ") + ((calls || []).length === 0 ? "" : ";"));
+}
+
 function createBotProcessId(kind) {
     return Date.now() * 1000 + Math.floor(Math.random() * 1000);
 }

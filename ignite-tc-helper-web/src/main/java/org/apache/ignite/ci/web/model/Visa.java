@@ -44,6 +44,10 @@ public class Visa {
     private static final String JIRA_COMMENTED_PREFIX = "JIRA ticket commented:";
 
     /** */
+    private static final String JIRA_ALREADY_COMMENTED_PREFIX =
+        "JIRA ticket already has a valid TCBot comment for this build:";
+
+    /** */
     private static final String GITHUB_COMMENTED_PREFIX = "GitHub PR commented:";
 
     /** */
@@ -104,7 +108,8 @@ public class Visa {
         if (status == null)
             return false;
 
-        boolean jiraCommented = status.startsWith(JIRA_COMMENTED_PREFIX) && jiraCommentRes != null;
+        boolean jiraCommented = (status.startsWith(JIRA_COMMENTED_PREFIX) && jiraCommentRes != null)
+            || status.startsWith(JIRA_ALREADY_COMMENTED_PREFIX);
         boolean partiallyCommented = status.startsWith(PARTIALLY_COMMENTED) && jiraCommentRes != null;
         boolean githubCommented = status.startsWith(GITHUB_COMMENTED_PREFIX)
             || status.startsWith(GITHUB_ALREADY_COMMENTED_PREFIX)

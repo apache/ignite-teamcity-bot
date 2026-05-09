@@ -588,16 +588,23 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
     let buildIsCompleted = isDefinedAndFilled(status.branchWithFinishedSuite);
     let hasJiraIssue = isDefinedAndFilled(row.jiraIssueId);
     var jiraOptional = hasJiraIssue ? row.jiraIssueId : "";
-    let actionUiLinks = "{ticketLink: \"" + (isDefinedAndFilled(row.jiraIssueUrl) ? row.jiraIssueUrl : "") +
-        "\", prLink: \"" + (isDefinedAndFilled(row.prHtmlUrl) ? row.prHtmlUrl : "") + "\"}";
+    let actionUiLinks = {
+        ticketLink: isDefinedAndFilled(row.jiraIssueUrl) ? row.jiraIssueUrl : "",
+        prLink: isDefinedAndFilled(row.prHtmlUrl) ? row.prHtmlUrl : ""
+    };
+    let githubCleanOnlyUiLinks = {
+        ticketLink: isDefinedAndFilled(row.jiraIssueUrl) ? row.jiraIssueUrl : "",
+        prLink: isDefinedAndFilled(row.prHtmlUrl) ? row.prHtmlUrl : "",
+        commentPolicyHint: "By default GitHub will be commented only if no blockers are found. " +
+            "If you need a GitHub comment for any result, switch the option to Comment always."
+    };
     let hasQueued = status.queuedBuilds > 0 || status.runningBuilds > 0;
     let queuedStatus = "Has queued builds: " + status.queuedBuilds  + " queued " + " " + status.runningBuilds  + " running";
-    let replaintCall = "repaintLater(\"" + srvId + "\");";
 
     var linksToRunningBuilds = "";
     for (let i = 0; i < status.webLinksQueuedSuites.length; i++) {
         const l = status.webLinksQueuedSuites[i];
-        linksToRunningBuilds += "<a href=" + l + ">View queued at TC</a> "
+        linksToRunningBuilds += "<a href='" + escapeHtml(l) + "'>View queued at TC</a> "
     }
     $('#viewQueuedBuildsFor' + prId).html(linksToRunningBuilds);
 
@@ -617,43 +624,25 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
         let commentBtns = "<span style='display:inline-flex; gap:4px; align-items:center; white-space:nowrap'>";
 
         if (hasJiraIssue) {
-            commentBtns += "<button onclick='" +
-                "commentJira(" +
-                "\"" + srvId + "\", " +
-                "\"" + finishedBranch + "\", " +
-                "\"" + suiteIdSelected + "\", " +
-                "\"" + row.jiraIssueId + "\"," +
-                "\"\"," + // base TC branch
-                "\"JIRA\"," +
-                "\"" + row.prNumber + "\"," +
-                "false," +
-                actionUiLinks +
-                ");" +
-                "'";
+            commentBtns += "<button onclick='" + jsCallAttr("commentJira", [
+                srvId, finishedBranch, suiteIdSelected, row.jiraIssueId,
+                "", "JIRA", row.prNumber, false, actionUiLinks
+            ]) + "'";
 
             if (hasQueued) {
-                commentBtns += " class='disabledbtn' title='" + queuedStatus + "'";
+                commentBtns += " class='disabledbtn' title='" + escapeHtml(queuedStatus) + "'";
             }
             commentBtns += ">Comment JIRA</button> ";
         }
 
-        if (row.prNumber > 0) {
-            commentBtns += "<button onclick='" +
-                "commentJira(" +
-                "\"" + srvId + "\", " +
-                "\"" + finishedBranch + "\", " +
-                "\"" + suiteIdSelected + "\", " +
-                "\"" + jiraOptional + "\"," +
-                "\"\"," + // base TC branch
-                "\"GITHUB\"," +
-                "\"" + row.prNumber + "\"," +
-                "false," +
-                actionUiLinks +
-                ");" +
-                "'";
+        if (hasJiraIssue && row.prNumber > 0) {
+            commentBtns += "<button onclick='" + jsCallAttr("commentJira", [
+                srvId, finishedBranch, suiteIdSelected, jiraOptional,
+                "", "GITHUB", row.prNumber, false, actionUiLinks
+            ]) + "'";
 
             if (hasQueued)
-                commentBtns += " class='disabledbtn' title='" + queuedStatus + "'";
+                commentBtns += " class='disabledbtn' title='" + escapeHtml(queuedStatus) + "'";
 
             commentBtns += ">Comment GitHub</button>";
         }
@@ -665,25 +654,17 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
         let noBuildsHtml = "No builds for " + escapeHtml(suiteIdSelected);
 
         if (isDefinedAndFilled(status.resolvedBranch)) {
-            let triggerBuildsCall = "triggerBuilds(" +
-                "\"" + srvId + "\", " +
-                "null, " +
-                "\"" + suiteIdSelected + "\", " +
-                "\"" + status.resolvedBranch + "\"," +
-                " false," +
-                " false," +
-                "\"" + jiraOptional + "\"," +
-                "\"" + row.prNumber + "\"," +
-                "null," +
-                "false," +
-                "\"\"," +
-                "false," +
-                actionUiLinks + "); ";
+            let triggerBuildsCall = jsCall("triggerBuilds", [
+                srvId, null, suiteIdSelected, status.resolvedBranch,
+                false, false, jiraOptional, row.prNumber, null, false, "", false, actionUiLinks
+            ]);
 
-            noBuildsHtml += "<br><button onClick='" + triggerBuildsCall + replaintCall + "'";
+            noBuildsHtml += "<br><button onClick='" + jsEventAttr([
+                triggerBuildsCall, jsCall("repaintLater", [srvId])
+            ]) + "'";
 
             if (hasQueued)
-                noBuildsHtml += " class='disabledbtn' title='" + queuedStatus + "'";
+                noBuildsHtml += " class='disabledbtn' title='" + escapeHtml(queuedStatus) + "'";
 
             noBuildsHtml += ">Trigger build</button>";
         }
@@ -713,7 +694,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
         if (hasQueued || buildIsCompleted) {
             res += " class='disabledbtn'";
             if (hasQueued)
-                res += " title='" + queuedStatus + "'";
+                res += " title='" + escapeHtml(queuedStatus) + "'";
             else
                 res += " title='Results are ready. It is still possible to trigger Build'";
         }
@@ -722,24 +703,26 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
 
     if (isDefinedAndFilled(status.resolvedBranch)) {
         // triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId)  defined in test fails
-        let triggerBuildsCall = "triggerBuilds(" +
-            "\"" + srvId + "\", " +
-            "null, " +
-            "\"" + suiteIdSelected + "\", " +
-            "\"" + status.resolvedBranch + "\"," +
-            " false," +
-            " false," +
-            "\"" + jiraOptional + "\"," +
-            "\"" + row.prNumber + "\"," +
-            "null," +
-            "false," +
-            "\"\"," +
-            "false," +
-            actionUiLinks + "); ";
-        var res = "<button onClick='" + triggerBuildsCall + replaintCall + "'";
+        let triggerBuildsCall = jsCall("triggerBuilds", [
+            srvId, null, suiteIdSelected, status.resolvedBranch,
+            false, false, jiraOptional, row.prNumber, null, false, "", false, actionUiLinks
+        ]);
+        var res = "<button onClick='" + jsEventAttr([triggerBuildsCall, jsCall("repaintLater", [srvId])]) + "'";
         res += prepareStatusOfTrigger();
 
         res += ">Trigger build</button>";
+
+        if (hasJiraIssue && row.prNumber > 0) {
+            let trigGithubCall = jsCall("triggerBuilds", [
+                srvId, null, suiteIdSelected, status.resolvedBranch,
+                false, true, jiraOptional, row.prNumber, null, false, "GITHUB", true, githubCleanOnlyUiLinks
+            ]);
+
+            res += " <button onClick='" + jsEventAttr([trigGithubCall, jsCall("repaintLater", [srvId])]) + "'";
+            res += prepareStatusOfTrigger();
+            res += ">Build and Comment GitHub</button>";
+        }
+
         $("#triggerBuildFor" + prId).html(res);
     }
 
@@ -748,64 +731,15 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
 
         if (hasJiraIssue) {
         // triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId)  defined in test fails
-            let trigObserveCall = "triggerBuilds(" +
-            "\"" + srvId + "\", " +
-            "null, " +
-            "\"" + suiteIdSelected + "\", " +
-            "\"" + status.resolvedBranch + "\"," +
-            " false," +
-            " true," +
-                "\"" + jiraOptional + "\"," +
-                "\"" + row.prNumber + "\"," +
-                "null," +
-                "false," +
-                "\"JIRA\"," +
-                "false," +
-                actionUiLinks + "); ";
-            buttons += "<button onClick='" + trigObserveCall + replaintCall + "'";
+            let trigObserveCall = jsCall("triggerBuilds", [
+                srvId, null, suiteIdSelected, status.resolvedBranch,
+                false, true, jiraOptional, row.prNumber, null, false, "JIRA", false, actionUiLinks
+            ]);
+            buttons += "<button onClick='" + jsEventAttr([trigObserveCall, jsCall("repaintLater", [srvId])]) + "'";
 
             buttons += prepareStatusOfTrigger();
 
             buttons += ">Trigger build and comment JIRA after finish</button>";
-        }
-
-        if (row.prNumber > 0) {
-            let trigGithubCall = "triggerBuilds(" +
-                "\"" + srvId + "\", " +
-                "null, " +
-                "\"" + suiteIdSelected + "\", " +
-                "\"" + status.resolvedBranch + "\"," +
-                " false," +
-                " true," +
-                "\"" + jiraOptional + "\"," +
-                "\"" + row.prNumber + "\"," +
-                "null," +
-                "false," +
-                "\"GITHUB\"," +
-                "false," +
-                actionUiLinks + "); ";
-            buttons += "<button onClick='" + trigGithubCall + replaintCall + "'";
-            buttons += prepareStatusOfTrigger();
-            buttons += ">Run and comment GitHub after finish</button>";
-
-            let rerunGithubCall = "triggerBuilds(" +
-                "\"" + srvId + "\", " +
-                "null, " +
-                "\"" + suiteIdSelected + "\", " +
-                "\"" + status.resolvedBranch + "\"," +
-                " false," +
-                " true," +
-                "\"" + jiraOptional + "\"," +
-                "\"" + row.prNumber + "\"," +
-                "null," +
-                "true," +
-                "\"GITHUB\"," +
-                "false," +
-                actionUiLinks + "); ";
-            buttons += "<button onClick='" + rerunGithubCall + replaintCall + "'";
-            if (hasQueued)
-                buttons += " class='disabledbtn' title='" + queuedStatus + "'";
-            buttons += ">Re-run and comment GitHub after finish</button>";
         }
 
         $('#triggerAndObserveBuildFor' + prId).html(buttons);

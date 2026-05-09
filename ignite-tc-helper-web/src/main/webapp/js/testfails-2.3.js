@@ -242,13 +242,13 @@ function showChainCurrentStatusData(chain, settings) {
     if (suitesFailedList.length !== 0 && isDefinedAndFilled(srvCodeForTriggering) && isDefinedAndFilled(chain.branchName)) {
         moreInfoTxt += "Trigger failed " + cntFailed + " builds";
         moreInfoTxt += " <a href='javascript:void(0);' ";
-        moreInfoTxt += " onClick='triggerBuilds(\"" + srvCodeForTriggering + "\", \"" + parentSuitId + "\", " +
-            "\"" + suitesFailedList + "\", \"" + chain.branchName + "\", false, false, null, \"" + chain.prNum + "\", null, false)' ";
+        moreInfoTxt += " onClick='" + jsCallAttr("triggerBuilds", [srvCodeForTriggering, parentSuitId,
+            suitesFailedList, chain.branchName, false, false, null, chain.prNum, null, false]) + "' ";
         moreInfoTxt += " title='trigger builds'>in queue</a> ";
 
         moreInfoTxt += " <a href='javascript:void(0);' ";
-        moreInfoTxt += " onClick='triggerBuilds(\"" + srvCodeForTriggering + "\", \"" + parentSuitId + "\", " +
-            "\"" + suitesFailedList + "\", \"" + chain.branchName + "\", true, false, null, \"" + chain.prNum + "\", null, false)' ";
+        moreInfoTxt += " onClick='" + jsCallAttr("triggerBuilds", [srvCodeForTriggering, parentSuitId,
+            suitesFailedList, chain.branchName, true, false, null, chain.prNum, null, false]) + "' ";
         moreInfoTxt += " title='trigger builds'>on top</a><br>";
     }
 
@@ -317,21 +317,13 @@ function showChainCurrentStatusData(chain, settings) {
 
     if (settings.isTeamCityAvailable() && blockersList.length !== 0 &&
         isDefinedAndFilled(srvCodeForTriggering) && isDefinedAndFilled(chain.branchName)) {
-        actionButtons += "<button onclick='triggerBuildsWithCommentOptions(" +
-            "\"" + srvCodeForTriggering + "\", " +
-            "\"" + parentSuitId + "\", " +
-            "\"" + blockersList + "\", " +
-            "\"" + chain.branchName + "\", " +
-            "false, " + //top
-            "false, " + //observe
-            "null, " + // ticketId
-            "\"" + chain.prNum + "\", " +
-            "\"" + baseBranchForTc + "\", " +
-            "false, " +
-            "\"" + (isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "") + "\", " +
-            "\"" + (isDefinedAndFilled(chain.webToPr) ? chain.webToPr : "") + "\", " +
-            hasCommentContext +
-            ")'>Rerun blockers</button>";
+        actionButtons += "<button onclick='" + jsCallAttr("triggerBuildsWithCommentOptions", [
+            srvCodeForTriggering, parentSuitId, blockersList, chain.branchName,
+            false, false, null, chain.prNum, baseBranchForTc, false,
+            isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "",
+            isDefinedAndFilled(chain.webToPr) ? chain.webToPr : "",
+            hasCommentContext
+        ]) + "'>Rerun blockers</button>";
     }
 
     if (settings.isTeamCityAvailable() && suitesFailedList.length !== 0 &&
@@ -340,33 +332,19 @@ function showChainCurrentStatusData(chain, settings) {
             actionButtons += " ";
 
         if (hasCommentContext) {
-            actionButtons += "<button onclick='triggerBuildsWithCommentOptions(" +
-                "\"" + srvCodeForTriggering + "\", " +
-                "\"" + parentSuitId + "\", " +
-                "\"" + suitesFailedList + "\", " +
-                "\"" + chain.branchName + "\", " +
-                "false, " +
-                "false, " +
-                "null, " +
-                "\"" + chain.prNum + "\", " +
-                "\"" + baseBranchForTc + "\", " +
-                "false, " +
-                "\"" + (isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "") + "\", " +
-                "\"" + (isDefinedAndFilled(chain.webToPr) ? chain.webToPr : "") + "\", " +
-                "true" +
-                ")'>Trigger failed builds</button>";
+            actionButtons += "<button onclick='" + jsCallAttr("triggerBuildsWithCommentOptions", [
+                srvCodeForTriggering, parentSuitId, suitesFailedList, chain.branchName,
+                false, false, null, chain.prNum, baseBranchForTc, false,
+                isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "",
+                isDefinedAndFilled(chain.webToPr) ? chain.webToPr : "",
+                true
+            ]) + "'>Trigger failed builds</button>";
         }
         else {
-            actionButtons += "<button onclick='triggerBuilds(\"" + srvCodeForTriggering + "\", " +
-                "\"" + parentSuitId + "\", " +
-                "\"" + suitesFailedList + "\", " +
-                "\"" + chain.branchName + "\", " +
-                "false, " +
-                "false, " +
-                "null, " +
-                "\"" + chain.prNum + "\", " +
-                "\"" + baseBranchForTc + "\", " +
-                "false)'>Trigger failed builds</button>";
+            actionButtons += "<button onclick='" + jsCallAttr("triggerBuilds", [
+                srvCodeForTriggering, parentSuitId, suitesFailedList, chain.branchName,
+                false, false, null, chain.prNum, baseBranchForTc, false
+            ]) + "'>Trigger failed builds</button>";
         }
     }
     else if (settings.isTeamCityAvailable() && isDefinedAndFilled(srvCodeForTriggering) &&
@@ -380,31 +358,25 @@ function showChainCurrentStatusData(chain, settings) {
         let commentBtns = "<span style='display:inline-flex; gap:4px; align-items:center; white-space:nowrap'>";
 
         if (settings.isJiraAvailable()) {
-            commentBtns += "<button onclick='commentJira(\"" + srvCodeForTriggering + "\", " +
-                "\"" + chain.branchName + "\", " +
-                "\"" + parentSuitId + "\", " +
-                "\"\", " + // ticket id
-                "\"" + baseBranchForTc + "\", " +
-                "\"JIRA\", " +
-                "\"" + chain.prNum + "\", " +
-                "false, " +
-                "{ticketLink: \"" + (isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "") +
-                "\", prLink: \"" + (isDefinedAndFilled(chain.webToPr) ? chain.webToPr : "") +
-                "\"})'>Comment JIRA</button>";
+            commentBtns += "<button onclick='" + jsCallAttr("commentJira", [
+                srvCodeForTriggering, chain.branchName, parentSuitId, "",
+                baseBranchForTc, "JIRA", chain.prNum, false,
+                {
+                    ticketLink: isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "",
+                    prLink: isDefinedAndFilled(chain.webToPr) ? chain.webToPr : ""
+                }
+            ]) + "'>Comment JIRA</button>";
         }
 
         if (settings.isGithubAvailable() && isDefinedAndFilled(chain.prNum)) {
-            commentBtns += "<button onclick='commentJira(\"" + srvCodeForTriggering + "\", " +
-                "\"" + chain.branchName + "\", " +
-                "\"" + parentSuitId + "\", " +
-                "\"\", " + // ticket id
-                "\"" + baseBranchForTc + "\", " +
-                "\"GITHUB\", " +
-                "\"" + chain.prNum + "\", " +
-                "false, " +
-                "{ticketLink: \"" + (isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "") +
-                "\", prLink: \"" + (isDefinedAndFilled(chain.webToPr) ? chain.webToPr : "") +
-                "\"})'>Comment GitHub PR</button>";
+            commentBtns += "<button onclick='" + jsCallAttr("commentJira", [
+                srvCodeForTriggering, chain.branchName, parentSuitId, "",
+                baseBranchForTc, "GITHUB", chain.prNum, false,
+                {
+                    ticketLink: isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "",
+                    prLink: isDefinedAndFilled(chain.webToPr) ? chain.webToPr : ""
+                }
+            ]) + "'>Comment GitHub PR</button>";
         }
 
         commentBtns += "</span><br>";
@@ -678,17 +650,26 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
         var hasGithub = defaultTargets.indexOf("GITHUB") !== -1;
         var opts = uiOptions || {};
         var showCommentOptions = opts.showCommentOptions || observeJira || isDefinedAndFilled(commentTargets);
+        var commentPolicyHint = opts.commentPolicyHint
+            ? "<div style='margin-top:8px; color:#666; font-size:12px'>" +
+            escapeHtml(opts.commentPolicyHint) + "</div>"
+            : "";
         var commentOptionsHtml = showCommentOptions
             ? "<div style='margin-top:12px'><b>Comment after build</b></div>" +
+            "<div style='display:flex; gap:24px; align-items:flex-start'>" +
+            "<div>" +
             "<label><input type='checkbox' id='stageCommentJira' " + (hasJira ? "checked" : "") + "> JIRA" +
             optionalLink(opts.ticketLink, ticketLinkLabel(opts.ticketLink, "ticket")) + "</label><br>" +
             "<label><input type='checkbox' id='stageCommentGithub' " + (hasGithub ? "checked" : "") +
             "> GitHub PR" + optionalLink(opts.prLink, prLinkLabel(opts.prLink, "PR")) + "</label><br>" +
+            "</div>" +
             "<div class='stage-comment-policy'>" +
             "<label><input type='radio' name='stageCommentPolicy' value='always' " +
             (!commentOnlyIfNoBlockers ? "checked" : "") + "> Comment always</label><br>" +
             "<label><input type='radio' name='stageCommentPolicy' value='clean' " +
-            (commentOnlyIfNoBlockers ? "checked" : "") + "> Comment only clean run (no blockers)</label></div>"
+            (commentOnlyIfNoBlockers ? "checked" : "") + "> Comment only clean run (no blockers)</label>" +
+            commentPolicyHint +
+            "</div></div>"
             : "";
 
         triggerConfirm.html(
@@ -699,7 +680,8 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
             "> Put builds at top of queue</label>" +
             "<div style='margin-left:22px; color:#666; font-size:12px'>Requires TeamCity permission to reorder build queue.</div>" +
             "<label><input type='checkbox' id='stageCleanRebuild' " + (cleanRebuild ? "checked" : "") +
-            "> Delete checkout files before snapshot dependency builds</label>" +
+            "> Clean build</label>" +
+            "<div style='margin-left:22px; color:#666; font-size:12px'>Delete checkout files before snapshot dependency builds.</div>" +
             commentOptionsHtml +
             actionStagesHtml(true) +
             actionErrorHtml()
@@ -714,7 +696,8 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
 
                     if (showCommentOptions) {
                         commentTargets = collectStageCommentTargets(triggerConfirm);
-                        commentOnlyIfNoBlockers = triggerConfirm.find("input[name='stageCommentPolicy']:checked").val() === "clean";
+                        commentOnlyIfNoBlockers = isDefinedAndFilled(commentTargets) &&
+                            triggerConfirm.find("input[name='stageCommentPolicy']:checked").val() === "clean";
                         observeJira = isDefinedAndFilled(commentTargets);
                     }
                     else {
@@ -777,7 +760,7 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
     var branchNotExists = !isDefinedAndFilled(branchName) || branchName.length === 0;
     branchName = branchNotExists ? null : branchForTc(branchName);
     ticketId = (isDefinedAndFilled(ticketId) && ticketId.length > 0) ? ticketId : null;
-    var processId = createBotProcessId("commentJira");
+    var processId = createBotProcessId("commentJiraOrGit");
     var stopProcessPolling;
 
     if (branchNotExists) {
@@ -797,7 +780,7 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
 
     function sendCommentRequest(dialog) {
         $.ajax({
-            url: 'rest/build/commentBuildAnalysis',
+            url: 'rest/build/commentJiraOrGit',
             data: {
                 "serverId": serverCode, //general Servers code
                 "suiteId": parentSuiteId,
@@ -844,7 +827,7 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
             dialog.dialog("option", "buttons", {
                 "Retry": function () {
                     ticketId = $("#enterTicketId").val();
-                    processId = createBotProcessId("commentJira");
+                    processId = createBotProcessId("commentJiraOrGit");
                     showCommentProcessDialog(dialog);
                     appendActionStage(dialog, "Retrying with explicit ticket " + ticketId + ".");
                     appendActionStage(dialog, "Sending comment request to the bot REST API.");
@@ -883,17 +866,21 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
             "<br>Suite: " + escapeHtml(parentSuiteId) +
             "<br>Branch: " + escapeHtml(branchName) + "</div>" +
             "<div style='margin-top:12px'><b>Targets</b></div>" +
+            "<div style='display:flex; gap:24px; align-items:flex-start'>" +
+            "<div>" +
             "<label><input type='checkbox' id='stageCommentJira' " +
             (defaultTargets.indexOf("JIRA") !== -1 ? "checked" : "") + "> JIRA" +
             optionalLink(opts.ticketLink, ticketLinkLabel(opts.ticketLink, "ticket")) + "</label><br>" +
             "<label><input type='checkbox' id='stageCommentGithub' " +
             (defaultTargets.indexOf("GITHUB") !== -1 ? "checked" : "") + "> GitHub PR" +
             optionalLink(opts.prLink, prLinkLabel(opts.prLink, "PR")) + "</label><br>" +
+            "</div>" +
             "<div class='stage-comment-policy'>" +
             "<label><input type='radio' name='stageCommentPolicy' value='always' " +
             (!commentOnlyIfNoBlockers ? "checked" : "") + "> Comment always</label><br>" +
             "<label><input type='radio' name='stageCommentPolicy' value='clean' " +
             (commentOnlyIfNoBlockers ? "checked" : "") + "> Comment only clean run (no blockers)</label></div>" +
+            "</div>" +
             actionStagesHtml(true) +
             actionErrorHtml() +
             actionResultHtml()
@@ -1354,13 +1341,13 @@ function showSuiteData(suite, settings, prNum) {
     if (isDefinedAndFilled(suite.serverId) && isDefinedAndFilled(suite.suiteId) && isDefinedAndFilled(suite.branchName)) {
         mInfo += " Trigger build: ";
         mInfo += "<a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + suite.serverId + "\", null, \"" +
-            suite.suiteId + "\", \"" + suite.branchName + "\", false, false, null, \"" + prNum + "\", null, false)' ";
+        mInfo += " onClick='" + jsCallAttr("triggerBuilds", [suite.serverId, null, suite.suiteId,
+            suite.branchName, false, false, null, prNum, null, false]) + "' ";
         mInfo += " title='trigger build' >queue</a> ";
 
         mInfo += "<a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + suite.serverId + "\", null, \"" +
-            suite.suiteId + "\", \"" + suite.branchName + "\", true, false, null, \"" + prNum + "\", null, false)' ";
+        mInfo += " onClick='" + jsCallAttr("triggerBuilds", [suite.serverId, null, suite.suiteId,
+            suite.branchName, true, false, null, prNum, null, false]) + "' ";
         mInfo += " title='trigger build at top of queue'>top</a><br>";
     }
 

@@ -109,6 +109,12 @@ class Jira implements IJiraIntegration {
         return HttpUtil.sendPostAsStringToJira(config().decodedHttpAuthToken(), url, "{\"body\": " + comment + "}");
     }
 
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public String getJiraComments(String ticket) throws IOException {
+        return sendGetToJira("issue/" + ticket + "/comment");
+    }
+
     /**
      * @param url Url, relative, should not contain any start slashes.
      * @return Response as gson string.

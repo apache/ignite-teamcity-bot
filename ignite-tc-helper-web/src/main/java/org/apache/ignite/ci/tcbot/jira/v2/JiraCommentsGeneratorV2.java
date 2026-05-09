@@ -32,6 +32,7 @@ import static org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator.FAILED_TEST_
 import static org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator.FAILED_TEST_SUITE_COLOR;
 import static org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator.NEW_TEST_SUITE_COLOR;
 import static org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator.PASSED_TEST_COLOR;
+import static org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator.duplicateMarker;
 import static org.apache.ignite.ci.tcbot.jira.JiraCommentsGenerator.jiraEscText;
 import static org.apache.ignite.tcservice.util.XmlUtil.xmlEscapeText;
 
@@ -57,6 +58,34 @@ public class JiraCommentsGeneratorV2 {
         int blockers,
         String branchName,
         String baseBranch
+    ) {
+        return generateJiraComment(compactor, suites, newTestsStatuses, webUrl, buildTypeId, tcIgnited, blockers,
+            branchName, baseBranch, null);
+    }
+
+    /**
+     * @param compactor String compactor.
+     * @param suites Suite Current Status.
+     * @param webUrl Build URL.
+     * @param buildTypeId Build type ID, for which visa was ordered.
+     * @param tcIgnited TC service.
+     * @param blockers Count of blockers.
+     * @param branchName TC Branch name, which was tested.
+     * @param baseBranch TC Base branch used for comment.
+     * @param analysisSliceKey Analysis slice key.
+     * @return Comment, which should be sent to the JIRA ticket.
+     */
+    public static String generateJiraComment(
+        IStringCompactor compactor,
+        List<ShortSuiteUi> suites,
+        List<ShortSuiteNewTestsUi> newTestsStatuses,
+        String webUrl,
+        String buildTypeId,
+        ITeamcityIgnited tcIgnited,
+        int blockers,
+        String branchName,
+        String baseBranch,
+        String analysisSliceKey
     ) {
         BuildTypeRefCompacted bt = tcIgnited.getBuildTypeRef(buildTypeId);
 
@@ -196,6 +225,9 @@ public class JiraCommentsGeneratorV2 {
         }
 
         res.append("\\n").append(newTests).append("\\n").append("[TeamCity *").append(suiteNameForComment).append("* Results|").append(webUrl).append(']');
+
+        if (!Strings.isNullOrEmpty(analysisSliceKey))
+            res.append("\\n{color:#ffffff}").append(duplicateMarker(analysisSliceKey)).append("{color}");
 
         return "\"" + xmlEscapeText(res.toString()) + "\"";
     }

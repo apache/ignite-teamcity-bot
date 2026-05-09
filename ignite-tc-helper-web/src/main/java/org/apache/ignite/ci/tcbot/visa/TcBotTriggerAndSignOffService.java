@@ -283,7 +283,7 @@ public class TcBotTriggerAndSignOffService {
         @Nullable String ticketId,
         @Nullable String prNum,
         @Nullable String baseBranchForTc,
-        @Nonnull Boolean cleanRebuild,
+        @Nullable Boolean cleanRebuild,
         @Nullable String commentTargets,
         @Nullable Boolean commentOnlyIfNoBlockers,
         @Nullable ITcBotUserCreds prov) {
@@ -305,7 +305,7 @@ public class TcBotTriggerAndSignOffService {
         @Nullable String ticketId,
         @Nullable String prNum,
         @Nullable String baseBranchForTc,
-        @Nonnull Boolean cleanRebuild,
+        @Nullable Boolean cleanRebuild,
         @Nullable String commentTargets,
         @Nullable Boolean commentOnlyIfNoBlockers,
         @Nullable ITcBotUserCreds prov,
@@ -351,13 +351,14 @@ public class TcBotTriggerAndSignOffService {
         String[] suiteIds = Objects.requireNonNull(suiteIdList).split(",");
         Build[] builds = new Build[suiteIds.length];
         Set<Integer> buildidsToSync = new HashSet<>();
+        boolean clean = cleanRebuild != null && cleanRebuild;
 
         processMonitor.status(processId, "Starting selected builds in TeamCity.");
 
         for (int i = 0; i < suiteIds.length; i++) {
             stepStart = System.nanoTime();
-            T2<Build, Set<Integer>> objects = teamcity.triggerBuild(suiteIds[i], branchForTc, cleanRebuild, top != null && top, new HashMap<>(),
-                false, "");
+            T2<Build, Set<Integer>> objects = teamcity.triggerBuild(suiteIds[i], branchForTc, clean,
+                top != null && top, new HashMap<>(), false, "");
             triggerNanos += System.nanoTime() - stepStart;
             triggeredBuilds++;
             buildidsToSync.addAll(objects.get2());
@@ -1274,6 +1275,27 @@ public class TcBotTriggerAndSignOffService {
         @Nullable Integer prNum,
         boolean commentOnlyIfNoBlockers,
         @Nullable Long processId) {
+        return notifyComments(srvCodeOrAlias, prov, buildTypeId, branchForTc, ticket, baseBranchForTc, commentTargets,
+            prNum, commentOnlyIfNoBlockers, processId, null);
+    }
+
+    /**
+     * @param processId User-visible process id.
+     * @param rerunBuildIds Build ids triggered by the bot for this observed rerun slice.
+     */
+    @AutoProfiling
+    public Visa notifyComments(
+        String srvCodeOrAlias,
+        ITcBotUserCreds prov,
+        String buildTypeId,
+        String branchForTc,
+        @Nullable String ticket,
+        @Nullable String baseBranchForTc,
+        @Nullable String commentTargets,
+        @Nullable Integer prNum,
+        boolean commentOnlyIfNoBlockers,
+        @Nullable Long processId,
+        @Nullable Collection<Integer> rerunBuildIds) {
         long startNanos = System.nanoTime();
         String targets;
 
@@ -1337,11 +1359,13 @@ public class TcBotTriggerAndSignOffService {
             if (commentOnlyIfNoBlockers && blockers > 0)
                 return new Visa(Visa.COMMENT_SKIPPED, null, blockers);
 
+            String analysisSliceKey = analysisSliceKey(build.getId(), rerunBuildIds);
+
             if (githubRequested) {
                 processMonitor.status(processId, "Publishing the analysis comment to GitHub.");
 
                 gitHubComment = notifyGitHubPullRequest(srvCodeOrAlias, buildTypeId, branchForTc, prNum, build,
-                    fatBuild, tcIgnited, suitesStatuses, newTestsStatuses, blockers, baseBranch);
+                    fatBuild, tcIgnited, suitesStatuses, newTestsStatuses, blockers, baseBranch, analysisSliceKey);
             }
 
             if (jiraRequested) {
@@ -1350,12 +1374,23 @@ public class TcBotTriggerAndSignOffService {
 
                 processMonitor.status(processId, "Publishing the analysis comment to JIRA.");
 
-                String comment = JiraCommentsGenerator.generateJiraComment(jira.config().getApiVersion(), compactor,
-                    suitesStatuses, newTestsStatuses, build.webUrl, buildTypeId, tcIgnited, blockers,
-                    build.branchName, baseBranch);
+                String marker = JiraCommentsGenerator.duplicateMarker(analysisSliceKey);
 
-                res = objMapper.readValue(jira.postJiraComment(ticket, comment), JiraCommentResponse.class);
-                jiraCommentStatus = "JIRA ticket commented: " + ticketTarget(jira, ticket, res);
+                if (hasExistingJiraComment(jira, ticket, marker)) {
+                    logger.info("JIRA ticket already has TCBot analysis comment [srv={}, ticket={}, build={}, slice={}]",
+                        srvCodeOrAlias, ticket, build.getId(), analysisSliceKey);
+
+                    jiraCommentStatus = "JIRA ticket already has a valid TCBot comment for this build: " +
+                        ticketTarget(jira, ticket, null);
+                }
+                else {
+                    String comment = JiraCommentsGenerator.generateJiraComment(jira.config().getApiVersion(), compactor,
+                        suitesStatuses, newTestsStatuses, build.webUrl, buildTypeId, tcIgnited, blockers,
+                        build.branchName, baseBranch, analysisSliceKey);
+
+                    res = objMapper.readValue(jira.postJiraComment(ticket, comment), JiraCommentResponse.class);
+                    jiraCommentStatus = "JIRA ticket commented: " + ticketTarget(jira, ticket, res);
+                }
             }
 
             if (githubRequested && !gitHubComment.commented)
@@ -1483,61 +1518,24 @@ public class TcBotTriggerAndSignOffService {
 
     /**
      * @param chainBuildId Main chain build id.
-     * @param suitesStatuses Blocker suite statuses.
-     * @param newTestsStatuses New test suite statuses.
+     * @param rerunBuildIds Build ids triggered by the bot for this observed rerun slice.
      */
-    static String analysisSliceKey(
-        int chainBuildId,
-        List<ShortSuiteUi> suitesStatuses,
-        List<ShortSuiteNewTestsUi> newTestsStatuses
-    ) {
-        Set<String> suiteBuildIds = new LinkedHashSet<>();
+    static String analysisSliceKey(int chainBuildId, @Nullable Collection<Integer> rerunBuildIds) {
+        List<Integer> sortedBuildIds = new ArrayList<>();
 
-        if (suitesStatuses != null) {
-            for (ShortSuiteUi suite : suitesStatuses)
-                addBuildIdFromUrl(suiteBuildIds, suite.webToBuild);
+        if (rerunBuildIds != null) {
+            for (Integer buildId : rerunBuildIds) {
+                if (buildId != null && buildId != chainBuildId)
+                    sortedBuildIds.add(buildId);
+            }
         }
-
-        if (newTestsStatuses != null) {
-            for (ShortSuiteNewTestsUi suite : newTestsStatuses)
-                addBuildIdFromUrl(suiteBuildIds, suite.webToBuild);
-        }
-
-        List<String> sortedBuildIds = new ArrayList<>(suiteBuildIds);
 
         Collections.sort(sortedBuildIds);
 
-        return "chainBuildId=" + chainBuildId + " suiteBuildIds=" +
-            (sortedBuildIds.isEmpty() ? "none" : String.join(",", sortedBuildIds));
-    }
-
-    /**
-     * @param buildIds Build ids.
-     * @param url Build URL.
-     */
-    private static void addBuildIdFromUrl(Set<String> buildIds, @Nullable String url) {
-        if (Strings.isNullOrEmpty(url))
-            return;
-
-        String param = "buildId=";
-        int idx = url.indexOf(param);
-
-        if (idx < 0) {
-            buildIds.add(url);
-
-            return;
-        }
-
-        int start = idx + param.length();
-        int end = start;
-
-        while (end < url.length() && Character.isDigit(url.charAt(end)))
-            end++;
-
-        if (end > start)
-            buildIds.add(url.substring(start, end));
-        else
-            buildIds.add(url);
+        return "chainBuildId=" + chainBuildId + " rerunBuildIds=" +
+            (sortedBuildIds.isEmpty() ? "none" : sortedBuildIds.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining(",")));
     }
 
     /**
@@ -1552,6 +1550,7 @@ public class TcBotTriggerAndSignOffService {
      * @param newTestsStatuses New tests statuses.
      * @param blockers Blockers count.
      * @param baseBranch Base branch.
+     * @param analysisSliceKey Analysis slice key.
      */
     private GitHubCommentResult notifyGitHubPullRequest(
         String srvCodeOrAlias,
@@ -1564,7 +1563,8 @@ public class TcBotTriggerAndSignOffService {
         List<ShortSuiteUi> suitesStatuses,
         List<ShortSuiteNewTestsUi> newTestsStatuses,
         int blockers,
-        String baseBranch) {
+        String baseBranch,
+        String analysisSliceKey) {
         try {
             IGitHubConnIgnited gh = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
             PullRequest pr = prNum == null ? findPullRequestForBuild(gh, requestedBranchForTc, build.branchName)
@@ -1581,7 +1581,6 @@ public class TcBotTriggerAndSignOffService {
                 return GitHubCommentResult.failed(err);
             }
 
-            String analysisSliceKey = analysisSliceKey(build.getId(), suitesStatuses, newTestsStatuses);
             String marker = GitHubCommentsGenerator.duplicateMarker(analysisSliceKey);
             String prTarget = pullRequestTarget(pr);
 
@@ -1776,6 +1775,24 @@ public class TcBotTriggerAndSignOffService {
         }
 
         return false;
+    }
+
+    /**
+     * @param jira JIRA.
+     * @param ticket Ticket.
+     * @param marker Marker.
+     */
+    boolean hasExistingJiraComment(IJiraIgnited jira, String ticket, String marker) {
+        try {
+            String comments = jira.getJiraComments(ticket);
+
+            return comments != null && comments.contains(marker);
+        }
+        catch (Exception e) {
+            logger.warn("Unable to check existing JIRA comments [ticket={}]. Comment will be posted.", ticket, e);
+
+            return false;
+        }
     }
 
     /**

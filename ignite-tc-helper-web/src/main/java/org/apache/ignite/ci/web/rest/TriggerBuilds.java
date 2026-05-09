@@ -82,7 +82,7 @@ public class TriggerBuilds {
         @Nullable @QueryParam("prNum") String prNum,
         @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
         @Nullable @QueryParam("commentOnlyIfNoBlockers") Boolean commentOnlyIfNoBlockers,
-        @Nonnull @QueryParam("cleanRebuild") Boolean cleanRebuild
+        @Nullable @QueryParam("cleanRebuild") Boolean cleanRebuild
     ) {
         TcBotApplicationContext appCtx = appCtx();
         ITcBotUserCreds prov = creds();
@@ -127,7 +127,7 @@ public class TriggerBuilds {
         @Nullable @QueryParam("prNum") String prNum,
         @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
         @Nullable @QueryParam("commentOnlyIfNoBlockers") Boolean commentOnlyIfNoBlockers,
-        @Nonnull @QueryParam("cleanRebuild") Boolean cleanRebuild,
+        @Nullable @QueryParam("cleanRebuild") Boolean cleanRebuild,
         @Nullable @QueryParam("processId") Long processId
     ) {
         ITcBotUserCreds prov = creds();
@@ -206,6 +206,32 @@ public class TriggerBuilds {
      * @param commentTargets Comment targets.
      */
     @GET
+    @Path("commentJiraOrGit")
+    public SimpleResult commentJiraOrGit(
+        @Nullable @QueryParam("serverId") String srvCode,
+        @Nullable @QueryParam("branchName") String branchForTc,
+        @Nullable @QueryParam("suiteId") String suiteId,
+        @Nullable @QueryParam("ticketId") String ticketId,
+        @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
+        @Nullable @QueryParam("comment") String commentTargets,
+        @Nullable @QueryParam("prNum") String prNum,
+        @Nullable @QueryParam("commentOnlyIfNoBlockers") Boolean commentOnlyIfNoBlockers,
+        @Nullable @QueryParam("processId") Long processId
+    ) {
+        return startCommentProcess(srvCode, branchForTc, suiteId, ticketId, baseBranchForTc, commentTargets, prNum,
+            commentOnlyIfNoBlockers, processId);
+    }
+
+    /**
+     * Starts build analysis commenting in background.
+     *
+     * @param srvCode Server id.
+     * @param branchForTc Branch for tc.
+     * @param suiteId Suite id.
+     * @param ticketId Ticket full name with IGNITE- prefix.
+     * @param commentTargets Comment targets.
+     */
+    @GET
     @Path("commentBuildAnalysis")
     public SimpleResult commentBuildAnalysis(
         @Nullable @QueryParam("serverId") String srvCode,
@@ -218,12 +244,28 @@ public class TriggerBuilds {
         @Nullable @QueryParam("commentOnlyIfNoBlockers") Boolean commentOnlyIfNoBlockers,
         @Nullable @QueryParam("processId") Long processId
     ) {
+        return startCommentProcess(srvCode, branchForTc, suiteId, ticketId, baseBranchForTc, commentTargets, prNum,
+            commentOnlyIfNoBlockers, processId);
+    }
+
+    /** */
+    private SimpleResult startCommentProcess(
+        @Nullable String srvCode,
+        @Nullable String branchForTc,
+        @Nullable String suiteId,
+        @Nullable String ticketId,
+        @Nullable String baseBranchForTc,
+        @Nullable String commentTargets,
+        @Nullable String prNum,
+        @Nullable Boolean commentOnlyIfNoBlockers,
+        @Nullable Long processId
+    ) {
         ITcBotUserCreds prov = creds();
         TcBotApplicationContext appCtx = appCtx();
 
         BotProcessMonitor process = appCtx.getInstance(BotProcessMonitor.class);
 
-        process.start(processId, "commentBuildAnalysis", "Comment request accepted by the bot REST API.");
+        process.start(processId, "commentJiraOrGit", "Comment request accepted by the bot REST API.");
 
         try {
             checkAccess(appCtx, srvCode, prov);
@@ -279,17 +321,18 @@ public class TriggerBuilds {
         @Nullable String prNum,
         @Nullable String baseBranchForTc,
         @Nullable Boolean commentOnlyIfNoBlockers,
-        @Nonnull Boolean cleanRebuild,
+        @Nullable Boolean cleanRebuild,
         @Nullable Long processId
     ) {
         TcBotTriggerAndSignOffService service = appCtx.getInstance(TcBotTriggerAndSignOffService.class);
+        boolean clean = cleanRebuild != null && cleanRebuild;
 
         if (processId == null)
             return service.triggerBuildsAndObserve(srvCodeOrAlias, branchForTc, parentSuiteId, suiteIdList, top,
-                observe, ticketId, prNum, baseBranchForTc, cleanRebuild, commentTargets, commentOnlyIfNoBlockers, prov);
+                observe, ticketId, prNum, baseBranchForTc, clean, commentTargets, commentOnlyIfNoBlockers, prov);
 
         return service.triggerBuildsAndObserve(srvCodeOrAlias, branchForTc, parentSuiteId, suiteIdList, top, observe,
-            ticketId, prNum, baseBranchForTc, cleanRebuild, commentTargets, commentOnlyIfNoBlockers, prov, processId);
+            ticketId, prNum, baseBranchForTc, clean, commentTargets, commentOnlyIfNoBlockers, prov, processId);
     }
 
     /** */

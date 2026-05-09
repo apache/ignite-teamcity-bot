@@ -43,6 +43,10 @@ public class GitHubCommentsGenerator {
     }
 
     /**
+     * Duplicate markers identify the analyzed result slice, not just the main chain build.
+     * The slice key currently contains chainBuildId and rerunBuildIds. It intentionally does
+     * not include all analyzed suites, only builds explicitly triggered by the bot as reruns.
+     *
      * @param analysisSliceKey Analysis slice key.
      * @return Stable hidden marker for duplicate detection.
      */
