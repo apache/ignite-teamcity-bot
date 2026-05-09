@@ -39,6 +39,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -194,6 +195,51 @@ public class GridIntListMigratorTest {
         finally {
             System.clearProperty(GridIntListMigrator.AUTO_REPAIR_WAIT_MILLIS_PROPERTY);
         }
+    }
+
+    /**
+     * Checks that dry-run mode never removes failed entries.
+     */
+    @Test public void dryRunDumpsDiagnosticsButDoesNotAutoRepair() throws Exception {
+        Long failedKey = 6062419808021002488L;
+        Ignite ignite = mock(Ignite.class);
+        IgniteCache<Object, Object> rawCache = mock(IgniteCache.class);
+        IgniteCache<Object, Object> binCache = mock(IgniteCache.class);
+        QueryCursor<Cache.Entry<Object, Object>> cursor = mock(QueryCursor.class);
+        IgniteSnapshot snapshot = mock(IgniteSnapshot.class);
+        IgniteFuture<Void> dumpFut = mock(IgniteFuture.class);
+        java.io.File workDir = tmp.newFolder("ignite-work-dry-run");
+
+        when(ignite.cacheNames()).thenReturn(Collections.singleton(FAT_BUILD));
+        when(ignite.cache(FAT_BUILD)).thenReturn(rawCache);
+        when(ignite.configuration()).thenReturn(new IgniteConfiguration()
+            .setWorkDirectory(workDir.getAbsolutePath()));
+        when(ignite.snapshot()).thenReturn(snapshot);
+        when(snapshot.createDump(anyString(), anyCollection())).thenAnswer(invocation -> {
+            String dumpName = invocation.getArgument(0);
+
+            Files.createDirectories(workDir.toPath().resolve("snapshots").resolve(dumpName));
+
+            return dumpFut;
+        });
+        when(rawCache.withKeepBinary()).thenReturn(binCache);
+        when(binCache.query(any(ScanQuery.class))).thenReturn(cursor);
+        when(cursor.iterator()).thenReturn(Collections.<Cache.Entry<Object, Object>>singletonList(
+            new TestEntry(failedKey, new BrokenBinaryObject())).iterator());
+
+        try {
+            GridIntListMigrator.migrateOnInstance(ignite, null, false, false, 1);
+
+            fail("Dry-run migration must fail after reporting diagnostics for failed entries");
+        }
+        catch (IllegalStateException e) {
+            assertTrue(e.getMessage().contains("GridIntList migration failed for 1 entries"));
+        }
+
+        verify(binCache, never()).remove(failedKey);
+
+        Path dumpDir = workDir.toPath().resolve("diagnostic").resolve("grid-int-list-migration-recovery");
+        assertTrue("Dry-run should still write diagnostics", Files.isDirectory(dumpDir));
     }
 
     /**

@@ -275,7 +275,7 @@ public final class GridIntListMigrator {
 
             RecoveryDump dump = dumpFailedEntriesSafely(ignite, failureDetails);
 
-            if (tryAutoRepair(ignite, failureDetails, dump)) {
+            if (apply && tryAutoRepair(ignite, failureDetails, dump)) {
                 log.info("GridIntList migration auto-repair completed. Deleted failed entries: {}", totalFailed);
 
                 return totalUpdated;
