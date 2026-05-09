@@ -26,6 +26,12 @@ public class VisaStatus {
     /** */
     @Nullable public String userName;
 
+    /** Requester profile URL. */
+    @Nullable public String userUrl;
+
+    /** Requester avatar URL. */
+    @Nullable public String userAvatarUrl;
+
     /** Branch name. */
     @Nullable public String branchName;
 

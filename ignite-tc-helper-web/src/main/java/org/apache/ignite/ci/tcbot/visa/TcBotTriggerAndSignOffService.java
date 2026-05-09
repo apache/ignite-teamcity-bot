@@ -169,6 +169,7 @@ public class TcBotTriggerAndSignOffService {
         Map<String, ITeamcityIgnited> tcBySrv = new HashMap<>();
         Map<String, IJiraIgnited> jiraBySrv = new HashMap<>();
         Map<String, IGitHubConnIgnited> ghBySrv = new HashMap<>();
+        Map<String, String> buildTypeNameByKey = new HashMap<>();
 
         for (VisaRequest visaRequest : visasHistStorage.getVisas(limit)) {
             VisaStatus visaStatus = new VisaStatus();
@@ -185,6 +186,7 @@ public class TcBotTriggerAndSignOffService {
             visaStatus.date = THREAD_FORMATTER.get().format(info.date);
             visaStatus.branchName = info.branchForTc;
             visaStatus.userName = info.userName;
+            fillRequesterLinks(visaStatus);
             visaStatus.ticket = info.ticket;
             visaStatus.prNum = info.prNum;
             visaStatus.commentTargets = info.commentTargets;
@@ -198,23 +200,17 @@ public class TcBotTriggerAndSignOffService {
             ITeamcityIgnited tcIgn = tcBySrv.computeIfAbsent(srvCodeOrAlias,
                 srv -> tcIgnitedProv.server(srv, prov));
 
-            BuildTypeRefCompacted bt = null;
-
-            try {
-                bt = tcIgn.getBuildTypeRef(info.buildTypeId);
-            }
-            catch (RuntimeException e) {
-                logger.debug("Failed to load build type name for visa history [srv={}, buildTypeId={}]",
-                    srvCodeOrAlias, info.buildTypeId, e);
-            }
-
-            visaStatus.buildTypeName = (bt != null ? bt.name(compactor) : visaStatus.buildTypeId);
+            visaStatus.buildTypeName = buildTypeNameByKey.computeIfAbsent(srvCodeOrAlias + '\n' + info.buildTypeId,
+                key -> buildTypeName(tcIgn, srvCodeOrAlias, info.buildTypeId));
             visaStatus.baseBranchForTc = info.baseBranchForTc;
             visaStatus.blockers = visa.getBlockers();
 
-            fillTicketLinks(visaStatus, jiraBySrv.computeIfAbsent(srvCodeOrAlias, jiraIgnProv::server), visa);
-            fillPullRequestLinks(visaStatus, ghBySrv.computeIfAbsent(srvCodeOrAlias,
-                gitHubConnIgnitedProvider::server));
+            if (!Strings.isNullOrEmpty(visaStatus.ticket) || visa.getJiraCommentResponse() != null)
+                fillTicketLinks(visaStatus, jiraBySrv.computeIfAbsent(srvCodeOrAlias, jiraIgnProv::server), visa);
+
+            if (visaStatus.prNum != null && visaStatus.prNum > 0)
+                fillPullRequestLinks(visaStatus, ghBySrv.computeIfAbsent(srvCodeOrAlias,
+                    gitHubConnIgnitedProvider::server));
 
             String buildsStatus = isObserving ? info.getStatus(tcIgn, strCompactor) : null;
 
@@ -254,8 +250,43 @@ public class TcBotTriggerAndSignOffService {
     private static String analysisSlice(BuildsInfo info) {
         String builds = buildIds(info);
 
-        return "branch=" + info.branchForTc + "; suite=" + info.buildTypeId +
-            (Strings.isNullOrEmpty(builds) ? "; direct comment" : "; observed buildIds=" + builds);
+        return "branch=" + info.branchForTc + "; base=" +
+            (Strings.isNullOrEmpty(info.baseBranchForTc) ? "<default>" : info.baseBranchForTc) +
+            "; suite=" + info.buildTypeId + "; " +
+            (Strings.isNullOrEmpty(builds) ? "direct comment" : "observed run buildIds=" + builds);
+    }
+
+    /**
+     * @param tcIgn TeamCity.
+     * @param srvCodeOrAlias Server code.
+     * @param buildTypeId Build type id.
+     */
+    private String buildTypeName(ITeamcityIgnited tcIgn, String srvCodeOrAlias, String buildTypeId) {
+        BuildTypeRefCompacted bt = null;
+
+        try {
+            bt = tcIgn.getBuildTypeRef(buildTypeId);
+        }
+        catch (RuntimeException e) {
+            logger.debug("Failed to load build type name for visa history [srv={}, buildTypeId={}]",
+                srvCodeOrAlias, buildTypeId, e);
+        }
+
+        return bt != null ? bt.name(compactor) : buildTypeId;
+    }
+
+    /**
+     * @param visaStatus Status DTO.
+     */
+    private static void fillRequesterLinks(VisaStatus visaStatus) {
+        if (Strings.isNullOrEmpty(visaStatus.userName))
+            return;
+
+        if (!visaStatus.userName.matches("[A-Za-z0-9-]+"))
+            return;
+
+        visaStatus.userUrl = "https://github.com/" + visaStatus.userName;
+        visaStatus.userAvatarUrl = "https://github.com/" + visaStatus.userName + ".png?size=44";
     }
 
     /**

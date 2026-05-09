@@ -22,17 +22,30 @@
     <br>
     <div id="loadStatus"></div>
     <br>
+    <div style="margin:0 0 10px 0">
+        Show latest
+        <select id="historyLimit">
+            <option value="100">100</option>
+            <option value="300" selected>300</option>
+            <option value="1000">1000</option>
+            <option value="0">all</option>
+        </select>
+        visa requests
+        <button type="button" onclick="loadData()">Refresh</button>
+    </div>
     <table id="visasTable" class="row-border" style="width:100%">
         <thead>
             <tr class="ui-widget-header ">
-                <th>.</th>
-                <th>.</th>
-                <th>.</th>
-                <th>.</th>
-                <th>.</th>
-                <th>.</th>
-                <th>.</th>
-                <th>.</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Requested by</th>
+                <th>PR author</th>
+                <th>Branch</th>
+                <th>Ticket / PR</th>
+                <th>Options</th>
+                <th>Slice</th>
+                <th>Suite</th>
+                <th>Blockers</th>
             </tr>
         </thead>
     </table>
@@ -85,6 +98,62 @@ function sendCancelRequest(url) {
     });
 }
 
+function linkOrText(url, text) {
+    if (isDefinedAndFilled(url))
+        return "<a href='" + escapeHtml(url) + "' target='_blank' rel='noopener noreferrer'>" +
+            escapeHtml(text) + "</a>";
+
+    return escapeHtml(text || "");
+}
+
+function userHtml(name, url, avatarUrl) {
+    if (!isDefinedAndFilled(name))
+        return "";
+
+    var img = isDefinedAndFilled(avatarUrl)
+        ? "<img src='" + escapeHtml(avatarUrl) + "' loading='lazy' onerror='this.style.display=\"none\"' " +
+            "style='width:22px; height:22px; border-radius:50%; vertical-align:middle; margin-right:6px'>"
+        : "";
+
+    return img + linkOrText(url, name);
+}
+
+function prAuthorHtml(row) {
+    return userHtml(row.prAuthor, row.prAuthorUrl, row.prAuthorAvatarUrl);
+}
+
+function ticketPrHtml(row) {
+    var res = [];
+
+    if (isDefinedAndFilled(row.ticket))
+        res.push(linkOrText(row.ticketUrl, row.ticket));
+
+    if (isDefinedAndFilled(row.prNum))
+        res.push(linkOrText(row.prUrl, "#" + row.prNum));
+
+    return res.join("<br>");
+}
+
+function optionsHtml(row) {
+    var targets = isDefinedAndFilled(row.commentTargets) ? row.commentTargets : "(not stored)";
+    var policy = row.commentOnlyIfNoBlockers ? "only clean run (no blockers)" : "always";
+    var rerun = row.rerun ? "rerun / observed run" : "direct comment";
+
+    return "<div><b>Targets:</b> " + escapeHtml(targets) + "</div>" +
+        "<div><b>Policy:</b> " + escapeHtml(policy) + "</div>" +
+        "<div><b>Mode:</b> " + escapeHtml(rerun) + "</div>";
+}
+
+function sliceHtml(row) {
+    var res = escapeHtml(row.analysisSlice || "");
+
+    if (isDefinedAndFilled(row.buildIds))
+        res += "<div style='color:#666; font-size:12px'>rerun/observed build ids: " +
+            escapeHtml(row.buildIds) + "</div>";
+
+    return res;
+}
+
 function showVisasTable(result) {
     let visasTable = $('#visasTable');
 
@@ -94,7 +163,10 @@ function showVisasTable(result) {
         "order": [[ 1, 'desc' ]],
         data: result,
         "iDisplayLength": 30, //rows to be shown by default
-        stateSave: true,
+        stateSave: false,
+        deferRender: true,
+        processing: true,
+        autoWidth: false,
         columnDefs: [
             {
                 targets: '_all',
@@ -108,13 +180,20 @@ function showVisasTable(result) {
                 "render": function (data, type, row, meta) {
                     let res = '';
 
+                    if (type !== 'display')
+                        return data;
+
                     if (type === 'display') {
                         res += "<table width='100%'><tr><td width='70%' style='vertical-align: middle'>";
 
                         if (data === 'finished' && row.commentUrl)
                             res += "<a href='" + row.commentUrl + "'>" + data + "</a>";
                         else
-                            res += data;
+                            res += escapeHtml(data);
+
+                        if (isDefinedAndFilled(row.commentStatus))
+                            res += "<div style='color:#666; font-size:12px'>" +
+                                escapeHtml(row.commentStatus) + "</div>";
 
                         res += "</td><td width=\"30%\">";
 
@@ -133,19 +212,42 @@ function showVisasTable(result) {
             },
             {
                 "data": "userName",
-                title: "User"
+                title: "Requested by",
+                "render": function (data, type, row, meta) {
+                    return type === 'display' ? userHtml(row.userName, row.userUrl, row.userAvatarUrl) : data;
+                }
+            },
+            {
+                "data": "prAuthor",
+                title: "PR author",
+                "render": function (data, type, row, meta) {
+                    return type === 'display' ? prAuthorHtml(row) : data;
+                }
             },
             {
                 "data": "branchName",
                 title: "Branch"
             },
             {
-                "data": "baseBranchForTc",
-                title: "Base Branch"
+                "data": "ticket",
+                title: "Ticket / PR",
+                "render": function (data, type, row, meta) {
+                    return type === 'display' ? ticketPrHtml(row) : (data || "") + " #" + (row.prNum || "");
+                }
             },
             {
-                "data": "ticket",
-                title: "Ticket"
+                "data": "commentTargets",
+                title: "Options",
+                "render": function (data, type, row, meta) {
+                    return type === 'display' ? optionsHtml(row) : data;
+                }
+            },
+            {
+                "data": "analysisSlice",
+                title: "Slice",
+                "render": function (data, type, row, meta) {
+                    return type === 'display' ? sliceHtml(row) : data;
+                }
             },
             {
                 "data": "buildTypeName",
@@ -174,10 +276,17 @@ function showVisasTable(result) {
 }
 
 function loadData() {
+    var started = Date.now();
+    var limit = $("#historyLimit").val() || "300";
+
+    $("#loadStatus").html("Loading latest " + (limit === "0" ? "all" : limit) + " visa requests...");
+
     $.ajax({
-            url: "rest/visa/history",
+            url: "rest/visa/history?limit=" + encodeURIComponent(limit),
             success: function (result) {
                 showVisasTable(result);
+                $("#loadStatus").html("Loaded " + result.length + " visa requests in " +
+                    (Date.now() - started) + " ms.");
             },
             error: showErrInLoadStatus
         }
