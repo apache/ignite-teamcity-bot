@@ -18,11 +18,14 @@
 package org.apache.ignite.tcbot.engine.build;
 
 import com.google.common.base.Strings;
-import java.util.Comparator;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
@@ -51,6 +54,15 @@ import static org.apache.ignite.tcignited.buildref.BranchEquivalence.normalizeBr
 public class TestFailuresAiPromptBuilder {
     /** Default limit for a single TeamCity failure details block. */
     public static final int DFLT_MAX_DETAILS_CHARS = 40000;
+
+    /** Max cached log scanner chars to include in one log context block. */
+    private static final int LOG_CONTEXT_CHAR_BUDGET = 12000;
+
+    /** Max cached log scanner tail chars to include when all messages are too large. */
+    private static final int LOG_CONTEXT_TAIL_CHAR_BUDGET = 5000;
+
+    /** Max suggested local search commands. */
+    private static final int SUGGESTED_SEARCHES_LIMIT = 5;
 
     /** String compactor. */
     private final IStringCompactor compactor;
@@ -166,7 +178,7 @@ public class TestFailuresAiPromptBuilder {
         res.append("You are in the local checkout of the project that produced this TeamCity failure. ");
         res.append("Use this compact investigation brief to find the likely root cause with minimal assumptions.\n\n");
 
-        res.append("## Run Context\n");
+        res.append("## Chain Context\n");
         appendLine(res, "TeamCity server", tcIgnited.serverCode());
         appendLine(res, "Chain", ctx.suiteName());
         appendLine(res, "Suite id", ctx.suiteId());
@@ -189,7 +201,7 @@ public class TestFailuresAiPromptBuilder {
         @Nullable Integer baseBranchId) {
         IRunHistory baseHist = suite.history(tcIgnited, baseBranchId, null);
 
-        res.append("## Run Context\n");
+        res.append("## Failed Suite Context\n");
         res.append("Suite: ").append(nullToUnknown(suite.suiteName())).append('\n');
         appendLine(res, "Suite id", suite.suiteId());
         appendLine(res, "Build id", String.valueOf(suite.getBuildId()));
@@ -243,20 +255,20 @@ public class TestFailuresAiPromptBuilder {
      * @param suite Suite context.
      */
     private void appendLogChecks(StringBuilder res, MultBuildRunCtx suite) {
-        List<Map.Entry<String, ITestLogCheckResult>> warnings = suite.getLogsCheckResults()
+        List<Map.Entry<String, ITestLogCheckResult>> messages = suite.getLogsCheckResults()
             .flatMap(map -> map.entrySet().stream())
             .filter(entry -> entry.getValue() != null && entry.getValue().hasWarns())
             .collect(Collectors.toList());
 
-        if (warnings.isEmpty()) {
+        if (messages.isEmpty()) {
             appendLogAnalysisNote(res, suite);
 
             return;
         }
 
-        res.append("Build log scanner warnings:\n");
+        res.append("Build log scanner messages:\n");
 
-        for (Map.Entry<String, ITestLogCheckResult> entry : warnings) {
+        for (Map.Entry<String, ITestLogCheckResult> entry : messages) {
             ITestLogCheckResult checkRes = entry.getValue();
 
             res.append("- ").append(nullToUnknown(entry.getKey()));
@@ -295,6 +307,7 @@ public class TestFailuresAiPromptBuilder {
                 invocationIdx.incrementAndGet(), maxDetailsChars));
 
         appendRelevantLogChecks(res, suite, fullName);
+        appendSuggestedLocalSearches(res, suite, fullName);
 
         res.append("\n## Changed Files / PR Context\n");
         res.append("Changed files and patches are not available in this cached TeamCity bot context. ");
@@ -336,6 +349,7 @@ public class TestFailuresAiPromptBuilder {
 
         res.append("\n## Log Context\n");
         appendLogChecks(res, suite);
+        appendSuggestedLocalSearches(res, suite, suite.suiteName());
 
         res.append("\n## Changed Files / PR Context\n");
         res.append("Changed files and patches are not available in this cached TeamCity bot context. ");
@@ -404,11 +418,11 @@ public class TestFailuresAiPromptBuilder {
      * @param fullName Full test name.
      */
     private void appendRelevantLogChecks(StringBuilder res, MultBuildRunCtx suite, @Nullable String fullName) {
-        List<String> snippets = new ArrayList<>();
+        List<List<String>> relevantBlocks = new ArrayList<>();
+        List<List<String>> otherBlocks = new ArrayList<>();
 
         suite.getLogsCheckResults()
             .flatMap(map -> map.entrySet().stream())
-            .filter(entry -> isSameTestLog(entry.getKey(), fullName))
             .filter(entry -> entry.getValue() != null)
             .forEach(entry -> {
                 ITestLogCheckResult checkRes = entry.getValue();
@@ -416,27 +430,256 @@ public class TestFailuresAiPromptBuilder {
                 if (!checkRes.hasWarns())
                     return;
 
-                snippets.add("Log grep for " + entry.getKey() + " (log size "
-                    + checkRes.getLogSizeBytes() + " bytes):");
+                List<String> block = logCheckBlock(entry);
 
-                snippets.addAll(checkRes.getWarns());
+                if (isSameTestLog(entry.getKey(), fullName))
+                    relevantBlocks.add(block);
+                else
+                    otherBlocks.add(block);
             });
 
-        if (snippets.isEmpty()) {
+        if (relevantBlocks.isEmpty() && otherBlocks.isEmpty()) {
             res.append("\n## Log Context\n");
             appendLogAnalysisNote(res, suite);
 
             return;
         }
 
+        List<List<String>> allBlocks = new ArrayList<>(relevantBlocks);
+        allBlocks.addAll(otherBlocks);
+
         res.append("\n## Log Context\n");
-        res.append("Cached log grep from processed build log:\n");
+        if (logBlocksChars(allBlocks) <= LOG_CONTEXT_CHAR_BUDGET) {
+            res.append("Cached build-log scanner messages. Full cached message set is included because it is small enough:\n");
+            appendLogBlocks(res, allBlocks);
+
+            return;
+        }
+
+        if (!relevantBlocks.isEmpty()) {
+            res.append("Cached log grep for the failing test:\n");
+            appendLogBlocks(res, relevantBlocks);
+
+            if (!otherBlocks.isEmpty()) {
+                res.append("\nAdditional cached build-log scanner messages near the end of the processed log context");
+                res.append(" (truncated to keep the prompt compact):\n");
+                appendLogBlocks(res, tailLogBlocks(otherBlocks));
+            }
+
+            return;
+        }
+
+        res.append("Cached build-log scanner messages are too large to include fully. ");
+        res.append("Showing messages near the end of the processed log context:\n");
+        appendLogBlocks(res, tailLogBlocks(allBlocks));
+    }
+
+    /**
+     * @param res Result builder.
+     * @param blocks Log check blocks.
+     */
+    private void appendLogBlocks(StringBuilder res, List<List<String>> blocks) {
         res.append("```text\n");
 
-        for (String snippet : snippets)
-            res.append(snippet).append('\n');
+        for (List<String> block : blocks) {
+            for (String line : block)
+                res.append(line).append('\n');
+
+            res.append('\n');
+        }
 
         res.append("```\n");
+    }
+
+    /**
+     * @param entry Log check entry.
+     * @return Prompt lines for the entry.
+     */
+    private List<String> logCheckBlock(Map.Entry<String, ITestLogCheckResult> entry) {
+        ITestLogCheckResult checkRes = entry.getValue();
+        List<String> block = new ArrayList<>();
+
+        block.add("Log grep for " + entry.getKey() + " (log size " + checkRes.getLogSizeBytes() + " bytes):");
+        block.addAll(checkRes.getWarns());
+
+        return block;
+    }
+
+    /**
+     * @param blocks Log check blocks.
+     * @return Approximate char count.
+     */
+    private int logBlocksChars(List<List<String>> blocks) {
+        return blocks.stream()
+            .flatMap(List::stream)
+            .mapToInt(line -> line.length() + 1)
+            .sum();
+    }
+
+    /**
+     * @param blocks Log check blocks.
+     * @return Tail blocks fitting the tail budget.
+     */
+    private List<List<String>> tailLogBlocks(List<List<String>> blocks) {
+        List<List<String>> res = new ArrayList<>();
+        int chars = 0;
+
+        for (int i = blocks.size() - 1; i >= 0; i--) {
+            List<String> block = blocks.get(i);
+            int blockChars = logBlocksChars(Collections.singletonList(block));
+
+            if (!res.isEmpty() && chars + blockChars > LOG_CONTEXT_TAIL_CHAR_BUDGET)
+                break;
+
+            res.add(0, block);
+            chars += blockChars;
+        }
+
+        return res;
+    }
+
+    /**
+     * @param res Result builder.
+     * @param suite Suite context.
+     * @param fullName Full TeamCity test name.
+     */
+    private void appendSuggestedLocalSearches(StringBuilder res, MultBuildRunCtx suite, @Nullable String fullName) {
+        Set<String> commands = new LinkedHashSet<>();
+
+        String testRegex = testSearchRegex(fullName);
+
+        if (!Strings.isNullOrEmpty(testRegex))
+            addSearch(commands, testRegex, ".");
+
+        List<String> warns = suite.getLogsCheckResults()
+            .flatMap(map -> map.entrySet().stream())
+            .filter(entry -> entry.getValue() != null)
+            .flatMap(entry -> entry.getValue().getWarns().stream())
+            .collect(Collectors.toList());
+
+        String logRegex = logSearchRegex(warns);
+
+        if (!Strings.isNullOrEmpty(logRegex))
+            addSearch(commands, logRegex, ".");
+
+        String className = simpleClassName(testCasePart(fullName));
+
+        if (!Strings.isNullOrEmpty(className) && warns.stream().anyMatch(warn -> warn.contains("AssertionError")))
+            addSearch(commands, escapeRgTerm(className) + "|AssertionError", "modules");
+
+        if (commands.isEmpty())
+            return;
+
+        res.append("\n## Suggested Local Searches\n");
+
+        commands.stream().limit(SUGGESTED_SEARCHES_LIMIT).forEach(cmd -> res.append("- ").append(cmd).append('\n'));
+    }
+
+    /**
+     * @param commands Commands.
+     * @param regex Search regex.
+     * @param path Search path.
+     */
+    private void addSearch(Set<String> commands, String regex, String path) {
+        commands.add("rg -n \"" + regex.replace("\"", "\\\"") + "\" " + path);
+    }
+
+    /**
+     * @param fullName Full TeamCity test name.
+     * @return Local search regex for test class/method.
+     */
+    @Nullable private String testSearchRegex(@Nullable String fullName) {
+        String testCase = testCasePart(fullName);
+        String className = simpleClassName(testCase);
+        String methodName = methodName(testCase);
+
+        if (!Strings.isNullOrEmpty(methodName) && !Strings.isNullOrEmpty(className))
+            return escapeRgTerm(methodName) + "|" + escapeRgTerm(className);
+
+        if (!Strings.isNullOrEmpty(className))
+            return escapeRgTerm(className);
+
+        return null;
+    }
+
+    /**
+     * @param warns Log scanner messages from the current compacted API.
+     * @return Search regex for notable log messages.
+     */
+    @Nullable private String logSearchRegex(List<String> warns) {
+        String joined = String.join("\n", warns);
+        List<String> terms = new ArrayList<>();
+
+        addIfPresent(terms, joined, "SYSTEM_WORKER_TERMINATION");
+        addIfPresent(terms, joined, "Critical system error detected");
+        addIfPresent(terms, joined, "AssertionError");
+        addIfPresent(terms, joined, "OutOfMemoryError");
+        addIfPresent(terms, joined, "Process exited with code");
+
+        return terms.stream().distinct().limit(3).map(this::escapeRgTerm).collect(Collectors.joining("|"));
+    }
+
+    /**
+     * @param terms Terms.
+     * @param text Text.
+     * @param term Term.
+     */
+    private void addIfPresent(List<String> terms, String text, String term) {
+        if (text.contains(term))
+            terms.add(term);
+    }
+
+    /**
+     * @param fullTestName Test name with package/class/method.
+     * @return Simple class name.
+     */
+    @Nullable private String simpleClassName(@Nullable String fullTestName) {
+        if (Strings.isNullOrEmpty(fullTestName))
+            return null;
+
+        int methodSep = fullTestName.lastIndexOf('.');
+
+        if (methodSep < 0)
+            return fullTestName;
+
+        int classSep = fullTestName.lastIndexOf('.', methodSep - 1);
+
+        return fullTestName.substring(classSep + 1, methodSep);
+    }
+
+    /**
+     * @param fullTestName Test name with package/class/method.
+     * @return Method name.
+     */
+    @Nullable private String methodName(@Nullable String fullTestName) {
+        if (Strings.isNullOrEmpty(fullTestName))
+            return null;
+
+        int methodSep = fullTestName.lastIndexOf('.');
+
+        if (methodSep < 0 || methodSep + 1 >= fullTestName.length())
+            return null;
+
+        return fullTestName.substring(methodSep + 1);
+    }
+
+    /**
+     * @param term Plain search term.
+     * @return Regex-safe search term.
+     */
+    private String escapeRgTerm(String term) {
+        StringBuilder res = new StringBuilder();
+
+        for (int i = 0; i < term.length(); i++) {
+            char ch = term.charAt(i);
+
+            if ("\\.^$|?*+()[]{}".indexOf(ch) >= 0)
+                res.append('\\');
+
+            res.append(ch);
+        }
+
+        return res.toString();
     }
 
     /**
@@ -455,7 +698,7 @@ public class TestFailuresAiPromptBuilder {
         }
 
         if (suite.logChecksStartedCount() > 0) {
-            res.append("Build log analysis completed or failed without warning snippets for this scope. ");
+            res.append("Build log analysis completed or failed without matching scanner messages for this scope. ");
             res.append("Raw 200-500 line windows around test start/end are not available in the current bot cache.\n");
 
             return;
