@@ -444,6 +444,11 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         return startDate;
     }
 
+    /** */
+    public long getQueuedDateTs() {
+        return queuedDate;
+    }
+
     /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)

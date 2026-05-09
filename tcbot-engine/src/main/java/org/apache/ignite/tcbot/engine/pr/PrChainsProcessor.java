@@ -290,7 +290,8 @@ public class PrChainsProcessor {
         List<BuildRefCompacted> liveBuilds, SyncMode mode) {
         int progressSum = 0;
         int progressCnt = 0;
-        long maxLeftSeconds = -1;
+        long maxEstimatedFinishTs = -1;
+        long maxQueuedAgeMs = -1;
         String stage = null;
         boolean probablyHanging = false;
 
@@ -316,6 +317,13 @@ public class PrChainsProcessor {
             if (build == null || build.isFakeStub())
                 continue;
 
+            if (ref.isQueued(compactor)) {
+                long queuedAgeMs = queuedAgeMs(build);
+
+                if (queuedAgeMs >= 0)
+                    maxQueuedAgeMs = Math.max(maxQueuedAgeMs, queuedAgeMs);
+            }
+
             RunningInfoCompacted runningInfo = build.runningInfo();
 
             if (runningInfo == null)
@@ -328,10 +336,10 @@ public class PrChainsProcessor {
                 progressCnt++;
             }
 
-            Long leftSeconds = runningInfo.leftSeconds();
+            Long estimatedFinishTs = estimatedFinishTs(build, runningInfo);
 
-            if (leftSeconds != null && leftSeconds >= 0)
-                maxLeftSeconds = Math.max(maxLeftSeconds, leftSeconds);
+            if (estimatedFinishTs != null)
+                maxEstimatedFinishTs = Math.max(maxEstimatedFinishTs, estimatedFinishTs);
 
             String stageText = runningInfo.currentStageText(compactor);
 
@@ -345,10 +353,16 @@ public class PrChainsProcessor {
         chainStatus.runningProgress = runningProgressText(liveBuilds.size(), chainStatus.runningBuilds,
             chainStatus.queuedBuilds, progressCnt == 0 ? null : progressSum / progressCnt, stage, probablyHanging);
 
-        if (maxLeftSeconds >= 0)
-            chainStatus.estimatedCompletion = estimatedCompletionText(maxLeftSeconds, chainStatus.queuedBuilds);
+        if (maxEstimatedFinishTs >= 0)
+            chainStatus.estimatedCompletion = estimatedCompletionText(maxEstimatedFinishTs,
+                chainStatus.queuedBuilds, maxQueuedAgeMs);
+        else if (chainStatus.runningBuilds > 0)
+            chainStatus.estimatedCompletion = chainStatus.queuedBuilds > 0 ?
+                "TeamCity running estimate unavailable; " +
+                    queuedBuildsText(chainStatus.queuedBuilds, maxQueuedAgeMs) :
+                "TeamCity estimate unavailable";
         else if (chainStatus.queuedBuilds > 0)
-            chainStatus.estimatedCompletion = "waiting in TeamCity queue";
+            chainStatus.estimatedCompletion = queuedBuildsText(chainStatus.queuedBuilds, maxQueuedAgeMs);
     }
 
     /**
@@ -381,32 +395,93 @@ public class PrChainsProcessor {
     }
 
     /**
-     * @param leftSeconds TeamCity estimated remaining seconds.
-     * @param queued Queued builds count.
+     * @param build Build.
+     * @param runningInfo TeamCity running info.
      */
-    private static String estimatedCompletionText(long leftSeconds, int queued) {
-        long leftMs = TimeUnit.SECONDS.toMillis(leftSeconds);
-        String eta = "check around " + THREAD_TIME_FORMATTER.get().format(
-            new Date(System.currentTimeMillis() + leftMs)) + " (" + hoursMinutes(leftMs) + ")";
+    @Nullable private static Long estimatedFinishTs(FatBuildCompacted build, RunningInfoCompacted runningInfo) {
+        long startTs = build.getStartDateTs();
 
-        return queued > 0 ? eta + ", queued builds may extend it" : eta;
+        if (startTs <= 0)
+            return null;
+
+        Long estimatedTotalSeconds = runningInfo.estimatedTotalSeconds();
+
+        if (estimatedTotalSeconds != null && estimatedTotalSeconds >= 0)
+            return startTs + TimeUnit.SECONDS.toMillis(estimatedTotalSeconds);
+
+        Long elapsedSeconds = runningInfo.elapsedSeconds();
+        Long leftSeconds = runningInfo.leftSeconds();
+
+        if (elapsedSeconds != null && elapsedSeconds >= 0 && leftSeconds != null && leftSeconds >= 0)
+            return startTs + TimeUnit.SECONDS.toMillis(elapsedSeconds + leftSeconds);
+
+        return null;
+    }
+
+    /**
+     * @param estimatedFinishTs TeamCity estimated finish timestamp.
+     * @param queued Queued builds count.
+     * @param queuedAgeMs Max queued build age.
+     */
+    private static String estimatedCompletionText(long estimatedFinishTs, int queued, long queuedAgeMs) {
+        long leftMs = estimatedFinishTs - System.currentTimeMillis();
+        String moment = estimateMoment(estimatedFinishTs);
+        String eta = leftMs <= 0
+            ? "last TeamCity running estimate was " + moment + " (already past)"
+            : (queued > 0 ? "at least " : "") + hoursMinutes(leftMs) + " left (" + moment + ")";
+
+        return queued > 0 ? eta + "; " + queuedBuildsText(queued, queuedAgeMs) : eta;
+    }
+
+    /**
+     * @param ts Timestamp.
+     */
+    private static String estimateMoment(long ts) {
+        return "around " + THREAD_TIME_FORMATTER.get().format(new Date(ts));
+    }
+
+    /**
+     * @param queued Queued builds count.
+     * @param queuedAgeMs Max queued build age.
+     */
+    private static String queuedBuildsText(int queued, long queuedAgeMs) {
+        String builds = queued + " queued " + (queued == 1 ? "build" : "builds") + " not started";
+
+        return queuedAgeMs >= 0 ? builds + " for " + durationText(queuedAgeMs) + ", start estimate unavailable" :
+            builds + ", start estimate unavailable";
     }
 
     /**
      * @param ms Duration in millis.
      */
     private static String hoursMinutes(long ms) {
+        return "in " + durationText(ms);
+    }
+
+    /**
+     * @param ms Duration in millis.
+     */
+    private static String durationText(long ms) {
         long totalMins = Math.max(1, TimeUnit.MILLISECONDS.toMinutes(ms));
         long hours = totalMins / 60;
         long mins = totalMins % 60;
 
         if (hours == 0)
-            return "in " + mins + "m";
+            return mins + "m";
 
         if (mins == 0)
-            return "in " + hours + "h";
+            return hours + "h";
 
-        return "in " + hours + "h " + mins + "m";
+        return hours + "h " + mins + "m";
+    }
+
+    /**
+     * @param build Build.
+     */
+    private static long queuedAgeMs(FatBuildCompacted build) {
+        long queuedTs = build.getQueuedDateTs();
+
+        return queuedTs > 0 ? Math.max(0, System.currentTimeMillis() - queuedTs) : -1;
     }
 
     /**
