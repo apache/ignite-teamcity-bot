@@ -261,37 +261,67 @@ function loadGithubResolutionForContributions(srvId) {
             updateOnlyMyPrsControl(srvId);
             renderContributionsTable(srvId, "");
         },
-        error: function () {
+        error: function (jqXHR) {
             myGithubLoginsByServer.set(srvId, new Set());
-            updateOnlyMyPrsControl(srvId);
+            updateOnlyMyPrsControl(srvId, "GitHub profile resolution failed: " +
+                (jqXHR.statusText || "unknown error"));
             renderContributionsTable(srvId, "");
         }
     });
 }
 
-function hasMyPrsInTable(srvId) {
+function hasResolvedGithubLogins(srvId) {
+    let logins = myGithubLoginsByServer.get(srvId);
+
+    return isDefinedAndFilled(logins) && logins.size > 0;
+}
+
+function resolvedGithubLoginsText(srvId) {
+    let logins = myGithubLoginsByServer.get(srvId);
+
+    if (!isDefinedAndFilled(logins) || logins.size === 0)
+        return "";
+
+    return Array.from(logins).join(", ");
+}
+
+function myPrsCountInTable(srvId) {
     let logins = myGithubLoginsByServer.get(srvId);
     let rows = contributionsByServer.get(srvId);
 
-    if (!isDefinedAndFilled(logins) || logins.size === 0 || !isDefinedAndFilled(rows))
-        return false;
+    if (!hasResolvedGithubLogins(srvId) || !isDefinedAndFilled(rows))
+        return 0;
+
+    let cnt = 0;
 
     for (let i = 0; i < rows.length; i++) {
         if (isDefinedAndFilled(rows[i].prAuthor) && logins.has(String(rows[i].prAuthor).toLowerCase()))
-            return true;
+            cnt++;
     }
 
-    return false;
+    return cnt;
 }
 
-function updateOnlyMyPrsControl(srvId) {
+function updateOnlyMyPrsControl(srvId, err) {
     let block = $("#onlyMyPrsBlock-" + srvId);
     let checkbox = $("#onlyMyPrs-" + srvId);
+    let title = "Show only PRs whose cached GitHub author matches your bot profile by email or configured GitHub IDs";
 
-    if (hasMyPrsInTable(srvId))
+    if (isDefinedAndFilled(err)) {
+        checkbox.prop("checked", false);
+        block.attr("title", err);
+        block.hide();
+    }
+    else if (hasResolvedGithubLogins(srvId)) {
+        let cnt = myPrsCountInTable(srvId);
+
+        block.attr("title", title + ". Resolved GitHub IDs: " + resolvedGithubLoginsText(srvId) +
+            ". Matching PRs in the current table: " + cnt + ".");
         block.show();
+    }
     else {
         checkbox.prop("checked", false);
+        block.attr("title", title + ". Configure GitHub IDs in your user profile to enable this filter.");
         block.hide();
     }
 }
