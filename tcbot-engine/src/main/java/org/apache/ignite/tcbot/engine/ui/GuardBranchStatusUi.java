@@ -28,6 +28,15 @@ public class GuardBranchStatusUi {
     private List<Integer> finishedLastDay = new ArrayList<>();
     private List<Integer> runningList = new ArrayList<>();
     private List<Integer> queuedList = new ArrayList<>();
+    private List<String> autoTriggerSuites = new ArrayList<>();
+    private List<String> lastFailedSuites = new ArrayList<>();
+    private List<String> lastStableSuites = new ArrayList<>();
+    private List<String> tenBuildFailedSuites = new ArrayList<>();
+    private List<String> tenBuildStableSuites = new ArrayList<>();
+    private boolean lastBuildStatsAvailable;
+    private boolean tenBuildStatsAvailable;
+    private int lastBuildsChecked;
+    private int tenBuildsChecked;
 
     public String getName() {
         return name;
@@ -47,6 +56,37 @@ public class GuardBranchStatusUi {
         queuedList.add(queued);
     }
 
+    public void addAutoTriggerSuite(String suiteId) {
+        addUnique(autoTriggerSuites, suiteId);
+    }
+
+    public void addLastFailedSuite(String suiteId) {
+        lastBuildStatsAvailable = true;
+        addUnique(lastFailedSuites, suiteId);
+    }
+
+    public void addLastStableSuite(String suiteId) {
+        lastBuildStatsAvailable = true;
+        addUnique(lastStableSuites, suiteId);
+    }
+
+    public void addTenBuildFailedSuite(String suiteId) {
+        tenBuildStatsAvailable = true;
+        addUnique(tenBuildFailedSuites, suiteId);
+    }
+
+    public void addTenBuildStableSuite(String suiteId) {
+        tenBuildStatsAvailable = true;
+        addUnique(tenBuildStableSuites, suiteId);
+    }
+
+    public void addLastBuildsChecked(int count) {
+        lastBuildsChecked += count;
+    }
+
+    public void addTenBuildsChecked(int count) {
+        tenBuildsChecked += count;
+    }
 
     public List<Integer> getRunningList() {
         return runningList;
@@ -54,5 +94,46 @@ public class GuardBranchStatusUi {
 
     public List<Integer> getQueuedList() {
         return queuedList;
+    }
+
+    public List<String> getAutoTriggerSuites() {
+        return autoTriggerSuites;
+    }
+
+    public List<String> getLastFailedSuites() {
+        return lastFailedSuites;
+    }
+
+    public List<String> getLastStableSuites() {
+        return lastStableSuites;
+    }
+
+    public List<String> getTenBuildFailedSuites() {
+        return tenBuildFailedSuites;
+    }
+
+    public List<String> getTenBuildStableSuites() {
+        return tenBuildStableSuites;
+    }
+
+    public boolean isLastBuildStatsAvailable() {
+        return lastBuildStatsAvailable;
+    }
+
+    public boolean isTenBuildStatsAvailable() {
+        return tenBuildStatsAvailable;
+    }
+
+    public int getLastBuildsChecked() {
+        return lastBuildsChecked;
+    }
+
+    public int getTenBuildsChecked() {
+        return tenBuildsChecked;
+    }
+
+    private static void addUnique(List<String> target, String suiteId) {
+        if (!target.contains(suiteId))
+            target.add(suiteId);
     }
 }

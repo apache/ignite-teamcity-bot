@@ -24,18 +24,21 @@
         }
 
         .guard-header {
-            margin: 18px 0 16px 0;
+            align-items: baseline;
+            display: flex;
+            gap: 12px;
+            margin: 8px 0 10px 0;
         }
 
         .guard-title {
-            font-size: 22px;
+            font-size: 18px;
             font-weight: 700;
-            margin-bottom: 4px;
+            margin-bottom: 0;
         }
 
         .guard-subtitle {
             color: #666;
-            font-size: 13px;
+            font-size: 12px;
         }
 
         .guard-section {
@@ -190,6 +193,24 @@
             color: #666;
         }
 
+        .guard-stat {
+            white-space: nowrap;
+        }
+
+        .guard-stat-ok {
+            color: #24743c;
+            font-weight: 700;
+        }
+
+        .guard-stat-bad {
+            color: #8b0000;
+            font-weight: 700;
+        }
+
+        .guard-stat-muted {
+            color: #666;
+        }
+
         .guard-meta {
             color: #666;
             font-size: 12px;
@@ -243,10 +264,15 @@ $(document).ready(function() {
 
 var runningVisasRefreshText = "";
 var runningVisasRefreshPollStop = null;
+var currentRunningVisas = [];
+var runningVisasLoaded = false;
+var myGithubLogins = new Set();
+const ONLY_MY_RUNNING_PRS_STORAGE_KEY = "tcbot.guard.runningVisas.onlyMyPrs";
 
 function loadData() {
     $("#loadStatus").html("&#8987; Please wait");
 
+    loadGithubResolutionForRunningVisas();
     loadRunningVisas(true);
 
     $.ajax({
@@ -278,6 +304,7 @@ function loadData() {
 }
 
 function loadRunningVisas(refresh) {
+    runningVisasLoaded = false;
     $("#runningVisasStatus").html("Loading running visas...");
 
     var processId = refresh === false ? null : createBotProcessId("runningVisasRefresh");
@@ -287,16 +314,86 @@ function loadRunningVisas(refresh) {
     $.ajax({
         url: url,
         success: function(result) {
-            showRunningVisas(result);
+            currentRunningVisas = result || [];
+            runningVisasLoaded = true;
+            showRunningVisas(currentRunningVisas);
 
             if (isDefinedAndFilled(processId))
                 pollRunningVisasRefresh(processId);
         },
         error: function(jqXHR, exception) {
+            runningVisasLoaded = true;
             $("#runningVisasStatus").text("Running visas are unavailable.");
             showErrInLoadStatus(jqXHR, exception);
         }
     });
+}
+
+function loadGithubResolutionForRunningVisas() {
+    $.ajax({
+        url: "rest/user/githubResolution",
+        success: function(result) {
+            myGithubLogins = new Set();
+
+            if (isDefinedAndFilled(result) && isDefinedAndFilled(result.allLogins)) {
+                for (var i = 0; i < result.allLogins.length; i++)
+                    myGithubLogins.add(String(result.allLogins[i]).toLowerCase());
+            }
+
+            if (runningVisasLoaded)
+                showRunningVisas(currentRunningVisas);
+        },
+        error: function() {
+            myGithubLogins = new Set();
+
+            if (runningVisasLoaded)
+                showRunningVisas(currentRunningVisas);
+        }
+    });
+}
+
+function loadOnlyMyRunningPrsPreference() {
+    try {
+        return window.localStorage.getItem(ONLY_MY_RUNNING_PRS_STORAGE_KEY) === "true";
+    }
+    catch (e) {
+        return false;
+    }
+}
+
+function saveOnlyMyRunningPrsPreference() {
+    try {
+        window.localStorage.setItem(ONLY_MY_RUNNING_PRS_STORAGE_KEY,
+            $("#onlyMyRunningPrs").prop("checked") ? "true" : "false");
+    }
+    catch (e) {
+        // Ignore unavailable storage; page filtering still works for this session.
+    }
+}
+
+function isMyGithubRunningVisa(row) {
+    return isDefinedAndFilled(row) && isDefinedAndFilled(row.prAuthor) &&
+        myGithubLogins.has(String(row.prAuthor).toLowerCase());
+}
+
+function filteredRunningVisas(rows) {
+    if (!loadOnlyMyRunningPrsPreference() || myGithubLogins.size === 0)
+        return rows || [];
+
+    return (rows || []).filter(isMyGithubRunningVisa);
+}
+
+function runningVisasOnlyMineHtml() {
+    if (myGithubLogins.size === 0)
+        return "";
+
+    return "<div style='padding:10px 16px 0 16px'>" +
+        "<label title='Show only running visas for PRs authored by: " +
+        escapeHtml(Array.from(myGithubLogins).join(", ")) + "'>" +
+        "<input id='onlyMyRunningPrs' type='checkbox' " +
+        (loadOnlyMyRunningPrsPreference() ? "checked" : "") +
+        " onchange='saveOnlyMyRunningPrsPreference(); showRunningVisas(currentRunningVisas)'> Only my PRs</label>" +
+        "</div>";
 }
 
 function pollRunningVisasRefresh(processId) {
@@ -346,12 +443,7 @@ function reportLinkHtml(row) {
 }
 
 function runningVisaTimeHtml(row) {
-    var res = isDefinedAndFilled(row.requestedAgo) ? escapeHtml(row.requestedAgo) : "";
-
-    if (isDefinedAndFilled(row.estimatedCompletion))
-        res += "<div class='guard-meta'>ETA " + escapeHtml(row.estimatedCompletion) + "</div>";
-
-    return res;
+    return isDefinedAndFilled(row.requestedAgo) ? escapeHtml(row.requestedAgo) : "";
 }
 
 function runningVisaBranchHtml(row) {
@@ -396,6 +488,13 @@ function runningProgressHtml(row) {
         escapeHtml(text) + "</a>";
 }
 
+function checkAroundHtml(row) {
+    if (!isDefinedAndFilled(row.estimatedCompletion))
+        return "";
+
+    return "<span class='guard-stat-muted'>" + escapeHtml(row.estimatedCompletion) + "</span>";
+}
+
 function guardSection(title, note, body) {
     return "<div class='guard-section'>" +
         "<div class='guard-section-header'>" +
@@ -426,6 +525,57 @@ function statusValueText(value) {
     return String(value);
 }
 
+function suiteTitle(suites, checkedBuilds) {
+    var parts = [];
+
+    if (isDefinedAndFilled(checkedBuilds))
+        parts.push("checked chain builds: " + checkedBuilds);
+
+    if (!isDefinedAndFilled(suites) || suites.length === 0)
+        return parts.join("; ");
+
+    parts.push("suites: " + suites.join(", "));
+
+    return parts.join("; ");
+}
+
+function suiteCount(suites) {
+    return isDefinedAndFilled(suites) ? suites.length : 0;
+}
+
+function suiteStatHtml(label, suites, cls, checkedBuilds) {
+    var count = suiteCount(suites);
+
+    return "<span class='" + cls + "' title='" + escapeHtml(suiteTitle(suites, checkedBuilds)) + "'>" +
+        escapeHtml(label + " " + count) + "</span>";
+}
+
+function autoTriggerHtml(summary) {
+    var suites = summary.autoTriggerSuites || [];
+
+    if (suiteCount(suites) === 0)
+        return "<span class='guard-stat-muted'>off</span>";
+
+    return "<span class='guard-stat-ok' title='" + escapeHtml(suiteTitle(suites)) + "'>on " +
+        suiteCount(suites) + "</span>";
+}
+
+function lastBuildStatsHtml(summary) {
+    return "<span class='guard-stat'>" +
+        suiteStatHtml("failed", summary.lastFailedSuites || [], "guard-stat-bad", summary.lastBuildsChecked) +
+        " / " +
+        suiteStatHtml("ok", summary.lastStableSuites || [], "guard-stat-ok", summary.lastBuildsChecked) +
+        "</span>";
+}
+
+function tenBuildStatsHtml(summary) {
+    return "<span class='guard-stat'>" +
+        suiteStatHtml("unstable", summary.tenBuildFailedSuites || [], "guard-stat-bad", summary.tenBuildsChecked) +
+        " / " +
+        suiteStatHtml("stable", summary.tenBuildStableSuites || [], "guard-stat-ok", summary.tenBuildsChecked) +
+        "</span>";
+}
+
 function branchActionsHtml(id) {
     var branch = encodeURIComponent(id);
 
@@ -437,19 +587,26 @@ function branchActionsHtml(id) {
 }
 
 function showRunningVisas(result) {
-    if (!isDefinedAndFilled(result) || result.length === 0) {
+    var rows = filteredRunningVisas(result);
+
+    if (!isDefinedAndFilled(rows) || rows.length === 0) {
+        var emptyText = loadOnlyMyRunningPrsPreference() && myGithubLogins.size > 0 &&
+            isDefinedAndFilled(result) && result.length > 0 ?
+            "No running visas for my PRs." : "No running visas.";
+
         $("#runningVisasStatus").html(guardSection("Running visas", "",
-            "<div class='guard-empty'>No running visas.</div>" + runningVisasRefreshHtml()));
+            runningVisasOnlyMineHtml() + "<div class='guard-empty'>" + emptyText + "</div>" +
+            runningVisasRefreshHtml()));
 
         return;
     }
 
-    var res = "<table class='guard-table'>";
+    var res = runningVisasOnlyMineHtml() + "<table class='guard-table'>";
     res += "<tr><th>Requested</th><th>PR author</th><th>Branch / report</th><th>PR / Ticket</th><th>Suite</th>" +
-        "<th>Targets</th><th>Progress</th></tr>";
+        "<th>Targets</th><th>Progress</th><th>Estimate</th></tr>";
 
-    for (var i = 0; i < result.length; i++) {
-        var row = result[i];
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
 
         res += "<tr>";
         res += "<td>" + runningVisaTimeHtml(row) + "</td>";
@@ -459,12 +616,13 @@ function showRunningVisas(result) {
         res += "<td>" + escapeHtml(row.buildTypeName || row.buildTypeId || "") + "</td>";
         res += "<td>" + escapeHtml(row.commentTargets || "") + "</td>";
         res += "<td>" + runningProgressHtml(row) + "</td>";
+        res += "<td>" + checkAroundHtml(row) + "</td>";
         res += "</tr>";
     }
 
     res += "</table>" + runningVisasRefreshHtml();
 
-    $("#runningVisasStatus").html(guardSection("Running visas", result.length + " active", res));
+    $("#runningVisasStatus").html(guardSection("Running visas", rows.length + " active", res));
 }
 
 function runningVisasRefreshHtml() {
@@ -474,7 +632,8 @@ function runningVisasRefreshHtml() {
 
 function showTrackedBranchesLinks2(result) {
     var res = "<table class='guard-table'>";
-    res += "<tr><th>Branch</th><th>Reports</th><th>Finished 24h</th><th>Running</th><th>Queued</th></tr>";
+    res += "<tr><th>Branch</th><th>Reports</th><th>Auto trigger</th><th>Last cached build</th>" +
+        "<th>Last 10 cached</th><th>Finished 24h</th><th>Running</th><th>Queued</th></tr>";
 
     for (var i = 0; i < result.length; i++) {
         let summary = result[i];
@@ -483,6 +642,9 @@ function showTrackedBranchesLinks2(result) {
         res += "<tr>";
         res += "<td><span class='guard-branch'>" + escapeHtml(id) + "</span></td>";
         res += "<td>" + branchActionsHtml(id) + "</td>";
+        res += "<td>" + autoTriggerHtml(summary) + "</td>";
+        res += "<td>" + (summary.lastBuildStatsAvailable ? lastBuildStatsHtml(summary) : "") + "</td>";
+        res += "<td>" + (summary.tenBuildStatsAvailable ? tenBuildStatsHtml(summary) : "") + "</td>";
         res += "<td>" + statusCountHtml(summary.finishedLastDay, "guard-count-ok") + "</td>";
         res += "<td>" + statusCountHtml(summary.runningList, "guard-count-run") + "</td>";
         res += "<td>" + statusCountHtml(summary.queuedList, "guard-count-warn") + "</td>";

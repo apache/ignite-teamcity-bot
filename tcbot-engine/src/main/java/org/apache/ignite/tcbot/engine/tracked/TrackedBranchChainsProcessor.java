@@ -22,6 +22,8 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,6 +36,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.tcbot.common.conf.IBuildParameterSpec;
 import org.apache.ignite.tcbot.common.conf.IParameterValueSpec;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
@@ -516,16 +519,31 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         for (ITrackedChain chain : accessibleChains) {
             String srvCodeOrAlias = chain.serverCode();
             ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvCodeOrAlias, prov);
+            String suiteId = chain.tcSuiteId();
 
-            List<BuildRefCompacted> hist = tcIgn.getAllBuildsCompacted(chain.tcSuiteId(), chain.tcBranch());
+            if (chain.triggerBuild())
+                statusUi.addAutoTriggerSuite(suiteId);
+
+            List<BuildRefCompacted> hist = tcIgn.getAllBuildsCompacted(suiteId, chain.tcBranch());
 
             AtomicInteger finished = new AtomicInteger();
             AtomicInteger running = new AtomicInteger();
             AtomicInteger queued = new AtomicInteger();
 
-            hist.stream()
+            List<BuildRefCompacted> validHist = hist.stream()
                 .filter(ref -> !ref.isFakeStub())
                 .filter(t -> !t.isCancelled(compactor))
+                .collect(Collectors.toList());
+
+            List<BuildRefCompacted> lastFinished = validHist.stream()
+                .filter(ref -> ref.isFinished(compactor))
+                .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
+                .limit(10)
+                .collect(Collectors.toList());
+
+            addChainCompositionStats(statusUi, tcIgn, lastFinished);
+
+            validHist.stream()
                 .peek(ref -> {
                     if (ref.isRunning(compactor))
                         running.incrementAndGet();
@@ -550,6 +568,100 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         }
 
         return statusUi;
+    }
+
+    /**
+     * Adds cached suite composition stats for last and last-10 chain builds.
+     *
+     * @param statusUi Guard status UI.
+     * @param tcIgn TeamCity facade.
+     * @param lastFinished Last finished chain builds, newest first.
+     */
+    private void addChainCompositionStats(GuardBranchStatusUi statusUi, ITeamcityIgnited tcIgn,
+        List<BuildRefCompacted> lastFinished) {
+        if (lastFinished.isEmpty())
+            return;
+
+        statusUi.addLastBuildsChecked(1);
+        statusUi.addTenBuildsChecked(lastFinished.size());
+
+        ChainComposition last = chainComposition(tcIgn, lastFinished.get(0));
+
+        last.failedSuites.forEach(statusUi::addLastFailedSuite);
+        last.stableSuites.forEach(statusUi::addLastStableSuite);
+
+        Map<String, Boolean> stableBySuite = new LinkedHashMap<>();
+
+        for (BuildRefCompacted chainBuild : lastFinished) {
+            ChainComposition composition = chainComposition(tcIgn, chainBuild);
+
+            composition.stableSuites.forEach(suiteId -> stableBySuite.putIfAbsent(suiteId, true));
+            composition.failedSuites.forEach(suiteId -> stableBySuite.put(suiteId, false));
+        }
+
+        stableBySuite.forEach((suiteId, stable) -> {
+            if (stable)
+                statusUi.addTenBuildStableSuite(suiteId);
+            else
+                statusUi.addTenBuildFailedSuite(suiteId);
+        });
+    }
+
+    /**
+     * @param tcIgn TeamCity facade.
+     * @param chainBuildRef Chain build ref.
+     */
+    private ChainComposition chainComposition(ITeamcityIgnited tcIgn, BuildRefCompacted chainBuildRef) {
+        ChainComposition res = new ChainComposition();
+
+        FatBuildCompacted chainBuild = cachedFatBuild(tcIgn, chainBuildRef.id());
+
+        if (chainBuild == null)
+            return res;
+
+        for (int depId : chainBuild.snapshotDependencies()) {
+            FatBuildCompacted dep = cachedFatBuild(tcIgn, depId);
+
+            if (dep == null || dep.isFakeStub())
+                continue;
+
+            String depSuiteId = dep.buildTypeId(compactor);
+
+            if (Strings.isNullOrEmpty(depSuiteId))
+                continue;
+
+            if (dep.isSuccess(compactor))
+                res.stableSuites.add(depSuiteId);
+            else
+                res.failedSuites.add(depSuiteId);
+        }
+
+        return res;
+    }
+
+    /**
+     * @param tcIgn TeamCity facade.
+     * @param buildId Build id.
+     */
+    @Nullable private FatBuildCompacted cachedFatBuild(ITeamcityIgnited tcIgn, Integer buildId) {
+        if (buildId == null)
+            return null;
+
+        try {
+            return tcIgn.getFatBuild(buildId, SyncMode.NONE);
+        }
+        catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    /** Cached composition of one chain run. */
+    private static class ChainComposition {
+        /** Failed suites. */
+        private final Set<String> failedSuites = new LinkedHashSet<>();
+
+        /** Stable suites. */
+        private final Set<String> stableSuites = new LinkedHashSet<>();
     }
 
     @Override public Map<Integer, Integer> getTrackedBranchUpdateCounters(@Nullable String branch,
