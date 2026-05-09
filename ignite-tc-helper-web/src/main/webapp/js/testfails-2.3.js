@@ -129,8 +129,7 @@ function showNewTestsData(chain, settings) {
 
     if (newTestRows !== "") {
         res += "<tr><td colspan='4'>New tests: " + newTestsCnt +
-            " <span class='container'><a href='javascript:void(0);' class='header'>" + more + "</a>" +
-            "<div class='content'><table style='width:100%'>" + newTestRows + "</table></div></span></td></tr>";
+            "<table style='width:100%'>" + newTestRows + "</table></td></tr>";
     }
     else
         res += "<tr><td colspan='2' width='10%'></td><td width='90%'>No new tests</td></tr>";
@@ -314,8 +313,10 @@ function showChainCurrentStatusData(chain, settings) {
 
     let baseBranchForTc = chain.baseBranchForTc;
     if ((settings.isJiraAvailable() || settings.isGithubAvailable()) && isDefinedAndFilled(srvCodeForTriggering)) {
+        let commentBtns = "<span style='display:inline-flex; gap:4px; align-items:center; white-space:nowrap'>";
+
         if (settings.isJiraAvailable()) {
-            res += "<button onclick='commentJira(\"" + srvCodeForTriggering + "\", " +
+            commentBtns += "<button onclick='commentJira(\"" + srvCodeForTriggering + "\", " +
                 "\"" + chain.branchName + "\", " +
                 "\"" + parentSuitId + "\", " +
                 "\"\", " + // ticket id
@@ -325,11 +326,11 @@ function showChainCurrentStatusData(chain, settings) {
                 "false, " +
                 "{ticketLink: \"" + (isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "") +
                 "\", prLink: \"" + (isDefinedAndFilled(chain.webToPr) ? chain.webToPr : "") +
-                "\"})'>Comment JIRA</button><br>";
+                "\"})'>Comment JIRA</button>";
         }
 
         if (settings.isGithubAvailable() && isDefinedAndFilled(chain.prNum)) {
-            res += "<button onclick='commentJira(\"" + srvCodeForTriggering + "\", " +
+            commentBtns += "<button onclick='commentJira(\"" + srvCodeForTriggering + "\", " +
                 "\"" + chain.branchName + "\", " +
                 "\"" + parentSuitId + "\", " +
                 "\"\", " + // ticket id
@@ -339,8 +340,11 @@ function showChainCurrentStatusData(chain, settings) {
                 "false, " +
                 "{ticketLink: \"" + (isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "") +
                 "\", prLink: \"" + (isDefinedAndFilled(chain.webToPr) ? chain.webToPr : "") +
-                "\"})'>Comment GitHub PR</button><br>";
+                "\"})'>Comment GitHub PR</button>";
         }
+
+        commentBtns += "</span><br>";
+        res += commentBtns;
 
         var blockersList = "";
 
@@ -358,8 +362,6 @@ function showChainCurrentStatusData(chain, settings) {
         }
 
         if (blockersList.length !== 0) {
-            res += "<label for='cleanRebuild'><input id='cleanRebuild' type='checkbox'>Delete all files in checkout directory before each snapshot dependency build</label><br>"
-
             res += "<button onclick='triggerBuildsWithCommentOptions(" +
                 "\"" + srvCodeForTriggering + "\", " +
                 "\"" + parentSuitId + "\", " +
@@ -370,27 +372,11 @@ function showChainCurrentStatusData(chain, settings) {
                 "null, " + // ticketId
                 "\"" + chain.prNum + "\", " +
                 "\"" + baseBranchForTc + "\", " +
-                "document.getElementById(\"cleanRebuild\").checked, " +
+                "false, " +
                 "\"" + (isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "") + "\", " +
                 "\"" + (isDefinedAndFilled(chain.webToPr) ? chain.webToPr : "") + "\"" +
                 ")'> " +
-                "Re-run possible blockers</button><br>";
-
-            res += "<button onclick='triggerBuildsWithCommentOptions(" +
-                "\"" + srvCodeForTriggering + "\", " +
-                "\"" + parentSuitId + "\", " +
-                "\"" + blockersList + "\", " +
-                "\"" + chain.branchName + "\", " +
-                "true, " + //top
-                "false, " + //observe
-                "null, " + // ticketId
-                "\"" + chain.prNum + "\", " + //prNum
-                "\"" + baseBranchForTc + "\", " +
-                "document.getElementById(\"cleanRebuild\").checked, " +
-                "\"" + (isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "") + "\", " +
-                "\"" + (isDefinedAndFilled(chain.webToPr) ? chain.webToPr : "") + "\"" +
-                ")'> " +
-                "Re-run possible blockers (top queue)</button><br>";
+                "Rerun blockers</button><br>";
         }
     }
 
@@ -587,7 +573,7 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
     var fewSuites = suites.length > 1;
 
     var message = "<b>TC server:</b> " + escapeHtml(tcServerCode) + "<br>" +
-        "<b>Branch:</b> " + escapeHtml(branchName) + "<br><b>Top:</b> " + escapeHtml(top) + "<br>" +
+        "<b>Branch:</b> " + escapeHtml(branchName) + "<br>" +
         "<b>Suite ID" + (fewSuites ? "s" : "") + ":</b> " + suitesSummaryHtml(suites);
 
     showTriggerStagesDialog();
@@ -664,6 +650,9 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
             "<div><b>Build trigger</b></div>" +
             "<div style='margin-top:8px'>" + message + "</div>" +
             "<div style='margin-top:12px'><b>Run options</b></div>" +
+            "<label><input type='checkbox' id='stageQueueAtTop' " + (queueAtTop ? "checked" : "") +
+            "> Put builds at top of queue</label>" +
+            "<div style='margin-left:22px; color:#666; font-size:12px'>Requires TeamCity permission to reorder build queue.</div>" +
             "<label><input type='checkbox' id='stageCleanRebuild' " + (cleanRebuild ? "checked" : "") +
             "> Delete checkout files before snapshot dependency builds</label>" +
             commentOptionsHtml +
@@ -675,6 +664,7 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
 
         triggerConfirm.dialog(actionDialogOptions("Build trigger", {
                 "Run": function () {
+                    queueAtTop = $("#stageQueueAtTop").prop("checked");
                     cleanRebuild = $("#stageCleanRebuild").prop("checked");
 
                     if (showCommentOptions) {
@@ -864,9 +854,6 @@ function appendActionStage(dialog, text) {
 }
 
 function actionDialogOptions(title, buttons) {
-    var scrollLeft = $(window).scrollLeft();
-    var scrollTop = $(window).scrollTop();
-
     return {
         title: title,
         modal: true,
@@ -884,26 +871,20 @@ function actionDialogOptions(title, buttons) {
                 "max-height": Math.max(180, $(window).height() - 180) + "px",
                 "overflow-y": "auto"
             });
-            restoreWindowScroll(scrollLeft, scrollTop);
-            centerActionDialog(dialog, scrollLeft, scrollTop);
+            centerActionDialog(dialog);
         }
     };
 }
 
-function centerActionDialog(dialog, scrollLeft, scrollTop) {
+function centerActionDialog(dialog) {
     setTimeout(function () {
-        dialog.dialog("option", "position", {
-            my: "center",
-            at: "center",
-            of: window
+        dialog.closest(".ui-dialog").css({
+            "position": "fixed",
+            "top": "50%",
+            "left": "50%",
+            "transform": "translate(-50%, -50%)"
         });
-        restoreWindowScroll(scrollLeft, scrollTop);
     }, 0);
-}
-
-function restoreWindowScroll(scrollLeft, scrollTop) {
-    if (typeof scrollLeft === "number" && typeof scrollTop === "number")
-        window.scrollTo(scrollLeft, scrollTop);
 }
 
 function commentTargetsLabel(targets) {

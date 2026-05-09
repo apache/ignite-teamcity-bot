@@ -540,7 +540,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
 
         tdForPr.html(reportLink);
 
-        let commentBtns = "<span style='white-space: nowrap'>";
+        let commentBtns = "<span style='display:inline-flex; gap:4px; align-items:center; white-space:nowrap'>";
 
         if (hasJiraIssue) {
             commentBtns += "<button onclick='" +
