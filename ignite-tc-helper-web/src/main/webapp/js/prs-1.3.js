@@ -14,6 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+const prReportDefaultSuites = new Map();
+
 function drawTable(srvId, element) {
     let tableId = "serverContributions-" + srvId;
 
@@ -40,6 +42,85 @@ function drawTable(srvId, element) {
 
     $("#refreshContributions-" + srvId).on("click", function () {
         refreshContributionsNow(srvId);
+    });
+}
+
+function rememberDefaultSuitesForPrReport(result) {
+    if (!isDefinedAndFilled(result))
+        return;
+
+    for (let i = 0; i < result.length; i++) {
+        let chain = result[i];
+
+        if (isDefinedAndFilled(chain.serverId) && isDefinedAndFilled(chain.suiteId)
+            && !prReportDefaultSuites.has(chain.serverId))
+            prReportDefaultSuites.set(chain.serverId, chain.suiteId);
+    }
+
+    refreshEarlyPrReportLinks();
+}
+
+function defaultSuiteForPrReport(srvId, suiteId) {
+    if (isDefinedAndFilled(suiteId))
+        return suiteId;
+
+    let querySuite = findGetParameter("suiteId");
+
+    if (isDefinedAndFilled(querySuite))
+        return querySuite;
+
+    return prReportDefaultSuites.get(srvId);
+}
+
+function branchForPrReport(row) {
+    if (isDefinedAndFilled(row.tcBranchName))
+        return row.tcBranchName;
+
+    if (row.prNumber > 0)
+        return branchForTc(String(row.prNumber));
+
+    return "";
+}
+
+function prReportLinkHtml(srvId, suiteId, branchName, label) {
+    return "<a href='" + escapeHtml(prShowHref(srvId, suiteId, branchName)) + "'>" +
+        "<button type='button' class='disabledbtn' " +
+        "title='Report status is still loading; the build may still be missing in the bot cache'>" +
+        escapeHtml(label) + "</button></a>";
+}
+
+function earlyPrReportHtml(row, srvId, suiteId) {
+    let branchName = branchForPrReport(row);
+    let selectedSuite = defaultSuiteForPrReport(srvId, suiteId);
+    let attrs = " class='early-pr-report'" +
+        " data-srv='" + escapeHtml(srvId) + "'" +
+        " data-branch='" + escapeHtml(branchName) + "'";
+
+    if (isDefinedAndFilled(selectedSuite)) {
+        attrs += " data-suite='" + escapeHtml(selectedSuite) + "'";
+
+        return "<span" + attrs + ">" +
+            prReportLinkHtml(srvId, selectedSuite, branchName, "Open PR report") +
+            "</span>";
+    }
+
+    return "<span" + attrs + ">Loading report link...</span>";
+}
+
+function refreshEarlyPrReportLinks() {
+    $(".early-pr-report").each(function () {
+        let item = $(this);
+        let srvId = item.attr("data-srv");
+        let branchName = item.attr("data-branch");
+        let suiteId = item.attr("data-suite");
+
+        if (!isDefinedAndFilled(suiteId))
+            suiteId = defaultSuiteForPrReport(srvId, null);
+
+        if (isDefinedAndFilled(suiteId) && isDefinedAndFilled(branchName)) {
+            item.attr("data-suite", suiteId);
+            item.html(prReportLinkHtml(srvId, suiteId, branchName, "Open PR report"));
+        }
     });
 }
 
@@ -346,7 +427,7 @@ function showStageBlockers(stageNum, prId, blockers) {
 
 
 /* Formatting function for row details - modify as you need */
-function formatContributionDetails(row, srvId) {
+function formatContributionDetails(row, srvId, suiteId) {
     //  row  is the original data object for the row
     if(!isDefinedAndFilled(row))
         return;
@@ -377,7 +458,7 @@ function formatContributionDetails(row, srvId) {
     res += "        <tr>\n" +
         "            <td></td>\n" +
         "            <td id='triggerBuildFor" + prId + "'>Loading builds...</td>\n" +
-        "            <td id='showResultFor" + prId + "'>Loading builds...</td>\n" +
+        "            <td id='showResultFor" + prId + "'>" + earlyPrReportHtml(row, srvId, suiteId) + "</td>\n" +
         "            <td id='commentJiraFor" + prId + "'></td>\n" +
         "        </tr>";
 
@@ -511,6 +592,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
         "\", prLink: \"" + (isDefinedAndFilled(row.prHtmlUrl) ? row.prHtmlUrl : "") + "\"}";
     let hasQueued = status.queuedBuilds > 0 || status.runningBuilds > 0;
     let queuedStatus = "Has queued builds: " + status.queuedBuilds  + " queued " + " " + status.runningBuilds  + " running";
+    let replaintCall = "repaintLater(\"" + srvId + "\");";
 
     var linksToRunningBuilds = "";
     for (let i = 0; i < status.webLinksQueuedSuites.length; i++) {
@@ -523,7 +605,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
         let finishedBranch = status.branchWithFinishedSuite;
 
         let reportLink = "<a id='showReportlink_" + prId + "' href='" + prShowHref(srvId, suiteIdSelected, finishedBranch) + "'>" +
-            "<button id='show_" + prId + "'>Show " + finishedBranch + " report</button>" +
+            "<button id='show_" + prId + "'>Open PR report</button>" +
             "</a>";
         if(isDefinedAndFilled(status.finishedSuiteCommit)) {
             reportLink += "<br>(" + status.finishedSuiteCommit + ")";
@@ -580,7 +662,35 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
 
         $('#commentJiraFor' + prId).html(commentBtns);
     } else {
-        tdForPr.html("No builds, please trigger " + suiteIdSelected);
+        let noBuildsHtml = "No builds for " + escapeHtml(suiteIdSelected);
+
+        if (isDefinedAndFilled(status.resolvedBranch)) {
+            let triggerBuildsCall = "triggerBuilds(" +
+                "\"" + srvId + "\", " +
+                "null, " +
+                "\"" + suiteIdSelected + "\", " +
+                "\"" + status.resolvedBranch + "\"," +
+                " false," +
+                " false," +
+                "\"" + jiraOptional + "\"," +
+                "\"" + row.prNumber + "\"," +
+                "null," +
+                "false," +
+                "\"\"," +
+                "false," +
+                actionUiLinks + "); ";
+
+            noBuildsHtml += "<br><button onClick='" + triggerBuildsCall + replaintCall + "'";
+
+            if (hasQueued)
+                noBuildsHtml += " class='disabledbtn' title='" + queuedStatus + "'";
+
+            noBuildsHtml += ">Trigger build</button>";
+        }
+        else
+            noBuildsHtml += ", please trigger it when branch is resolved";
+
+        tdForPr.html(noBuildsHtml);
     }
 
 

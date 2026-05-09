@@ -19,7 +19,7 @@
 
     <script src="js/common-1.7.js?v=20260509-6"></script>
     <script src="js/testfails-2.3.js?v=20260509-17"></script>
-    <script src="js/prs-1.3.js?v=20260509-7"></script>
+    <script src="js/prs-1.3.js?v=20260509-11"></script>
 
     <style>
 
@@ -97,6 +97,7 @@
                 url: "rest/branches/suites",
                 success: function(result) {
                     $("#loadStatus").html("");
+                    rememberDefaultSuitesForPrReport(result);
                     showSuitesForTeamCityRunData(result);
                     showFormAndSuitesForPrCheck(result);
                     showCommentJiraForm(result);
