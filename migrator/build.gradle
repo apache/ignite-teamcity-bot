@@ -16,6 +16,7 @@ dependencies {
     testImplementation project(':tcbot-teamcity-ignited')
     testImplementation "org.apache.ignite:ignite-slf4j:$ignVer"
     testImplementation "junit:junit:$junitVer"
+    testImplementation "org.mockito:mockito-core:$mockitoVer"
 }
 
 application {
@@ -27,6 +28,7 @@ test {
     maxHeapSize = '1536m'
     systemProperty 'compat.work.dir', file('src/test/work/ignite-db-compat').absolutePath
     exclude '**/LegacyPersistentStorageCompatibilityTest.class'
+    exclude '**/GridIntListMigratorIntegrationTest.class'
     failOnNoDiscoveredTests = false
 
     testLogging {
@@ -35,8 +37,8 @@ test {
     }
 }
 
-tasks.register('legacyDbCompatPerfTest', Test) {
-    description = 'Runs the heavyweight legacy Ignite persistent storage compatibility/perf test.'
+tasks.register('integrationTest', Test) {
+    description = 'Runs heavyweight migrator integration tests against real Ignite persistence.'
     group = 'verification'
 
     testClassesDirs = sourceSets.test.output.classesDirs
@@ -46,6 +48,7 @@ tasks.register('legacyDbCompatPerfTest', Test) {
     maxHeapSize = '1536m'
     systemProperty 'compat.work.dir', file('src/test/work/ignite-db-compat').absolutePath
     include '**/LegacyPersistentStorageCompatibilityTest.class'
+    include '**/GridIntListMigratorIntegrationTest.class'
 
     testLogging {
         events 'passed', 'failed', 'skipped', 'standardOut', 'standardError'

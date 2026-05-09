@@ -322,7 +322,7 @@ public class DbMigrations {
                 String cacheFilter = null;
                 boolean apply = true;
                 boolean verbose = false;
-                int reportEvery = 500;
+                int reportEvery = 50000;
 
                 long updated = GridIntListMigrator.migrateOnInstance(
                     ignite,

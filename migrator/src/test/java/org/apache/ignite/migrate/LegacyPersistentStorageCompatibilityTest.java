@@ -55,7 +55,6 @@ import org.apache.ignite.failure.FailureContext;
 import org.apache.ignite.failure.FailureHandler;
 import org.apache.ignite.logger.slf4j.Slf4jLogger;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
-import org.apache.ignite.tcbot.common.util.GridIntList;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
@@ -98,9 +97,6 @@ public class LegacyPersistentStorageCompatibilityTest {
 
     /** Branch used by the local perf compatibility test. */
     private static final String BRANCH = "refs/heads/perf-test-master";
-
-    /** Cache that intentionally stores Ignite 2.14 internal GridIntList for migrator coverage. */
-    private static final String LEGACY_GRID_INT_LIST_CACHE = "legacyGridIntListCache";
 
     /** Cache used only to produce enough WAL with old Ignite. */
     private static final String LEGACY_WAL_STRESS_CACHE = "legacyWalStressCache";
@@ -175,10 +171,7 @@ public class LegacyPersistentStorageCompatibilityTest {
             assertEquals(RUN_ALL_JAVA_8, ref.buildTypeId(compactor));
             assertEquals(BRANCH, ref.branchName(compactor));
             assertTrue(fatBuild.isFinished(compactor));
-
-            Object migrated = ignite.cache(LEGACY_GRID_INT_LIST_CACHE).get("legacy");
-
-            assertEquals(GridIntList.asList(1, 2, 3), migrated);
+            assertEquals("enabled", fatBuild.parameters().toParameters(compactor).getParameter("compat.parameter"));
 
             assertAllUserCachesCanBeDeserialized(ignite);
 
@@ -551,6 +544,7 @@ public class LegacyPersistentStorageCompatibilityTest {
     private String legacyGeneratorJava() {
         return "package org.apache.ignite.ci.db;\n"
             + "\n"
+            + "import java.util.Arrays;\n"
             + "import java.io.File;\n"
             + "import java.util.Collections;\n"
             + "import java.util.Iterator;\n"
@@ -565,7 +559,6 @@ public class LegacyPersistentStorageCompatibilityTest {
             + "import org.apache.ignite.configuration.CacheConfiguration;\n"
             + "import org.apache.ignite.configuration.DataRegionConfiguration;\n"
             + "import org.apache.ignite.configuration.IgniteConfiguration;\n"
-            + "import org.apache.ignite.internal.util.GridIntList;\n"
             + "import org.apache.ignite.logger.slf4j.Slf4jLogger;\n"
             + "import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;\n"
             + "import org.apache.ignite.tcbot.persistence.CacheConfigs;\n"
@@ -574,6 +567,8 @@ public class LegacyPersistentStorageCompatibilityTest {
             + "import org.apache.ignite.tcignited.build.FatBuildDao;\n"
             + "import org.apache.ignite.tcignited.buildref.BuildRefDao;\n"
             + "import org.apache.ignite.tcservice.model.conf.BuildType;\n"
+            + "import org.apache.ignite.tcservice.model.conf.bt.Parameters;\n"
+            + "import org.apache.ignite.tcservice.model.conf.bt.Property;\n"
             + "import org.apache.ignite.tcservice.model.hist.BuildRef;\n"
             + "import org.apache.ignite.tcservice.model.result.Build;\n"
             + "\n"
@@ -581,7 +576,6 @@ public class LegacyPersistentStorageCompatibilityTest {
             + "    private static final String SRV_ID = \"" + SRV_ID + "\";\n"
             + "    private static final String RUN_ALL_JAVA_8 = \"" + RUN_ALL_JAVA_8 + "\";\n"
             + "    private static final String BRANCH = \"" + BRANCH + "\";\n"
-            + "    private static final String LEGACY_GRID_INT_LIST_CACHE = \"" + LEGACY_GRID_INT_LIST_CACHE + "\";\n"
             + "    private static final String LEGACY_WAL_STRESS_CACHE = \"" + LEGACY_WAL_STRESS_CACHE + "\";\n"
             + "    private static final long REGION_SIZE = " + REGION_SIZE + "L;\n"
             + "    private static final int WAL_STRESS_MB = " + legacyWalStressMb() + ";\n"
@@ -611,9 +605,6 @@ public class LegacyPersistentStorageCompatibilityTest {
             + "                refs.put(key, new BuildRefCompacted(compactor, build));\n"
             + "                fatBuilds.put(key, new FatBuildCompacted(compactor, build));\n"
             + "            }\n"
-            + "\n"
-            + "            IgniteCache<String, Object> legacy = ignite.getOrCreateCache(new CacheConfiguration<String, Object>(LEGACY_GRID_INT_LIST_CACHE));\n"
-            + "            legacy.put(\"legacy\", new GridIntList(new int[] {1, 2, 3}));\n"
             + "\n"
             + "            writeWalStressData(ignite);\n"
             + "\n"
@@ -675,6 +666,7 @@ public class LegacyPersistentStorageCompatibilityTest {
             + "        build.defaultBranch = Boolean.FALSE;\n"
             + "        build.composite = Boolean.TRUE;\n"
             + "        build.webUrl = \"http://localhost/perf-test/teamcity/build/\" + buildId;\n"
+            + "        build.parameters(new Parameters(Arrays.asList(new Property(\"compat.parameter\", \"enabled\"))));\n"
             + "        build.setQueuedDateTs(1700000000000L + buildId);\n"
             + "        build.setStartDateTs(1700000010000L + buildId);\n"
             + "        build.setFinishDateTs(1700000070000L + buildId);\n"

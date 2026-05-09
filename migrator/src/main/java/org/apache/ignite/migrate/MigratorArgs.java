@@ -31,7 +31,7 @@ public final class MigratorArgs {
     boolean apply = false;
     boolean verbose = false;
     String cacheFilter = null;
-    int reportEvery = 500;
+    int reportEvery = 50000;
     String workDir = null;
 
     static MigratorArgs parse(String[] args) {
