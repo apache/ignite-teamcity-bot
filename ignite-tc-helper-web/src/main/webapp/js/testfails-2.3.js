@@ -1026,8 +1026,8 @@ function actionStagesHtml(hidden, id) {
     return "<div class='action-stages'" + (isDefinedAndFilled(id) ? " id='" + escapeHtml(id) + "'" : "") +
         " style='" + (hidden ? "display:none; " : "") +
         "background:#f7f7f7; border:1px solid #d8d8d8; border-radius:4px; " +
-        "font-family:monospace; line-height:1.45; margin-top:14px; max-height:260px; " +
-        "min-height:145px; overflow-y:auto; padding:10px; white-space:pre-wrap; word-break:break-word'></div>";
+        "font-family:monospace; line-height:1.45; margin-top:14px; max-height:340px; " +
+        "min-height:220px; overflow-y:auto; padding:10px; white-space:pre-wrap; word-break:break-word'></div>";
 }
 
 function actionErrorHtml() {
@@ -1174,8 +1174,9 @@ function actionDialogOptions(title, buttons) {
         title: title,
         modal: true,
         resizable: false,
-        width: Math.max(320, Math.min(640, $(window).width() - 40)),
-        maxHeight: Math.max(320, $(window).height() - 40),
+        width: Math.max(420, Math.min(780, $(window).width() - 40)),
+        minHeight: Math.max(420, Math.min(560, $(window).height() - 60)),
+        maxHeight: Math.max(420, $(window).height() - 40),
         buttons: buttons,
         close: function () {
             $(this).dialog("destroy").remove();

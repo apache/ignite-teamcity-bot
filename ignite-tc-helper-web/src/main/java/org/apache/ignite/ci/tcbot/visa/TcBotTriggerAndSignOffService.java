@@ -1489,11 +1489,13 @@ public class TcBotTriggerAndSignOffService {
             String baseBranch = Strings.isNullOrEmpty(baseBranchForTc)
                 ? prChainsProcessor.dfltBaseTcBranch(srvCodeOrAlias) : baseBranchForTc;
 
-            processMonitor.status(processId, "Analyzing blockers and new tests for the comment.");
+            processMonitor.status(processId, "Resolving the base branch for build analysis: " + baseBranch + ".");
 
+            processMonitor.status(processId, "Loading blocker analysis for the latest finished build.");
             List<ShortSuiteUi> suitesStatuses = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId,
                 build.branchName, srvCodeOrAlias, prov, SyncMode.RELOAD_QUEUED, baseBranch);
 
+            processMonitor.status(processId, "Loading new-tests analysis for the latest finished build.");
             List<ShortSuiteNewTestsUi> newTestsStatuses = prChainsProcessor.getNewTestsSuitesStatuses(buildTypeId,
                 build.branchName, srvCodeOrAlias, prov, SyncMode.RELOAD_QUEUED, baseBranch);
 
@@ -1502,6 +1504,9 @@ public class TcBotTriggerAndSignOffService {
                     " Check builds availability for branch: " + build.branchName + "/" + baseBranch);
 
             blockers = suitesStatuses.stream().mapToInt(ShortSuiteUi::totalBlockers).sum();
+
+            processMonitor.status(processId, "Build analysis is ready: " + blockers + " blockers, " +
+                newTestsStatuses.size() + " new-test suites.");
 
             if (commentOnlyIfNoBlockers && blockers > 0)
                 return Visa.skipped(blockers);
