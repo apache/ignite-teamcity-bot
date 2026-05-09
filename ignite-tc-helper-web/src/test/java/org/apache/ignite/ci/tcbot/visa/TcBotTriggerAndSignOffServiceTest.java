@@ -20,6 +20,7 @@ package org.apache.ignite.ci.tcbot.visa;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 import org.apache.ignite.ci.github.GitHubIssueComment;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.observer.BuildsInfo;
@@ -278,6 +279,19 @@ public class TcBotTriggerAndSignOffServiceTest {
         assertEquals("https://github.example.com/some-org/some-repo/pull/42",
             TcBotTriggerAndSignOffService.pullRequestUrl(
                 "https://github.example.com/api/v3/repos/some-org/some-repo", 42));
+    }
+
+    /**
+     * Checks requested age is compact enough for running visas table.
+     */
+    @Test public void requestedAgoOmitsSubsecondPrecision() {
+        assertEquals("0s ago", TcBotTriggerAndSignOffService.requestedAgo(853));
+        assertEquals("59s ago", TcBotTriggerAndSignOffService.requestedAgo(59_853));
+        assertEquals("1m ago", TcBotTriggerAndSignOffService.requestedAgo(TimeUnit.MINUTES.toMillis(1) + 853));
+        assertEquals("1h 55m ago", TcBotTriggerAndSignOffService.requestedAgo(
+            TimeUnit.HOURS.toMillis(1) + TimeUnit.MINUTES.toMillis(55) + 32_853));
+        assertEquals("2d 3h ago", TcBotTriggerAndSignOffService.requestedAgo(
+            TimeUnit.DAYS.toMillis(2) + TimeUnit.HOURS.toMillis(3) + TimeUnit.MINUTES.toMillis(10)));
     }
 
     /**

@@ -226,7 +226,7 @@ public class TcBotTriggerAndSignOffService {
 
             visaStatus.date = THREAD_FORMATTER.get().format(info.date);
             visaStatus.requestedAgeMs = Math.max(0, System.currentTimeMillis() - info.date.getTime());
-            visaStatus.requestedAgo = TimeUtil.millisToDurationPrintable(visaStatus.requestedAgeMs) + " ago";
+            visaStatus.requestedAgo = requestedAgo(visaStatus.requestedAgeMs);
             visaStatus.branchName = info.branchForTc;
             visaStatus.userName = info.userName;
             TcHelperUser requester = requester(visaStatus.userName, userByName);
@@ -807,6 +807,32 @@ public class TcBotTriggerAndSignOffService {
             host = host.substring(0, host.length() - "/api/v3".length());
 
         return host + "/" + path[0] + "/" + path[1] + "/pull/" + prNum;
+    }
+
+    /**
+     * @param ageMs Request age, milliseconds.
+     */
+    static String requestedAgo(long ageMs) {
+        long seconds = Math.max(0, TimeUnit.MILLISECONDS.toSeconds(ageMs));
+
+        if (seconds < 60)
+            return seconds + "s ago";
+
+        long minutes = seconds / 60;
+
+        if (minutes < 60)
+            return minutes + "m ago";
+
+        long hours = minutes / 60;
+        long mins = minutes % 60;
+
+        if (hours < 24)
+            return hours + "h" + (mins == 0 ? "" : " " + mins + "m") + " ago";
+
+        long days = hours / 24;
+        long hrs = hours % 24;
+
+        return days + "d" + (hrs == 0 ? "" : " " + hrs + "h") + " ago";
     }
 
     /**
