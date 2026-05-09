@@ -121,6 +121,9 @@ dependencies {
 
     implementation "com.google.guava:guava:$guavaVer"
 
+    runtimeOnly "com.sun.xml.bind:jaxb-impl:$jaxbVer"
+    runtimeOnly 'com.sun.xml.bind:jaxb-core:2.3.0'
+
     implementation "org.slf4j:slf4j-api:$slf4jVer"
     implementation "ch.qos.logback:logback-core:$logbackVer"
     implementation "ch.qos.logback:logback-classic:$logbackVer"

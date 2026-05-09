@@ -23,7 +23,7 @@ package org.apache.ignite.tcbot.common.exeption;
  */
 public class ServicesStartingException extends RuntimeException  {
     public ServicesStartingException(Exception e) {
-        super(e);
+        super(e.getMessage(), e);
     }
 
     @SuppressWarnings("unused")
