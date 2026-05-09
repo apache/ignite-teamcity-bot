@@ -55,6 +55,7 @@ import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
+import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.ci.web.model.JiraCommentResponse;
 import org.apache.ignite.ci.web.model.SimpleResult;
@@ -78,6 +79,7 @@ import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.pr.BranchTicketMatcher;
 import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
 import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
+import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.apache.ignite.tcbot.engine.ui.ShortSuiteNewTestsUi;
 import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -130,6 +132,12 @@ public class TcBotTriggerAndSignOffService {
     @Inject private VisasHistoryStorage visasHistStorage;
 
     /** */
+    @Inject private IUserStorage userStorage;
+
+    /** */
+    @Inject private GitHubUserResolver gitHubUserResolver;
+
+    /** */
     @Inject private IStringCompactor strCompactor;
 
     /** */
@@ -160,7 +168,7 @@ public class TcBotTriggerAndSignOffService {
 
     /** */
     public List<VisaStatus> getVisasStatus(ITcBotUserCreds prov) {
-        return getVisasStatus(prov, 300);
+        return getVisasStatus(prov, 50);
     }
 
     /** */
@@ -170,6 +178,7 @@ public class TcBotTriggerAndSignOffService {
         Map<String, IJiraIgnited> jiraBySrv = new HashMap<>();
         Map<String, IGitHubConnIgnited> ghBySrv = new HashMap<>();
         Map<String, String> buildTypeNameByKey = new HashMap<>();
+        Map<String, TcHelperUser> userByName = new HashMap<>();
 
         for (VisaRequest visaRequest : visasHistStorage.getVisas(limit)) {
             VisaStatus visaStatus = new VisaStatus();
@@ -186,7 +195,8 @@ public class TcBotTriggerAndSignOffService {
             visaStatus.date = THREAD_FORMATTER.get().format(info.date);
             visaStatus.branchName = info.branchForTc;
             visaStatus.userName = info.userName;
-            fillRequesterLinks(visaStatus);
+            TcHelperUser requester = requester(visaStatus.userName, userByName);
+            fillRequesterLinks(visaStatus, requester, null);
             visaStatus.ticket = info.ticket;
             visaStatus.prNum = info.prNum;
             visaStatus.commentTargets = info.commentTargets;
@@ -208,9 +218,12 @@ public class TcBotTriggerAndSignOffService {
             if (!Strings.isNullOrEmpty(visaStatus.ticket) || visa.getJiraCommentResponse() != null)
                 fillTicketLinks(visaStatus, jiraBySrv.computeIfAbsent(srvCodeOrAlias, jiraIgnProv::server), visa);
 
-            if (visaStatus.prNum != null && visaStatus.prNum > 0)
-                fillPullRequestLinks(visaStatus, ghBySrv.computeIfAbsent(srvCodeOrAlias,
+            if (visaStatus.prNum != null && visaStatus.prNum > 0) {
+                GitHubUser prAuthor = fillPullRequestLinks(visaStatus, ghBySrv.computeIfAbsent(srvCodeOrAlias,
                     gitHubConnIgnitedProvider::server));
+
+                fillRequesterLinks(visaStatus, requester, prAuthor);
+            }
 
             String buildsStatus = isObserving ? info.getStatus(tcIgn, strCompactor) : null;
 
@@ -247,7 +260,7 @@ public class TcBotTriggerAndSignOffService {
     /**
      * @param info Build info.
      */
-    private static String analysisSlice(BuildsInfo info) {
+    static String analysisSlice(BuildsInfo info) {
         String builds = buildIds(info);
 
         return "branch=" + info.branchForTc + "; base=" +
@@ -276,17 +289,40 @@ public class TcBotTriggerAndSignOffService {
     }
 
     /**
-     * @param visaStatus Status DTO.
+     * @param userName User name.
+     * @param userByName Users cache.
      */
-    private static void fillRequesterLinks(VisaStatus visaStatus) {
-        if (Strings.isNullOrEmpty(visaStatus.userName))
+    @Nullable private TcHelperUser requester(@Nullable String userName, Map<String, TcHelperUser> userByName) {
+        if (Strings.isNullOrEmpty(userName))
+            return null;
+
+        return userByName.computeIfAbsent(userName, userStorage::getUser);
+    }
+
+    /**
+     * @param visaStatus Status DTO.
+     * @param user Bot user.
+     * @param gitHubUser Optional GitHub user candidate to match by public email.
+     */
+    private void fillRequesterLinks(VisaStatus visaStatus, @Nullable TcHelperUser user,
+        @Nullable GitHubUser gitHubUser) {
+        GitHubUserResolver.Resolution resolution = gitHubUserResolver.resolve(user,
+            gitHubUser == null ? Collections.emptyList() : Collections.singletonList(gitHubUser));
+        String githubId = resolution.configuredLogins.stream().findFirst().orElse(null);
+        String avatarUrl = null;
+
+        if (Strings.isNullOrEmpty(githubId))
+            githubId = resolution.autoResolvedLogins.stream().findFirst().orElse(null);
+
+        if (!Strings.isNullOrEmpty(githubId) && gitHubUser != null && githubId.equalsIgnoreCase(gitHubUser.login()))
+            avatarUrl = gitHubUser.avatarUrl();
+
+        if (Strings.isNullOrEmpty(githubId))
             return;
 
-        if (!visaStatus.userName.matches("[A-Za-z0-9-]+"))
-            return;
-
-        visaStatus.userUrl = "https://github.com/" + visaStatus.userName;
-        visaStatus.userAvatarUrl = "https://github.com/" + visaStatus.userName + ".png?size=44";
+        visaStatus.userUrl = "https://github.com/" + githubId;
+        visaStatus.userAvatarUrl = Strings.isNullOrEmpty(avatarUrl) ? "https://github.com/" + githubId + ".png?size=44" :
+            avatarUrl;
     }
 
     /**
@@ -314,9 +350,9 @@ public class TcBotTriggerAndSignOffService {
      * @param visaStatus Status DTO.
      * @param gh GitHub.
      */
-    private void fillPullRequestLinks(VisaStatus visaStatus, IGitHubConnIgnited gh) {
+    @Nullable private GitHubUser fillPullRequestLinks(VisaStatus visaStatus, IGitHubConnIgnited gh) {
         if (visaStatus.prNum == null || visaStatus.prNum <= 0)
-            return;
+            return null;
 
         PullRequest pr = null;
 
@@ -327,10 +363,12 @@ public class TcBotTriggerAndSignOffService {
             logger.debug("Failed to load PR from cache for visa history [pr={}]", visaStatus.prNum, e);
         }
 
+        GitHubUser author = null;
+
         if (pr != null) {
             visaStatus.prUrl = pr.htmlUrl();
 
-            GitHubUser author = pr.gitHubUser();
+            author = pr.gitHubUser();
 
             if (author != null) {
                 visaStatus.prAuthor = author.login();
@@ -343,13 +381,15 @@ public class TcBotTriggerAndSignOffService {
 
         if (Strings.isNullOrEmpty(visaStatus.prUrl))
             visaStatus.prUrl = pullRequestUrl(gh.config().gitApiUrl(), visaStatus.prNum);
+
+        return author;
     }
 
     /**
      * @param gitApiUrl GitHub API URL.
      * @param prNum PR number.
      */
-    @Nullable private static String pullRequestUrl(@Nullable String gitApiUrl, int prNum) {
+    @Nullable static String pullRequestUrl(@Nullable String gitApiUrl, int prNum) {
         if (Strings.isNullOrEmpty(gitApiUrl))
             return null;
 
@@ -358,12 +398,17 @@ public class TcBotTriggerAndSignOffService {
         if (apiUrl.endsWith("/"))
             apiUrl = apiUrl.substring(0, apiUrl.length() - 1);
 
-        if (apiUrl.endsWith("/api/v3"))
-            apiUrl = apiUrl.substring(0, apiUrl.length() - "/api/v3".length());
+        if (apiUrl.endsWith("/repos/apache/ignite")) {
+            String host = apiUrl.substring(0, apiUrl.length() - "/repos/apache/ignite".length());
 
-        if (apiUrl.endsWith("/repos/apache/ignite"))
-            return apiUrl.substring(0, apiUrl.length() - "/repos/apache/ignite".length()) +
-                "/apache/ignite/pull/" + prNum;
+            if (host.endsWith("/api/v3"))
+                host = host.substring(0, host.length() - "/api/v3".length());
+
+            if ("https://api.github.com".equals(host))
+                host = "https://github.com";
+
+            return host + "/apache/ignite/pull/" + prNum;
+        }
 
         return null;
     }
@@ -835,10 +880,12 @@ public class TcBotTriggerAndSignOffService {
                 GitHubUser user = pr.gitHubUser();
                 if (user != null) {
                     c.prAuthor = user.login();
+                    c.prAuthorUrl = Strings.isNullOrEmpty(user.login()) ? "" : "https://github.com/" + user.login();
                     c.prAuthorAvatarUrl = user.avatarUrl();
                 }
                 else {
                     c.prAuthor = "";
+                    c.prAuthorUrl = "";
                     c.prAuthorAvatarUrl = "";
                 }
 
@@ -936,6 +983,7 @@ public class TcBotTriggerAndSignOffService {
             contribution.prTimeUpdate = "";
 
             contribution.prAuthor = "";
+            contribution.prAuthorUrl = "";
             contribution.prAuthorAvatarUrl = "";
 
             contribsList.add(contribution);

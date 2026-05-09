@@ -15,12 +15,17 @@
  * limitations under the License.
  */
 const prReportDefaultSuites = new Map();
+const contributionsByServer = new Map();
+const myGithubLoginsByServer = new Map();
 
 function drawTable(srvId, element) {
     let tableId = "serverContributions-" + srvId;
 
     element.append("<div id='contributionsActions-" + srvId + "' align='right' " +
         "style='margin-right:50px; display:flex; justify-content:flex-end; gap:4px; align-items:center'>" +
+        "<label id='onlyMyPrsBlock-" + srvId + "' style='display:none' " +
+        "title='Show only PRs whose cached GitHub author matches your bot profile by email or configured GitHub IDs'>" +
+        "<input id='onlyMyPrs-" + srvId + "' type='checkbox'> Only my PRs</label>" +
         "<button id='refreshContributions-" + srvId + "' type='button' title='Load current PR data from GitHub now'>" +
         "Refresh now</button>" +
         "<span id='expandAllButton-" + srvId + "'></span>" +
@@ -42,6 +47,10 @@ function drawTable(srvId, element) {
 
     $("#refreshContributions-" + srvId).on("click", function () {
         refreshContributionsNow(srvId);
+    });
+
+    $("#onlyMyPrs-" + srvId).on("change", function () {
+        renderContributionsTable(srvId, "");
     });
 }
 
@@ -138,6 +147,7 @@ function requestTableForServer(srvId, element) {
         success:
             function (result) {
                 showContributionsTable(result, srvId, "");
+                loadGithubResolutionForContributions(srvId);
                 fillBranchAutocompleteList(result, srvId);
                 setAutocompleteFilter();
             }
@@ -198,6 +208,7 @@ function refreshContributionsNow(srvId) {
             "&processId=" + encodeURIComponent(processId),
         success: function (result) {
             showContributionsTable(result, srvId, "");
+            loadGithubResolutionForContributions(srvId);
             fillBranchAutocompleteList(result, srvId);
             setAutocompleteFilter();
 
@@ -235,13 +246,82 @@ function refreshContributionsNow(srvId) {
     });
 }
 
+function loadGithubResolutionForContributions(srvId) {
+    $.ajax({
+        url: "rest/user/githubResolution?serverId=" + encodeURIComponent(srvId),
+        success: function (result) {
+            let logins = new Set();
+
+            if (isDefinedAndFilled(result) && isDefinedAndFilled(result.allLogins)) {
+                for (let i = 0; i < result.allLogins.length; i++)
+                    logins.add(String(result.allLogins[i]).toLowerCase());
+            }
+
+            myGithubLoginsByServer.set(srvId, logins);
+            updateOnlyMyPrsControl(srvId);
+            renderContributionsTable(srvId, "");
+        },
+        error: function () {
+            myGithubLoginsByServer.set(srvId, new Set());
+            updateOnlyMyPrsControl(srvId);
+            renderContributionsTable(srvId, "");
+        }
+    });
+}
+
+function hasMyPrsInTable(srvId) {
+    let logins = myGithubLoginsByServer.get(srvId);
+    let rows = contributionsByServer.get(srvId);
+
+    if (!isDefinedAndFilled(logins) || logins.size === 0 || !isDefinedAndFilled(rows))
+        return false;
+
+    for (let i = 0; i < rows.length; i++) {
+        if (isDefinedAndFilled(rows[i].prAuthor) && logins.has(String(rows[i].prAuthor).toLowerCase()))
+            return true;
+    }
+
+    return false;
+}
+
+function updateOnlyMyPrsControl(srvId) {
+    let block = $("#onlyMyPrsBlock-" + srvId);
+    let checkbox = $("#onlyMyPrs-" + srvId);
+
+    if (hasMyPrsInTable(srvId))
+        block.show();
+    else {
+        checkbox.prop("checked", false);
+        block.hide();
+    }
+}
+
+function currentContributionRows(srvId) {
+    let rows = contributionsByServer.get(srvId) || [];
+    let logins = myGithubLoginsByServer.get(srvId);
+
+    if (!$("#onlyMyPrs-" + srvId).prop("checked") || !isDefinedAndFilled(logins) || logins.size === 0)
+        return rows;
+
+    return rows.filter(function (row) {
+        return isDefinedAndFilled(row.prAuthor) && logins.has(String(row.prAuthor).toLowerCase());
+    });
+}
+
 function normalizeDateNum(num) {
     return num < 10 ? '0' + num : num;
 }
 
 function showContributionsTable(result, srvId, suiteId) {
+    contributionsByServer.set(srvId, result || []);
+    updateOnlyMyPrsControl(srvId);
+    renderContributionsTable(srvId, suiteId);
+}
+
+function renderContributionsTable(srvId, suiteId) {
     let tableId = 'serverContributions-' + srvId;
     let tableForSrv = $('#' + tableId);
+    let result = currentContributionRows(srvId);
 
     tableForSrv.dataTable().fnDestroy();
 
@@ -314,9 +394,18 @@ function showContributionsTable(result, srvId, suiteId) {
                 "data": "prAuthor",
                 title: "Author",
                 "render": function (data, type, row, meta) {
+                    if (!isDefinedAndFilled(data))
+                        data = "";
+
                     if (type === 'display' && isDefinedAndFilled(row.prAuthorAvatarUrl) && row.prAuthorAvatarUrl.length >0) {
-                        data = "<img src='" + row.prAuthorAvatarUrl + "' width='20px' height='20px'> " + data + "";
+                        data = "<img src='" + escapeHtml(row.prAuthorAvatarUrl) +
+                            "' width='20px' height='20px'> " + escapeHtml(data);
                     }
+                    else if (type === 'display')
+                        data = escapeHtml(data);
+
+                    if (type === 'display' && isDefinedAndFilled(row.prAuthorUrl))
+                        data = "<a href='" + escapeHtml(row.prAuthorUrl) + "'>" + data + "</a>";
 
                     return data;
                 }

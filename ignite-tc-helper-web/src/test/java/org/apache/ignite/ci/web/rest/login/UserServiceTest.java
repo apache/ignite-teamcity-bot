@@ -59,7 +59,7 @@ public class UserServiceTest {
         Form form = new Form();
         form.param("notify_master", "1");
 
-        svc.saveUserData("other", "other@example.org", "Other User", form);
+        svc.saveUserData("other", "other@example.org", "Other User", null, form);
 
         assertEquals("Admin User", admin.fullName);
         assertEquals("admin@example.org", admin.email);

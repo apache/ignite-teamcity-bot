@@ -24,10 +24,13 @@ import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.observer.CompactBuildsInfo;
 import org.apache.ignite.ci.web.model.CompactVisa;
+import org.apache.ignite.ci.web.model.CompactVisaRequest;
 import org.apache.ignite.ci.web.model.JiraCommentResponse;
 import org.apache.ignite.ci.web.model.Visa;
+import org.apache.ignite.ci.web.model.VisaRequest;
 import org.apache.ignite.githubignited.IGitHubConnIgnited;
 import org.apache.ignite.jiraignited.IJiraIgnited;
+import org.apache.ignite.tcbot.persistence.InMemoryStringCompactor;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.junit.Test;
 
@@ -240,6 +243,60 @@ public class TcBotTriggerAndSignOffServiceTest {
     }
 
     /**
+     * Checks GitHub PR fallback links for history rows when PR details are not in cache.
+     */
+    @Test public void pullRequestUrlUsesGithubHtmlHostForPublicGithubApi() {
+        assertEquals("https://github.com/apache/ignite/pull/13114",
+            TcBotTriggerAndSignOffService.pullRequestUrl("https://api.github.com/repos/apache/ignite", 13114));
+
+        assertEquals("https://github.example.com/apache/ignite/pull/13114",
+            TcBotTriggerAndSignOffService.pullRequestUrl(
+                "https://github.example.com/api/v3/repos/apache/ignite", 13114));
+    }
+
+    /**
+     * Checks new GitHub-only direct comments persist and restore all history options without a JIRA ticket.
+     */
+    @Test public void compactVisaRequestRestoresGithubOnlyDirectCommentFields() {
+        InMemoryStringCompactor compactor = new InMemoryStringCompactor();
+        BuildsInfo src = new BuildsInfo("apache", null, "pull/13114/head", "IgniteTests24Java8_RunAll",
+            null, "zstan", CommentTargets.GITHUB, 13114, true);
+
+        VisaRequest restored = new CompactVisaRequest(
+            new VisaRequest(src).setResult(Visa.success("GitHub PR commented", null, 0)),
+            compactor).toVisaRequest(compactor);
+
+        BuildsInfo info = restored.getInfo();
+
+        assertEquals("apache", info.srvId);
+        assertEquals("pull/13114/head", info.branchForTc);
+        assertEquals("IgniteTests24Java8_RunAll", info.buildTypeId);
+        assertEquals("zstan", info.userName);
+        assertEquals(CommentTargets.GITHUB, info.commentTargets);
+        assertEquals(Integer.valueOf(13114), info.prNum);
+        assertTrue(info.commentOnlyIfNoBlockers);
+        assertEquals(null, info.ticket);
+        assertTrue(restored.getResult().isSuccess());
+    }
+
+    /**
+     * Checks history row helper fields for old and new compact entries.
+     */
+    @Test public void historyHelpersFillRequesterAndSliceMarkers() {
+        BuildsInfo direct = new BuildsInfo("apache", null, "pull/13114/head", "IgniteTests24Java8_RunAll",
+            null, "zstan", CommentTargets.GITHUB, 13114, true);
+
+        assertEquals("branch=pull/13114/head; base=<default>; suite=IgniteTests24Java8_RunAll; direct comment",
+            TcBotTriggerAndSignOffService.analysisSlice(direct));
+
+        BuildsInfo observed = new BuildsInfo("apache", "IGNITE-1", "pull/1/head", "Suite",
+            "master", "zstan", CommentTargets.JIRA, null, false, build(100), build(200));
+
+        assertEquals("branch=pull/1/head; base=master; suite=Suite; observed run buildIds=100,200",
+            TcBotTriggerAndSignOffService.analysisSlice(observed));
+    }
+
+    /**
      * Checks old compacted entries with missing comment target id are restored without compactor lookup for {@code -1}.
      */
     @Test public void compactBuildsInfoOldCommentTargetsDoNotLookupNegativeStringId() {
@@ -252,5 +309,17 @@ public class TcBotTriggerAndSignOffServiceTest {
 
         assertEquals(CommentTargets.JIRA, info.commentTargets);
         verify(compactor, never()).getStringFromId(-1);
+    }
+
+    /**
+     * @param id Build id.
+     */
+    private static org.apache.ignite.tcservice.model.result.Build build(int id) {
+        org.apache.ignite.tcservice.model.result.Build build = new org.apache.ignite.tcservice.model.result.Build();
+
+        build.setId(id);
+        build.buildTypeId = "Suite";
+
+        return build;
     }
 }

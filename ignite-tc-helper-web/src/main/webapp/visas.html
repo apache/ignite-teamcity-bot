@@ -25,8 +25,8 @@
     <div style="margin:0 0 10px 0">
         Show latest
         <select id="historyLimit">
+            <option value="50" selected>50</option>
             <option value="100">100</option>
-            <option value="300" selected>300</option>
             <option value="1000">1000</option>
             <option value="0">all</option>
         </select>
@@ -213,6 +213,7 @@ function showVisasTable(result) {
             {
                 "data": "userName",
                 title: "Requested by",
+                defaultContent: "",
                 "render": function (data, type, row, meta) {
                     return type === 'display' ? userHtml(row.userName, row.userUrl, row.userAvatarUrl) : data;
                 }
@@ -220,6 +221,7 @@ function showVisasTable(result) {
             {
                 "data": "prAuthor",
                 title: "PR author",
+                defaultContent: "",
                 "render": function (data, type, row, meta) {
                     return type === 'display' ? prAuthorHtml(row) : data;
                 }
@@ -231,6 +233,7 @@ function showVisasTable(result) {
             {
                 "data": "ticket",
                 title: "Ticket / PR",
+                defaultContent: "",
                 "render": function (data, type, row, meta) {
                     return type === 'display' ? ticketPrHtml(row) : (data || "") + " #" + (row.prNum || "");
                 }
@@ -238,6 +241,7 @@ function showVisasTable(result) {
             {
                 "data": "commentTargets",
                 title: "Options",
+                defaultContent: "",
                 "render": function (data, type, row, meta) {
                     return type === 'display' ? optionsHtml(row) : data;
                 }
@@ -245,6 +249,7 @@ function showVisasTable(result) {
             {
                 "data": "analysisSlice",
                 title: "Slice",
+                defaultContent: "",
                 "render": function (data, type, row, meta) {
                     return type === 'display' ? sliceHtml(row) : data;
                 }
@@ -276,8 +281,7 @@ function showVisasTable(result) {
 }
 
 function loadData() {
-    var started = Date.now();
-    var limit = $("#historyLimit").val() || "300";
+    var limit = $("#historyLimit").val() || "50";
 
     $("#loadStatus").html("Loading latest " + (limit === "0" ? "all" : limit) + " visa requests...");
 
@@ -285,8 +289,7 @@ function loadData() {
             url: "rest/visa/history?limit=" + encodeURIComponent(limit),
             success: function (result) {
                 showVisasTable(result);
-                $("#loadStatus").html("Loaded " + result.length + " visa requests in " +
-                    (Date.now() - started) + " ms.");
+                $("#loadStatus").html("");
             },
             error: showErrInLoadStatus
         }

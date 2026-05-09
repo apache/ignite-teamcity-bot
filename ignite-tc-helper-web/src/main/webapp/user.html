@@ -162,6 +162,38 @@ function showUsersList(menuData) {
     renderAdminUsersList(menuData, "#adminUsersBlock", "#adminUsers");
 }
 
+function loadGithubResolution(login) {
+    let url = "rest/user/githubResolution";
+
+    if (isDefinedAndFilled(login))
+        url += "?login=" + encodeURIComponent(login);
+
+    $.ajax({
+        url: url,
+        success: showGithubResolution,
+        error: function () {
+            $("#githubResolution").html("GitHub auto-resolve is unavailable.");
+        }
+    });
+}
+
+function showGithubResolution(resolution) {
+    let configured = isDefinedAndFilled(resolution.configuredLogins) ? resolution.configuredLogins : [];
+    let autoResolved = isDefinedAndFilled(resolution.autoResolvedLogins) ? resolution.autoResolvedLogins : [];
+    let text = "";
+
+    if (autoResolved.length > 0)
+        text += "Auto-resolved by email: " + autoResolved.join(", ") + ". ";
+
+    if (configured.length > 0)
+        text += "Configured manually: " + configured.join(", ") + ".";
+
+    if (text.length === 0)
+        text = "No GitHub account auto-resolved from cached PR authors yet.";
+
+    $("#githubResolution").text(text);
+}
+
 function setupEditDialog() {
     $("#btnSaveUserData").button().on("click", function() {
         sendUserData();
@@ -187,6 +219,8 @@ function showData(userUi) {
     $("#login").val(userUi.login);
     $("#fullName").val(userUi.fullName);
     $("#email").val(userUi.email);
+    $("#githubIds").val(userUi.githubIds);
+    loadGithubResolution(userUi.login);
 
     var res = "";
     if(isDefinedAndFilled(userUi.subscribedAllToBranchFailures)) {
@@ -273,6 +307,15 @@ function showData(userUi) {
                     <input id="email" name="email" class="element text medium" type="text" maxlength="255"
                            value=""/>
                 </div>
+            </li>
+            <li>
+                <label class="description" for="githubIds">GitHub IDs</label>
+                <div>
+                    <input id="githubIds" name="githubIds" class="element text medium" type="text" maxlength="255"
+                           value=""/>
+                </div>
+                <p class="guidelines">Optional comma-separated GitHub logins. Used only to show GitHub profile links and avatars in bot UI.</p>
+                <p class="guidelines" id="githubResolution"></p>
             </li>
             <!--
             <li>
