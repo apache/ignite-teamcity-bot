@@ -39,14 +39,28 @@ application {
 
 tasks.named('startScripts') {
     doLast {
-        def unixDiagnosticOpts = '''TCBOT_WORK_DIR=${TCBOT_WORK_DIR:-"$APP_HOME/work"}
+        def unixDiagnosticOpts = '''if [ -z "${TCBOT_WORK_DIR:-}" ]; then
+    for opt in $JETTY_LAUNCHER_OPTS
+    do
+        case "$opt" in
+            -Dteamcity.helper.home=*) TCBOT_WORK_DIR=${opt#-Dteamcity.helper.home=} ;;
+        esac
+    done
+fi
+TCBOT_WORK_DIR=${TCBOT_WORK_DIR:-"$APP_HOME/work"}
 mkdir -p "$TCBOT_WORK_DIR/diagnostic"
 JAVA_OPTS="\\"-Dteamcity.helper.home=$TCBOT_WORK_DIR\\" \\"-XX:+HeapDumpOnOutOfMemoryError\\" ''' +
             '''\\"-XX:HeapDumpPath=$TCBOT_WORK_DIR/diagnostic\\" ''' +
             '''\\"-XX:ErrorFile=$TCBOT_WORK_DIR/diagnostic/hs_err_pid%p.log\\" $JAVA_OPTS"
 
 '''
-        def windowsDiagnosticOpts = '''if "%TCBOT_WORK_DIR%"=="" set "TCBOT_WORK_DIR=%APP_HOME%\\work"
+        def windowsDiagnosticOpts = '''if "%TCBOT_WORK_DIR%"=="" (
+    for %%A in (%JETTY_LAUNCHER_OPTS%) do (
+        set "TCBOT_OPT=%%~A"
+        if "!TCBOT_OPT:~0,23!"=="-Dteamcity.helper.home=" set "TCBOT_WORK_DIR=!TCBOT_OPT:~23!"
+    )
+)
+if "%TCBOT_WORK_DIR%"=="" set "TCBOT_WORK_DIR=%APP_HOME%\\work"
 if not exist "%TCBOT_WORK_DIR%\\diagnostic" mkdir "%TCBOT_WORK_DIR%\\diagnostic"
 set DEFAULT_JVM_OPTS=%DEFAULT_JVM_OPTS% "-Dteamcity.helper.home=%TCBOT_WORK_DIR%" ''' +
             '''"-XX:+HeapDumpOnOutOfMemoryError" "-XX:HeapDumpPath=%TCBOT_WORK_DIR%\\diagnostic" ''' +
@@ -62,6 +76,10 @@ set DEFAULT_JVM_OPTS=%DEFAULT_JVM_OPTS% "-Dteamcity.helper.home=%TCBOT_WORK_DIR%
         windowsScript.text = windowsScript.text.replace(
             '@rem Execute jetty-launcher',
             windowsDiagnosticOpts + '@rem Execute jetty-launcher'
+        )
+        windowsScript.text = windowsScript.text.replace(
+            'setlocal EnableExtensions',
+            'setlocal EnableExtensions EnableDelayedExpansion'
         )
     }
 }
