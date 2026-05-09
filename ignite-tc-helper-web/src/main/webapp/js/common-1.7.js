@@ -234,7 +234,8 @@ function showMenu(menuData) {
 }
 
 function renderAdminUsersList(menuData, blockSelector, usersSelector) {
-    if (menuData.admin !== true) {
+    if (!menuData || menuData.admin !== true) {
+        $(usersSelector).html("");
         $(blockSelector).hide();
 
         return;
