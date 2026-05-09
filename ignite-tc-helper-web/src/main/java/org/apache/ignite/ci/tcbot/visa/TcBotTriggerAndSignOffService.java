@@ -420,22 +420,28 @@ public class TcBotTriggerAndSignOffService {
 
         String apiUrl = gitApiUrl;
 
-        if (apiUrl.endsWith("/"))
+        while (apiUrl.endsWith("/"))
             apiUrl = apiUrl.substring(0, apiUrl.length() - 1);
 
-        if (apiUrl.endsWith("/repos/apache/ignite")) {
-            String host = apiUrl.substring(0, apiUrl.length() - "/repos/apache/ignite".length());
+        String marker = "/repos/";
+        int idx = apiUrl.indexOf(marker);
 
-            if (host.endsWith("/api/v3"))
-                host = host.substring(0, host.length() - "/api/v3".length());
+        if (idx < 0)
+            return null;
 
-            if ("https://api.github.com".equals(host))
-                host = "https://github.com";
+        String host = apiUrl.substring(0, idx);
+        String repoPath = apiUrl.substring(idx + marker.length());
+        String[] path = repoPath.split("/");
 
-            return host + "/apache/ignite/pull/" + prNum;
-        }
+        if (path.length < 2)
+            return null;
 
-        return null;
+        if ("https://api.github.com".equals(host))
+            host = "https://github.com";
+        else if (host.endsWith("/api/v3"))
+            host = host.substring(0, host.length() - "/api/v3".length());
+
+        return host + "/" + path[0] + "/" + path[1] + "/pull/" + prNum;
     }
 
     /**

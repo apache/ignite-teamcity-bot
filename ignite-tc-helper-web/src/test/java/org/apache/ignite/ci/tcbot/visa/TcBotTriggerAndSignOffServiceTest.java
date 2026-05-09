@@ -252,6 +252,14 @@ public class TcBotTriggerAndSignOffServiceTest {
         assertEquals("https://github.example.com/apache/ignite/pull/13114",
             TcBotTriggerAndSignOffService.pullRequestUrl(
                 "https://github.example.com/api/v3/repos/apache/ignite", 13114));
+
+        assertEquals("https://github.com/some-org/some-repo/pull/42",
+            TcBotTriggerAndSignOffService.pullRequestUrl(
+                "https://api.github.com/repos/some-org/some-repo/", 42));
+
+        assertEquals("https://github.example.com/some-org/some-repo/pull/42",
+            TcBotTriggerAndSignOffService.pullRequestUrl(
+                "https://github.example.com/api/v3/repos/some-org/some-repo", 42));
     }
 
     /**
