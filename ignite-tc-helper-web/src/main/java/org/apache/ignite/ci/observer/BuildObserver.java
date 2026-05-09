@@ -154,10 +154,16 @@ public class BuildObserver {
         ITeamcityIgnited teamcity = teamcityIgnitedProvider.server(key.srvId, creds);
 
         if (Objects.nonNull(buildsInfo)) {
-            sb.append(buildsInfo.commentTargets).append(" to be commented, waiting for builds. ");
-            sb.append(buildsInfo.finishedBuildsCount(teamcity, strCompactor));
-            sb.append(" builds done from ");
-            sb.append(buildsInfo.buildsCount());
+            int buildsCnt = buildsInfo.buildsCount();
+            int finishedCnt = buildsInfo.finishedBuildsCount(teamcity, strCompactor);
+            String targets = CommentTargets.normalize(buildsInfo.commentTargets);
+
+            if (finishedCnt >= buildsCnt)
+                sb.append(targets).append(" comment is pending: all ")
+                    .append(buildsCnt).append(" observed builds are finished; waiting for the observer to publish it.");
+            else
+                sb.append(targets).append(" comment scheduled: waiting for builds (")
+                    .append(finishedCnt).append('/').append(buildsCnt).append(" finished).");
         }
 
         return sb.toString();

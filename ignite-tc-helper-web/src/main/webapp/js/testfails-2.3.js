@@ -780,7 +780,7 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
 
     function sendCommentRequest(dialog) {
         $.ajax({
-            url: 'rest/build/commentJiraOrGit',
+            url: 'rest/build/commentBuildAnalysis',
             data: {
                 "serverId": serverCode, //general Servers code
                 "suiteId": parentSuiteId,

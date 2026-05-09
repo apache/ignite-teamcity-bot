@@ -389,7 +389,7 @@ function showWaitingResults(stageNum, prId, text) {
     let stageOneStatus = $('#visaStage_' + stageNum + '_' + prId);
     stageOneStatus.css('background', 'darkorange');
     stageOneStatus.attr("title", text);
-    stageOneStatus.html("&#9203;");
+    stageOneStatus.html("...");
 }
 
 function showStageResult(stageNum, prId, passed, failed) {
@@ -578,12 +578,15 @@ function repaintLater(srvId) {
  */
 function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
     let tdForPr = $('#showResultFor' + prId);
+    let commentCell = $('#commentJiraFor' + prId);
 
     if (!isDefinedAndFilled(status)) {
         console.log("Status for " + prId + " is undefined. Wait for the Bot to load the suite list.");
 
         return;
     }
+
+    commentCell.empty();
 
     let buildIsCompleted = isDefinedAndFilled(status.branchWithFinishedSuite);
     let hasJiraIssue = isDefinedAndFilled(row.jiraIssueId);
@@ -635,7 +638,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
             commentBtns += ">Comment JIRA</button> ";
         }
 
-        if (hasJiraIssue && row.prNumber > 0) {
+        if (row.prNumber > 0) {
             commentBtns += "<button onclick='" + jsCallAttr("commentJira", [
                 srvId, finishedBranch, suiteIdSelected, jiraOptional,
                 "", "GITHUB", row.prNumber, false, actionUiLinks
@@ -649,7 +652,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
 
         commentBtns += "</span>";
 
-        $('#commentJiraFor' + prId).html(commentBtns);
+        commentCell.html(commentBtns);
     } else {
         let noBuildsHtml = "No builds for " + escapeHtml(suiteIdSelected);
 
@@ -687,6 +690,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
 
     if(isDefinedAndFilled(status.observationsStatus)) {
         showWaitingResults(4, prId, status.observationsStatus);
+        showCommentObservationStatus(commentCell, status.observationsStatus);
     }
 
     function prepareStatusOfTrigger() {
@@ -712,7 +716,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
 
         res += ">Trigger build</button>";
 
-        if (hasJiraIssue && row.prNumber > 0) {
+        if (row.prNumber > 0) {
             let trigGithubCall = jsCall("triggerBuilds", [
                 srvId, null, suiteIdSelected, status.resolvedBranch,
                 false, true, jiraOptional, row.prNumber, null, false, "GITHUB", true, githubCleanOnlyUiLinks
@@ -760,4 +764,15 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
                 }
         });
     }
+}
+
+function showCommentObservationStatus(commentCell, statusText) {
+    if (!isDefinedAndFilled(statusText))
+        return;
+
+    commentCell.append(
+        "<div style='margin-top:4px; color:#666; font-size:12px; white-space:normal'>" +
+        escapeHtml(statusText) +
+        "</div>"
+    );
 }
