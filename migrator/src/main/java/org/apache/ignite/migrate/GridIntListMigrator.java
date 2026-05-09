@@ -68,9 +68,9 @@ public final class GridIntListMigrator {
     private static final int DEFAULT_PAGE_SIZE = 256;
 
     /**
-     * Failed entries printed to the final diagnostic report.
+     * Failed entries printed to the final diagnostic report for each failed cache.
      */
-    private static final int FAILURE_DETAILS_LIMIT = 100;
+    private static final int FAILURE_DETAILS_LIMIT_PER_CACHE = 5;
 
     /**
      * Time to wait for operator input before automatic repair starts.
@@ -319,21 +319,12 @@ public final class GridIntListMigrator {
     static String failureSummary(long totalFailed, List<MigrationFailure> failures) {
         StringBuilder sb = new StringBuilder();
 
-        sb.append("Failed GridIntList migration entries");
-
-        if (totalFailed <= FAILURE_DETAILS_LIMIT) {
-            sb.append(" (all known entries are listed below):");
-        }
-        else {
-            sb.append(" (first ").append(FAILURE_DETAILS_LIMIT).append(" of ").append(totalFailed)
-                .append(" entries are listed below):");
-        }
-
-        for (int i = 0; i < Math.min(failures.size(), FAILURE_DETAILS_LIMIT); i++)
-            sb.append(System.lineSeparator()).append(i + 1).append(". ").append(failures.get(i));
+        sb.append("Failed GridIntList migration entries: ").append(totalFailed);
 
         if (failures.isEmpty())
             sb.append(System.lineSeparator()).append("No entry details were captured.");
+        else
+            appendFailuresByCache(sb, failures);
 
         sb.append(System.lineSeparator()).append("Suggested actions:");
         sb.append(System.lineSeparator())
@@ -350,6 +341,38 @@ public final class GridIntListMigrator {
             .append("<cache-name> --verbose --report 50000.");
 
         return sb.toString();
+    }
+
+    /**
+     * @param sb Target string builder.
+     * @param failures Failure details.
+     */
+    private static void appendFailuresByCache(StringBuilder sb, List<MigrationFailure> failures) {
+        Map<String, List<MigrationFailure>> byCache = new LinkedHashMap<>();
+
+        for (MigrationFailure failure : failures)
+            byCache.computeIfAbsent(failure.cacheName, key -> new ArrayList<>()).add(failure);
+
+        sb.append(System.lineSeparator()).append("Failed caches: ").append(byCache.size());
+
+        for (Map.Entry<String, List<MigrationFailure>> cacheFailures : byCache.entrySet()) {
+            List<MigrationFailure> entries = cacheFailures.getValue();
+
+            sb.append(System.lineSeparator()).append("- cache=").append(cacheFailures.getKey())
+                .append(", failedEntries=").append(entries.size())
+                .append(", shown=").append(Math.min(entries.size(), FAILURE_DETAILS_LIMIT_PER_CACHE));
+
+            for (int i = 0; i < Math.min(entries.size(), FAILURE_DETAILS_LIMIT_PER_CACHE); i++) {
+                sb.append(System.lineSeparator()).append("  ").append(i + 1).append(". ")
+                    .append(entries.get(i));
+            }
+
+            if (entries.size() > FAILURE_DETAILS_LIMIT_PER_CACHE) {
+                sb.append(System.lineSeparator()).append("  ... ")
+                    .append(entries.size() - FAILURE_DETAILS_LIMIT_PER_CACHE)
+                    .append(" more failed entries in this cache are omitted from the console summary.");
+            }
+        }
     }
 
     /**

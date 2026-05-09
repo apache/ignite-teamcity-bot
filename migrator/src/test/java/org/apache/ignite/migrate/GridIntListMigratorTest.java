@@ -79,6 +79,28 @@ public class GridIntListMigratorTest {
     }
 
     /**
+     * Checks that failures from later caches are not hidden by many earlier failures.
+     */
+    @Test public void failureSummaryContainsExamplesFromEachFailedCache() {
+        java.util.List<GridIntListMigrator.MigrationFailure> failures = new java.util.ArrayList<>();
+
+        for (int i = 0; i < 10; i++) {
+            failures.add(new GridIntListMigrator.MigrationFailure("cacheA", "java.lang.Long",
+                "valueTypeA", "key-a-" + i, "<value>", i, "boom-a-" + i));
+        }
+
+        failures.add(new GridIntListMigrator.MigrationFailure("cacheB", "java.lang.Long",
+            "valueTypeB", "key-b-1", "<value>", 100L, "boom-b"));
+
+        String summary = GridIntListMigrator.failureSummary(failures.size(), failures);
+
+        assertTrue(summary.contains("cache=cacheA, failedEntries=10, shown=5"));
+        assertTrue(summary.contains("cache=cacheB, failedEntries=1, shown=1"));
+        assertTrue(summary.contains("key=key-b-1"));
+        assertTrue(summary.contains("5 more failed entries in this cache"));
+    }
+
+    /**
      * Checks the recovery path for the production failure where a cache value cannot resolve binary type metadata.
      */
     @Test public void migrationDumpsAndRemovesEntryWithMissingBinaryTypeDetails() throws Exception {
