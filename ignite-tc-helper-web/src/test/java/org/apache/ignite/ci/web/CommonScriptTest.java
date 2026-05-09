@@ -34,7 +34,7 @@ public class CommonScriptTest {
         assertTrue(js.contains("buttonText: \"Use current context now\""));
         assertTrue(js.contains("nextMode: false"));
         assertTrue(js.contains("requestTextCommand(options, state, nextMode, skip.stepText)"));
-        assertTrue(js.contains("return aiPromptUrlWithWaitForTc(url, waitForTc)"));
+        assertTrue(js.contains("return aiPromptUrlWithWaitForTc(url, waitForTc, processId)"));
         assertTrue(js.contains("\"waitForTc=\" + waitForTc"));
     }
 
