@@ -185,6 +185,15 @@ public class TcBotTriggerAndSignOffService {
 
     /** */
     public List<VisaStatus> getVisasStatus(ITcBotUserCreds prov, int limit) {
+        return getVisasStatus(prov, limit, true);
+    }
+
+    /**
+     * @param prov Credentials.
+     * @param limit History limit.
+     * @param loadLiveDetails Whether TeamCity live state should be refreshed.
+     */
+    public List<VisaStatus> getVisasStatus(ITcBotUserCreds prov, int limit, boolean loadLiveDetails) {
         List<VisaStatus> visaStatuses = new ArrayList<>();
         Map<String, ITeamcityIgnited> tcBySrv = new HashMap<>();
         Map<String, IJiraIgnited> jiraBySrv = new HashMap<>();
@@ -222,11 +231,12 @@ public class TcBotTriggerAndSignOffService {
             visaStatus.buildTypeId = info.buildTypeId;
             visaStatus.reportUrl = reportUrl(srvCodeOrAlias, info.buildTypeId, info.branchForTc);
 
-            ITeamcityIgnited tcIgn = tcBySrv.computeIfAbsent(srvCodeOrAlias,
-                srv -> tcIgnitedProv.server(srv, prov));
+            ITeamcityIgnited tcIgn = loadLiveDetails ? tcBySrv.computeIfAbsent(srvCodeOrAlias,
+                srv -> tcIgnitedProv.server(srv, prov)) : null;
 
-            visaStatus.buildTypeName = buildTypeNameByKey.computeIfAbsent(srvCodeOrAlias + '\n' + info.buildTypeId,
-                key -> buildTypeName(tcIgn, srvCodeOrAlias, info.buildTypeId));
+            visaStatus.buildTypeName = loadLiveDetails ? buildTypeNameByKey.computeIfAbsent(
+                srvCodeOrAlias + '\n' + info.buildTypeId,
+                key -> buildTypeName(tcIgn, srvCodeOrAlias, info.buildTypeId)) : info.buildTypeId;
             visaStatus.baseBranchForTc = info.baseBranchForTc;
             visaStatus.blockers = visa.getBlockers();
 
@@ -240,13 +250,15 @@ public class TcBotTriggerAndSignOffService {
                 fillRequesterLinks(visaStatus, requester, prAuthor);
             }
 
-            String buildsStatus = isObserving ? info.getStatus(tcIgn, strCompactor) : null;
+            String buildsStatus = isObserving && loadLiveDetails ? info.getStatus(tcIgn, strCompactor) : null;
 
-            if (isObserving)
+            if (isObserving && loadLiveDetails)
                 fillRunningDetails(visaStatus, info, tcIgn);
 
             if (!isObserving)
                 visaStatus.status = visa.isSuccess() ? FINISHED_STATUS : CANCELLED_STATUS;
+            else if (!loadLiveDetails)
+                visaStatus.status = RUNNING_STATUS;
             else if (FINISHED_STATUS.equals(buildsStatus)) {
                 if (visa.isSuccess()) {
                     visaStatus.status = FINISHED_STATUS;

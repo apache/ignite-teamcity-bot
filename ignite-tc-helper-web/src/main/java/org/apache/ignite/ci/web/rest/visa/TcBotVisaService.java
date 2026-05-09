@@ -72,7 +72,7 @@ public class TcBotVisaService {
     public Collection<VisaStatus> history(@Nullable @QueryParam("limit") Integer limit) {
         return CtxListener.getApplicationContext(ctx)
             .getInstance(TcBotTriggerAndSignOffService.class)
-            .getVisasStatus(ITcBotUserCreds.get(req), limit == null ? 50 : limit);
+            .getVisasStatus(ITcBotUserCreds.get(req), limit == null ? 50 : limit, false);
     }
 
     /**
@@ -82,7 +82,7 @@ public class TcBotVisaService {
     public Collection<VisaStatus> running(@Nullable @QueryParam("limit") Integer limit) {
         return CtxListener.getApplicationContext(ctx)
             .getInstance(TcBotTriggerAndSignOffService.class)
-            .getVisasStatus(ITcBotUserCreds.get(req), limit == null ? 100 : limit)
+            .getVisasStatus(ITcBotUserCreds.get(req), limit == null ? 100 : limit, true)
             .stream()
             .filter(status -> status.cancelUrl != null)
             .collect(Collectors.toList());
