@@ -250,15 +250,7 @@ function loadGithubResolutionForContributions(srvId) {
     $.ajax({
         url: "rest/user/githubResolution?serverId=" + encodeURIComponent(srvId),
         success: function (result) {
-            let logins = new Set();
-
-            if (isDefinedAndFilled(result) && isDefinedAndFilled(result.allLogins)) {
-                for (let i = 0; i < result.allLogins.length; i++)
-                    logins.add(String(result.allLogins[i]).toLowerCase());
-            }
-
-            myGithubLoginsByServer.set(srvId, logins);
-            updateOnlyMyPrsControl(srvId);
+            updateGithubResolution(srvId, result);
             renderContributionsTable(srvId, "");
         },
         error: function (jqXHR) {
@@ -285,6 +277,71 @@ function resolvedGithubLoginsText(srvId) {
     return Array.from(logins).join(", ");
 }
 
+function isMyGithubLogin(srvId, login) {
+    let logins = myGithubLoginsByServer.get(srvId);
+
+    return isDefinedAndFilled(login) && isDefinedAndFilled(logins) &&
+        logins.has(String(login).toLowerCase());
+}
+
+function updateGithubResolution(srvId, result) {
+    let logins = new Set();
+
+    if (isDefinedAndFilled(result) && isDefinedAndFilled(result.allLogins)) {
+        for (let i = 0; i < result.allLogins.length; i++)
+            logins.add(String(result.allLogins[i]).toLowerCase());
+    }
+
+    myGithubLoginsByServer.set(srvId, logins);
+    updateOnlyMyPrsControl(srvId);
+}
+
+function claimGithubAuthor(srvId, githubId) {
+    $.ajax({
+        method: "POST",
+        url: "rest/user/claimGithubId?serverId=" + encodeURIComponent(srvId),
+        data: {
+            githubId: githubId
+        },
+        success: function (result) {
+            updateGithubResolution(srvId, result);
+            renderContributionsTable(srvId, "");
+        },
+        error: showErrInLoadStatus
+    });
+}
+
+function confirmClaimGithubAuthor(srvId, githubId) {
+    var dialog = ensureActionDialog("claimGithubAuthorDialog", "Confirm GitHub profile match");
+
+    dialog.html(
+        "<div>You are about to add <b>" + escapeHtml(githubId) + "</b> to your GitHub IDs.</div>" +
+        "<div style='margin-top:10px'>After this, TCBot will treat PRs authored by this GitHub account as yours " +
+        "for PR filters and author matching.</div>" +
+        "<div style='margin-top:10px; color:#666'>No change will be saved if you close this dialog.</div>"
+    );
+
+    openActionDialog(dialog, "Confirm GitHub profile match", {
+        "Confirm": function () {
+            $(this).dialog("close");
+            claimGithubAuthor(srvId, githubId);
+        },
+        "Cancel": function () {
+            $(this).dialog("close");
+        }
+    });
+}
+
+function claimGithubAuthorHtml(srvId, row) {
+    if (!isDefinedAndFilled(row) || !isDefinedAndFilled(row.prAuthor) || !myGithubLoginsByServer.has(srvId) ||
+        isMyGithubLogin(srvId, row.prAuthor))
+        return "";
+
+    return " <a href='javascript:void(0);' title='Confirm adding " + escapeHtml(row.prAuthor) +
+        " to your GitHub IDs' onclick='" + jsCallAttr("confirmClaimGithubAuthor", [srvId, row.prAuthor]) +
+        "'>it's me</a>";
+}
+
 function myPrsCountInTable(srvId) {
     let logins = myGithubLoginsByServer.get(srvId);
     let rows = contributionsByServer.get(srvId);
@@ -295,7 +352,7 @@ function myPrsCountInTable(srvId) {
     let cnt = 0;
 
     for (let i = 0; i < rows.length; i++) {
-        if (isDefinedAndFilled(rows[i].prAuthor) && logins.has(String(rows[i].prAuthor).toLowerCase()))
+        if (isMyGithubLogin(srvId, rows[i].prAuthor))
             cnt++;
     }
 
@@ -334,7 +391,7 @@ function currentContributionRows(srvId) {
         return rows;
 
     return rows.filter(function (row) {
-        return isDefinedAndFilled(row.prAuthor) && logins.has(String(row.prAuthor).toLowerCase());
+        return isMyGithubLogin(srvId, row.prAuthor);
     });
 }
 
@@ -436,6 +493,9 @@ function renderContributionsTable(srvId, suiteId) {
 
                     if (type === 'display' && isDefinedAndFilled(row.prAuthorUrl))
                         data = "<a href='" + escapeHtml(row.prAuthorUrl) + "'>" + data + "</a>";
+
+                    if (type === 'display')
+                        data += claimGithubAuthorHtml(srvId, row);
 
                     return data;
                 }
@@ -724,8 +784,11 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
     let queuedStatus = "Has queued builds: " + status.queuedBuilds  + " queued " + " " + status.runningBuilds  + " running";
 
     var linksToRunningBuilds = "";
+    var tcIconUrl = "";
     for (let i = 0; i < status.webLinksQueuedSuites.length; i++) {
         const l = status.webLinksQueuedSuites[i];
+        if (!isDefinedAndFilled(tcIconUrl))
+            tcIconUrl = l;
         linksToRunningBuilds += "<a href='" + escapeHtml(l) + "'>View queued at TC</a> "
     }
     $('#viewQueuedBuildsFor' + prId).html(linksToRunningBuilds);
@@ -754,7 +817,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
             if (hasQueued) {
                 commentBtns += " class='disabledbtn' title='" + escapeHtml(queuedStatus) + "'";
             }
-            commentBtns += ">Comment JIRA</button> ";
+            commentBtns += ">" + buttonLabel("Comment JIRA", row.jiraIssueUrl, null) + "</button> ";
         }
 
         if (row.prNumber > 0) {
@@ -766,7 +829,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
             if (hasQueued)
                 commentBtns += " class='disabledbtn' title='" + escapeHtml(queuedStatus) + "'";
 
-            commentBtns += ">Comment GitHub</button>";
+            commentBtns += ">" + buttonLabel("Comment GitHub", row.prHtmlUrl, null) + "</button>";
         }
 
         commentBtns += "</span>";
@@ -818,7 +881,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
         var res = "<button onClick='" + jsEventAttr([triggerBuildsCall, jsCall("repaintLater", [srvId])]) + "'";
         res += prepareStatusOfTrigger();
 
-        res += ">Trigger build</button>";
+        res += ">" + buttonLabel("Trigger build", tcIconUrl, null) + "</button>";
 
         if (hasJiraIssue) {
             let trigObserveCall = jsCall("triggerBuilds", [
@@ -828,7 +891,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
 
             res += " <button onClick='" + jsEventAttr([trigObserveCall, jsCall("repaintLater", [srvId])]) + "'";
             res += prepareStatusOfTrigger();
-            res += ">Trigger + JIRA</button>";
+            res += ">" + buttonLabel("Trigger + JIRA", tcIconUrl, row.jiraIssueUrl) + "</button>";
         }
 
         if (row.prNumber > 0) {
@@ -839,7 +902,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
 
             res += " <button onClick='" + jsEventAttr([trigGithubCall, jsCall("repaintLater", [srvId])]) + "'";
             res += prepareStatusOfTrigger();
-            res += ">Trigger + GitHub</button>";
+            res += ">" + buttonLabel("Trigger + GitHub", tcIconUrl, row.prHtmlUrl) + "</button>";
         }
 
         $("#triggerBuildFor" + prId).html(res);

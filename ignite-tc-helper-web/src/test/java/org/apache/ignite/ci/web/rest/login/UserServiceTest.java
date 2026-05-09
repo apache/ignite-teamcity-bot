@@ -128,6 +128,8 @@ public class UserServiceTest {
         assertTrue(usersPage.contains("Claim user admin"));
         assertTrue(usersPage.contains("TC Ignite Committer"));
         assertTrue(usersPage.contains("Auto GitHub IDs"));
+        assertTrue(usersPage.contains("Users without GitHub match"));
+        assertTrue(usersPage.contains("Only without GitHub match"));
     }
 
     @Test
@@ -164,6 +166,19 @@ public class UserServiceTest {
         service(users, creds("user")).claimUserAdmin();
 
         assertTrue(user.isUserAdmin());
+        verify(users).putUser(eq("user"), same(user));
+    }
+
+    @Test
+    public void currentUserCanClaimGithubId() throws Exception {
+        TcHelperUser user = user("user", false);
+
+        IUserStorage users = mock(IUserStorage.class);
+        when(users.getUser("user")).thenReturn(user);
+
+        service(users, creds("user")).claimGithubId("dspavlov-github", null);
+
+        assertTrue(user.getGithubIds().contains("dspavlov-github"));
         verify(users).putUser(eq("user"), same(user));
     }
 

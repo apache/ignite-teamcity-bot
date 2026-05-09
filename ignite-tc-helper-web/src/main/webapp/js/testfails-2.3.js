@@ -365,7 +365,7 @@ function showChainCurrentStatusData(chain, settings) {
                     ticketLink: isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "",
                     prLink: isDefinedAndFilled(chain.webToPr) ? chain.webToPr : ""
                 }
-            ]) + "'>Comment JIRA</button>";
+            ]) + "'>" + buttonLabel("Comment JIRA", chain.webToTicket, null) + "</button>";
         }
 
         if (settings.isGithubAvailable() && isDefinedAndFilled(chain.prNum)) {
@@ -376,7 +376,7 @@ function showChainCurrentStatusData(chain, settings) {
                     ticketLink: isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "",
                     prLink: isDefinedAndFilled(chain.webToPr) ? chain.webToPr : ""
                 }
-            ]) + "'>Comment GitHub PR</button>";
+            ]) + "'>" + buttonLabel("Comment GitHub PR", chain.webToPr, null) + "</button>";
         }
 
         commentBtns += "</span><br>";
@@ -1191,6 +1191,26 @@ function commentTargetsLabel(targets) {
 
 function commentPolicyLabel(commentOnlyIfNoBlockers) {
     return commentOnlyIfNoBlockers ? "only clean run (no blockers)" : "always";
+}
+
+function siteIcon(url) {
+    if (!isDefinedAndFilled(url))
+        return "";
+
+    try {
+        var origin = new URL(url, window.location.href).origin;
+
+        return "<img src='" + escapeHtml(origin + "/favicon.ico") + "' alt='' " +
+            "style='display:none; width:14px; height:14px; vertical-align:-2px; margin:0 4px' " +
+            "onload='this.style.display=\"inline-block\"' onerror='this.remove()'>";
+    }
+    catch (e) {
+        return "";
+    }
+}
+
+function buttonLabel(text, leadingIconUrl, trailingIconUrl) {
+    return siteIcon(leadingIconUrl) + escapeHtml(text) + siteIcon(trailingIconUrl);
 }
 
 function optionalLink(url, label) {

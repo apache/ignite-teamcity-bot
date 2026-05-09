@@ -17,6 +17,8 @@
 </head>
 <body>
 <script>
+let currentUsers = [];
+
 $(document).ready(function() {
     $(document).tooltip();
 
@@ -74,6 +76,7 @@ function loadUsers() {
     $.ajax({
         url: "rest/user/list",
         success: function(result) {
+            currentUsers = result || [];
             showUsers(result);
             $("#loadStatus").html("");
         },
@@ -92,12 +95,43 @@ function yesNo(val) {
     return val === true ? "yes" : "";
 }
 
+function hasGithubMatch(user) {
+    return isDefinedAndFilled(user) &&
+        (isDefinedAndFilled(user.githubIds) || isDefinedAndFilled(user.autoResolvedGithubIds));
+}
+
+function usersWithoutGithubMatch(users) {
+    if (!isDefinedAndFilled(users))
+        return [];
+
+    return users.filter(function(user) {
+        return !hasGithubMatch(user);
+    });
+}
+
+function refreshUsersGithubSummary(users) {
+    let unmatched = usersWithoutGithubMatch(users);
+
+    $("#usersGithubSummary").html("Users without GitHub match: " + unmatched.length);
+}
+
+function usersTableRows(users) {
+    if (!isDefinedAndFilled(users))
+        return [];
+
+    if (!$("#onlyUsersWithoutGithubMatch").prop("checked"))
+        return users;
+
+    return usersWithoutGithubMatch(users);
+}
+
 function showUsers(result) {
     $("#usersBlock").show();
+    refreshUsersGithubSummary(result);
 
     $("#usersTable").dataTable().fnDestroy();
     $("#usersTable").DataTable({
-        data: result,
+        data: usersTableRows(result),
         order: [[0, "asc"]],
         iDisplayLength: 50,
         deferRender: true,
@@ -197,6 +231,13 @@ function showUsers(result) {
     </div>
 
     <div id="usersBlock" style="display:none">
+        <div style="display:flex; gap:12px; align-items:center; margin-bottom:8px">
+            <span id="usersGithubSummary"></span>
+            <label title="Show users who have neither configured GitHub IDs nor auto-resolved GitHub IDs">
+                <input id="onlyUsersWithoutGithubMatch" type="checkbox" onchange="showUsers(currentUsers)">
+                Only without GitHub match
+            </label>
+        </div>
         <table id="usersTable" class="row-border" style="width:100%">
             <thead>
             <tr class="ui-widget-header">

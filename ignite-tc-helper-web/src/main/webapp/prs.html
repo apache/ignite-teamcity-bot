@@ -19,12 +19,14 @@
 
     <script src="js/common-1.7.js?v=20260509-6"></script>
     <script src="js/testfails-2.3.js?v=20260509-21"></script>
-    <script src="js/prs-1.3.js?v=20260509-17"></script>
+    <script src="js/prs-1.3.js?v=20260509-18"></script>
 
     <style>
 
     </style>
     <script>
+        const JIRA_SITE_URL = "https://issues.apache.org/jira";
+        const GITHUB_SITE_URL = "https://github.com";
         const prs = new Map();
 
         $(document).ready(function() {
@@ -135,9 +137,12 @@
                 res += "Branch: <input type='text' name='branchForTc' class='branchForTc" + chainAtServer.serverId +
                     "' required> ";
                 res += "Ticket: <input type='text' name='ticketId'>";
-                res += "<button name='jira' type='button' onclick='trigBuild(\"tests\")'>Start tests</button>";
-                res += "<button name='jira' onclick='trigBuild(\"tests+comment\")'>Start tests and comment on ready</button>";
-                res += "<button name='github' onclick='trigBuild(\"tests+github\")'>Build and Comment GitHub</button><br>";
+                res += "<button name='jira' type='button' onclick='trigBuild(\"tests\")'>" +
+                    buttonLabel("Start tests", null, null) + "</button>";
+                res += "<button name='jira' onclick='trigBuild(\"tests+comment\")'>" +
+                    buttonLabel("Start tests and comment on ready", null, JIRA_SITE_URL) + "</button>";
+                res += "<button name='github' onclick='trigBuild(\"tests+github\")'>" +
+                    buttonLabel("Build and Comment GitHub", null, GITHUB_SITE_URL) + "</button><br>";
                 /*
                 res+="Server: <input type='text' name='serverId' value=" + serverId +" readonly>" ;
                 res+="Pull Request #<input type='text' name='prId' onkeypress='return trigBuild(event)'> ";
@@ -162,7 +167,8 @@
                 res += "Branch: <input type='text' name='branchForTc' class='branchForTc" + chainAtServer.serverId +
                     "' required> ";
                 res += "Ticket: <input type='text' name='ticketId'> ";
-                res += "<button name='action' onclick='notifyJira()'>Notify</button><br>";
+                res += "<button name='action' onclick='notifyJira()'>" +
+                    buttonLabel("Notify", JIRA_SITE_URL, null) + "</button><br>";
             }
 
             $("#notifyJira").html(res);

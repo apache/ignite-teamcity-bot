@@ -254,6 +254,42 @@ public class UserService {
     }
 
     /**
+     * Adds GitHub login to the current user profile.
+     *
+     * @param githubId GitHub login.
+     * @param srvCode Optional server id to limit cached PR authors used for email matching.
+     */
+    @POST
+    @Path("claimGithubId")
+    public GitHubUserResolutionUi claimGithubId(@FormParam("githubId") String githubId,
+        @Nullable @QueryParam("serverId") String srvCode) {
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        IUserStorage users = appCtx.getInstance(IUserStorage.class);
+        String currUserLogin = ITcBotUserCreds.get(req).getPrincipalId();
+        TcHelperUser user = users.getUser(currUserLogin);
+
+        if (user == null)
+            throw new NotFoundException("User not found: " + currUserLogin);
+
+        Set<String> normalizedIds = normalizeGithubIds(githubId);
+
+        Preconditions.checkState(normalizedIds.size() == 1, "One GitHub ID is expected.");
+
+        String normalizedId = normalizedIds.iterator().next();
+        boolean alreadyConfigured = user.getGithubIds().stream()
+            .anyMatch(normalizedId::equalsIgnoreCase);
+
+        if (!alreadyConfigured) {
+            user.getGithubIds().add(normalizedId);
+
+            users.putUser(currUserLogin, user);
+        }
+
+        return new GitHubUserResolutionUi(appCtx.getInstance(GitHubUserResolver.class)
+            .resolve(user, java.util.Collections.emptyList()));
+    }
+
+    /**
      * @param appCtx Application context.
      * @param srvCode Optional server id.
      * @param prov Current user credentials.
