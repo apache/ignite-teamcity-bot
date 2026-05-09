@@ -292,12 +292,26 @@ function showChainCurrentStatusData(chain, settings) {
     res += "</td><td>";
 
     let baseBranchForTc = chain.baseBranchForTc;
-    if (settings.isJiraAvailable() && isDefinedAndFilled(srvCodeForTriggering)) {
-        res += "<button onclick='commentJira(\"" + srvCodeForTriggering + "\", " +
-            "\"" + chain.branchName + "\", " +
-            "\"" + parentSuitId + "\", " +
-            "\"\", " + // ticket id
-            "\"" + baseBranchForTc + "\")'>Comment JIRA</button><br>";
+    if ((settings.isJiraAvailable() || settings.isGithubAvailable()) && isDefinedAndFilled(srvCodeForTriggering)) {
+        if (settings.isJiraAvailable()) {
+            res += "<button onclick='commentJira(\"" + srvCodeForTriggering + "\", " +
+                "\"" + chain.branchName + "\", " +
+                "\"" + parentSuitId + "\", " +
+                "\"\", " + // ticket id
+                "\"" + baseBranchForTc + "\", " +
+                "\"JIRA\", " +
+                "\"" + chain.prNum + "\")'>Comment JIRA</button><br>";
+        }
+
+        if (settings.isGithubAvailable() && isDefinedAndFilled(chain.prNum)) {
+            res += "<button onclick='commentJira(\"" + srvCodeForTriggering + "\", " +
+                "\"" + chain.branchName + "\", " +
+                "\"" + parentSuitId + "\", " +
+                "\"\", " + // ticket id
+                "\"" + baseBranchForTc + "\", " +
+                "\"GITHUB\", " +
+                "\"" + chain.prNum + "\")'>Comment GitHub PR</button><br>";
+        }
 
         var blockersList = "";
 
@@ -316,7 +330,7 @@ function showChainCurrentStatusData(chain, settings) {
 
         res += "<label for='cleanRebuild'><input id='cleanRebuild' type='checkbox'>Delete all files in checkout directory before each snapshot dependency build</label><br>"
 
-        res += "<button onclick='triggerBuilds(" +
+        res += "<button onclick='triggerBuildsWithCommentOptions(" +
             "\"" + srvCodeForTriggering + "\", " +
             "\"" + parentSuitId + "\", " +
             "\"" + blockersList + "\", " +
@@ -324,13 +338,15 @@ function showChainCurrentStatusData(chain, settings) {
             "false, " + //top
             "false, " + //observe
             "null, " + // ticketId
-            "\"" + + chain.prNum + "\", " +
+            "\"" + chain.prNum + "\", " +
             "\"" + baseBranchForTc + "\", " +
-            "document.getElementById(\"cleanRebuild\").checked" +
+            "document.getElementById(\"cleanRebuild\").checked, " +
+            "\"" + (isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "") + "\", " +
+            "\"" + (isDefinedAndFilled(chain.webToPr) ? chain.webToPr : "") + "\"" +
             ")'> " +
             "Re-run possible blockers</button><br>";
 
-        res += "<button onclick='triggerBuilds(" +
+        res += "<button onclick='triggerBuildsWithCommentOptions(" +
             "\"" + srvCodeForTriggering + "\", " +
             "\"" + parentSuitId + "\", " +
             "\"" + blockersList + "\", " +
@@ -340,7 +356,9 @@ function showChainCurrentStatusData(chain, settings) {
             "null, " + // ticketId
             "\"" + chain.prNum + "\", " + //prNum
             "\"" + baseBranchForTc + "\", " +
-            "document.getElementById(\"cleanRebuild\").checked" +
+            "document.getElementById(\"cleanRebuild\").checked, " +
+            "\"" + (isDefinedAndFilled(chain.webToTicket) ? chain.webToTicket : "") + "\", " +
+            "\"" + (isDefinedAndFilled(chain.webToPr) ? chain.webToPr : "") + "\"" +
             ")'> " +
             "Re-run possible blockers (top queue)</button><br>";
     }
@@ -446,15 +464,32 @@ function filterPossibleBlocker(suite) {
 }
 
 function selectCommentTargets(defaultTargets, onSelected) {
-    var targets = isDefinedAndFilled(defaultTargets) ? defaultTargets : "JIRA";
+    selectCommentOptions(defaultTargets, {}, function (selectedTargets) {
+        onSelected(selectedTargets);
+    });
+}
+
+function selectCommentOptions(defaultTargets, options, onSelected) {
+    var targets = defaultTargets !== null && typeof defaultTargets !== "undefined" ? defaultTargets : "JIRA";
     var hasJira = targets.indexOf("JIRA") !== -1;
     var hasGithub = targets.indexOf("GITHUB") !== -1;
     var dialog = $("#triggerConfirm");
+    var ticketLink = options && isDefinedAndFilled(options.ticketLink) ?
+        " <a href='" + options.ticketLink + "' target='_blank'>ticket</a>" : "";
+    var prLink = options && isDefinedAndFilled(options.prLink) ?
+        " <a href='" + options.prLink + "' target='_blank'>PR</a>" : "";
+    var allowNoTargets = options && options.allowNoTargets;
+    var showOnlyNoBlockers = options && options.showOnlyNoBlockers;
 
     dialog.html(
         "<div>Select where TCBot should publish the analysis after results are ready.</div><br>" +
-        "<label><input type='checkbox' id='commentTargetJira' " + (hasJira ? "checked" : "") + "> JIRA</label><br>" +
-        "<label><input type='checkbox' id='commentTargetGithub' " + (hasGithub ? "checked" : "") + "> GitHub PR</label>"
+        "<label><input type='checkbox' id='commentTargetJira' " + (hasJira ? "checked" : "") + "> JIRA" +
+        ticketLink + "</label><br>" +
+        "<label><input type='checkbox' id='commentTargetGithub' " + (hasGithub ? "checked" : "") + "> GitHub PR" +
+        prLink + "</label>" +
+        (showOnlyNoBlockers
+            ? "<br><label><input type='checkbox' id='commentOnlyIfNoBlockers'> Comment only if no blockers</label>"
+            : "")
     );
 
     dialog.dialog({
@@ -469,11 +504,14 @@ function selectCommentTargets(defaultTargets, onSelected) {
                 if ($("#commentTargetGithub").prop("checked"))
                     selected.push("GITHUB");
 
-                if (selected.length === 0)
+                if (selected.length === 0 && !allowNoTargets)
                     return;
 
+                var commentOnlyIfNoBlockers = showOnlyNoBlockers &&
+                    $("#commentOnlyIfNoBlockers").prop("checked");
+
                 $(this).dialog("close");
-                onSelected(selected.join(","));
+                onSelected(selected.join(","), commentOnlyIfNoBlockers);
             },
             "Cancel": function () {
                 $(this).dialog("close");
@@ -482,7 +520,22 @@ function selectCommentTargets(defaultTargets, onSelected) {
     });
 }
 
-function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top, observe, ticketId, prNum, baseBranchForTc, cleanRebuild=false, commentTargets) {
+function triggerBuildsWithCommentOptions(tcServerCode, parentSuiteId, suiteIdList, branchName, top, observe, ticketId,
+    prNum, baseBranchForTc, cleanRebuild=false, ticketLink, prLink) {
+    selectCommentOptions("", {
+        ticketLink: ticketLink,
+        prLink: prLink,
+        allowNoTargets: true,
+        showOnlyNoBlockers: true
+    }, function (selectedTargets, commentOnlyIfNoBlockers) {
+        triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top,
+            isDefinedAndFilled(selectedTargets), ticketId, prNum, baseBranchForTc, cleanRebuild,
+            selectedTargets, commentOnlyIfNoBlockers);
+    });
+}
+
+function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top, observe, ticketId, prNum, baseBranchForTc,
+    cleanRebuild=false, commentTargets, commentOnlyIfNoBlockers=false) {
     var queueAtTop = isDefinedAndFilled(top) && top;
     var observeJira = isDefinedAndFilled(observe) && observe;
     var suiteIdsNotExists = !isDefinedAndFilled(suiteIdList) || suiteIdList.length === 0;
@@ -518,8 +571,9 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
         message += suites[i] + "<br>";
 
     if (observeJira && !isDefinedAndFilled(commentTargets)) {
-        selectCommentTargets("JIRA", function (selectedTargets) {
+        selectCommentOptions("JIRA", {showOnlyNoBlockers: true}, function (selectedTargets, onlyNoBlockers) {
             commentTargets = selectedTargets;
+            commentOnlyIfNoBlockers = onlyNoBlockers;
             confirmOrSend();
         });
     }
@@ -560,6 +614,7 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
                 "ticketId": ticketId,
                 "prNum": prNum,
                 "baseBranchForTc": baseBranchForTc,
+                "commentOnlyIfNoBlockers": commentOnlyIfNoBlockers,
                 "cleanRebuild": cleanRebuild
             },
             success: successDialog,
@@ -602,7 +657,8 @@ function branchForTc(pr) {
     return pr;
 }
 
-function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranchForTc, commentTargets) {
+function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranchForTc, commentTargets, prNum,
+    commentOnlyIfNoBlockers=false) {
     var branchNotExists = !isDefinedAndFilled(branchName) || branchName.length === 0;
     branchName = branchNotExists ? null : branchForTc(branchName);
     ticketId = (isDefinedAndFilled(ticketId) && ticketId.length > 0) ? ticketId : null;
@@ -625,7 +681,8 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
 
     if (!isDefinedAndFilled(commentTargets)) {
         selectCommentTargets("JIRA", function (selectedTargets) {
-            commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranchForTc, selectedTargets);
+            commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranchForTc, selectedTargets, prNum,
+                commentOnlyIfNoBlockers);
         });
 
         return;
@@ -642,7 +699,9 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
             "branchName": branchName,
             "ticketId": ticketId,
             "baseBranchForTc": baseBranchForTc,
-            "comment": commentTargets
+            "comment": commentTargets,
+            "prNum": prNum,
+            "commentOnlyIfNoBlockers": commentOnlyIfNoBlockers
         },
         success: function(result) {
             $("#notifyJira").html("");

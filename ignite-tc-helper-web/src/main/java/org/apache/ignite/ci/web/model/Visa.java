@@ -33,6 +33,13 @@ public class Visa {
     /** Message to show user when requested analysis targets were successfully commented by the Bot. */
     public static final String COMMENTED = "Analysis commented.";
 
+    /** Message to show user when some requested targets were not commented. */
+    public static final String PARTIALLY_COMMENTED =
+        "Analysis partially commented - GitHub wasn't commented.";
+
+    /** Message to show user when comment was intentionally skipped. */
+    public static final String COMMENT_SKIPPED = "Analysis comment skipped: blockers found.";
+
     /** */
     public final String status;
 
@@ -76,7 +83,9 @@ public class Visa {
     /** */
     public boolean isSuccess() {
         return (JIRA_COMMENTED.equals(status) && jiraCommentRes != null)
-            || COMMENTED.equals(status);
+            || COMMENTED.equals(status)
+            || (PARTIALLY_COMMENTED.equals(status) && jiraCommentRes != null)
+            || COMMENT_SKIPPED.equals(status);
     }
 
     /** */

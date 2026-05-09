@@ -62,6 +62,7 @@ public class TriggerBuilds {
      * @param ticketId JIRA ticket id.
      * @param prNum Pull request number in appropriate project (@code srvCodeOrAlias).
      * @param baseBranchForTc Base branch for possible blockers comparison (e.g. master, 8.8-master)
+     * @param commentOnlyIfNoBlockers Comment only if analysis has no blockers.
      * @return Result of triggering suites re-run.
      */
     @GET
@@ -77,6 +78,7 @@ public class TriggerBuilds {
         @Nullable @QueryParam("ticketId") String ticketId,
         @Nullable @QueryParam("prNum") String prNum,
         @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
+        @Nullable @QueryParam("commentOnlyIfNoBlockers") Boolean commentOnlyIfNoBlockers,
         @Nonnull @QueryParam("cleanRebuild") Boolean cleanRebuild
     ) {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
@@ -90,7 +92,7 @@ public class TriggerBuilds {
         String jiraRes = appCtx
             .getInstance(TcBotTriggerAndSignOffService.class)
             .triggerBuildsAndObserve(srvCodeOrAlias, branchForTc, parentSuiteId, suiteIdList, top, observe, ticketId,
-                prNum, baseBranchForTc, cleanRebuild, commentTargets, prov);
+                prNum, baseBranchForTc, cleanRebuild, commentTargets, commentOnlyIfNoBlockers, prov);
 
         return new TriggerResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
@@ -110,7 +112,9 @@ public class TriggerBuilds {
         @Nullable @QueryParam("suiteId") String suiteId,
         @Nullable @QueryParam("ticketId") String ticketId,
         @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
-        @Nullable @QueryParam("comment") String commentTargets
+        @Nullable @QueryParam("comment") String commentTargets,
+        @Nullable @QueryParam("prNum") String prNum,
+        @Nullable @QueryParam("commentOnlyIfNoBlockers") Boolean commentOnlyIfNoBlockers
     ) {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
 
@@ -120,6 +124,7 @@ public class TriggerBuilds {
 
         return appCtx
             .getInstance(TcBotTriggerAndSignOffService.class)
-            .commentJiraEx(srvCode, branchForTc, suiteId, ticketId, baseBranchForTc, prov, commentTargets);
+            .commentJiraEx(srvCode, branchForTc, suiteId, ticketId, baseBranchForTc, prov, commentTargets,
+                prNum, commentOnlyIfNoBlockers != null && commentOnlyIfNoBlockers);
     }
 }

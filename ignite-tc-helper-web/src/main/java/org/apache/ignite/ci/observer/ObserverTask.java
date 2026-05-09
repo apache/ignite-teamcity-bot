@@ -187,7 +187,8 @@ public class ObserverTask extends TimerTask {
                     String baseBranchForTc = info.baseBranchForTc;
 
                     Visa updatedVisa = visaIssuer.notifyComments(info.srvId, creds, info.buildTypeId,
-                        info.branchForTc, info.ticket, baseBranchForTc, info.commentTargets);
+                        info.branchForTc, info.ticket, baseBranchForTc, info.commentTargets, info.prNum,
+                        info.commentOnlyIfNoBlockers);
 
                     visasHistStorage.updateLastVisaRequest(info.getContributionKey(), (req -> req.setResult(updatedVisa)));
 

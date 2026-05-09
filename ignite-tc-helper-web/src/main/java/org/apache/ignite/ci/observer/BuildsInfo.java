@@ -72,6 +72,12 @@ public class BuildsInfo {
     /** Base TC Branch name. */
     @Nullable public final String baseBranchForTc;
 
+    /** Pull request number selected by user. */
+    @Nullable public final Integer prNum;
+
+    /** Comment only successful no-blockers analysis. */
+    public final boolean commentOnlyIfNoBlockers;
+
     /** Finished builds. */
     private final List<Integer> builds = new ArrayList<>();
 
@@ -81,10 +87,13 @@ public class BuildsInfo {
         this.date = compactBuildsInfo.date();
         this.srvId = strCompactor.getStringFromId(compactBuildsInfo.srvId());
         this.ticket = strCompactor.getStringFromId(compactBuildsInfo.ticket());
-        this.commentTargets = CommentTargets.normalize(strCompactor.getStringFromId(compactBuildsInfo.commentTargets()));
+        this.commentTargets = CommentTargets.normalize(
+            strCompactor.getStringFromId(compactBuildsInfo.commentTargets()));
         this.branchForTc = strCompactor.getStringFromId(compactBuildsInfo.branchForTc());
         this.buildTypeId = strCompactor.getStringFromId(compactBuildsInfo.buildTypeId());
         this.baseBranchForTc = strCompactor.getStringFromId(compactBuildsInfo.baseBranchForTc());
+        this.prNum = compactBuildsInfo.prNum() > 0 ? compactBuildsInfo.prNum() : null;
+        this.commentOnlyIfNoBlockers = compactBuildsInfo.commentOnlyIfNoBlockers();
         this.builds.addAll(compactBuildsInfo.getBuilds());
     }
 
@@ -113,6 +122,23 @@ public class BuildsInfo {
     public BuildsInfo(String srvId, String ticket, String branchForTc, String parentSuiteId,
         @Nullable String baseBranchForTc, String userName, @Nullable String commentTargets,
         Build... builds) {
+        this(srvId, ticket, branchForTc, parentSuiteId, baseBranchForTc, userName,
+            commentTargets, null, false, builds);
+    }
+
+    /**
+     * @param userName
+     * @param srvId Server id.
+     * @param branchForTc Branch for TC.
+     * @param ticket Ticket.
+     * @param commentTargets Comment targets.
+     * @param prNum Pull request number selected by user.
+     * @param commentOnlyIfNoBlockers Comment only if analysis has no blockers.
+     * @param builds Builds.
+     */
+    public BuildsInfo(String srvId, String ticket, String branchForTc, String parentSuiteId,
+        @Nullable String baseBranchForTc, String userName, @Nullable String commentTargets,
+        @Nullable Integer prNum, boolean commentOnlyIfNoBlockers, Build... builds) {
         this.userName = userName;
         this.date = Calendar.getInstance().getTime();
         this.srvId = srvId;
@@ -122,6 +148,8 @@ public class BuildsInfo {
         this.buildTypeId = Strings.isNullOrEmpty(parentSuiteId) ?
             (builds.length == 1 ? builds[0].buildTypeId : "IgniteTests24Java8_RunAll") : parentSuiteId;
         this.baseBranchForTc = baseBranchForTc;
+        this.prNum = prNum;
+        this.commentOnlyIfNoBlockers = commentOnlyIfNoBlockers;
 
         for (Build build : builds)
             this.builds.add(build.getId());
@@ -212,12 +240,15 @@ public class BuildsInfo {
             Objects.equals(branchForTc, info.branchForTc) &&
             Objects.equals(ticket, info.ticket) &&
             Objects.equals(commentTargets, info.commentTargets) &&
+            Objects.equals(prNum, info.prNum) &&
+            Objects.equals(commentOnlyIfNoBlockers, info.commentOnlyIfNoBlockers) &&
             Objects.equals(builds, info.builds) &&
             Objects.equals(date, info.date);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(srvId, buildTypeId, branchForTc, ticket, commentTargets, builds, date);
+        return Objects.hash(srvId, buildTypeId, branchForTc, ticket, commentTargets, prNum,
+            commentOnlyIfNoBlockers, builds, date);
     }
 }

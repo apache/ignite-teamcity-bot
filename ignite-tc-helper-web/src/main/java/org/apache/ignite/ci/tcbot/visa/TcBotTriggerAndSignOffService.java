@@ -281,6 +281,7 @@ public class TcBotTriggerAndSignOffService {
         @Nullable String baseBranchForTc,
         @Nonnull Boolean cleanRebuild,
         @Nullable String commentTargets,
+        @Nullable Boolean commentOnlyIfNoBlockers,
         @Nullable ITcBotUserCreds prov) {
         long startNanos = System.nanoTime();
         long initNanos = 0;
@@ -298,10 +299,12 @@ public class TcBotTriggerAndSignOffService {
         IGitHubConnIgnited ghIgn = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
         initNanos = System.nanoTime() - stepStart;
 
-        if(!Strings.isNullOrEmpty(prNum)) {
+        Integer parsedPrNum = parsePrNum(prNum);
+
+        if(parsedPrNum != null) {
             try {
                 stepStart = System.nanoTime();
-                PullRequest pr = ghIgn.getPullRequest(Integer.parseInt(prNum));
+                PullRequest pr = ghIgn.getPullRequest(parsedPrNum);
                 prLookupNanos += System.nanoTime() - stepStart;
 
                 if(pr!=null) {
@@ -311,7 +314,7 @@ public class TcBotTriggerAndSignOffService {
                          jiraRes = "Actual commit: " + shaShort + ". ";
                 }
             }
-            catch (NumberFormatException e) {
+            catch (RuntimeException e) {
                 logger.error("PR & TC state checking failed" , e);
             }
         }
@@ -337,7 +340,7 @@ public class TcBotTriggerAndSignOffService {
         if (observe != null && observe) {
             stepStart = System.nanoTime();
             jiraRes += observeComments(srvCodeOrAlias, branchForTc, ticketId, prov, parentSuiteId, baseBranchForTc,
-                commentTargets, builds);
+                commentTargets, parsedPrNum, commentOnlyIfNoBlockers != null && commentOnlyIfNoBlockers, builds);
             observeNanos = System.nanoTime() - stepStart;
         }
 
@@ -373,7 +376,7 @@ public class TcBotTriggerAndSignOffService {
         Build... builds
     ) {
         return observeComments(srvId, branchForTc, ticketFullName, prov, parentSuiteId, baseBranchForTc,
-            CommentTargets.DFLT, builds);
+            CommentTargets.DFLT, null, false, builds);
     }
 
     /**
@@ -384,6 +387,8 @@ public class TcBotTriggerAndSignOffService {
      * @param parentSuiteId Parent suite id.
      * @param baseBranchForTc Reference branch in TC identification.
      * @param commentTargets Comment targets.
+     * @param prNum Pull request number selected by user.
+     * @param commentOnlyIfNoBlockers Comment only if analysis has no blockers.
      * @param builds Builds.
      * @return Message with result.
      */
@@ -395,9 +400,18 @@ public class TcBotTriggerAndSignOffService {
         String parentSuiteId,
         String baseBranchForTc,
         @Nullable String commentTargets,
+        @Nullable Integer prNum,
+        boolean commentOnlyIfNoBlockers,
         Build... builds
     ) {
-        String targets = CommentTargets.normalize(commentTargets);
+        String targets;
+
+        try {
+            targets = CommentTargets.normalize(commentTargets);
+        }
+        catch (IllegalArgumentException e) {
+            return "Comment targets are invalid: " + e.getMessage();
+        }
 
         try {
             if (CommentTargets.jira(targets))
@@ -414,8 +428,8 @@ public class TcBotTriggerAndSignOffService {
         if (user == null)
             user = prov.getPrincipalId();
 
-        buildObserverProvider.get().observe(srvId, ticketFullName, branchForTc, parentSuiteId, baseBranchForTc, user,
-            targets, builds);
+        buildObserverProvider.get().observe(srvId, ticketFullName, branchForTc, parentSuiteId, baseBranchForTc,
+            user, targets, prNum, commentOnlyIfNoBlockers, builds);
 
         if (!tcBotBgAuth.isServerAuthorized())
             return "Ask server administrator to authorize the Bot to enable notifications.";
@@ -461,7 +475,45 @@ public class TcBotTriggerAndSignOffService {
         @Nullable String baseBranchForTc,
         ITcBotUserCreds prov,
         @Nullable String commentTargets) {
-        String targets = CommentTargets.normalize(commentTargets);
+        return commentJiraEx(srvId, branchForTc, suiteId, ticketFullName, baseBranchForTc, prov,
+            commentTargets, null, false);
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param branchForTc Branch for tc.
+     * @param suiteId Suite id.
+     * @param ticketFullName Ticket full name with IGNITE- prefix.
+     * @param baseBranchForTc Base branch in TC identification.
+     * @param prov Prov.
+     * @param commentTargets Comment targets.
+     * @param prNum Pull request number selected by user.
+     * @param commentOnlyIfNoBlockers Comment only if analysis has no blockers.
+     */
+    @NotNull
+    public SimpleResult commentJiraEx(
+        @Nullable String srvId,
+        @Nullable String branchForTc,
+        @Nullable String suiteId,
+        @Nullable String ticketFullName,
+        @Nullable String baseBranchForTc,
+        ITcBotUserCreds prov,
+        @Nullable String commentTargets,
+        @Nullable String prNum,
+        boolean commentOnlyIfNoBlockers) {
+        String targets;
+
+        try {
+            targets = CommentTargets.normalize(commentTargets);
+        }
+        catch (IllegalArgumentException e) {
+            return new SimpleResult("Analysis wasn't commented - " + e.getMessage());
+        }
+
+        Integer parsedPrNum = parsePrNum(prNum);
+
+        if (!Strings.isNullOrEmpty(prNum) && parsedPrNum == null)
+            return new SimpleResult("Analysis wasn't commented - invalid PR number: " + prNum);
 
         try {
             if (CommentTargets.jira(targets))
@@ -477,7 +529,7 @@ public class TcBotTriggerAndSignOffService {
             user = prov.getPrincipalId();
 
         BuildsInfo buildsInfo = new BuildsInfo(srvId, ticketFullName, branchForTc, suiteId, baseBranchForTc, user,
-            targets);
+            targets, parsedPrNum, commentOnlyIfNoBlockers);
 
         VisaRequest lastVisaReq = visasHistStorage.getLastVisaRequest(buildsInfo.getContributionKey());
 
@@ -486,7 +538,8 @@ public class TcBotTriggerAndSignOffService {
                 " \"Re-run possible blockers & Comment JIRA\" was triggered for current branch." +
                 " Wait for the end or cancel exsiting observing.");
 
-        Visa visa = notifyComments(srvId, prov, suiteId, branchForTc, ticketFullName, baseBranchForTc, targets);
+        Visa visa = notifyComments(srvId, prov, suiteId, branchForTc, ticketFullName, baseBranchForTc, targets,
+            parsedPrNum, commentOnlyIfNoBlockers);
 
         visasHistStorage.put(new VisaRequest(buildsInfo).setResult(visa));
 
@@ -1065,11 +1118,51 @@ public class TcBotTriggerAndSignOffService {
         @Nullable String ticket,
         @Nullable String baseBranchForTc,
         @Nullable String commentTargets) {
+        return notifyComments(srvCodeOrAlias, prov, buildTypeId, branchForTc, ticket, baseBranchForTc,
+            commentTargets, null, false);
+    }
+
+    /**
+     * Produce visa message based on passed parameters and publish it as requested comments.
+     *
+     * @param srvCodeOrAlias TC Server ID to take information about token from.
+     * @param prov Credentials.
+     * @param buildTypeId Build type ID, for which visa was ordered.
+     * @param branchForTc Branch for TeamCity.
+     * @param ticket JIRA ticket full name. E.g. IGNITE-5555
+     * @param baseBranchForTc Base branch in TC identification.
+     * @param commentTargets Comment targets.
+     * @param prNum Pull request number selected by user.
+     * @param commentOnlyIfNoBlockers Comment only if analysis has no blockers.
+     * @return {@link Visa} instance.
+     */
+    @AutoProfiling
+    public Visa notifyComments(
+        String srvCodeOrAlias,
+        ITcBotUserCreds prov,
+        String buildTypeId,
+        String branchForTc,
+        @Nullable String ticket,
+        @Nullable String baseBranchForTc,
+        @Nullable String commentTargets,
+        @Nullable Integer prNum,
+        boolean commentOnlyIfNoBlockers) {
         long startNanos = System.nanoTime();
-        String targets = CommentTargets.normalize(commentTargets);
+        String targets;
+
+        try {
+            targets = CommentTargets.normalize(commentTargets);
+        }
+        catch (IllegalArgumentException e) {
+            return new Visa("Analysis wasn't commented - " + e.getMessage());
+        }
+
+        boolean githubRequested = CommentTargets.github(targets);
+        boolean jiraRequested = CommentTargets.jira(targets);
+
         ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, prov);
 
-        IJiraIgnited jira = jiraIgnProv.server(srvCodeOrAlias);
+        IJiraIgnited jira = jiraRequested ? jiraIgnProv.server(srvCodeOrAlias) : null;
 
         List<Integer> builds = tcIgnited.getLastNBuildsFromHistory(buildTypeId, branchForTc, 1);
 
@@ -1091,15 +1184,14 @@ public class TcBotTriggerAndSignOffService {
         JiraCommentResponse res = null;
 
         try {
-            String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? prChainsProcessor.dfltBaseTcBranch(srvCodeOrAlias) : baseBranchForTc;
+            String baseBranch = Strings.isNullOrEmpty(baseBranchForTc)
+                ? prChainsProcessor.dfltBaseTcBranch(srvCodeOrAlias) : baseBranchForTc;
 
-            List<ShortSuiteUi> suitesStatuses = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, build.branchName, srvCodeOrAlias, prov,
-                SyncMode.RELOAD_QUEUED,
-                baseBranch);
+            List<ShortSuiteUi> suitesStatuses = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId,
+                build.branchName, srvCodeOrAlias, prov, SyncMode.RELOAD_QUEUED, baseBranch);
 
-            List<ShortSuiteNewTestsUi> newTestsStatuses = prChainsProcessor.getNewTestsSuitesStatuses(buildTypeId, build.branchName, srvCodeOrAlias, prov,
-                SyncMode.RELOAD_QUEUED,
-                baseBranch);
+            List<ShortSuiteNewTestsUi> newTestsStatuses = prChainsProcessor.getNewTestsSuitesStatuses(buildTypeId,
+                build.branchName, srvCodeOrAlias, prov, SyncMode.RELOAD_QUEUED, baseBranch);
 
             if (suitesStatuses == null)
                 return new Visa("JIRA wasn't commented - no finished builds to analyze." +
@@ -1107,23 +1199,29 @@ public class TcBotTriggerAndSignOffService {
 
             blockers = suitesStatuses.stream().mapToInt(ShortSuiteUi::totalBlockers).sum();
 
-            String comment = JiraCommentsGenerator.generateJiraComment(jira.config().getApiVersion(), compactor, suitesStatuses, newTestsStatuses, build.webUrl, buildTypeId, tcIgnited, blockers, build.branchName, baseBranch);
+            if (commentOnlyIfNoBlockers && blockers > 0)
+                return new Visa(Visa.COMMENT_SKIPPED, null, blockers);
 
             boolean gitHubCommented = true;
 
-            if (CommentTargets.github(targets)) {
-                gitHubCommented = notifyGitHubPullRequest(srvCodeOrAlias, buildTypeId, branchForTc, build, fatBuild,
-                    tcIgnited, suitesStatuses, newTestsStatuses, blockers, baseBranch);
+            if (githubRequested) {
+                gitHubCommented = notifyGitHubPullRequest(srvCodeOrAlias, buildTypeId, branchForTc, prNum, build,
+                    fatBuild, tcIgnited, suitesStatuses, newTestsStatuses, blockers, baseBranch);
             }
 
-            if (CommentTargets.jira(targets)) {
+            if (jiraRequested) {
                 if (Strings.isNullOrEmpty(ticket))
                     return new Visa("JIRA wasn't commented - ticket is not specified.");
 
+                String comment = JiraCommentsGenerator.generateJiraComment(jira.config().getApiVersion(), compactor,
+                    suitesStatuses, newTestsStatuses, build.webUrl, buildTypeId, tcIgnited, blockers,
+                    build.branchName, baseBranch);
+
                 res = objMapper.readValue(jira.postJiraComment(ticket, comment), JiraCommentResponse.class);
             }
-            else if (!gitHubCommented)
-                return new Visa("GitHub wasn't commented - related PR was not found or GitHub API returned an error.");
+
+            if (githubRequested && !gitHubCommented)
+                return commentResult(targets, gitHubCommented, res, blockers);
         }
         catch (Exception e) {
             String errMsg = "Exception happened during commenting TCBot analysis " +
@@ -1136,15 +1234,33 @@ public class TcBotTriggerAndSignOffService {
 
         logSlowVisaOperation(startNanos, "notifyComments", srvCodeOrAlias, buildTypeId, branchForTc, blockers);
 
-        return CommentTargets.jira(targets)
-            ? new Visa(Visa.JIRA_COMMENTED, res, blockers)
-            : new Visa(Visa.COMMENTED, res, blockers);
+        return commentResult(targets, true, res, blockers);
+    }
+
+    /**
+     * @param targets Comment targets.
+     * @param gitHubCommented Whether GitHub target was commented successfully.
+     * @param res JIRA response.
+     * @param blockers Blockers count.
+     */
+    static Visa commentResult(String targets, boolean gitHubCommented, JiraCommentResponse res, int blockers) {
+        boolean githubRequested = CommentTargets.github(targets);
+        boolean jiraRequested = CommentTargets.jira(targets);
+
+        if (githubRequested && !gitHubCommented && jiraRequested)
+            return new Visa(Visa.PARTIALLY_COMMENTED, res, blockers);
+
+        if (githubRequested && !gitHubCommented)
+            return new Visa("GitHub wasn't commented - related PR was not found or GitHub API returned an error.");
+
+        return jiraRequested ? new Visa(Visa.JIRA_COMMENTED, res, blockers) : new Visa(Visa.COMMENTED, res, blockers);
     }
 
     /**
      * @param srvCodeOrAlias Server code.
      * @param buildTypeId Build type id.
      * @param requestedBranchForTc Branch requested by caller.
+     * @param prNum Pull request number selected by user.
      * @param build Build.
      * @param fatBuild Compacted build.
      * @param tcIgnited TeamCity.
@@ -1157,6 +1273,7 @@ public class TcBotTriggerAndSignOffService {
         String srvCodeOrAlias,
         String buildTypeId,
         String requestedBranchForTc,
+        @Nullable Integer prNum,
         Build build,
         FatBuildCompacted fatBuild,
         ITeamcityIgnited tcIgnited,
@@ -1166,11 +1283,13 @@ public class TcBotTriggerAndSignOffService {
         String baseBranch) {
         try {
             IGitHubConnIgnited gh = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
-            PullRequest pr = findPullRequestForBuild(gh, requestedBranchForTc, build.branchName);
+            PullRequest pr = prNum == null ? findPullRequestForBuild(gh, requestedBranchForTc, build.branchName)
+                : findPullRequestByNumber(gh, prNum);
 
             if (pr == null) {
-                logger.info("GitHub PR was not found for TCBot analysis comment [srv={}, requestedBranch={}, buildBranch={}]",
-                    srvCodeOrAlias, requestedBranchForTc, build.branchName);
+                logger.info("GitHub PR was not found for TCBot analysis comment " +
+                        "[srv={}, prNum={}, requestedBranch={}, buildBranch={}]",
+                    srvCodeOrAlias, prNum, requestedBranchForTc, build.branchName);
 
                 return false;
             }
@@ -1206,6 +1325,29 @@ public class TcBotTriggerAndSignOffService {
 
             return false;
         }
+    }
+
+    /**
+     * @param gh GitHub.
+     * @param prNum Pull request number.
+     */
+    @Nullable private PullRequest findPullRequestByNumber(IGitHubConnIgnited gh, int prNum) {
+        PullRequest pr = gh.getPullRequest(prNum);
+
+        if (pr != null)
+            return pr;
+
+        List<PullRequest> prs = gh.getPullRequests();
+
+        if (prs == null)
+            return null;
+
+        for (PullRequest next : prs) {
+            if (next.getNumber() == prNum)
+                return next;
+        }
+
+        return null;
     }
 
     /**
@@ -1259,8 +1401,11 @@ public class TcBotTriggerAndSignOffService {
      * @param marker Marker.
      * @param buildUrl Build URL.
      */
-    private boolean hasExistingGitHubComment(IGitHubConnIgnited gh, int prNum, String marker, String buildUrl) {
+    boolean hasExistingGitHubComment(IGitHubConnIgnited gh, int prNum, String marker, String buildUrl) {
         List<GitHubIssueComment> comments = gh.getIssueComments(prNum);
+
+        if (comments == null)
+            return false;
 
         for (GitHubIssueComment comment : comments) {
             String body = comment.body();
@@ -1270,6 +1415,23 @@ public class TcBotTriggerAndSignOffService {
         }
 
         return false;
+    }
+
+    /**
+     * @param prNum Pull request number.
+     */
+    @Nullable private Integer parsePrNum(@Nullable String prNum) {
+        if (Strings.isNullOrEmpty(prNum))
+            return null;
+
+        try {
+            return Integer.parseInt(prNum);
+        }
+        catch (NumberFormatException e) {
+            logger.warn("Invalid PR number: {}", prNum);
+
+            return null;
+        }
     }
 
     /**

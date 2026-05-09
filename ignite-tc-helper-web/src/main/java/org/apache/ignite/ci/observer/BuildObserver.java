@@ -118,8 +118,25 @@ public class BuildObserver {
     public void observe(String srvId, String ticket, String branchForTc, String parentSuiteId,
         @Nullable String baseBranchForTc, String userName, @Nullable String commentTargets,
         Build... builds) {
+        observe(srvId, ticket, branchForTc, parentSuiteId, baseBranchForTc, userName, commentTargets,
+            null, false, builds);
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param ticket JIRA ticket name.
+     * @param branchForTc Branch for TC.
+     * @param baseBranchForTc Base branch in TC identification.
+     * @param userName User name.
+     * @param commentTargets Comment targets.
+     * @param prNum Pull request number selected by user.
+     * @param commentOnlyIfNoBlockers Comment only if analysis has no blockers.
+     */
+    public void observe(String srvId, String ticket, String branchForTc, String parentSuiteId,
+        @Nullable String baseBranchForTc, String userName, @Nullable String commentTargets,
+        @Nullable Integer prNum, boolean commentOnlyIfNoBlockers, Build... builds) {
         BuildsInfo buildsInfo = new BuildsInfo(srvId, ticket, branchForTc, parentSuiteId, baseBranchForTc, userName,
-            commentTargets, builds);
+            commentTargets, prNum, commentOnlyIfNoBlockers, builds);
 
         observerTask.addInfo(buildsInfo);
     }

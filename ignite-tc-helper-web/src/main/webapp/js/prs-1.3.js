@@ -555,7 +555,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
                 " false," +
                 " true," +
                 "\"" + jiraOptional + "\"," +
-                "null," +
+                "\"" + row.prNumber + "\"," +
                 "null," +
                 "false," +
                 "\"GITHUB\"); ";
@@ -571,7 +571,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
                 " false," +
                 " true," +
                 "\"" + jiraOptional + "\"," +
-                "null," +
+                "\"" + row.prNumber + "\"," +
                 "null," +
                 "true," +
                 "\"GITHUB\"); ";

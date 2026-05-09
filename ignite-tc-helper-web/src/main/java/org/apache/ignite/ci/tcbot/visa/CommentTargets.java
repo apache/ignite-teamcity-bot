@@ -19,7 +19,9 @@ package org.apache.ignite.ci.tcbot.visa;
 
 import com.google.common.base.Strings;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
@@ -36,6 +38,9 @@ public class CommentTargets {
     /** Default target for old callers. */
     public static final String DFLT = JIRA;
 
+    /** Allowed targets. */
+    private static final Set<String> ALLOWED = new LinkedHashSet<>(Arrays.asList(JIRA, GITHUB));
+
     /**
      * @param targets Raw targets.
      */
@@ -43,12 +48,19 @@ public class CommentTargets {
         if (Strings.isNullOrEmpty(targets))
             return DFLT;
 
-        String normalized = Arrays.stream(targets.split(","))
+        Set<String> normalizedTargets = Arrays.stream(targets.split(","))
             .map(String::trim)
             .filter(s -> !s.isEmpty())
             .map(s -> s.toUpperCase(Locale.ROOT))
             .distinct()
-            .collect(Collectors.joining(","));
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        for (String target : normalizedTargets) {
+            if (!ALLOWED.contains(target))
+                throw new IllegalArgumentException("Unknown comment target: " + target);
+        }
+
+        String normalized = normalizedTargets.stream().collect(Collectors.joining(","));
 
         return Strings.isNullOrEmpty(normalized) ? DFLT : normalized;
     }
