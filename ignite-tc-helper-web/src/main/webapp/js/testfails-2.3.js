@@ -760,7 +760,7 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
     var branchNotExists = !isDefinedAndFilled(branchName) || branchName.length === 0;
     branchName = branchNotExists ? null : branchForTc(branchName);
     ticketId = (isDefinedAndFilled(ticketId) && ticketId.length > 0) ? ticketId : null;
-    var processId = createBotProcessId("commentJiraOrGit");
+    var processId = createBotProcessId("commentBuildAnalysis");
     var stopProcessPolling;
 
     if (branchNotExists) {
@@ -827,7 +827,7 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
             dialog.dialog("option", "buttons", {
                 "Retry": function () {
                     ticketId = $("#enterTicketId").val();
-                    processId = createBotProcessId("commentJiraOrGit");
+                    processId = createBotProcessId("commentBuildAnalysis");
                     showCommentProcessDialog(dialog);
                     appendActionStage(dialog, "Retrying with explicit ticket " + ticketId + ".");
                     appendActionStage(dialog, "Sending comment request to the bot REST API.");

@@ -32,8 +32,44 @@ public class VisaStatus {
     /** JIRA ticket full name. */
     @Nullable public String ticket;
 
+    /** JIRA ticket URL. */
+    @Nullable public String ticketUrl;
+
+    /** Pull request number selected for commenting. */
+    @Nullable public Integer prNum;
+
+    /** Pull request URL. */
+    @Nullable public String prUrl;
+
+    /** Pull request author GitHub login. */
+    @Nullable public String prAuthor;
+
+    /** Pull request author GitHub profile URL. */
+    @Nullable public String prAuthorUrl;
+
+    /** Pull request author avatar URL. */
+    @Nullable public String prAuthorAvatarUrl;
+
     /** */
     @Nullable public String status;
+
+    /** User-visible final comment status. */
+    @Nullable public String commentStatus;
+
+    /** Requested comment targets. */
+    @Nullable public String commentTargets;
+
+    /** Comment only if no blockers were found. */
+    public boolean commentOnlyIfNoBlockers;
+
+    /** Human-readable requested analysis slice. */
+    @Nullable public String analysisSlice;
+
+    /** Ordered rerun or observed build ids. */
+    @Nullable public String buildIds;
+
+    /** Whether this request was tied to explicitly triggered/rerun builds. */
+    public boolean rerun;
 
     /** */
     @Nullable public String commentUrl;

@@ -160,10 +160,17 @@ public class TcBotTriggerAndSignOffService {
 
     /** */
     public List<VisaStatus> getVisasStatus(ITcBotUserCreds prov) {
+        return getVisasStatus(prov, 300);
+    }
+
+    /** */
+    public List<VisaStatus> getVisasStatus(ITcBotUserCreds prov, int limit) {
         List<VisaStatus> visaStatuses = new ArrayList<>();
+        Map<String, ITeamcityIgnited> tcBySrv = new HashMap<>();
+        Map<String, IJiraIgnited> jiraBySrv = new HashMap<>();
+        Map<String, IGitHubConnIgnited> ghBySrv = new HashMap<>();
 
-
-        for (VisaRequest visaRequest : visasHistStorage.getVisas()) {
+        for (VisaRequest visaRequest : visasHistStorage.getVisas(limit)) {
             VisaStatus visaStatus = new VisaStatus();
 
             String srvCodeOrAlias = visaRequest.getInfo().srvId;
@@ -171,37 +178,50 @@ public class TcBotTriggerAndSignOffService {
             if(!prov.hasAccess(srvCodeOrAlias))
                 continue;
 
-            ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvCodeOrAlias, prov);
-
-            IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCodeOrAlias);
-
             BuildsInfo info = visaRequest.getInfo();
-
             Visa visa = visaRequest.getResult();
-
             boolean isObserving = visaRequest.isObserving();
 
             visaStatus.date = THREAD_FORMATTER.get().format(info.date);
             visaStatus.branchName = info.branchForTc;
             visaStatus.userName = info.userName;
             visaStatus.ticket = info.ticket;
+            visaStatus.prNum = info.prNum;
+            visaStatus.commentTargets = info.commentTargets;
+            visaStatus.commentOnlyIfNoBlockers = info.commentOnlyIfNoBlockers;
+            visaStatus.commentStatus = visa.status;
+            visaStatus.buildIds = buildIds(info);
+            visaStatus.rerun = !info.getBuilds().isEmpty();
+            visaStatus.analysisSlice = analysisSlice(info);
             visaStatus.buildTypeId = info.buildTypeId;
 
-            BuildTypeRefCompacted bt = tcIgn.getBuildTypeRef(info.buildTypeId);
+            ITeamcityIgnited tcIgn = tcBySrv.computeIfAbsent(srvCodeOrAlias,
+                srv -> tcIgnitedProv.server(srv, prov));
+
+            BuildTypeRefCompacted bt = null;
+
+            try {
+                bt = tcIgn.getBuildTypeRef(info.buildTypeId);
+            }
+            catch (RuntimeException e) {
+                logger.debug("Failed to load build type name for visa history [srv={}, buildTypeId={}]",
+                    srvCodeOrAlias, info.buildTypeId, e);
+            }
+
             visaStatus.buildTypeName = (bt != null ? bt.name(compactor) : visaStatus.buildTypeId);
             visaStatus.baseBranchForTc = info.baseBranchForTc;
+            visaStatus.blockers = visa.getBlockers();
 
-            String buildsStatus = visaStatus.status = info.getStatus(tcIgn, strCompactor);
+            fillTicketLinks(visaStatus, jiraBySrv.computeIfAbsent(srvCodeOrAlias, jiraIgnProv::server), visa);
+            fillPullRequestLinks(visaStatus, ghBySrv.computeIfAbsent(srvCodeOrAlias,
+                gitHubConnIgnitedProvider::server));
 
-            if (FINISHED_STATUS.equals(buildsStatus)) {
+            String buildsStatus = isObserving ? info.getStatus(tcIgn, strCompactor) : null;
+
+            if (!isObserving)
+                visaStatus.status = visa.isSuccess() ? FINISHED_STATUS : CANCELLED_STATUS;
+            else if (FINISHED_STATUS.equals(buildsStatus)) {
                 if (visa.isSuccess()) {
-                    if (visa.getJiraCommentResponse() != null) {
-                        visaStatus.commentUrl = jiraIntegration.generateCommentUrl(
-                            visaStatus.ticket, visa.getJiraCommentResponse().getId());
-                    }
-
-                    visaStatus.blockers = visa.getBlockers();
-
                     visaStatus.status = FINISHED_STATUS;
                 }
                 else
@@ -219,6 +239,102 @@ public class TcBotTriggerAndSignOffService {
         }
 
         return visaStatuses;
+    }
+
+    /**
+     * @param info Build info.
+     */
+    private static String buildIds(BuildsInfo info) {
+        return info.getBuilds().stream().map(String::valueOf).collect(Collectors.joining(","));
+    }
+
+    /**
+     * @param info Build info.
+     */
+    private static String analysisSlice(BuildsInfo info) {
+        String builds = buildIds(info);
+
+        return "branch=" + info.branchForTc + "; suite=" + info.buildTypeId +
+            (Strings.isNullOrEmpty(builds) ? "; direct comment" : "; observed buildIds=" + builds);
+    }
+
+    /**
+     * @param visaStatus Status DTO.
+     * @param jiraIntegration JIRA.
+     * @param visa Visa result.
+     */
+    private void fillTicketLinks(VisaStatus visaStatus, IJiraIgnited jiraIntegration, Visa visa) {
+        if (Strings.isNullOrEmpty(visaStatus.ticket))
+            return;
+
+        try {
+            visaStatus.ticketUrl = jiraIntegration.generateTicketUrl(visaStatus.ticket);
+
+            if (visa.getJiraCommentResponse() != null)
+                visaStatus.commentUrl = jiraIntegration.generateCommentUrl(
+                    visaStatus.ticket, visa.getJiraCommentResponse().getId());
+        }
+        catch (RuntimeException e) {
+            logger.debug("Failed to build JIRA links for visa history [ticket={}]", visaStatus.ticket, e);
+        }
+    }
+
+    /**
+     * @param visaStatus Status DTO.
+     * @param gh GitHub.
+     */
+    private void fillPullRequestLinks(VisaStatus visaStatus, IGitHubConnIgnited gh) {
+        if (visaStatus.prNum == null || visaStatus.prNum <= 0)
+            return;
+
+        PullRequest pr = null;
+
+        try {
+            pr = gh.getPullRequest(visaStatus.prNum);
+        }
+        catch (RuntimeException e) {
+            logger.debug("Failed to load PR from cache for visa history [pr={}]", visaStatus.prNum, e);
+        }
+
+        if (pr != null) {
+            visaStatus.prUrl = pr.htmlUrl();
+
+            GitHubUser author = pr.gitHubUser();
+
+            if (author != null) {
+                visaStatus.prAuthor = author.login();
+                visaStatus.prAuthorAvatarUrl = author.avatarUrl();
+
+                if (!Strings.isNullOrEmpty(author.login()))
+                    visaStatus.prAuthorUrl = "https://github.com/" + author.login();
+            }
+        }
+
+        if (Strings.isNullOrEmpty(visaStatus.prUrl))
+            visaStatus.prUrl = pullRequestUrl(gh.config().gitApiUrl(), visaStatus.prNum);
+    }
+
+    /**
+     * @param gitApiUrl GitHub API URL.
+     * @param prNum PR number.
+     */
+    @Nullable private static String pullRequestUrl(@Nullable String gitApiUrl, int prNum) {
+        if (Strings.isNullOrEmpty(gitApiUrl))
+            return null;
+
+        String apiUrl = gitApiUrl;
+
+        if (apiUrl.endsWith("/"))
+            apiUrl = apiUrl.substring(0, apiUrl.length() - 1);
+
+        if (apiUrl.endsWith("/api/v3"))
+            apiUrl = apiUrl.substring(0, apiUrl.length() - "/api/v3".length());
+
+        if (apiUrl.endsWith("/repos/apache/ignite"))
+            return apiUrl.substring(0, apiUrl.length() - "/repos/apache/ignite".length()) +
+                "/apache/ignite/pull/" + prNum;
+
+        return null;
     }
 
     /**
@@ -1305,7 +1421,7 @@ public class TcBotTriggerAndSignOffService {
             targets = CommentTargets.normalize(commentTargets);
         }
         catch (IllegalArgumentException e) {
-            return new Visa("Analysis wasn't commented - " + e.getMessage());
+            return Visa.failure("Analysis wasn't commented - " + e.getMessage());
         }
 
         boolean githubRequested = CommentTargets.github(targets);
@@ -1322,7 +1438,7 @@ public class TcBotTriggerAndSignOffService {
         if (builds.isEmpty()) {
             logSlowVisaOperation(startNanos, "notifyJiraNoBuilds", srvCodeOrAlias, buildTypeId, branchForTc, 0);
 
-            return new Visa("JIRA wasn't commented - no finished builds to analyze.");
+            return Visa.failure("JIRA wasn't commented - no finished builds to analyze.");
         }
 
         Integer buildId = builds.get(0);
@@ -1351,13 +1467,13 @@ public class TcBotTriggerAndSignOffService {
                 build.branchName, srvCodeOrAlias, prov, SyncMode.RELOAD_QUEUED, baseBranch);
 
             if (suitesStatuses == null)
-                return new Visa("JIRA wasn't commented - no finished builds to analyze." +
+                return Visa.failure("JIRA wasn't commented - no finished builds to analyze." +
                     " Check builds availability for branch: " + build.branchName + "/" + baseBranch);
 
             blockers = suitesStatuses.stream().mapToInt(ShortSuiteUi::totalBlockers).sum();
 
             if (commentOnlyIfNoBlockers && blockers > 0)
-                return new Visa(Visa.commentSkipped(blockers), null, blockers);
+                return Visa.skipped(blockers);
 
             String analysisSliceKey = analysisSliceKey(build.getId(), rerunBuildIds);
 
@@ -1370,7 +1486,7 @@ public class TcBotTriggerAndSignOffService {
 
             if (jiraRequested) {
                 if (Strings.isNullOrEmpty(ticket))
-                    return new Visa("JIRA wasn't commented - ticket is not specified.");
+                    return Visa.failure("JIRA wasn't commented - ticket is not specified.");
 
                 processMonitor.status(processId, "Publishing the analysis comment to JIRA.");
 
@@ -1403,7 +1519,7 @@ public class TcBotTriggerAndSignOffService {
 
             logger.error(errMsg);
 
-            return new Visa("Analysis wasn't commented - " + errMsg);
+            return Visa.failure("Analysis wasn't commented - " + errMsg);
         }
 
         logSlowVisaOperation(startNanos, "notifyComments", srvCodeOrAlias, buildTypeId, branchForTc, blockers);
@@ -1448,19 +1564,19 @@ public class TcBotTriggerAndSignOffService {
         boolean jiraRequested = CommentTargets.jira(targets);
 
         if (githubRequested && !gitHubCommented && jiraRequested)
-            return new Visa(partialCommentStatus(jiraStatus, gitHubError), res, blockers);
+            return Visa.success(partialCommentStatus(jiraStatus, gitHubError), res, blockers);
 
         if (githubRequested && !gitHubCommented)
-            return new Visa("GitHub wasn't commented - " +
+            return Visa.failure("GitHub wasn't commented - " +
                 (Strings.isNullOrEmpty(gitHubError) ? "unknown GitHub comment error." : gitHubError));
 
         if (jiraRequested && githubRequested)
-            return new Visa(joinCommentStatuses(jiraStatus, gitHubStatus), res, blockers);
+            return Visa.success(joinCommentStatuses(jiraStatus, gitHubStatus), res, blockers);
 
         if (jiraRequested)
-            return new Visa(Strings.isNullOrEmpty(jiraStatus) ? Visa.JIRA_COMMENTED : jiraStatus, res, blockers);
+            return Visa.success(Strings.isNullOrEmpty(jiraStatus) ? Visa.JIRA_COMMENTED : jiraStatus, res, blockers);
 
-        return new Visa(Strings.isNullOrEmpty(gitHubStatus) ? Visa.COMMENTED : gitHubStatus, res, blockers);
+        return Visa.success(Strings.isNullOrEmpty(gitHubStatus) ? Visa.COMMENTED : gitHubStatus, res, blockers);
     }
 
     /**

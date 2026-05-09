@@ -68,10 +68,10 @@ public class TcBotVisaService {
      */
     @GET
     @Path("history")
-    public Collection<VisaStatus> history() {
+    public Collection<VisaStatus> history(@Nullable @QueryParam("limit") Integer limit) {
         return CtxListener.getApplicationContext(ctx)
             .getInstance(TcBotTriggerAndSignOffService.class)
-            .getVisasStatus(ITcBotUserCreds.get(req));
+            .getVisasStatus(ITcBotUserCreds.get(req), limit == null ? 300 : limit);
     }
 
     /**

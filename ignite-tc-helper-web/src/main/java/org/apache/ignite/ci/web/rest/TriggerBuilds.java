@@ -206,32 +206,6 @@ public class TriggerBuilds {
      * @param commentTargets Comment targets.
      */
     @GET
-    @Path("commentJiraOrGit")
-    public SimpleResult commentJiraOrGit(
-        @Nullable @QueryParam("serverId") String srvCode,
-        @Nullable @QueryParam("branchName") String branchForTc,
-        @Nullable @QueryParam("suiteId") String suiteId,
-        @Nullable @QueryParam("ticketId") String ticketId,
-        @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
-        @Nullable @QueryParam("comment") String commentTargets,
-        @Nullable @QueryParam("prNum") String prNum,
-        @Nullable @QueryParam("commentOnlyIfNoBlockers") Boolean commentOnlyIfNoBlockers,
-        @Nullable @QueryParam("processId") Long processId
-    ) {
-        return startCommentProcess(srvCode, branchForTc, suiteId, ticketId, baseBranchForTc, commentTargets, prNum,
-            commentOnlyIfNoBlockers, processId);
-    }
-
-    /**
-     * Starts build analysis commenting in background.
-     *
-     * @param srvCode Server id.
-     * @param branchForTc Branch for tc.
-     * @param suiteId Suite id.
-     * @param ticketId Ticket full name with IGNITE- prefix.
-     * @param commentTargets Comment targets.
-     */
-    @GET
     @Path("commentBuildAnalysis")
     public SimpleResult commentBuildAnalysis(
         @Nullable @QueryParam("serverId") String srvCode,
@@ -265,7 +239,7 @@ public class TriggerBuilds {
 
         BotProcessMonitor process = appCtx.getInstance(BotProcessMonitor.class);
 
-        process.start(processId, "commentJiraOrGit", "Comment request accepted by the bot REST API.");
+        process.start(processId, "commentBuildAnalysis", "Comment request accepted by the bot REST API.");
 
         try {
             checkAccess(appCtx, srvCode, prov);

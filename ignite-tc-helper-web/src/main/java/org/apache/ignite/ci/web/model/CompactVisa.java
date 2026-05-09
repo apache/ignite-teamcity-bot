@@ -34,14 +34,24 @@ public class CompactVisa {
     public final int blockers;
 
     /** */
+    public final int result;
+
+    /** */
     public CompactVisa(Visa visa, IStringCompactor strCompactor) {
         this.status = strCompactor.getStringId(visa.status);
         this.blockers = visa.blockers;
         this.jiraCommentRes = visa.getJiraCommentResponse();
+        this.result = visa.result.ordinal();
     }
 
     /** */
     public Visa toVisa(IStringCompactor strCompactor) {
-        return new Visa(strCompactor.getStringFromId(status), jiraCommentRes, blockers);
+        String status = strCompactor.getStringFromId(this.status);
+        Visa.Result[] results = Visa.Result.values();
+        Visa.Result visaResult = result > 0 && result < results.length
+            ? results[result]
+            : Visa.legacyResult(status, jiraCommentRes);
+
+        return new Visa(status, jiraCommentRes, blockers, visaResult);
     }
 }

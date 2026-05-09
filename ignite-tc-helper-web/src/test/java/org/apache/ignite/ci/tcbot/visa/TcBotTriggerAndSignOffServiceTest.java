@@ -23,6 +23,7 @@ import org.apache.ignite.ci.github.GitHubIssueComment;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.observer.CompactBuildsInfo;
+import org.apache.ignite.ci.web.model.CompactVisa;
 import org.apache.ignite.ci.web.model.JiraCommentResponse;
 import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.githubignited.IGitHubConnIgnited;
@@ -95,11 +96,38 @@ public class TcBotTriggerAndSignOffServiceTest {
      * Checks skipped run result comment status names blockers count.
      */
     @Test public void skippedRunResultCommentNamesBlockersCount() {
-        Visa skipped = new Visa(Visa.commentSkipped(3), null, 3);
+        Visa skipped = Visa.skipped(3);
 
         assertEquals("Run result comment skipped: 3 blockers found.", skipped.status);
         assertTrue(skipped.isSuccess());
         assertEquals(3, skipped.getBlockers());
+    }
+
+    /**
+     * Checks machine-readable result is not inferred from user-visible status in new Visa instances.
+     */
+    @Test public void visaSuccessDoesNotDependOnStatusText() {
+        JiraCommentResponse res = new JiraCommentResponse();
+
+        assertFalse(Visa.failure("JIRA ticket commented: IGNITE-1 https://issues.example/IGNITE-1").isSuccess());
+        assertTrue(Visa.success("GitHub wasn't commented - ignored text in explicit success", res, 0).isSuccess());
+    }
+
+    /**
+     * Checks compact Visa stores machine-readable result.
+     */
+    @Test public void compactVisaStoresResultCode() {
+        IStringCompactor compactor = mock(IStringCompactor.class);
+        JiraCommentResponse res = new JiraCommentResponse();
+
+        when(compactor.getStringId("Any visible text")).thenReturn(12);
+        when(compactor.getStringFromId(12)).thenReturn("Any visible text");
+
+        Visa restored = new CompactVisa(Visa.success("Any visible text", res, 1), compactor).toVisa(compactor);
+
+        assertTrue(restored.isSuccess());
+        assertEquals("Any visible text", restored.status);
+        assertEquals(1, restored.blockers);
     }
 
     /**
