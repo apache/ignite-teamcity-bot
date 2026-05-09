@@ -69,7 +69,9 @@ function showChainResultsWithSettings(result, settings) {
         res += " [";
         res += "tests " + result.failedTests + " suites " + result.failedToFinish + "";
         res += "]";
-    } else
+    } else if (resultHasBuildInProgress(result))
+        res += " are in progress";
+    else
         res += " is absent";
 
     res += "</td></tr>";
@@ -83,6 +85,11 @@ function showChainResultsWithSettings(result, settings) {
     res += "<tr bgcolor='#F5F5FF'><th colspan='4' class='table-title'><b>New Tests</b></th></tr>"
 
     for (var i = 0; i < result.servers.length; i++) {
+        if (isDefinedAndFilled(result.servers[i].buildInProgress) && result.servers[i].buildInProgress) {
+            res += "<tr><td colspan='4' style='color:grey'>New tests will be available after the build finishes.</td></tr>";
+            continue;
+        }
+
         var newTests = result.servers[i].newTestsUi;
         res += showNewTestsData(newTests, settings);
     }
@@ -93,6 +100,18 @@ function showChainResultsWithSettings(result, settings) {
     setTimeout(initMoreInfo, 100);
 
     return res;
+}
+
+function resultHasBuildInProgress(result) {
+    if (!isDefinedAndFilled(result) || !isDefinedAndFilled(result.servers))
+        return false;
+
+    for (var i = 0; i < result.servers.length; i++) {
+        if (isDefinedAndFilled(result.servers[i].buildInProgress) && result.servers[i].buildInProgress)
+            return true;
+    }
+
+    return false;
 }
 
 /**
@@ -147,6 +166,9 @@ function showNewTestsData(chain, settings) {
 function showChainCurrentStatusData(chain, settings) {
     if(!isDefinedAndFilled(chain))
         return;
+
+    if (isDefinedAndFilled(chain.buildInProgress) && chain.buildInProgress)
+        return showBuildInProgressData(chain);
 
     if(isDefinedAndFilled(chain.buildNotFound) && chain.buildNotFound ) {
         return "<tr><td><b>Error: Build not found for branch [" + chain.branchName + "]</b>" +
@@ -402,6 +424,63 @@ function showChainCurrentStatusData(chain, settings) {
 
         res += showSuiteData(subSuite, settings, chain.prNum);
     }
+
+    return res;
+}
+
+function showBuildInProgressData(chain) {
+    var res = "";
+
+    res += "<table style='width: 100%;' border='0px'>";
+    res += "<tr bgcolor='#F5F5FF'><td colspan='3' width='75%'>";
+    res += "<table style='width: 40%'>";
+    res += "<tr><td><b> Server: </b></td><td>[" + escapeHtml(chain.serverCode) + "] TC: [" +
+        escapeHtml(chain.tcServerCode) + "]</td></tr>";
+
+    if (isDefinedAndFilled(chain.prNum)) {
+        res += "<tr><td><b> PR: </b></td><td>";
+
+        if (isDefinedAndFilled(chain.webToPr))
+            res += "<a href='" + escapeHtml(chain.webToPr) + "'>[#" + escapeHtml(chain.prNum) + "]</a>";
+        else
+            res += "[#" + escapeHtml(chain.prNum) + "]";
+
+        res += "</td></tr>";
+    }
+
+    if (isDefinedAndFilled(chain.webToTicket) && isDefinedAndFilled(chain.ticketFullName)) {
+        res += "<tr><td><b> Ticket: </b></td><td>";
+        res += "<a href='" + escapeHtml(chain.webToTicket) + "'>[" + escapeHtml(chain.ticketFullName) + "]</a>";
+        res += "</td></tr>";
+    }
+
+    res += "<tr><td><b> Suite: </b></td><td>[" + escapeHtml(chain.suiteId || findGetParameter("suiteId") || "") + "]";
+
+    if (isDefinedAndFilled(chain.webToHist))
+        res += " <a href='" + escapeHtml(chain.webToHist) + "' title='Chain history'>[TC history]</a>";
+
+    if (isDefinedAndFilled(chain.webToBuild))
+        res += " <a href='" + escapeHtml(chain.webToBuild) + "' title='Queued or running build'>[Build]</a>";
+
+    res += "</td></tr>";
+    res += "<tr><td><b> Branch: </b></td><td>" + escapeHtml(chain.branchName) + "</td></tr>";
+    res += "</table></br>";
+
+    if (isDefinedAndFilled(chain.chainName))
+        res += escapeHtml(chain.chainName) + " ";
+
+    res += "<b>Chain result: </b>build is still running";
+
+    if (isDefinedAndFilled(chain.runningProgress))
+        res += "<br><span>" + escapeHtml(chain.runningProgress) + "</span>";
+
+    if (isDefinedAndFilled(chain.estimatedCompletion))
+        res += "<br><span style='color:grey'>Estimated completion: " + escapeHtml(chain.estimatedCompletion) + "</span>";
+
+    if (isDefinedAndFilled(chain.runningBuildId))
+        res += "<br><span style='color:grey'>Build id: " + escapeHtml(chain.runningBuildId) + "</span>";
+
+    res += "</td></tr></table>";
 
     return res;
 }

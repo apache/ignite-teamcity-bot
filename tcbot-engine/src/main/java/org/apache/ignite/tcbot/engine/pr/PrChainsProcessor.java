@@ -18,6 +18,7 @@ package org.apache.ignite.tcbot.engine.pr;
 
 import com.google.common.base.Strings;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -32,6 +33,10 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.RunningInfoCompacted;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.githubignited.IGitHubConnIgnited;
 import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
@@ -40,6 +45,7 @@ import org.apache.ignite.jiraignited.IJiraIgnited;
 import org.apache.ignite.jiraignited.IJiraIgnitedProvider;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
+import org.apache.ignite.tcbot.common.util.TimeUtil;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
@@ -54,6 +60,7 @@ import org.apache.ignite.tcbot.engine.newtests.NewTestsStorage;
 import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
 import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
+import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.ShortSuiteUi;
 import org.apache.ignite.tcbot.engine.ui.ShortSuiteNewTestsUi;
@@ -192,8 +199,10 @@ public class PrChainsProcessor {
 
         chainStatus.baseBranchForTc = baseBranchForTc;
 
-        if (ctx.isFakeStub())
-            chainStatus.setBuildNotFound(true);
+        if (ctx.isFakeStub()) {
+            if (!initInProgressChainStatus(chainStatus, tcIgnited, suiteId, branchForTc, mode))
+                chainStatus.setBuildNotFound(true);
+        }
         else {
             //fail rate reference is always default (master)
             chainStatus.initFromContext(tcIgnited, ctx, baseBranchForTc, compactor, false,
@@ -207,6 +216,182 @@ public class PrChainsProcessor {
         res.initCounters(getPrUpdateCounters(srvCodeOrAlias, branchForTc, baseBranchForTc, creds));
 
         return res;
+    }
+
+    /**
+     * Initializes minimal UI when the requested PR run exists in TeamCity but has not produced finished results yet.
+     *
+     * @param chainStatus Chain UI.
+     * @param tcIgnited TeamCity facade.
+     * @param suiteId Suite id.
+     * @param branchForTc Branch name.
+     * @param mode Refresh mode.
+     */
+    private boolean initInProgressChainStatus(DsChainUi chainStatus, ITeamcityIgnited tcIgnited, String suiteId,
+        String branchForTc, SyncMode mode) {
+        List<BuildRefCompacted> liveBuilds = tcIgnited.getAllBuildsCompacted(suiteId, branchForTc)
+            .stream()
+            .filter(ref -> ref.isNotCancelled(compactor))
+            .filter(ref -> ref.isQueued(compactor) || ref.isRunning(compactor))
+            .collect(Collectors.toList());
+
+        if (liveBuilds.isEmpty())
+            return false;
+
+        chainStatus.buildInProgress = true;
+        chainStatus.suiteId = suiteId;
+        chainStatus.webToHist = DsSuiteUi.buildWebLinkToHist(tcIgnited, suiteId, branchForTc);
+
+        BuildTypeCompacted buildType = tcIgnited.getBuildType(suiteId);
+
+        if (buildType != null)
+            chainStatus.chainName = buildType.name(compactor);
+
+        BuildRefCompacted mainBuild = liveBuilds.stream()
+            .filter(ref -> ref.isRunning(compactor))
+            .findFirst()
+            .orElse(liveBuilds.get(0));
+
+        chainStatus.runningBuildId = mainBuild.getId();
+        chainStatus.webToBuild = buildWebLinkToLiveBuild(tcIgnited, mainBuild);
+
+        fillRunningProgress(chainStatus, tcIgnited, liveBuilds, mode);
+
+        return true;
+    }
+
+    /**
+     * @param tcIgnited TeamCity facade.
+     * @param ref Build reference.
+     */
+    private String buildWebLinkToLiveBuild(ITeamcityIgnited tcIgnited, BuildRefCompacted ref) {
+        if (ref.isQueued(compactor))
+            return tcIgnited.host() + "viewQueued.html?itemId=" + ref.id();
+
+        return tcIgnited.host() + "viewLog.html?buildId=" + ref.id();
+    }
+
+    /**
+     * @param chainStatus Chain UI.
+     * @param tcIgnited TeamCity facade.
+     * @param liveBuilds Live builds.
+     * @param mode Refresh mode.
+     */
+    private void fillRunningProgress(DsChainUi chainStatus, ITeamcityIgnited tcIgnited,
+        List<BuildRefCompacted> liveBuilds, SyncMode mode) {
+        int progressSum = 0;
+        int progressCnt = 0;
+        long maxLeftSeconds = -1;
+        String stage = null;
+        boolean probablyHanging = false;
+
+        for (BuildRefCompacted ref : liveBuilds) {
+            if (ref.isQueued(compactor))
+                chainStatus.queuedBuilds++;
+
+            if (ref.isRunning(compactor))
+                chainStatus.runningBuilds++;
+
+            if (ref.getId() == null)
+                continue;
+
+            FatBuildCompacted build;
+
+            try {
+                build = tcIgnited.getFatBuild(ref.id(), mode);
+            }
+            catch (RuntimeException e) {
+                continue;
+            }
+
+            if (build == null || build.isFakeStub())
+                continue;
+
+            RunningInfoCompacted runningInfo = build.runningInfo();
+
+            if (runningInfo == null)
+                continue;
+
+            Integer percent = runningInfo.percentageComplete();
+
+            if (percent != null) {
+                progressSum += percent;
+                progressCnt++;
+            }
+
+            Long leftSeconds = runningInfo.leftSeconds();
+
+            if (leftSeconds != null && leftSeconds >= 0)
+                maxLeftSeconds = Math.max(maxLeftSeconds, leftSeconds);
+
+            String stageText = runningInfo.currentStageText(compactor);
+
+            if (!Strings.isNullOrEmpty(stageText) && Strings.isNullOrEmpty(stage))
+                stage = shorten(stageText, 160);
+
+            if (Boolean.TRUE.equals(runningInfo.probablyHanging()))
+                probablyHanging = true;
+        }
+
+        chainStatus.runningProgress = runningProgressText(liveBuilds.size(), chainStatus.runningBuilds,
+            chainStatus.queuedBuilds, progressCnt == 0 ? null : progressSum / progressCnt, stage, probablyHanging);
+
+        if (maxLeftSeconds >= 0)
+            chainStatus.estimatedCompletion = estimatedCompletionText(maxLeftSeconds, chainStatus.queuedBuilds);
+        else if (chainStatus.queuedBuilds > 0)
+            chainStatus.estimatedCompletion = "waiting in TeamCity queue";
+    }
+
+    /**
+     * @param total Total live builds.
+     * @param running Running builds.
+     * @param queued Queued builds.
+     * @param percent Average TeamCity percentage.
+     * @param stage Current TeamCity stage.
+     * @param probablyHanging Whether TeamCity suspects hang.
+     */
+    private static String runningProgressText(int total, int running, int queued, @Nullable Integer percent,
+        @Nullable String stage, boolean probablyHanging) {
+        List<String> parts = new ArrayList<>();
+
+        if (running > 0)
+            parts.add(running + "/" + total + " builds running");
+
+        if (queued > 0)
+            parts.add(queued + " queued");
+
+        if (percent != null)
+            parts.add("about " + percent + "%");
+
+        if (probablyHanging)
+            parts.add("TeamCity suspects hanging build");
+
+        String res = String.join(", ", parts);
+
+        return Strings.isNullOrEmpty(stage) ? res : res + ": " + stage;
+    }
+
+    /**
+     * @param leftSeconds TeamCity estimated remaining seconds.
+     * @param queued Queued builds count.
+     */
+    private static String estimatedCompletionText(long leftSeconds, int queued) {
+        long leftMs = TimeUnit.SECONDS.toMillis(leftSeconds);
+        String eta = "in " + TimeUtil.millisToDurationPrintable(leftMs) +
+            " (around " + TimeUtil.timestampToDateTimePrintable(System.currentTimeMillis() + leftMs) + ")";
+
+        return queued > 0 ? eta + ", queued builds may extend it" : eta;
+    }
+
+    /**
+     * @param text Text to shorten.
+     * @param limit Max chars.
+     */
+    private static String shorten(String text, int limit) {
+        if (text == null || text.length() <= limit)
+            return text;
+
+        return text.substring(0, Math.max(0, limit - 3)) + "...";
     }
 
     /**
