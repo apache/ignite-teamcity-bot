@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -63,6 +65,22 @@ public class TestFailuresAiPromptBuilder {
 
     /** Max suggested local search commands. */
     private static final int SUGGESTED_SEARCHES_LIMIT = 5;
+
+    /** Max lines to keep from TeamCity stdout/stderr details sections. */
+    private static final int DETAILS_SECTION_TAIL_LINES = 25;
+
+    /** Max chars to keep from TeamCity stdout/stderr details sections. */
+    private static final int DETAILS_SECTION_TAIL_CHARS = 6000;
+
+    /** Throwable class in a log line, with an optional message. */
+    private static final Pattern THROWABLE_SIGNAL = Pattern.compile(
+        "\\b((?:[\\w$]+\\.)*[\\w$]*(?:Exception|Error))\\b(?:\\s*:\\s*([^\\r\\n]+))?");
+
+    /** Inline stack frame tail after a compacted exception message. */
+    private static final Pattern INLINE_STACK_TAIL = Pattern.compile("\\s+at\\s+[\\w.$]+\\([^)]*\\).*$");
+
+    /** Java source location in stack trace. */
+    private static final Pattern JAVA_SOURCE_LOCATION = Pattern.compile("\\(([^():]+\\.java):(\\d+)\\)");
 
     /** String compactor. */
     private final IStringCompactor compactor;
@@ -332,7 +350,7 @@ public class TestFailuresAiPromptBuilder {
             appendLine(res, "Recent execution history", recentHistory(testHist, 12));
         }
 
-        appendInvestigationInstructions(res);
+        appendInvestigationInstructions(res, masterChangeCauseInstruction(suite.branchName(), testHist));
 
         res.append('\n');
     }
@@ -361,7 +379,7 @@ public class TestFailuresAiPromptBuilder {
         appendLine(res, "Failed tests reported", String.valueOf(suite.failedTests()));
         appendLine(res, "Total tests", String.valueOf(suite.totalTests()));
 
-        appendInvestigationInstructions(res);
+        appendInvestigationInstructions(res, null);
 
         res.append('\n');
     }
@@ -405,10 +423,23 @@ public class TestFailuresAiPromptBuilder {
             res.append(limit(firstFailureSignal(cleanedDetails), 6000));
             res.append("\n```\n");
 
-            res.append("Failure details text from TeamCity:\n");
-            res.append("```text\n");
-            res.append(limit(cleanedDetails, maxDetailsChars));
-            res.append("\n```\n");
+            String summary = relevantStdoutStderrSummary(cleanedDetails, duration);
+
+            if (!Strings.isNullOrEmpty(summary)) {
+                res.append("Relevant stdout/stderr:\n");
+                res.append(summary);
+            }
+
+            String detailsTails = detailsTailsForPrompt(cleanedDetails);
+
+            if (!Strings.isNullOrEmpty(detailsTails)) {
+                res.append("<details>\n");
+                res.append("<summary>Raw TeamCity stdout/stderr tail (secondary)</summary>\n\n");
+                res.append("```text\n");
+                res.append(limit(detailsTails, Math.min(maxDetailsChars, DETAILS_SECTION_TAIL_CHARS)));
+                res.append("\n```\n");
+                res.append("</details>\n");
+            }
         }
     }
 
@@ -606,9 +637,11 @@ public class TestFailuresAiPromptBuilder {
      * @param warns Log scanner messages from the current compacted API.
      * @return Search regex for notable log messages.
      */
-    @Nullable private String logSearchRegex(List<String> warns) {
+    @Nullable String logSearchRegex(List<String> warns) {
         String joined = String.join("\n", warns);
         List<String> terms = new ArrayList<>();
+
+        terms.addAll(throwableSearchTerms(warns));
 
         addIfPresent(terms, joined, "SYSTEM_WORKER_TERMINATION");
         addIfPresent(terms, joined, "Critical system error detected");
@@ -616,7 +649,64 @@ public class TestFailuresAiPromptBuilder {
         addIfPresent(terms, joined, "OutOfMemoryError");
         addIfPresent(terms, joined, "Process exited with code");
 
-        return terms.stream().distinct().limit(3).map(this::escapeRgTerm).collect(Collectors.joining("|"));
+        return terms.stream().distinct().map(this::escapeRgTerm).collect(Collectors.joining("|"));
+    }
+
+    /**
+     * @param warns Log scanner messages from the current compacted API.
+     * @return Throwable class names and messages worth searching in the checkout.
+     */
+    private List<String> throwableSearchTerms(List<String> warns) {
+        Set<String> terms = new LinkedHashSet<>();
+
+        for (String warn : warns) {
+            if (Strings.isNullOrEmpty(warn))
+                continue;
+
+            for (String line : warn.split("\\r?\\n")) {
+                Matcher matcher = THROWABLE_SIGNAL.matcher(line);
+
+                while (matcher.find()) {
+                    String throwableCls = simpleThrowableName(matcher.group(1));
+                    String msg = normalizeSearchMessage(matcher.group(2));
+
+                    if (!Strings.isNullOrEmpty(throwableCls))
+                        terms.add(throwableCls);
+                    if (!Strings.isNullOrEmpty(msg))
+                        terms.add(msg);
+                }
+            }
+        }
+
+        return new ArrayList<>(terms);
+    }
+
+    /**
+     * @param cls Throwable class name.
+     * @return Simple throwable class name.
+     */
+    @Nullable private String simpleThrowableName(@Nullable String cls) {
+        if (Strings.isNullOrEmpty(cls))
+            return null;
+
+        int idx = cls.lastIndexOf('.');
+
+        return idx >= 0 ? cls.substring(idx + 1) : cls;
+    }
+
+    /**
+     * @param msg Exception/assertion message.
+     * @return Searchable message.
+     */
+    @Nullable private String normalizeSearchMessage(@Nullable String msg) {
+        if (Strings.isNullOrEmpty(msg))
+            return null;
+
+        String normalized = INLINE_STACK_TAIL.matcher(msg).replaceFirst("")
+            .replaceAll("\\s+", " ")
+            .trim();
+
+        return normalized.length() < 5 ? null : normalized;
     }
 
     /**
@@ -824,6 +914,135 @@ public class TestFailuresAiPromptBuilder {
     }
 
     /**
+     * @param details Cleaned TeamCity details.
+     * @return Short stdout/stderr tails for prompt context.
+     */
+    String detailsTailsForPrompt(String details) {
+        String[] lines = details.split("\\r?\\n");
+        StringBuilder res = new StringBuilder();
+
+        for (int i = 0; i < lines.length; i++) {
+            if (!isDetailsSectionHeader(lines[i]))
+                continue;
+
+            int end = i + 1;
+
+            while (end < lines.length && !isDetailsSectionHeader(lines[end]))
+                end++;
+
+            appendSectionTail(res, lines, i, end);
+        }
+
+        return res.toString().trim();
+    }
+
+    /**
+     * @param details Cleaned TeamCity details.
+     * @param duration Test duration in millis.
+     * @return Compact stdout/stderr interpretation.
+     */
+    String relevantStdoutStderrSummary(String details, @Nullable Integer duration) {
+        List<String> bullets = new ArrayList<>();
+
+        if (duration != null)
+            bullets.add("Test started and failed within ~" + duration + " ms.");
+
+        String location = firstJavaSourceLocation(details);
+
+        if (!Strings.isNullOrEmpty(location)) {
+            if (details.contains("Assertion"))
+                bullets.add("Assertion at " + location + ".");
+            else
+                bullets.add("Failure stack points to " + location + ".");
+        }
+
+        if (igniteNodeStartedAndStopped(details))
+            bullets.add("Ignite node started and stopped normally.");
+
+        if (!hasTimeoutOrCrashSignal(details))
+            bullets.add("No timeout or crash signal.");
+
+        return bullets.stream().map(bullet -> "- " + bullet + '\n').collect(Collectors.joining());
+    }
+
+    /**
+     * @param details Details.
+     * @return First Java source location.
+     */
+    @Nullable private String firstJavaSourceLocation(String details) {
+        Matcher matcher = JAVA_SOURCE_LOCATION.matcher(details);
+
+        return matcher.find() ? matcher.group(1) + ":" + matcher.group(2) : null;
+    }
+
+    /**
+     * @param details Details.
+     * @return {@code true} if stdout/stderr contains a normal Ignite lifecycle signal.
+     */
+    private boolean igniteNodeStartedAndStopped(String details) {
+        String lower = details.toLowerCase();
+
+        boolean started = lower.contains("ignite node started")
+            || lower.contains("topology snapshot")
+            || lower.contains(">>> started cache");
+
+        boolean stopped = lower.contains("ignite node stopped")
+            || lower.contains("stopping grid")
+            || lower.contains("grid stopped")
+            || lower.contains("ignite instance stopped");
+
+        return started && stopped;
+    }
+
+    /**
+     * @param details Details.
+     * @return {@code true} if details contains timeout/crash/process-failure signal.
+     */
+    private boolean hasTimeoutOrCrashSignal(String details) {
+        String lower = details.toLowerCase();
+
+        return lower.contains("timeout")
+            || lower.contains("timed out")
+            || lower.contains("outofmemoryerror")
+            || lower.contains("hs_err")
+            || lower.contains("jvm crash")
+            || lower.contains("process exited")
+            || lower.contains("exit code");
+    }
+
+    /**
+     * @param line Details line.
+     * @return {@code true} if line starts a stdout/stderr details section.
+     */
+    private boolean isDetailsSectionHeader(String line) {
+        return "------- Stdout: -------".equals(line) || "------- Stderr: -------".equals(line);
+    }
+
+    /**
+     * @param res Result.
+     * @param lines Details lines.
+     * @param headerIdx Header line index.
+     * @param end Exclusive section end.
+     */
+    private void appendSectionTail(StringBuilder res, String[] lines, int headerIdx, int end) {
+        int start = Math.max(headerIdx + 1, end - DETAILS_SECTION_TAIL_LINES);
+
+        if (start >= end)
+            return;
+
+        if (res.length() > 0)
+            res.append('\n');
+
+        res.append(lines[headerIdx]).append('\n');
+
+        if (start > headerIdx + 1)
+            res.append("... skipped ").append(start - headerIdx - 1).append(" earlier lines ...\n");
+
+        for (int i = start; i < end; i++)
+            res.append(lines[i]).append('\n');
+    }
+
+    /**
      * @param details Details from TeamCity.
      */
     private String firstFailureSignal(String details) {
@@ -889,11 +1108,13 @@ public class TestFailuresAiPromptBuilder {
     /**
      * @param res Result builder.
      */
-    private void appendInvestigationInstructions(StringBuilder res) {
+    private void appendInvestigationInstructions(StringBuilder res, @Nullable String masterCauseInstruction) {
         res.append("\n## Investigation Instructions\n");
         res.append("- Start from the First real failure signal and nearest project frame.\n");
         res.append("- Search for the failing class, method, assertion text, and error message in the checkout.\n");
         res.append("- Compare test history and suite history separately before calling it flaky.\n");
+        if (!Strings.isNullOrEmpty(masterCauseInstruction))
+            res.append("- ").append(masterCauseInstruction).append('\n');
         res.append("- Classify the cause as exactly one of: caused by current change; pre-existing flaky test; ");
         res.append("environmental/infra; product bug exposed by test; inconclusive.\n");
 
@@ -960,6 +1181,40 @@ public class TestFailuresAiPromptBuilder {
      * @param hist Run history.
      */
     @Nullable private String breakBoundary(IRunHistory hist) {
+        BuildBoundary boundary = findBreakBoundary(hist);
+
+        if (boundary == null)
+            return null;
+
+        return "last OK build " + boundary.lastOk.buildId()
+            + ", first later failure build " + boundary.firstBadAfterOk.buildId()
+            + ", change state at first failure " + boundary.firstBadAfterOk.changesState();
+    }
+
+    /**
+     * @param branch Branch.
+     * @param hist Run history.
+     * @return Master branch cause interpretation instruction.
+     */
+    @Nullable private String masterChangeCauseInstruction(@Nullable String branch, @Nullable IRunHistory hist) {
+        if (hist == null || !"master".equals(normalizeBranch(branch)))
+            return null;
+
+        BuildBoundary boundary = findBreakBoundary(hist);
+
+        if (boundary == null)
+            return null;
+
+        return "For master builds, interpret \"caused by current change\" as caused by a recent master change " +
+            "between last OK build " + boundary.lastOk.buildId() + " and first failing build " +
+            boundary.firstBadAfterOk.buildId() + ".";
+    }
+
+    /**
+     * @param hist Run history.
+     * @return Break boundary.
+     */
+    @Nullable private BuildBoundary findBreakBoundary(IRunHistory hist) {
         List<Invocation> invocations = hist.getInvocations()
             .filter(inv -> inv.status() != InvocationData.MISSING)
             .filter(inv -> !Invocation.isMutedOrIgnored(inv.status()))
@@ -981,9 +1236,7 @@ public class TestFailuresAiPromptBuilder {
         if (lastOk == null || firstBadAfterOk == null)
             return null;
 
-        return "last OK build " + lastOk.buildId()
-            + ", first later failure build " + firstBadAfterOk.buildId()
-            + ", change state at first failure " + firstBadAfterOk.changesState();
+        return new BuildBoundary(lastOk, firstBadAfterOk);
     }
 
     /**
@@ -1036,5 +1289,23 @@ public class TestFailuresAiPromptBuilder {
             return "MUTED_OR_IGNORED";
 
         return String.valueOf(status);
+    }
+
+    /** Break boundary. */
+    private static class BuildBoundary {
+        /** Last successful run before break. */
+        private final Invocation lastOk;
+
+        /** First failing run after success. */
+        private final Invocation firstBadAfterOk;
+
+        /**
+         * @param lastOk Last successful run before break.
+         * @param firstBadAfterOk First failing run after success.
+         */
+        private BuildBoundary(Invocation lastOk, Invocation firstBadAfterOk) {
+            this.lastOk = lastOk;
+            this.firstBadAfterOk = firstBadAfterOk;
+        }
     }
 }
