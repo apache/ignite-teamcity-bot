@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.tcbot.visa;
 
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Collections;
 import org.apache.ignite.ci.github.GitHubIssueComment;
@@ -134,6 +135,13 @@ public class TcBotTriggerAndSignOffServiceTest {
     }
 
     /**
+     * Checks compact Visa result can be absent in old JSON entries.
+     */
+    @Test public void compactVisaResultCodeIsOptionalForOldJson() throws Exception {
+        assertFalse(Modifier.isFinal(CompactVisa.class.getDeclaredField("result").getModifiers()));
+    }
+
+    /**
      * Checks duplicate detection by marker.
      */
     @Test public void duplicateDetectionIsDefensiveAndChecksMarker() {
@@ -164,10 +172,11 @@ public class TcBotTriggerAndSignOffServiceTest {
      */
     @Test public void detailedCommentResultNamesCommentedTargets() {
         Visa github = TcBotTriggerAndSignOffService.commentResult(CommentTargets.GITHUB, true, null,
-            "GitHub PR already has a valid TCBot comment for this build: PR #13114 https://github.com/apache/ignite/pull/13114",
+            Visa.duplicateCommentSkipped("PR #13114 https://github.com/apache/ignite/pull/13114"),
             null, null, 0);
 
-        assertTrue(github.status.contains("already has a valid TCBot comment"));
+        assertTrue(github.status.contains("comment skipped"));
+        assertTrue(github.status.contains("duplicate"));
         assertTrue(github.status.contains("https://github.com/apache/ignite/pull/13114"));
         assertTrue(github.isSuccess());
 
@@ -179,11 +188,11 @@ public class TcBotTriggerAndSignOffServiceTest {
         assertTrue(jira.isSuccess());
 
         Visa jiraDuplicate = TcBotTriggerAndSignOffService.commentResult(CommentTargets.JIRA, true, null, null,
-            "JIRA ticket already has a valid TCBot comment for this build: IGNITE-28641 " +
-                "https://issues.apache.org/jira/browse/IGNITE-28641",
+            Visa.duplicateCommentSkipped("IGNITE-28641 https://issues.apache.org/jira/browse/IGNITE-28641"),
             null, 0);
 
-        assertTrue(jiraDuplicate.status.contains("already has a valid TCBot comment"));
+        assertTrue(jiraDuplicate.status.contains("comment skipped"));
+        assertTrue(jiraDuplicate.status.contains("duplicate"));
         assertTrue(jiraDuplicate.isSuccess());
     }
 

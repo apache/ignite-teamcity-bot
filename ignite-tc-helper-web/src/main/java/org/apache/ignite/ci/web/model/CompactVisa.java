@@ -34,7 +34,7 @@ public class CompactVisa {
     public final int blockers;
 
     /** */
-    public final int result;
+    public int result = Visa.Result.UNKNOWN.ordinal();
 
     /** */
     public CompactVisa(Visa visa, IStringCompactor strCompactor) {

@@ -113,6 +113,15 @@ public class Visa {
     }
 
     /**
+     * @param target Existing comment target.
+     * @return User-visible status for duplicate run result comment.
+     */
+    public static String duplicateCommentSkipped(@Nullable String target) {
+        return COMMENT_SKIPPED + " duplicate comment already exists" +
+            (target == null || target.isEmpty() ? "." : ": " + target);
+    }
+
+    /**
      * @param blockers Blockers count.
      */
     public static Visa skipped(int blockers) {
