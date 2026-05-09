@@ -13,8 +13,8 @@
     <script src="js/common-1.7.js"></script>
     <style>
         body {
-            background: #f6f7f9;
-            color: #1f2933;
+            background: #fff;
+            color: #000;
         }
 
         .guard-page {
@@ -34,22 +34,22 @@
         }
 
         .guard-subtitle {
-            color: #667085;
+            color: #666;
             font-size: 13px;
         }
 
         .guard-section {
             background: #fff;
-            border: 1px solid #d9dee7;
-            border-radius: 6px;
-            box-shadow: 0 1px 3px rgba(16, 24, 40, 0.08);
+            border: 1px solid #cfcfcf;
+            border-radius: 4px;
+            box-shadow: 3px 2px 6px -2px rgba(0,0,0,0.30);
             margin: 16px 0;
             overflow: hidden;
         }
 
         .guard-section-header {
             align-items: center;
-            border-bottom: 1px solid #e6e9ef;
+            border-bottom: 1px solid #d8d8d8;
             display: flex;
             justify-content: space-between;
             padding: 13px 16px;
@@ -58,10 +58,11 @@
         .guard-section-title {
             font-size: 16px;
             font-weight: 700;
+            color: #000;
         }
 
         .guard-section-note {
-            color: #667085;
+            color: #666;
             font-size: 12px;
         }
 
@@ -72,9 +73,9 @@
         }
 
         .guard-table th {
-            background: #f8fafc;
-            border-bottom: 1px solid #e6e9ef;
-            color: #475467;
+            background: #f5f5f5;
+            border-bottom: 1px solid #d8d8d8;
+            color: #333;
             font-size: 12px;
             font-weight: 700;
             padding: 10px 14px;
@@ -83,7 +84,7 @@
         }
 
         .guard-table td {
-            border-bottom: 1px solid #eef1f5;
+            border-bottom: 1px solid #eeeeee;
             padding: 12px 14px;
             vertical-align: middle;
         }
@@ -93,10 +94,10 @@
         }
 
         .guard-branch {
-            background: #f3f5f8;
-            border: 1px solid #e3e7ee;
+            background: #f7f7f7;
+            border: 1px solid #d8d8d8;
             border-radius: 4px;
-            color: #243447;
+            color: #000;
             display: inline-block;
             font-family: Consolas, "Lucida Console", monospace;
             font-size: 12px;
@@ -111,9 +112,9 @@
 
         .guard-action {
             background: #fff;
-            border: 1px solid #b8c7da;
+            border: 1px solid #12AD5E;
             border-radius: 4px;
-            color: #145ea8;
+            color: #128c46;
             display: inline-block;
             font-size: 13px;
             font-weight: 700;
@@ -122,8 +123,9 @@
         }
 
         .guard-action:hover {
-            background: #edf5ff;
-            border-color: #145ea8;
+            background: #f0fff6;
+            border-color: #128c46;
+            color: #128c46;
         }
 
         .guard-count {
@@ -137,29 +139,39 @@
         }
 
         .guard-count-ok {
-            background: #edf7ed;
+            background: #f0fff6;
             color: #24743c;
         }
 
         .guard-count-warn {
-            background: #fff4e5;
-            color: #a15c00;
+            background: #fff7e5;
+            color: #8a5a00;
         }
 
         .guard-count-run {
-            background: #e9f3ff;
-            color: #145ea8;
+            background: #f0fff6;
+            color: #128c46;
         }
 
         .guard-count-muted {
-            background: #f2f4f7;
-            color: #667085;
+            background: #f2f2f2;
+            color: #666;
         }
 
         .guard-meta {
-            color: #667085;
+            color: #666;
             font-size: 12px;
             margin-top: 4px;
+        }
+
+        .guard-meta a,
+        .guard-table a {
+            color: #125CAA;
+        }
+
+        .guard-table td:last-child a {
+            color: #128c46;
+            font-weight: 700;
         }
 
         .guard-user {
@@ -176,7 +188,7 @@
         }
 
         .guard-empty {
-            color: #667085;
+            color: #666;
             padding: 14px 16px;
         }
 
