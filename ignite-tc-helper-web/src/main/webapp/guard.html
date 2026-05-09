@@ -366,15 +366,15 @@ function loadGithubResolutionForRunningVisas() {
 
 function loadOnlyMyRunningPrsPreference() {
     try {
-        var own = window.localStorage.getItem(ONLY_MY_RUNNING_PRS_STORAGE_KEY);
-
-        if (own !== null)
-            return own === "true";
-
         var shared = window.localStorage.getItem(ONLY_MY_PRS_SHARED_STORAGE_KEY);
 
         if (shared !== null)
             return shared === "true";
+
+        var own = window.localStorage.getItem(ONLY_MY_RUNNING_PRS_STORAGE_KEY);
+
+        if (own !== null)
+            return own === "true";
 
         for (var i = 0; i < window.localStorage.length; i++) {
             var key = window.localStorage.key(i);

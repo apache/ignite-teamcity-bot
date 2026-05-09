@@ -26,12 +26,12 @@ function onlyMyPrsStorageKey(srvId) {
 
 function loadOnlyMyPrsPreference(srvId) {
     try {
-        let serverValue = window.localStorage.getItem(onlyMyPrsStorageKey(srvId));
+        let sharedValue = window.localStorage.getItem(ONLY_MY_PRS_SHARED_STORAGE_KEY);
 
-        if (serverValue !== null)
-            return serverValue === "true";
+        if (sharedValue !== null)
+            return sharedValue === "true";
 
-        return window.localStorage.getItem(ONLY_MY_PRS_SHARED_STORAGE_KEY) === "true";
+        return window.localStorage.getItem(onlyMyPrsStorageKey(srvId)) === "true";
     }
     catch (e) {
         return false;

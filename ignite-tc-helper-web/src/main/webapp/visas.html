@@ -58,7 +58,8 @@
 <script>
 var currentVisas = [];
 var myGithubLogins = new Set();
-const ONLY_MY_PRS_STORAGE_KEY = "tcbot.visas.onlyMyPrs";
+const ONLY_MY_PRS_SHARED_STORAGE_KEY = "tcbot.prs.onlyMyPrs";
+const ONLY_MY_PRS_LEGACY_STORAGE_KEY = "tcbot.visas.onlyMyPrs";
 
 function showErrInLoadStatus(jqXHR, exception) {
     if (jqXHR.status === 0) {
@@ -100,7 +101,12 @@ $(document).ready(function() {
 
 function loadOnlyMyPrsPreference() {
     try {
-        return window.localStorage.getItem(ONLY_MY_PRS_STORAGE_KEY) === "true";
+        var shared = window.localStorage.getItem(ONLY_MY_PRS_SHARED_STORAGE_KEY);
+
+        if (shared !== null)
+            return shared === "true";
+
+        return window.localStorage.getItem(ONLY_MY_PRS_LEGACY_STORAGE_KEY) === "true";
     }
     catch (e) {
         return false;
@@ -109,7 +115,10 @@ function loadOnlyMyPrsPreference() {
 
 function saveOnlyMyPrsPreference() {
     try {
-        window.localStorage.setItem(ONLY_MY_PRS_STORAGE_KEY, $("#onlyMyPrs").prop("checked") ? "true" : "false");
+        var value = $("#onlyMyPrs").prop("checked") ? "true" : "false";
+
+        window.localStorage.setItem(ONLY_MY_PRS_SHARED_STORAGE_KEY, value);
+        window.localStorage.setItem(ONLY_MY_PRS_LEGACY_STORAGE_KEY, value);
     }
     catch (e) {
         // Ignore unavailable storage; page filtering still works for this session.
