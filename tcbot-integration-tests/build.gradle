@@ -59,9 +59,9 @@ tasks.register('integrationTest', Test) {
     jvmArgs igniteJava17JvmArgs
 }
 
-tasks.register('runEmulatedBot', JavaExec) {
+tasks.register('runEmulatedTcBotWar', JavaExec) {
     group = 'application'
-    description = 'Starts a local production-like bot against Python GitHub/JIRA/TeamCity emulators.'
+    description = 'Starts a local production-like WAR bot against Python GitHub/JIRA/TeamCity emulators.'
 
     mainClass = 'org.apache.ignite.tcbot.integration.EmulatedBotLocalLauncher'
     classpath = sourceSets.integrationTest.runtimeClasspath

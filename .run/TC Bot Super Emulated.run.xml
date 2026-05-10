@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="TC Bot Super Emulated" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="org.apache.ignite.tcbot.integration.EmulatedBotLocalLauncher" />
+    <module name="tcbot-integration-tests.integrationTest" />
+    <option name="VM_PARAMETERS" value="-Dtcbot.integration.inProcessBot=true -Dtcbot.integration.liveStatic=true -Dfile.encoding=UTF-8 -Djava.net.preferIPv4Stack=true -XX:+IgnoreUnrecognizedVMOptions --add-exports=java.base/jdk.internal.misc=ALL-UNNAMED --add-exports=java.base/sun.nio.ch=ALL-UNNAMED --add-exports=java.management/com.sun.jmx.mbeanserver=ALL-UNNAMED --add-exports=jdk.internal.jvmstat/sun.jvmstat.monitor=ALL-UNNAMED --add-exports=java.base/sun.reflect.generics.reflectiveObjects=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.time=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

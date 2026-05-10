@@ -47,6 +47,15 @@ public class Launcher {
      */
     @SuppressWarnings("deprecation")
     public static void runServer(boolean dev) throws Exception {
+        startServer(dev, true);
+    }
+
+    /**
+     * @param dev Dev mode.
+     * @param waitForStopSignal If {@code true}, starts the stdin watcher that stops the server.
+     */
+    @SuppressWarnings("deprecation")
+    public static StartedServer startServer(boolean dev, boolean waitForStopSignal) throws Exception {
         if(dev)
             System.setProperty(TcBotSystemProperties.DEV_MODE, "true");
 
@@ -86,21 +95,47 @@ public class Launcher {
 
         System.out.println("Starting server at [" + port + "]");
 
-        Runnable r = () -> {
-            boolean stop = waitStopSignal();
+        if (waitForStopSignal) {
+            Runnable r = () -> {
+                boolean stop = waitStopSignal();
 
-            if (stop)
-                stopSilent(srv);
+                if (stop)
+                    stopSilent(srv);
+            };
 
-        };
+            new Thread(r).start();
+        }
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             stopSilent(srv);
         }));
 
-
-        new Thread(r).start();
         srv.start();
+
+        return new StartedServer(srv);
+    }
+
+    /** Started server handle. */
+    public static class StartedServer implements AutoCloseable {
+        /** */
+        private final Server srv;
+
+        /**
+         * @param srv Server.
+         */
+        private StartedServer(Server srv) {
+            this.srv = srv;
+        }
+
+        /** */
+        public boolean isRunning() {
+            return srv.isRunning();
+        }
+
+        /** {@inheritDoc} */
+        @Override public void close() {
+            stopSilent(srv);
+        }
     }
 
     /**

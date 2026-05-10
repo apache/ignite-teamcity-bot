@@ -23,6 +23,8 @@ import java.net.URI;
 import java.net.URLDecoder;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -34,6 +36,9 @@ import javax.servlet.http.HttpServletResponse;
 public class StaticResourceServlet extends HttpServlet {
     /** Static resources classpath root. */
     private static final String STATIC_ROOT = "static/";
+
+    /** Optional file-system webapp root for local live static development. */
+    private static final String STATIC_ROOT_PROPERTY = "tcbot.static.root";
 
     private static String resourcePath(HttpServletRequest req) {
         String ctx = req.getContextPath();
@@ -98,6 +103,9 @@ public class StaticResourceServlet extends HttpServlet {
             if (mimeType != null)
                 resp.setContentType(mimeType);
 
+            if (isLiveStaticEnabled())
+                resp.setHeader("Cache-Control", "no-store");
+
             in.transferTo(resp.getOutputStream());
         }
     }
@@ -106,11 +114,46 @@ public class StaticResourceServlet extends HttpServlet {
      * @param path Resource path relative to webapp root.
      */
     private InputStream openResource(String path) {
+        InputStream fileSystemStatic = openFileSystemStatic(path);
+
+        if (fileSystemStatic != null)
+            return fileSystemStatic;
+
         InputStream in = getServletContext().getResourceAsStream("/" + path);
 
         if (in != null)
             return in;
 
         return Thread.currentThread().getContextClassLoader().getResourceAsStream(STATIC_ROOT + path);
+    }
+
+    /**
+     * @param path Resource path relative to webapp root.
+     */
+    private InputStream openFileSystemStatic(String path) {
+        String configuredRoot = System.getProperty(STATIC_ROOT_PROPERTY);
+
+        if (configuredRoot == null || configuredRoot.isBlank())
+            return null;
+
+        try {
+            Path root = Path.of(configuredRoot).toAbsolutePath().normalize();
+            Path file = root.resolve(path).normalize();
+
+            if (!file.startsWith(root) || !Files.isRegularFile(file))
+                return null;
+
+            return Files.newInputStream(file);
+        }
+        catch (IOException | RuntimeException e) {
+            return null;
+        }
+    }
+
+    /** */
+    private static boolean isLiveStaticEnabled() {
+        String configuredRoot = System.getProperty(STATIC_ROOT_PROPERTY);
+
+        return configuredRoot != null && !configuredRoot.isBlank();
     }
 }
