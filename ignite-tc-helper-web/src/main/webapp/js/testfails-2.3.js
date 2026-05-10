@@ -1783,8 +1783,15 @@ function showSuiteData(suite, settings, prNum) {
     res +="</td><td>";
     res += "<span style='border-color: " + color + "; width:6px; height:6px; display: inline-block; border-width: 4px; color: black; border-style: solid;' title='" + failRateText + "'></span> ";
 
-    res += "<a href='" + suite.webToHist + "'>" + suite.name + "</a> " +
-        "[ " + "<a href='" + suite.webToBuild + "' title=''> " +
+    var suiteDisplayName = isDefinedAndFilled(suite.name) ? suite.name :
+        (isDefinedAndFilled(suite.suiteId) ? suite.suiteId : "Unknown suite");
+
+    if (isDefinedAndFilled(suite.webToHist))
+        res += "<a href='" + suite.webToHist + "'>" + suiteDisplayName + "</a> ";
+    else
+        res += suiteDisplayName + " ";
+
+    res += "[ " + "<a href='" + suite.webToBuild + "' title=''> " +
         "tests " + suite.failedTests + " " + suite.result;
 
     if (isDefinedAndFilled(suite.warnOnly) && suite.warnOnly.length > 0) {
