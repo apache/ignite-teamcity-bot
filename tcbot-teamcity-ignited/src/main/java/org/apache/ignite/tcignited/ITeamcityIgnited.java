@@ -272,6 +272,15 @@ public interface ITeamcityIgnited {
      */
     public String actualizeRecentBuildRefs();
 
+    /**
+     * Rechecks TeamCity directly for a concrete build type and branch and keeps found refs in a temporary in-memory
+     * lookup layer until the regular incremental sync catches up.
+     *
+     * @param buildTypeId Build type ID.
+     * @param branchName TeamCity branch name.
+     */
+    public String recheckBuildRef(String buildTypeId, String branchName);
+
     public Long getBuildStartTime(int buildId);
 
     public Integer getBorderForAgeForBuildId(int days);

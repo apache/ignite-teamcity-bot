@@ -31,6 +31,7 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
@@ -177,6 +178,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         logCheckResDao.init();
         histDao.init();
 
+        maintenanceActions.register(taskName("actualizeRecentBuildRefs"),
+            "Incremental TeamCity build refs sync for " + srvCode, this::actualizeRecentBuildRefs);
         maintenanceActions.register(taskName("fullReindex"), "Full TeamCity build refs reindex for " + srvCode,
             this::fullReindex);
     }
@@ -654,6 +657,25 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     public String actualizeRecentBuildRefs() {
         return actualizeRecentBuildRefs(srvCode);
+    }
+
+    /** {@inheritDoc} */
+    @Override public String recheckBuildRef(String buildTypeId, String branchName) {
+        AtomicReference<String> nextPage = new AtomicReference<>();
+        String locator = "app/rest/latest/builds?locator=defaultFilter:false,buildType:(id:" + buildTypeId +
+            "),branch:" + branchName + ",count:20";
+
+        List<BuildRefCompacted> found = conn.getBuildRefsPage(locator, nextPage).stream()
+            .filter(ref -> Objects.equals(buildTypeId, ref.buildTypeId()))
+            .filter(ref -> Objects.equals(BranchEquivalence.normalizeBranch(branchName),
+                BranchEquivalence.normalizeBranch(ref.branchName())))
+            .map(ref -> new BuildRefCompacted(compactor, ref))
+            .collect(Collectors.toList());
+
+        buildRefDao.saveTemporaryBuildRefs(srvIdMaskHigh, found);
+
+        return "Direct TeamCity build ref recheck for suite " + buildTypeId + ", branch " + branchName +
+            ": found " + found.size() + " ref(s).";
     }
 
     /**

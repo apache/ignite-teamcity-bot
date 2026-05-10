@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -97,6 +98,14 @@ public class BuildRefDao {
         .expireAfterAccess(Duration.ofMinutes(2))
         .expireAfterWrite(Duration.ofMinutes(4)) //workaround for stale records
         .softValues()
+        .build();
+
+    /** Short-lived refs found by direct suite/branch lookup before global incremental sync reaches them. */
+    private final com.google.common.cache.Cache<RunHistKey, List<BuildRefCompacted>> temporaryBuildRefsInMemCache
+        = CacheBuilder.newBuilder()
+        .maximumSize(Boolean.valueOf(System.getProperty(TcBotSystemProperties.DEV_MODE)) ? 500 : 4000)
+        .expireAfterAccess(Duration.ofMinutes(30))
+        .expireAfterWrite(Duration.ofHours(2))
         .build();
 
     /** */
@@ -265,6 +274,7 @@ public class BuildRefDao {
                 }
 
                 res.addAll(compactedBuildsForBranch);
+                res.addAll(temporaryBuildRefs(runHistKey, res));
             }
             catch (ExecutionException e) {
                 throw ExceptionUtil.propagateException(e);
@@ -272,6 +282,52 @@ public class BuildRefDao {
         });
 
         return res;
+    }
+
+    /**
+     * @param srvId Server id mask high.
+     * @param refs Build refs found by direct TC lookup.
+     */
+    public void saveTemporaryBuildRefs(int srvId, Collection<BuildRefCompacted> refs) {
+        Map<RunHistKey, List<BuildRefCompacted>> byHistKey = refs.stream()
+            .filter(ref -> !ref.isFakeStub())
+            .collect(Collectors.groupingBy(ref -> new RunHistKey(srvId, ref.buildTypeId(), ref.branchName())));
+
+        byHistKey.forEach((key, found) -> {
+            List<BuildRefCompacted> merged = new ArrayList<>();
+            List<BuildRefCompacted> existing = temporaryBuildRefsInMemCache.getIfPresent(key);
+
+            if (existing != null)
+                merged.addAll(existing);
+
+            Set<Integer> ids = merged.stream().map(BuildRefCompacted::id).collect(Collectors.toCollection(HashSet::new));
+
+            found.stream()
+                .filter(ref -> ids.add(ref.id()))
+                .forEach(merged::add);
+
+            temporaryBuildRefsInMemCache.put(key, merged);
+            countersStorage.increment(key.branch());
+        });
+    }
+
+    /**
+     * @param key History key.
+     * @param persistentRefs Persistent refs already selected for the same key.
+     */
+    private List<BuildRefCompacted> temporaryBuildRefs(RunHistKey key, List<BuildRefCompacted> persistentRefs) {
+        List<BuildRefCompacted> tmp = temporaryBuildRefsInMemCache.getIfPresent(key);
+
+        if (tmp == null || tmp.isEmpty())
+            return Collections.emptyList();
+
+        Set<Integer> persistentIds = persistentRefs.stream()
+            .map(BuildRefCompacted::id)
+            .collect(Collectors.toCollection(HashSet::new));
+
+        return tmp.stream()
+            .filter(ref -> !persistentIds.contains(ref.id()))
+            .collect(Collectors.toList());
     }
 
     /**

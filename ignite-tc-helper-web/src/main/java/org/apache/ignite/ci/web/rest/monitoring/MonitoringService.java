@@ -212,6 +212,9 @@ public class MonitoringService {
 
                 action.status = task.status;
                 action.processStatus = task.processStatus;
+                action.processKind = task.processKind;
+                action.processState = task.processState;
+                action.processRunning = task.processRunning;
                 action.processId = task.processId;
                 action.canStartNow = task.canStartNow;
             })
@@ -274,6 +277,9 @@ public class MonitoringService {
 
             if (status.id != null && !Strings.isNullOrEmpty(status.status)) {
                 task.processStatus = status.status;
+                task.processKind = status.kind;
+                task.processState = status.isRunning() ? "RUNNING" : "FINISHED";
+                task.processRunning = status.isRunning();
 
                 if (status.isRunning())
                     task.status = status.status;
