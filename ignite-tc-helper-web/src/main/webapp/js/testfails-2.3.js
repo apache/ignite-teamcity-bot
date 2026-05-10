@@ -176,6 +176,7 @@ function showChainCurrentStatusData(chain, settings) {
         return "<tr><td><b>Error: Build not found for branch [" + chain.branchName + "]</b>" +
             "<br><br><span style='color:grey; font-size:12px;'>Perhaps, more than 2 weeks have passed since the last build " +
             "run. <br>There is no data on the TC server</span>" +
+            buildNotFoundTriggerHtml(chain) +
             buildRefsRefreshFallbackHtml(chain) + "</td></tr>";
     }
 
@@ -431,16 +432,46 @@ function showChainCurrentStatusData(chain, settings) {
     return res;
 }
 
+function buildNotFoundTriggerHtml(chain) {
+    var serverId = chain.serverCode;
+    var suiteId = isDefinedAndFilled(chain.suiteId) ? chain.suiteId : findGetParameter("suiteId");
+    var branchForTc = chain.branchName;
+
+    if (!isDefinedAndFilled(serverId) || !isDefinedAndFilled(suiteId) || !isDefinedAndFilled(branchForTc))
+        return "";
+
+    return "<div style='margin-top:12px;'>" +
+        "<button type='button' onclick='" + jsCallAttr("triggerBuilds", [
+            serverId,
+            suiteId,
+            suiteId,
+            branchForTc,
+            false,
+            false,
+            null,
+            chain.prNum,
+            chain.baseBranchForTc,
+            false,
+            "",
+            false,
+            {
+                message: "No cached TeamCity build was found for this branch. Trigger a new build?"
+            }
+        ]) + "'>Trigger build</button>" +
+        "</div>";
+}
+
 function buildRefsRefreshFallbackHtml(chain) {
     return buildRefsRefreshFallbackHtmlFor(
         chain.serverCode,
         isDefinedAndFilled(chain.suiteId) ? chain.suiteId : findGetParameter("suiteId"),
         chain.branchName,
-        findGetParameter("action")
+        findGetParameter("action"),
+        true
     );
 }
 
-function buildRefsRefreshFallbackHtmlFor(serverId, suiteId, branchForTc, action) {
+function buildRefsRefreshFallbackHtmlFor(serverId, suiteId, branchForTc, action, showInlineStatus) {
     if (!isDefinedAndFilled(serverId) || !isDefinedAndFilled(branchForTc))
         return "";
 
@@ -449,20 +480,22 @@ function buildRefsRefreshFallbackHtmlFor(serverId, suiteId, branchForTc, action)
     var statusId = idBase + "-status";
     var stagesId = idBase + "-stages";
     var buttonId = idBase + "-button";
+    var inlineStatusVisible = showInlineStatus !== false;
 
     return "<div class='tc-build-refs-refresh' style='display:none; margin-top:12px;'>" +
-        "<button id='" + escapeHtml(buttonId) + "' type='button' " +
+        "<a id='" + escapeHtml(buttonId) + "' href='javascript:void(0);' " +
         "title='Admin-only operation: refresh cached TeamCity build references in the background' " +
         "onclick='" + jsCallAttr("refreshBuildRefsFromTc", [
-            serverId, suiteId, branchForTc, action, statusId, stagesId, buttonId
-        ]) + "'>Refresh from TC</button>" +
-        "<span id='" + escapeHtml(statusId) + "' style='margin-left:8px; color:#555;'></span>" +
+            serverId, suiteId, branchForTc, action, statusId, stagesId, buttonId, inlineStatusVisible
+        ]) + "'>refresh build tc</a>" +
+        "<span id='" + escapeHtml(statusId) + "' style='" + (inlineStatusVisible ? "" : "display:none; ") +
+        "margin-left:8px; color:#555;'></span>" +
         "<div id='" + escapeHtml(stagesId) + "' style='display:none; background:#f7f7f7; " +
         "border:1px solid #d8d8d8; border-radius:4px; font-family:monospace; line-height:1.45; " +
         "margin-top:8px; max-height:180px; overflow-y:auto; padding:8px; white-space:pre-wrap; " +
         "word-break:break-word;'></div>" +
-        "<div style='color:grey; font-size:12px; margin-top:4px;'>This starts a background refresh of recent " +
-        "TeamCity build references for the server cache, then reloads the page data.</div>" +
+        "<div style='color:grey; font-size:12px; margin-top:4px;'>I'm sure this build exists. This starts a " +
+        "background refresh of recent TeamCity build references for the server cache, then reloads the page data.</div>" +
         "</div>";
 }
 
@@ -500,108 +533,197 @@ function toggleTcBuildRefsFallbackButtons() {
         $(".tc-build-refs-refresh").hide();
 }
 
-function refreshBuildRefsFromTc(serverId, suiteId, branchForTc, action, statusId, stagesId, buttonId) {
-    if (!confirm("Refresh from TC is an admin-only heavy operation. It can make many TeamCity REST " +
-        "requests and may take time. Continue?"))
-        return;
+function setBuildRefsRefreshLinkDisabled(link, disabled) {
+    if (disabled) {
+        link.css({
+            "color": "#666",
+            "pointer-events": "none",
+            "text-decoration": "none"
+        });
+    }
+    else {
+        link.css({
+            "color": "",
+            "pointer-events": "",
+            "text-decoration": ""
+        });
+    }
+}
 
-    var processId = createBotProcessId("actualizeBuildRefs");
-    var requestUrl = "rest/pr/actualizeBuildRefs?processId=" + encodeURIComponent(processId);
-    var button = $("#" + buttonId);
+function reloadAfterBuildRefsRefresh(serverId, suiteId, branchForTc, action) {
+    var context = {
+        serverId: serverId,
+        suiteId: suiteId,
+        branchForTc: branchForTc,
+        action: action
+    };
+
+    if (typeof refreshBuildRefsFallbackReload === "function") {
+        refreshBuildRefsFallbackReload(context);
+
+        return true;
+    }
+
+    if (typeof loadData === "function") {
+        loadData();
+
+        return true;
+    }
+
+    return false;
+}
+
+function refreshBuildRefsFromTc(serverId, suiteId, branchForTc, action, statusId, stagesId, buttonId,
+    showInlineStatus) {
+    var link = $("#" + buttonId);
     var status = $("#" + statusId);
-    var stages = $("#" + stagesId);
-    var stopProcessPolling;
-    var completed = false;
+    var dialog = ensureActionDialog("actualizeBuildRefsDialog", "Refresh from TC");
 
     function valueOrAny(value) {
         return value == null || value === "" ? "<any>" : value;
     }
 
-    function appendRequestParam(name, value) {
-        if (value != null)
-            requestUrl += "&" + name + "=" + encodeURIComponent(value);
+    function setInlineStatus(text) {
+        if (showInlineStatus === false)
+            status.text("");
+        else
+            status.text(text);
     }
 
-    function appendStage(text) {
-        stages.show();
-        stages.children(".tc-build-refs-stage").css({
-            "color": "#666",
-            "opacity": "0.58"
-        });
-        stages.append($("<div>", {
-            "class": "tc-build-refs-stage",
-            text: actionSummaryText(text)
-        }));
-        stages.scrollTop(stages.prop("scrollHeight"));
-    }
+    setBuildRefsRefreshLinkDisabled(link, true);
+    setInlineStatus("Refresh confirmation opened.");
 
-    function finishProgress() {
-        if (stopProcessPolling)
-            stopProcessPolling();
+    dialog.append(actionStatusHtml("Refresh from TC is an admin-only heavy operation. It can make many " +
+        "TeamCity REST requests and may take time."));
+    dialog.append("<div style='color:#555; margin-bottom:12px'>" +
+        "Context: server=" + escapeHtml(valueOrAny(serverId)) +
+        ", suite=" + escapeHtml(valueOrAny(suiteId)) +
+        ", branch=" + escapeHtml(valueOrAny(branchForTc)) +
+        ", action=" + escapeHtml(valueOrAny(action)) + ".<br>" +
+        "The bot will refresh recent TeamCity build references for the whole server cache." +
+        "</div>");
+    dialog.append(actionStagesHtml(true, "actualizeBuildRefsStages"));
+    dialog.append(actionErrorHtml());
 
-        button.prop("disabled", false);
-    }
-
-    appendRequestParam("serverId", serverId);
-    appendRequestParam("suiteId", suiteId);
-    appendRequestParam("branchForTc", branchForTc);
-    appendRequestParam("action", action);
-
-    button.prop("disabled", true);
-    stages.empty().hide();
-    status.text("Refreshing TeamCity build references for " + valueOrAny(branchForTc) + "...");
-
-    appendStage("Created browser-side process id " + processId + ".");
-    appendStage("Requested page context: server=" + valueOrAny(serverId) + ", suite=" + valueOrAny(suiteId) +
-        ", branch=" + valueOrAny(branchForTc) + ", action=" + valueOrAny(action) + ".");
-    appendStage("The bot will refresh recent TeamCity build references for the whole server cache.");
-    appendStage("Sending TeamCity build refs refresh request to the bot REST API.");
-    appendStage("Waiting for the backend to register the refresh process.");
-
-    stopProcessPolling = startBotProcessPolling(processId, function (processStatus) {
-        var statusText = botProcessStatusText(processStatus);
-
-        appendStage(statusText);
-        status.text(statusText);
-
-        if (processStatus.running === false && !completed) {
-            completed = true;
-            finishProgress();
-
-            if (typeof loadData === "function") {
-                status.text(statusText + " Reloading page data.");
-                setTimeout(loadData, 700);
-            }
-        }
-    }, {
-        intervalMs: 1000,
-        skipUnknown: false,
-        reportErrors: true,
-        repeatMs: 7000,
-        repeatText: function (processStatus) {
-            if (!isDefinedAndFilled(processStatus.kind))
-                return "Still waiting for the bot to register process " + processId + ".";
-
-            return "Still running: " + botProcessStatusText(processStatus);
-        }
-    });
-
-    $.ajax({
-        url: requestUrl,
-        method: "POST",
-        success: function (result) {
-            appendStage(simpleResultText(result));
+    openActionDialog(dialog, "Refresh from TC", {
+        "Ok": function () {
+            startBuildRefsRefresh(dialog);
         },
-        error: function (jqXHR, textStatus, errorThrown) {
-            if (textStatus === "abort")
-                return;
-
-            finishProgress();
-            status.text("TeamCity build refs refresh failed.");
-            appendStage("Error: " + (errorThrown || jqXHR.statusText || "unknown error"));
-            appendStage(jqXHR.responseText || errorThrown || "Unknown request error.");
+        "Cancel": function () {
+            setBuildRefsRefreshLinkDisabled(link, false);
+            setInlineStatus("");
+            $(this).dialog("close");
         }
     });
+
+    function startBuildRefsRefresh(dialog) {
+        var processId = createBotProcessId("actualizeBuildRefs");
+        var requestUrl = "rest/pr/actualizeBuildRefs?processId=" + encodeURIComponent(processId);
+        var stopProcessPolling;
+        var completed = false;
+
+        function appendRequestParam(name, value) {
+            if (value != null)
+                requestUrl += "&" + name + "=" + encodeURIComponent(value);
+        }
+
+        function appendStage(text) {
+            appendActionStage(dialog, text);
+        }
+
+        function finishProgress(buttons) {
+            if (stopProcessPolling)
+                stopProcessPolling();
+
+            setBuildRefsRefreshLinkDisabled(link, false);
+            dialog.dialog("option", "buttons", buttons);
+        }
+
+        appendRequestParam("serverId", serverId);
+        appendRequestParam("suiteId", suiteId);
+        appendRequestParam("branchForTc", branchForTc);
+        appendRequestParam("action", action);
+
+        dialog.dialog("option", "buttons", {});
+        dialog.find(".action-error").hide().empty();
+        dialog.find(".action-stages").empty().show();
+        setActionStatus(dialog, "Refreshing TeamCity build references for " + valueOrAny(branchForTc) + "...");
+        setInlineStatus("Refreshing TeamCity build references for " + valueOrAny(branchForTc) + "...");
+
+        appendStage("Created browser-side process id " + processId + ".");
+        appendStage("Requested page context: server=" + valueOrAny(serverId) + ", suite=" + valueOrAny(suiteId) +
+            ", branch=" + valueOrAny(branchForTc) + ", action=" + valueOrAny(action) + ".");
+        appendStage("The bot will refresh recent TeamCity build references for the whole server cache.");
+        appendStage("Sending TeamCity build refs refresh request to the bot REST API.");
+        appendStage("Waiting for the backend to register the refresh process.");
+
+        stopProcessPolling = startBotProcessPolling(processId, function (processStatus) {
+            var statusText = botProcessStatusText(processStatus);
+
+            appendStage(statusText);
+            setInlineStatus(statusText);
+            setActionStatus(dialog, statusText);
+
+            if (processStatus.running === false && !completed) {
+                completed = true;
+                var canReload = typeof refreshBuildRefsFallbackReload === "function" ||
+                    typeof loadData === "function";
+
+                if (canReload)
+                    setInlineStatus(statusText + " Reloading page data.");
+
+                finishProgress({
+                    "Reload page data": function () {
+                        reloadAfterBuildRefsRefresh(serverId, suiteId, branchForTc, action);
+
+                        $(this).dialog("close");
+                    },
+                    "Ok": function () {
+                        $(this).dialog("close");
+                    }
+                });
+
+                if (canReload)
+                    setTimeout(function () {
+                        reloadAfterBuildRefsRefresh(serverId, suiteId, branchForTc, action);
+                    }, 700);
+            }
+        }, {
+            intervalMs: 1000,
+            skipUnknown: false,
+            reportErrors: true,
+            repeatMs: 7000,
+            repeatText: function (processStatus) {
+                if (!isDefinedAndFilled(processStatus.kind))
+                    return "Still waiting for the bot to register process " + processId + ".";
+
+                return "Still running: " + botProcessStatusText(processStatus);
+            }
+        });
+
+        $.ajax({
+            url: requestUrl,
+            method: "POST",
+            success: function (result) {
+                appendStage(simpleResultText(result));
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                if (textStatus === "abort")
+                    return;
+
+                finishProgress({
+                    "Ok": function () {
+                        $(this).dialog("close");
+                    }
+                });
+                setInlineStatus("TeamCity build refs refresh failed.");
+                setActionStatus(dialog, "TeamCity build refs refresh failed.");
+                appendStage("Error: " + (errorThrown || jqXHR.statusText || "unknown error"));
+                dialog.find(".action-error").text(jqXHR.responseText || errorThrown ||
+                    "Unknown request error.").show();
+            }
+        });
+    }
 }
 
 function showBuildInProgressData(chain) {
@@ -899,7 +1021,11 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
     var processId = createBotProcessId("triggerBuilds");
     var stopProcessPolling;
 
-    var message = "<b>TC server:</b> " + escapeHtml(tcServerCode) + "<br>" +
+    var opts = uiOptions || {};
+    var message = (opts.message
+        ? "<div style='margin-bottom:12px'>" + escapeHtml(opts.message) + "</div>"
+        : "") +
+        "<b>TC server:</b> " + escapeHtml(tcServerCode) + "<br>" +
         "<b>Branch:</b> " + escapeHtml(branchName) + "<br>" +
         "<b>Suite ID" + (fewSuites ? "s" : "") + ":</b> " + suitesSummaryHtml(suites);
 
@@ -968,7 +1094,6 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
     function showTriggerStagesDialog() {
         var defaultTargets = isDefinedAndFilled(commentTargets)
             ? commentTargets : (observeJira ? "JIRA" : "");
-        var opts = uiOptions || {};
         var showCommentOptions = opts.showCommentOptions || observeJira || isDefinedAndFilled(commentTargets);
         var commentPrefs = showCommentOptions
             ? loadCommentPreferences(defaultTargets, commentOnlyIfNoBlockers)

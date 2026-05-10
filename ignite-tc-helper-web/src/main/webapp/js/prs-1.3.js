@@ -832,6 +832,17 @@ function repaintLater(srvId) {
     }, 3000);
 }
 
+function refreshBuildRefsFallbackReload(context) {
+    if (context && isDefinedAndFilled(context.serverId)) {
+        repaint(context.serverId);
+
+        return;
+    }
+
+    if (typeof loadData === "function")
+        loadData();
+}
+
 /**
  *
  * @param status contribution status related to selected run-configuration.
@@ -859,11 +870,11 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
         ticketLink: isDefinedAndFilled(row.jiraIssueUrl) ? row.jiraIssueUrl : "",
         prLink: isDefinedAndFilled(row.prHtmlUrl) ? row.prHtmlUrl : ""
     };
-    let githubCleanOnlyUiLinks = {
+    let githubAlwaysUiLinks = {
         ticketLink: isDefinedAndFilled(row.jiraIssueUrl) ? row.jiraIssueUrl : "",
         prLink: isDefinedAndFilled(row.prHtmlUrl) ? row.prHtmlUrl : "",
-        commentPolicyHint: "By default GitHub will be commented only if no blockers are found. " +
-            "If you need a GitHub comment for any result, switch the option to Comment always."
+        commentPolicyHint: "By default GitHub will be commented for any result. " +
+            "If the comment is noisy, delete it in GitHub or switch the option to clean runs only."
     };
     let hasQueued = status.queuedBuilds > 0 || status.runningBuilds > 0;
     let queuedStatus = "Has queued builds: " + status.queuedBuilds  + " queued " + " " + status.runningBuilds  + " running";
@@ -930,7 +941,8 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
                 srvId,
                 suiteIdSelected,
                 status.resolvedBranch,
-                "Contributions"
+                "Contributions",
+                false
             );
 
         tdForPr.html(noBuildsHtml);
@@ -990,7 +1002,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
         if (row.prNumber > 0) {
             let trigGithubCall = jsCall("triggerBuilds", [
                 srvId, null, suiteIdSelected, status.resolvedBranch,
-                false, true, jiraOptional, row.prNumber, null, false, "GITHUB", true, githubCleanOnlyUiLinks
+                false, true, jiraOptional, row.prNumber, null, false, "GITHUB", false, githubAlwaysUiLinks
             ]);
 
             res += " <button onClick='" + jsEventAttr([trigGithubCall, jsCall("repaintLater", [srvId])]) + "'";

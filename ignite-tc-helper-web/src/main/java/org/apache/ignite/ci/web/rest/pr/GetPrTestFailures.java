@@ -111,9 +111,11 @@ public class GetPrTestFailures {
                 process.status(processId, "Calling TeamCity recent build refs actualization. This updates the bot " +
                     "server-wide recent refs cache used by PR reports; page branch context is " +
                     valueOrAny(branchForTc) + ".");
-                tcProv.server(srvId, creds).actualizeRecentBuildRefs();
+                String res = tcProv.server(srvId, creds).actualizeRecentBuildRefs();
+                process.status(processId, "TeamCity build refs actualization result for server " + srvId +
+                    ": " + res);
                 process.finish(processId, "TeamCity build references refreshed for server " + srvId +
-                    ". Refresh context was: " + pageCtx);
+                    ". " + res + ". Refresh context was: " + pageCtx);
             }
             catch (RuntimeException e) {
                 process.fail(processId, e);
