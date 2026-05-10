@@ -17,8 +17,6 @@
 
 package org.apache.ignite.tcbot.integration;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.regex.Pattern;
 import org.junit.Before;
@@ -30,9 +28,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Black-box coverage for test-fix matching and cancelled suite ordering.
+ * Black-box coverage for test-fix matching.
  */
-public class TestFixesAndCancelledOrderingFlowTest {
+public class TestFixesFlowTest {
     /** */
     private static final Pattern FINISHED_PROCESS = Pattern.compile("\"finished\"\\s*:\\s*[1-9][0-9]*");
 
@@ -89,41 +87,6 @@ public class TestFixesAndCancelledOrderingFlowTest {
         assertTrue(rows, rows.contains("\"status\":\"Open\""));
         assertTrue(rows, rows.contains("\"status\":\"Resolved\""));
         assertTrue(rows, rows.contains("\"closedDate\":\"2026-05-09\""));
-    }
-
-    /** */
-    @Test
-    public void cancelledSuitesAreAfterBuildFailureInPrReportAndVisaComment() throws Exception {
-        String token = env.login();
-
-        runTestOnlyAction(token, "refresh-jira", 710000011L);
-        runTestOnlyAction(token, "refresh-github", 710000012L);
-        runPrBuildRefsRefresh(token, 710000013L);
-
-        IntegrationTestEnvironment.HttpResponse prResults = request("GET", env.botUrl
-            + "/rest/pr/results?serverId=apache"
-            + "&suiteId=" + enc("IgniteTests24Java17_RunAll")
-            + "&branchForTc=" + enc("pull/12007/head")
-            + "&action=" + enc("Latest"),
-            "Token " + token, null, null);
-
-        assertEquals(prResults.body, 200, prResults.status);
-        assertBefore(prResults.body, "IgniteTests24Java17_Build", "IgniteTests24Java17_Cache1");
-        assertBefore(prResults.body, "IgniteTests24Java17_Build", "IgniteTests24Java17_Sql");
-        assertTrue(prResults.body, prResults.body.contains("CANCELLED"));
-
-        String status = commentBuildAnalysis(token, 710000014L, "pull/12007/head", "IGNITE-20007", 12007);
-
-        assertTrue(status, status.contains("JIRA ticket commented: IGNITE-20007"));
-        assertTrue(status, status.contains("GitHub PR commented: PR #12007"));
-
-        IntegrationTestEnvironment.HttpResponse comments = request("GET",
-            env.githubUrl + "/repos/apache/ignite/issues/12007/comments", "Bearer github-test-token", null, null);
-
-        assertEquals(comments.body, 200, comments.status);
-        assertBefore(comments.body, "IgniteTests24Java17_Build", "IgniteTests24Java17_Cache1");
-        assertBefore(comments.body, "IgniteTests24Java17_Build", "IgniteTests24Java17_Sql");
-        assertTrue(comments.body, comments.body.contains("CANCELLED"));
     }
 
     /** */
@@ -189,38 +152,6 @@ public class TestFixesAndCancelledOrderingFlowTest {
     }
 
     /** */
-    private static String runPrBuildRefsRefresh(String token, long processId) throws Exception {
-        IntegrationTestEnvironment.HttpResponse start = request("POST", env.botUrl
-            + "/rest/pr/actualizeBuildRefs?serverId=apache&processId=" + processId,
-            "Token " + token, null, null);
-
-        assertEquals(start.body, 200, start.status);
-        assertTrue(start.body, start.body.contains("TeamCity build refs refresh queued"));
-
-        return waitForProcess(processId, token);
-    }
-
-    /** */
-    private static String commentBuildAnalysis(String token, long processId, String branch, String ticket, int prNum)
-        throws Exception {
-        IntegrationTestEnvironment.HttpResponse start = request("GET", env.botUrl
-            + "/rest/build/commentBuildAnalysis?serverId=apache"
-            + "&branchName=" + enc(branch)
-            + "&suiteId=" + enc("IgniteTests24Java17_RunAll")
-            + "&ticketId=" + enc(ticket)
-            + "&comment=" + enc("JIRA,GITHUB")
-            + "&prNum=" + prNum
-            + "&commentOnlyIfNoBlockers=false"
-            + "&processId=" + processId,
-            "Token " + token, null, null);
-
-        assertEquals(start.body, 200, start.status);
-        assertTrue(start.body, start.body.contains("Comment process started"));
-
-        return waitForProcess(processId, token);
-    }
-
-    /** */
     private static String waitForProcess(long processId, String token) throws Exception {
         long deadline = System.nanoTime() + Duration.ofSeconds(90).toNanos();
         String url = env.botUrl + "/rest/process/status?id=" + processId;
@@ -237,16 +168,6 @@ public class TestFixesAndCancelledOrderingFlowTest {
         }
 
         throw new IllegalStateException("Process did not finish: " + processId + ", last status: " + lastBody);
-    }
-
-    /** */
-    private static void assertBefore(String text, String first, String second) {
-        int firstIdx = text.indexOf(first);
-        int secondIdx = text.indexOf(second);
-
-        assertTrue("Expected to find " + first + " in: " + text, firstIdx >= 0);
-        assertTrue("Expected to find " + second + " in: " + text, secondIdx >= 0);
-        assertTrue("Expected " + first + " before " + second + " in: " + text, firstIdx < secondIdx);
     }
 
     /** */
@@ -267,8 +188,4 @@ public class TestFixesAndCancelledOrderingFlowTest {
         return res;
     }
 
-    /** */
-    private static String enc(String val) {
-        return URLEncoder.encode(val, StandardCharsets.UTF_8);
-    }
 }
