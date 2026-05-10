@@ -98,7 +98,7 @@ public class TestFixesAndCancelledOrderingFlowTest {
 
         runTestOnlyAction(token, "refresh-jira", 710000011L);
         runTestOnlyAction(token, "refresh-github", 710000012L);
-        runPrBuildRefsRefresh(token, 710000013L);
+        runPrBuildRefRecheck(token, 710000013L, "pull/12007/head");
 
         IntegrationTestEnvironment.HttpResponse prResults = request("GET", env.botUrl
             + "/rest/pr/results?serverId=apache"
@@ -118,11 +118,11 @@ public class TestFixesAndCancelledOrderingFlowTest {
         assertTrue(status, status.contains("GitHub PR commented: PR #12007"));
 
         IntegrationTestEnvironment.HttpResponse comments = request("GET",
-            env.githubUrl + "/repos/apache/ignite/issues/12007/comments", "Bearer github-test-token", null, null);
+            env.githubUrl + "/repos/apache/ignite/issues/12007/comments", "Bearer CAFEBABE", null, null);
 
         assertEquals(comments.body, 200, comments.status);
-        assertBefore(comments.body, "IgniteTests24Java17_Build", "IgniteTests24Java17_Cache1");
-        assertBefore(comments.body, "IgniteTests24Java17_Build", "IgniteTests24Java17_Sql");
+        assertBefore(comments.body, "[Build]", "[Cache1]");
+        assertBefore(comments.body, "[Build]", "[Sql]");
         assertTrue(comments.body, comments.body.contains("CANCELLED"));
     }
 
@@ -189,13 +189,16 @@ public class TestFixesAndCancelledOrderingFlowTest {
     }
 
     /** */
-    private static String runPrBuildRefsRefresh(String token, long processId) throws Exception {
+    private static String runPrBuildRefRecheck(String token, long processId, String branch) throws Exception {
         IntegrationTestEnvironment.HttpResponse start = request("POST", env.botUrl
-            + "/rest/pr/actualizeBuildRefs?serverId=apache&processId=" + processId,
+            + "/rest/pr/actualizeBuildRefs?serverId=apache"
+            + "&suiteId=" + enc("IgniteTests24Java17_RunAll")
+            + "&branchForTc=" + enc(branch)
+            + "&processId=" + processId,
             "Token " + token, null, null);
 
         assertEquals(start.body, 200, start.status);
-        assertTrue(start.body, start.body.contains("TeamCity build refs refresh queued"));
+        assertTrue(start.body, start.body.contains("TeamCity build ref recheck queued"));
 
         return waitForProcess(processId, token);
     }

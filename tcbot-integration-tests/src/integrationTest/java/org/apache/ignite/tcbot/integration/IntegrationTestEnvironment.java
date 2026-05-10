@@ -110,8 +110,13 @@ public class IntegrationTestEnvironment {
 
     /** */
     public String login() throws IOException {
+        return login("ignite.tester", "ignite-password");
+    }
+
+    /** */
+    public String login(String username, String password) throws IOException {
         HttpResponse login = request("POST", botUrl + "/rest/login/login", null,
-            "application/x-www-form-urlencoded", "uname=ignite.tester&psw=ignite-password");
+            "application/x-www-form-urlencoded", "uname=" + username + "&psw=" + password);
 
         if (login.status != 200 || !login.body.contains("fullToken"))
             throw new IllegalStateException("Failed to login into emulated bot: " + login.status + " " + login.body);
@@ -121,8 +126,13 @@ public class IntegrationTestEnvironment {
 
     /** */
     public String basicAuth() {
+        return basicAuth("ignite.tester", "ignite-password");
+    }
+
+    /** */
+    public String basicAuth(String username, String password) {
         return "Basic " + Base64.getEncoder()
-            .encodeToString("ignite.tester:ignite-password".getBytes(StandardCharsets.UTF_8));
+            .encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
     }
 
     /** */

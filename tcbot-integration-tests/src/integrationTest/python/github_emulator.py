@@ -22,7 +22,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
 
-TOKEN = "github-test-token"
+TOKEN = "CAFEBABE"
 AVATAR_SVG = b"""<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
   <circle cx="32" cy="32" r="30" fill="#4fa657"/>
   <path fill="#fff" d="M21.5 24.5c-5.8 5.8-5.8 15.2 0 21 2.9 2.9 6.7 4.4 10.5 4.4s7.6-1.5 10.5-4.4C49.8 38.2 51 16 51 16s-22.2 1.2-29.5 8.5zm18 18c-2 2-4.6 3-7.5 3s-5.5-1-7.5-3-3-4.6-3-7.5 1-5.5 3-7.5c3.1-3.1 10.9-5.2 18.7-6-0.8 7.8-2.9 15.9-3.7 21z"/>
