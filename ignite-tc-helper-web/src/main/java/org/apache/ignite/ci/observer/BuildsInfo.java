@@ -185,7 +185,8 @@ public class BuildsInfo {
         for (Integer id : builds) {
             FatBuildCompacted build = teamcity.getFatBuild(id, mode);
 
-            if (build.isFakeStub() || build.isCancelled(strCompactor))
+            if (build.isFakeStub() || (build.isCancelled(strCompactor) && !build.isQueued(strCompactor)
+                && !build.isRunning(strCompactor)))
                 return CANCELLED_STATUS;
 
             if (!build.isFinished(strCompactor))
