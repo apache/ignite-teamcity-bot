@@ -33,6 +33,13 @@ public class DirectExecNoWaitScheduler implements IScheduler {
     }
 
     /** {@inheritDoc} */
+    @Override public boolean runNamedNow(String fullName, Runnable cmd) {
+        cmd.run();
+
+        return true;
+    }
+
+    /** {@inheritDoc} */
     @Override public void stop() {
 
     }

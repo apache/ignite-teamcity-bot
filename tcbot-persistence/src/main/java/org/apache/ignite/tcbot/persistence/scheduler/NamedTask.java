@@ -37,6 +37,9 @@ class NamedTask {
     @GuardedBy("lock")
     private volatile long resValidityMs = 0;
 
+    @GuardedBy("lock")
+    private volatile boolean forceRun;
+
     enum Status {
         CREATED, RUNNING, COMPLETED;
     }
@@ -77,6 +80,27 @@ class NamedTask {
 
     }
 
+    /**
+     * @param cmd Task body.
+     * @return {@code true} if task was queued, {@code false} if it is already queued or running.
+     */
+    public boolean scheduleNow(@Nonnull Runnable cmd) {
+        long writeLockStamp = lock.writeLock();
+
+        try {
+            if (status == Status.RUNNING || this.cmd != null)
+                return false;
+
+            this.cmd = cmd;
+            forceRun = true;
+
+            return true;
+        }
+        finally {
+            lock.unlock(writeLockStamp);
+        }
+    }
+
     public Runnable runIfNeeded() throws Exception {
         long optReadStamp = lock.tryOptimisticRead();
         boolean canSkip = canSkipStartNow();
@@ -108,8 +132,10 @@ class NamedTask {
             this.cmd = null;
 
             // because here lock is not upgraded from read lock cmd may come here with null
-            if (cmd != null)
+            if (cmd != null) {
+                forceRun = false;
                 status = Status.RUNNING;
+            }
         }
         finally {
             lock.unlock(writeLockStamp);
@@ -149,7 +175,7 @@ class NamedTask {
             res.lastFinishedTs = lastFinishedTs;
             res.quietPeriodMs = resValidityMs;
             res.runnableAvailable = cmd != null;
-            res.canStartNow = false;
+            res.canStartNow = status != Status.RUNNING && cmd == null;
 
             return res;
         }
@@ -159,6 +185,9 @@ class NamedTask {
     }
 
     public boolean canSkipStartNow() {
+        if (forceRun)
+            return false;
+
         boolean canSkip = false;
         if (status == Status.RUNNING)
             canSkip = true;

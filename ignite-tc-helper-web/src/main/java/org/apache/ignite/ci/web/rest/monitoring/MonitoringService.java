@@ -41,6 +41,7 @@ import java.util.stream.Stream;
 import javax.annotation.security.RolesAllowed;
 import javax.servlet.ServletContext;
 import javax.ws.rs.BadRequestException;
+import javax.ws.rs.ClientErrorException;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.NotFoundException;
@@ -50,6 +51,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.CacheMetrics;
@@ -144,8 +146,7 @@ public class MonitoringService {
 
         return instance(IScheduler.class).scheduledTasks().stream()
             .peek(task -> {
-                task.runnableAvailable = actions.hasAction(task.name);
-                task.canStartNow = actions.hasAction(task.name) && !"RUNNING".equals(task.status);
+                task.canStartNow = actions.hasAction(task.name) && task.canStartNow;
             })
             .collect(Collectors.toList());
     }
@@ -166,6 +167,7 @@ public class MonitoringService {
             throw new BadRequestException("Action name is required");
 
         MaintenanceActionRegistry actions = instance(MaintenanceActionRegistry.class);
+        IScheduler scheduler = instance(IScheduler.class);
         BotProcessMonitor process = instance(BotProcessMonitor.class);
 
         if (!actions.hasAction(name)) {
@@ -176,7 +178,7 @@ public class MonitoringService {
 
         process.start(processId, "maintenanceAction", "Maintenance action request accepted: " + name);
 
-        Thread thread = new Thread(() -> {
+        boolean accepted = scheduler.runNamedNow(name, () -> {
             try {
                 process.status(processId, "Running maintenance action: " + name);
 
@@ -186,11 +188,16 @@ public class MonitoringService {
             }
             catch (Exception e) {
                 process.fail(processId, e);
+                throw new RuntimeException(e);
             }
-        }, "maintenance-action-" + name.replaceAll("[^A-Za-z0-9_.-]", "_"));
+        });
 
-        thread.setDaemon(true);
-        thread.start();
+        if (!accepted) {
+            process.fail(processId, "Maintenance action is already queued or running: " + name);
+
+            throw new ClientErrorException("Maintenance action is already queued or running: " + name,
+                Response.Status.CONFLICT);
+        }
 
         return new SimpleResult("Maintenance action start requested: " + name);
     }

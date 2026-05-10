@@ -79,6 +79,18 @@ class TcBotScheduler implements IScheduler {
         }
     }
 
+    /** {@inheritDoc} */
+    @Override public boolean runNamedNow(String fullName, Runnable cmd) {
+        NamedTask task = namedTasks.computeIfAbsent(fullName, NamedTask::new);
+
+        if (!task.scheduleNow(cmd))
+            return false;
+
+        service().execute(() -> checkNamedTasks("Manual"));
+
+        return true;
+    }
+
     /**
      * @param threadNme Runner name to be used in display.
      */
