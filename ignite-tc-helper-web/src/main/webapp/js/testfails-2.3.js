@@ -18,6 +18,7 @@
 //loadStatus element should be provided on page
 //triggerConfirm & triggerDialog element should be provided on page (may be hidden)
 var g_initMoreInfoDone = false;
+var g_tcBuildRefsAdmin = null;
 
 /** Object used to notify git. See ChainAtServerCurrentStatus Java class. */
 var g_srv_to_notify_git;
@@ -98,6 +99,7 @@ function showChainResultsWithSettings(result, settings) {
     res += "</table>";
 
     setTimeout(initMoreInfo, 100);
+    setTimeout(setupTcBuildRefsFallbackButtons, 100);
 
     return res;
 }
@@ -173,7 +175,8 @@ function showChainCurrentStatusData(chain, settings) {
     if(isDefinedAndFilled(chain.buildNotFound) && chain.buildNotFound ) {
         return "<tr><td><b>Error: Build not found for branch [" + chain.branchName + "]</b>" +
             "<br><br><span style='color:grey; font-size:12px;'>Perhaps, more than 2 weeks have passed since the last build " +
-            "run. <br>There is no data on the TC server</span></td></tr>";
+            "run. <br>There is no data on the TC server</span>" +
+            buildRefsRefreshFallbackHtml(chain) + "</td></tr>";
     }
 
     var res = "";
@@ -426,6 +429,175 @@ function showChainCurrentStatusData(chain, settings) {
     }
 
     return res;
+}
+
+function buildRefsRefreshFallbackHtml(chain) {
+    var serverId = chain.serverCode;
+    var suiteId = isDefinedAndFilled(chain.suiteId) ? chain.suiteId : findGetParameter("suiteId");
+    var branchForTc = chain.branchName;
+    var action = findGetParameter("action");
+
+    if (!isDefinedAndFilled(serverId) || !isDefinedAndFilled(branchForTc))
+        return "";
+
+    var idBase = "tcBuildRefsRefresh-" + domIdPart(serverId) + "-" + domIdPart(suiteId) + "-" +
+        domIdPart(branchForTc);
+    var statusId = idBase + "-status";
+    var stagesId = idBase + "-stages";
+    var buttonId = idBase + "-button";
+
+    return "<div class='tc-build-refs-refresh' style='display:none; margin-top:12px;'>" +
+        "<button id='" + escapeHtml(buttonId) + "' type='button' " +
+        "title='Admin-only operation: refresh cached TeamCity build references in the background' " +
+        "onclick='" + jsCallAttr("refreshBuildRefsFromTc", [
+            serverId, suiteId, branchForTc, action, statusId, stagesId, buttonId
+        ]) + "'>Refresh from TC</button>" +
+        "<span id='" + escapeHtml(statusId) + "' style='margin-left:8px; color:#555;'></span>" +
+        "<div id='" + escapeHtml(stagesId) + "' style='display:none; background:#f7f7f7; " +
+        "border:1px solid #d8d8d8; border-radius:4px; font-family:monospace; line-height:1.45; " +
+        "margin-top:8px; max-height:180px; overflow-y:auto; padding:8px; white-space:pre-wrap; " +
+        "word-break:break-word;'></div>" +
+        "<div style='color:grey; font-size:12px; margin-top:4px;'>This starts a background refresh of recent " +
+        "TeamCity build references for the server cache, then reloads the page data.</div>" +
+        "</div>";
+}
+
+function domIdPart(value) {
+    return String(value == null ? "any" : value).replace(/[^A-Za-z0-9_-]/g, "_");
+}
+
+function setupTcBuildRefsFallbackButtons() {
+    if ($(".tc-build-refs-refresh").length === 0)
+        return;
+
+    if (g_tcBuildRefsAdmin !== null) {
+        toggleTcBuildRefsFallbackButtons();
+
+        return;
+    }
+
+    $.ajax({
+        url: "/rest/user/currentUserName",
+        success: function (result) {
+            g_tcBuildRefsAdmin = result && result.admin === true;
+            toggleTcBuildRefsFallbackButtons();
+        },
+        error: function () {
+            g_tcBuildRefsAdmin = false;
+            toggleTcBuildRefsFallbackButtons();
+        }
+    });
+}
+
+function toggleTcBuildRefsFallbackButtons() {
+    if (g_tcBuildRefsAdmin === true)
+        $(".tc-build-refs-refresh").show();
+    else
+        $(".tc-build-refs-refresh").hide();
+}
+
+function refreshBuildRefsFromTc(serverId, suiteId, branchForTc, action, statusId, stagesId, buttonId) {
+    if (!confirm("Refresh from TC is an admin-only heavy operation. It can make many TeamCity REST " +
+        "requests and may take time. Continue?"))
+        return;
+
+    var processId = createBotProcessId("actualizeBuildRefs");
+    var requestUrl = "rest/pr/actualizeBuildRefs?processId=" + encodeURIComponent(processId);
+    var button = $("#" + buttonId);
+    var status = $("#" + statusId);
+    var stages = $("#" + stagesId);
+    var stopProcessPolling;
+    var completed = false;
+
+    function valueOrAny(value) {
+        return value == null || value === "" ? "<any>" : value;
+    }
+
+    function appendRequestParam(name, value) {
+        if (value != null)
+            requestUrl += "&" + name + "=" + encodeURIComponent(value);
+    }
+
+    function appendStage(text) {
+        stages.show();
+        stages.children(".tc-build-refs-stage").css({
+            "color": "#666",
+            "opacity": "0.58"
+        });
+        stages.append($("<div>", {
+            "class": "tc-build-refs-stage",
+            text: actionSummaryText(text)
+        }));
+        stages.scrollTop(stages.prop("scrollHeight"));
+    }
+
+    function finishProgress() {
+        if (stopProcessPolling)
+            stopProcessPolling();
+
+        button.prop("disabled", false);
+    }
+
+    appendRequestParam("serverId", serverId);
+    appendRequestParam("suiteId", suiteId);
+    appendRequestParam("branchForTc", branchForTc);
+    appendRequestParam("action", action);
+
+    button.prop("disabled", true);
+    stages.empty().hide();
+    status.text("Refreshing TeamCity build references for " + valueOrAny(branchForTc) + "...");
+
+    appendStage("Created browser-side process id " + processId + ".");
+    appendStage("Requested page context: server=" + valueOrAny(serverId) + ", suite=" + valueOrAny(suiteId) +
+        ", branch=" + valueOrAny(branchForTc) + ", action=" + valueOrAny(action) + ".");
+    appendStage("The bot will refresh recent TeamCity build references for the whole server cache.");
+    appendStage("Sending TeamCity build refs refresh request to the bot REST API.");
+    appendStage("Waiting for the backend to register the refresh process.");
+
+    stopProcessPolling = startBotProcessPolling(processId, function (processStatus) {
+        var statusText = botProcessStatusText(processStatus);
+
+        appendStage(statusText);
+        status.text(statusText);
+
+        if (processStatus.running === false && !completed) {
+            completed = true;
+            finishProgress();
+
+            if (typeof loadData === "function") {
+                status.text(statusText + " Reloading page data.");
+                setTimeout(loadData, 700);
+            }
+        }
+    }, {
+        intervalMs: 1000,
+        skipUnknown: false,
+        reportErrors: true,
+        repeatMs: 7000,
+        repeatText: function (processStatus) {
+            if (!isDefinedAndFilled(processStatus.kind))
+                return "Still waiting for the bot to register process " + processId + ".";
+
+            return "Still running: " + botProcessStatusText(processStatus);
+        }
+    });
+
+    $.ajax({
+        url: requestUrl,
+        method: "POST",
+        success: function (result) {
+            appendStage(simpleResultText(result));
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            if (textStatus === "abort")
+                return;
+
+            finishProgress();
+            status.text("TeamCity build refs refresh failed.");
+            appendStage("Error: " + (errorThrown || jqXHR.statusText || "unknown error"));
+            appendStage(jqXHR.responseText || errorThrown || "Unknown request error.");
+        }
+    });
 }
 
 function showBuildInProgressData(chain) {

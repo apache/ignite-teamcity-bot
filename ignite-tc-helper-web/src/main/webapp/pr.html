@@ -13,7 +13,7 @@
     <!-- production version, optimized for size and speed -->
     <!--<script src="https://cdn.jsdelivr.net/npm/vue"></script>-->
     <script src="js/common-1.7.js?v=20260509-6"></script>
-    <script src="js/testfails-2.3.js?v=20260509-22"></script>
+    <script src="js/testfails-2.3.js?v=20260510-1"></script>
 </head>
 <body>
 <script>
@@ -62,7 +62,6 @@
     $(document).ready(function () {
         $(document).tooltip();
         showQueryForm();
-        setupBuildRefsReloadButton();
         loadData();
 
         var branch = findGetParameter("branch");
@@ -192,151 +191,6 @@ function loadData() {
         });
     }
 
-    function actualizeBuildRefs() {
-        if (!confirm("Reload TeamCity refs is an admin-only heavy operation. It can make many TeamCity REST " +
-            "requests and may take time. Continue?"))
-            return;
-
-        let button = $("#actualizeBuildRefsBtn");
-        let dialog = $("#actualizeBuildRefsDialog");
-
-        if (dialog.length > 0) {
-            if (dialog.data("ui-dialog"))
-                dialog.dialog("destroy");
-
-            dialog.remove();
-        }
-
-        $("body").append("<div id='actualizeBuildRefsDialog' title='Reload TeamCity refs'>" +
-            actionStatusHtml("Preparing TeamCity build refs refresh.") +
-            actionStagesHtml(false, "actualizeBuildRefsStages") +
-            actionErrorHtml() +
-            "</div>");
-        dialog = $("#actualizeBuildRefsDialog");
-
-        let stages = $("#actualizeBuildRefsStages");
-        let processId = createBotProcessId("actualizeBuildRefs");
-        let stopProcessPolling;
-        let completed = false;
-        let serverId = findGetParameter("serverId");
-        let suiteId = findGetParameter("suiteId");
-        let branchForTc = findGetParameter("branchForTc");
-        let action = findGetParameter("action");
-        let requestUrl = "rest/pr/actualizeBuildRefs?processId=" + encodeURIComponent(processId);
-
-        function valueOrAny(value) {
-            return value == null || value === "" ? "<any>" : value;
-        }
-
-        function appendRequestParam(name, value) {
-            if (value != null)
-                requestUrl += "&" + name + "=" + encodeURIComponent(value);
-        }
-
-        appendRequestParam("serverId", serverId);
-        appendRequestParam("suiteId", suiteId);
-        appendRequestParam("branchForTc", branchForTc);
-        appendRequestParam("action", action);
-
-        function appendStage(text) {
-            appendActionStage(dialog, text);
-            stages.scrollTop(stages.prop("scrollHeight"));
-        }
-
-        function finishProgress(buttons) {
-            if (stopProcessPolling)
-                stopProcessPolling();
-
-            dialog.dialog("option", "buttons", buttons);
-            button.prop("disabled", false);
-        }
-
-        button.prop("disabled", true);
-        stages.empty();
-        dialog.find(".action-error").hide().empty();
-        setActionStatus(dialog, "Refreshing TeamCity build references for " + valueOrAny(branchForTc) + "...");
-
-        openCenteredDialog(dialog, actionDialogOptions("Reload TeamCity refs", {}));
-
-        appendStage("Created browser-side process id " + processId + ".");
-        appendStage("Requested page context: server=" + valueOrAny(serverId) + ", suite=" + valueOrAny(suiteId) +
-            ", branch=" + valueOrAny(branchForTc) + ", action=" + valueOrAny(action) + ".");
-        appendStage("The bot will actualize recent TeamCity build references for the server cache used by this PR report.");
-        appendStage("Sending TeamCity build refs refresh request to the bot REST API.");
-        appendStage("Waiting for the backend to register the refresh process.");
-
-        stopProcessPolling = startBotProcessPolling(processId, function (processStatus) {
-            let statusText = botProcessStatusText(processStatus);
-
-            appendStage(statusText);
-
-            if (processStatus.running === false && !completed) {
-                completed = true;
-                setActionStatus(dialog, statusText);
-
-                if (statusText.indexOf("Failed:") === 0)
-                    dialog.find(".action-error").text(statusText).show();
-
-                finishProgress({
-                    "Reload page data": function () {
-                        loadDataNoSync();
-                        $(this).dialog("close");
-                    },
-                    "Ok": function () {
-                        $(this).dialog("close");
-                    }
-                });
-            }
-            else if (processStatus.running !== false)
-                setActionStatus(dialog, statusText);
-        }, {
-            intervalMs: 1000,
-            skipUnknown: false,
-            reportErrors: true,
-            repeatMs: 7000,
-            repeatText: function (processStatus) {
-                if (!isDefinedAndFilled(processStatus.kind))
-                    return "Still waiting for the bot to register process " + processId + ".";
-
-                return "Still running: " + botProcessStatusText(processStatus);
-            }
-        });
-
-        $.ajax({
-            url: requestUrl,
-            method: "POST",
-            success: function (result) {
-                appendStage(simpleResultText(result));
-            },
-            error: function (jqXHR, textStatus, errorThrown) {
-                if (textStatus === "abort")
-                    return;
-
-                setActionStatus(dialog, "TeamCity build refs refresh failed.");
-                appendStage("Error: " + (errorThrown || jqXHR.statusText || "unknown error"));
-                dialog.find(".action-error").text(jqXHR.responseText || errorThrown || "Unknown request error.").show();
-                finishProgress({
-                    "Ok": function () {
-                        $(this).dialog("close");
-                    }
-                });
-            }
-        });
-    }
-
-    function setupBuildRefsReloadButton() {
-        $("#actualizeBuildRefsBtn").hide();
-
-        $.ajax({
-            url: "/rest/user/currentUserName",
-            success: function (result) {
-                if (result && result.admin === true)
-                    $("#actualizeBuildRefsBtn").show();
-            }
-        });
-    }
-
-
     function loadDataNoSync() {
         var curFailuresUrl = "rest/pr/resultsNoSync" + parmsForRest();
 
@@ -399,9 +253,6 @@ function showData(result) {
                     {{ option }}
                 </option>
             </select>
-            <button id="actualizeBuildRefsBtn" type="button" style="display:none"
-                    title="Admin-only heavy operation: reload cached TeamCity build references in the background"
-                    onclick="actualizeBuildRefs()">Reload TeamCity refs</button>
             &nbsp;&nbsp;
             <span id="loadStatus"></span>
         </div>

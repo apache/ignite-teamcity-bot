@@ -89,7 +89,7 @@ public class GetPrTestFailures {
         ITeamcityIgnitedProvider tcProv = appCtx.getInstance(ITeamcityIgnitedProvider.class);
         BotProcessMonitor process = appCtx.getInstance(BotProcessMonitor.class);
         String taskName = "Pr.actualizeBuildRefs." + String.valueOf(srvId);
-        String pageCtx = prPageContext(srvId, suiteId, branchForTc, action);
+        String pageCtx = pageContext(srvId, suiteId, branchForTc, action);
 
         process.start(processId, "teamcityBuildRefsRefresh",
             "Admin TeamCity build refs refresh request accepted. " + pageCtx);
@@ -109,7 +109,8 @@ public class GetPrTestFailures {
                 process.status(processId, "Refreshing recent TeamCity build references for server " + srvId +
                     ". Requested from: " + pageCtx);
                 process.status(processId, "Calling TeamCity recent build refs actualization. This updates the bot " +
-                    "cache used by PR reports; page branch context is " + valueOrAny(branchForTc) + ".");
+                    "server-wide recent refs cache used by PR reports; page branch context is " +
+                    valueOrAny(branchForTc) + ".");
                 tcProv.server(srvId, creds).actualizeRecentBuildRefs();
                 process.finish(processId, "TeamCity build references refreshed for server " + srvId +
                     ". Refresh context was: " + pageCtx);
@@ -137,9 +138,9 @@ public class GetPrTestFailures {
      * @param branchForTc TeamCity branch.
      * @param action PR report action.
      */
-    private static String prPageContext(@Nullable String srvId, @Nullable String suiteId,
+    private static String pageContext(@Nullable String srvId, @Nullable String suiteId,
         @Nullable String branchForTc, @Nullable String action) {
-        return "PR page context: server=" + valueOrAny(srvId) + ", suite=" + valueOrAny(suiteId) +
+        return "Page context: server=" + valueOrAny(srvId) + ", suite=" + valueOrAny(suiteId) +
             ", branch=" + valueOrAny(branchForTc) + ", action=" + valueOrAny(action) + ".";
     }
 
