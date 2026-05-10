@@ -218,8 +218,8 @@ class Handler(BaseHTTPRequestHandler):
         self.respond(status, "text/plain; charset=utf-8", payload.encode("utf-8"))
 
     def respond(self, status, content_type, body):
-        print("[github:{}] {} {} -> {} {}".format(self.server.server_port, self.command, self.path, status,
-            content_type), flush=True)
+        safe_log("[github:{}] {} {} -> {} {}".format(self.server.server_port, self.command, self.path, status,
+            content_type))
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
@@ -255,6 +255,13 @@ class Handler(BaseHTTPRequestHandler):
 
     def log_message(self, fmt, *args):
         return
+
+
+def safe_log(message):
+    try:
+        print(message, flush=True)
+    except OSError:
+        pass
 
 
 class Server(ThreadingHTTPServer):

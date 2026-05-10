@@ -542,8 +542,8 @@ class Handler(BaseHTTPRequestHandler):
         self.respond(status, "text/plain; charset=utf-8", payload.encode("utf-8"))
 
     def respond(self, status, content_type, body):
-        print("[teamcity:{}] {} {} -> {} {} {}".format(self.server.server_port, self.command, self.path, status,
-            content_type, self.auth_state()), flush=True)
+        safe_log("[teamcity:{}] {} {} -> {} {} {}".format(self.server.server_port, self.command, self.path, status,
+            content_type, self.auth_state()))
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
@@ -888,6 +888,13 @@ def statistics_build_id(path):
 
 def xml_attr(value):
     return escape(str(value), {'"': "&quot;"})
+
+
+def safe_log(message):
+    try:
+        print(message, flush=True)
+    except OSError:
+        pass
 
 
 def build_json(build_id, build, port):
