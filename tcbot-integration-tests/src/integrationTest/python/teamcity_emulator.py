@@ -19,7 +19,9 @@ import argparse
 import base64
 import copy
 import json
+import random
 import re
+import time
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
@@ -43,7 +45,8 @@ SUITE_MODELS = [
         "tests": [
             "org.apache.ignite.cache.CachePutGetTest.testPutGet",
             "org.apache.ignite.cache.CacheRebalanceTest.testHistoricalRebalance",
-            "org.apache.ignite.cache.CacheTxTest.testOptimisticTx"
+            "org.apache.ignite.cache.CacheTxTest.testOptimisticTx",
+            "org.apache.ignite.randomized.RandomizedCacheTest.testRandomizedCachePartitionLoss"
         ],
         "duration": 28_000
     },
@@ -51,7 +54,8 @@ SUITE_MODELS = [
         "buildTypeId": "IgniteTests24Java17_ComputeGrid",
         "tests": [
             "org.apache.ignite.compute.ComputeTaskTest.testMapReduce",
-            "org.apache.ignite.compute.ComputeFailoverTest.testFailover"
+            "org.apache.ignite.compute.ComputeFailoverTest.testFailover",
+            "org.apache.ignite.randomized.RandomizedComputeTest.testRandomizedNodeLeftDuringReduce"
         ],
         "duration": 19_000
     },
@@ -59,7 +63,8 @@ SUITE_MODELS = [
         "buildTypeId": "IgniteTests24Java17_Pds1",
         "tests": [
             "org.apache.ignite.pds.WalRecoveryTest.testRecoveryAfterRestart",
-            "org.apache.ignite.pds.CheckpointTest.testCheckpointUnderLoad"
+            "org.apache.ignite.pds.CheckpointTest.testCheckpointUnderLoad",
+            "org.apache.ignite.randomized.RandomizedPdsTest.testRandomizedWalArchiveDelay"
         ],
         "duration": 31_000
     },
@@ -67,7 +72,8 @@ SUITE_MODELS = [
         "buildTypeId": "IgniteTests24Java17_Sql",
         "tests": [
             "org.apache.ignite.sql.SqlRetryTest.testRetryOnTopologyChange",
-            "org.apache.ignite.sql.SqlIndexTest.testIndexRebuild"
+            "org.apache.ignite.sql.SqlIndexTest.testIndexRebuild",
+            "org.apache.ignite.randomized.RandomizedSqlTest.testRandomizedQueryCancelRace"
         ],
         "duration": 24_000
     }
@@ -223,13 +229,25 @@ class Handler(BaseHTTPRequestHandler):
         if not self.read_ok():
             return self.json(401, {"message": "Authentication required"})
 
-        branch = first(query.get("branch", ["<default>"]))
-        history = []
+        self.server.advance_build_lifecycle()
+        history = list(self.server.builds.items())
+        locator = first(query.get("locator", [""]))
+        branch = first(query.get("branch", [None]))
+        build_type = build_type_from_locator(locator)
+        locator_branch = branch_from_locator(locator)
 
-        for idx, hist in enumerate(MASTER_HISTORY, start=1):
-            history.append(master_history_build(idx, branch))
+        if locator_branch is not None:
+            branch = locator_branch
 
-        history.extend((build_id, build) for build_id, build in self.server.builds.items())
+        if build_type is not None:
+            history = [(build_id, build) for build_id, build in history
+                       if build.get("buildTypeId") == build_type]
+
+        if branch is not None:
+            history = [(build_id, build) for build_id, build in history
+                       if normalize_branch(build.get("branchName", "<default>")) == normalize_branch(branch)]
+
+        history.sort(key=lambda item: int(item[0]), reverse=True)
 
         body = ['<?xml version="1.0" encoding="UTF-8"?><builds count="{}">'.format(len(history))]
         body.extend(build_xml(build_id, build, closed=True, port=self.server.server_port,
@@ -242,6 +260,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self.read_ok():
             return self.json(401, {"message": "Authentication required"})
 
+        self.server.advance_build_lifecycle()
         build_id = str(build_id)
         build = self.server.builds.get(build_id)
 
@@ -258,6 +277,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self.read_ok():
             return self.json(401, {"message": "Authentication required"})
 
+        self.server.advance_build_lifecycle()
         build = self.server.builds.get(str(build_id)) or find_master_history_build(build_id)
 
         if build is None:
@@ -362,6 +382,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self.read_ok():
             return self.json(401, {"message": "Authentication required"})
 
+        self.server.advance_build_lifecycle()
         build_id = build_id_from_locator(query)
         build = self.server.builds.get(str(build_id)) or find_master_history_build(build_id)
         problems = [] if build is None else build.get("problems", [])
@@ -381,6 +402,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self.read_ok():
             return self.json(401, {"message": "Authentication required"})
 
+        self.server.advance_build_lifecycle()
         build_id = build_id_from_locator(query)
         build = self.server.builds.get(str(build_id)) or find_master_history_build(build_id)
         tests = [] if build is None else build.get("tests", [])
@@ -409,11 +431,25 @@ class Handler(BaseHTTPRequestHandler):
         build_id = str(self.server.next_build)
         branch = payload.get("branchName", "pull/12001/head")
         suite = payload.get("buildTypeId", RUN_ALL)
+        planned_failed_tests = randomized_failed_tests(build_id, branch, [suite] if suite != RUN_ALL else None)
 
         if suite == RUN_ALL:
-            build = create_run_all_chain(self.server.builds, build_id, branch, "UNKNOWN", "running")
+            build = create_run_all_chain(self.server.builds, build_id, branch, "UNKNOWN", "queued",
+                                         failed_tests=planned_failed_tests)
+            build["plannedFailedTests"] = sorted(planned_failed_tests)
+            build["autoLifecycle"] = True
+            build["queuedEpoch"] = time.time()
+            build["estimatedTotalSeconds"] = 4
+            build["currentStageText"] = "Queued emulated Ignite RunAll suites"
+            self.server.next_build = int(build_id) + len(SUITE_MODELS)
         else:
-            build = create_suite_build(build_id, suite, branch, "UNKNOWN", "running")
+            build = create_suite_build(build_id, suite, branch, "UNKNOWN", "queued",
+                                       failed_tests=planned_failed_tests)
+            build["plannedFailedTests"] = sorted(planned_failed_tests)
+            build["autoLifecycle"] = True
+            build["queuedEpoch"] = time.time()
+            build["estimatedTotalSeconds"] = 3
+            build["currentStageText"] = "Queued emulated suite {}".format(suite)
             self.server.builds[build_id] = build
 
         return self.xml(200, '<?xml version="1.0" encoding="UTF-8"?>' + build_xml(build_id, build, closed=False,
@@ -427,14 +463,34 @@ class Handler(BaseHTTPRequestHandler):
         if build is None:
             return self.json(404, {"message": "Build not found", "id": build_id})
 
+        planned_failed_tests = set(build.get("plannedFailedTests", []))
+        status = payload.get("status")
+
+        if status is None:
+            status = "FAILURE" if planned_failed_tests else "SUCCESS"
+
+        failed_tests = set(test.get("name") for test in payload.get("tests", []) if test.get("status") == "FAILURE")
+        if not failed_tests and not ("status" in payload and status == "SUCCESS"):
+            failed_tests = planned_failed_tests
+
         build["state"] = "finished"
-        build["status"] = payload.get("status", "SUCCESS")
+        build["status"] = status
         build["finishDate"] = tc_date()
-        build["problems"] = payload.get("problems", [])
-        build["tests"] = payload.get("tests", [])
+        build["autoLifecycle"] = False
 
         if build.get("buildTypeId") == RUN_ALL:
-            complete_run_all_dependencies(self.server.builds, build, build["status"])
+            complete_run_all_dependencies(self.server.builds, build, status, failed_tests)
+        else:
+            completed = create_suite_build(build_id, build.get("buildTypeId"), build.get("branchName"),
+                                           status, "finished", failed_tests=failed_tests)
+            build["tests"] = payload.get("tests", completed["tests"])
+            build["problems"] = payload.get("problems", completed["problems"])
+
+        if "tests" in payload:
+            build["tests"] = payload["tests"]
+
+        if "problems" in payload:
+            build["problems"] = payload["problems"]
 
         return self.json(200, build_json(build_id, build, self.server.server_port))
 
@@ -513,14 +569,116 @@ class Server(ThreadingHTTPServer):
         self.next_build = 900000
         self.builds = initial_builds()
 
+    def advance_build_lifecycle(self):
+        now = time.time()
+
+        for build_id, build in list(self.builds.items()):
+            if not build.get("autoLifecycle"):
+                continue
+
+            state = build.get("state")
+
+            if state == "queued" and now >= build.get("queuedEpoch", now) + 1.0:
+                self.start_auto_build(build)
+            elif state == "running" and now >= build.get("startEpoch", now) + build.get("estimatedTotalSeconds", 4):
+                self.finish_auto_build(build_id, build)
+
+    def start_auto_build(self, build):
+        build["state"] = "running"
+        build["status"] = "UNKNOWN"
+        build["startDate"] = tc_date()
+        build["startEpoch"] = time.time()
+        build["estimatedTotalSeconds"] = build.get("estimatedTotalSeconds", 4)
+        build["currentStageText"] = build.get("currentStageText", "Running emulated Ignite RunAll suites")
+
+        for dep_id in build.get("snapshotDependencies", []):
+            dep = self.builds.get(dep_id)
+
+            if dep is None:
+                continue
+
+            dep["state"] = "running"
+            dep["status"] = "UNKNOWN"
+            dep["startDate"] = build["startDate"]
+            dep["startEpoch"] = build["startEpoch"]
+            dep["estimatedTotalSeconds"] = max(2, int(build.get("estimatedTotalSeconds", 4)))
+            dep["currentStageText"] = "Running emulated suite {}".format(dep.get("buildTypeId"))
+
+    def finish_auto_build(self, build_id, build):
+        failed_tests = set(build.get("plannedFailedTests", []))
+        status = "FAILURE" if failed_tests else "SUCCESS"
+
+        build["state"] = "finished"
+        build["status"] = status
+        build["finishDate"] = tc_date()
+        build["autoLifecycle"] = False
+
+        if build.get("buildTypeId") == RUN_ALL:
+            complete_run_all_dependencies(self.builds, build, status, failed_tests)
+        else:
+            completed = create_suite_build(build_id, build.get("buildTypeId"), build.get("branchName"),
+                                           status, "finished", failed_tests=failed_tests)
+            build["tests"] = completed["tests"]
+            build["problems"] = completed["problems"]
+            build["autoLifecycle"] = False
+
 
 def first(values):
     return values[0] if values else None
 
 
+def normalize_branch(branch):
+    return "<default>" if branch in [None, "", "default", "<default>"] else branch
+
+
+def build_type_from_locator(locator):
+    if not locator:
+        return None
+
+    match = re.search(r"buildType:\(id:([^)]+)\)", locator)
+
+    return match.group(1) if match else None
+
+
+def branch_from_locator(locator):
+    if not locator:
+        return None
+
+    match = re.search(r"branch:([^,]+)", locator)
+
+    return match.group(1) if match else None
+
+
+def first_randomized_test(model):
+    for test in model["tests"]:
+        if "Randomized" in test or "randomized" in test.lower():
+            return test
+
+    return model["tests"][-1]
+
+
+def randomized_failed_tests(build_id, branch, suite_ids=None):
+    models = SUITE_MODELS
+
+    if suite_ids is not None:
+        suite_ids = set(suite_ids)
+        models = [model for model in SUITE_MODELS if model["buildTypeId"] in suite_ids]
+
+    candidates = [first_randomized_test(model) for model in models]
+
+    if not candidates:
+        return set()
+
+    rng = random.Random("{}:{}".format(build_id, branch))
+    fail_count = 1 if len(candidates) == 1 else rng.randint(1, min(2, len(candidates)))
+
+    return set(rng.sample(candidates, fail_count))
+
+
 def initial_builds():
     builds = {}
 
+    create_master_history(builds)
     create_run_all_chain(builds, "800101", "pull/12005/head", "SUCCESS", "finished",
                          queued="20260510T090000+0000", started="20260510T090010+0000",
                          finished="20260510T090130+0000")
@@ -536,6 +694,26 @@ def initial_builds():
     return builds
 
 
+def create_master_history(builds):
+    base_id = 810000
+
+    for idx, hist in enumerate(MASTER_HISTORY, start=1):
+        build_id = str(base_id + idx * 10)
+        failed = hist["runs"][-1] == "FAILURE"
+        model = SUITE_MODELS[(idx - 1) % len(SUITE_MODELS)]
+        failed_tests = set()
+
+        if failed:
+            failed_tests.add(first_randomized_test(model))
+
+        create_run_all_chain(builds, build_id, "<default>", "FAILURE" if failed else "SUCCESS", "finished",
+                             queued="20260510T0{}0000+0000".format(idx),
+                             started="20260510T0{}0010+0000".format(idx),
+                             finished="20260510T0{}0110+0000".format(idx),
+                             suite_statuses={model["buildTypeId"]: "FAILURE" if failed else "SUCCESS"},
+                             failed_tests=failed_tests)
+
+
 def create_run_all_chain(builds, build_id, branch, status, state, queued=None, started=None, finished=None,
                          suite_statuses=None, failed_tests=None):
     dep_ids = [str(int(build_id) + idx) for idx in range(1, len(SUITE_MODELS) + 1)]
@@ -548,7 +726,7 @@ def create_run_all_chain(builds, build_id, branch, status, state, queued=None, s
         "status": status,
         "state": state,
         "queuedDate": queued or now,
-        "startDate": started or now,
+        "startDate": started if state != "queued" else None,
         "finishDate": finished if state == "finished" else None,
         "snapshotDependencies": dep_ids,
         "tests": [],
@@ -597,16 +775,17 @@ def create_suite_build(build_id, suite, branch, status, state, model=None, queue
         "status": status,
         "state": state,
         "queuedDate": queued or now,
-        "startDate": started or now,
+        "startDate": started if state != "queued" else None,
         "finishDate": finished if state == "finished" else None,
         "tests": tests if state == "finished" else [],
-        "problems": suite_problems(suite, status, failed_tests),
+        "problems": suite_problems(suite, status, failed_tests) if state == "finished" else [],
         "duration": model["duration"]
     }
 
 
-def complete_run_all_dependencies(builds, run_all, status):
+def complete_run_all_dependencies(builds, run_all, status, failed_tests=None):
     dep_ids = run_all.get("snapshotDependencies")
+    failed_tests = failed_tests or set()
 
     if not dep_ids:
         dep_ids = [str(max(int(build_id) for build_id in builds.keys()) + idx)
@@ -614,19 +793,23 @@ def complete_run_all_dependencies(builds, run_all, status):
         run_all["snapshotDependencies"] = dep_ids
 
     for dep_id, model in zip(dep_ids, SUITE_MODELS):
+        suite_failed_tests = set(test for test in failed_tests if test in model["tests"])
+        suite_status = "FAILURE" if suite_failed_tests else ("SUCCESS" if status == "FAILURE" else status)
         dep = builds.get(dep_id) or create_suite_build(dep_id, model["buildTypeId"], run_all["branchName"],
-                                                       status, "running", model)
+                                                       suite_status, "running", model)
         dep["state"] = "finished"
-        dep["status"] = status
+        dep["status"] = suite_status
         dep["finishDate"] = dep.get("finishDate") or tc_date()
-        dep["tests"] = create_suite_build(dep_id, model["buildTypeId"], run_all["branchName"], status,
-                                          "finished", model)["tests"]
-        dep["problems"] = suite_problems(model["buildTypeId"], status)
+        dep["autoLifecycle"] = False
+        dep["tests"] = create_suite_build(dep_id, model["buildTypeId"], run_all["branchName"], suite_status,
+                                          "finished", model, failed_tests=suite_failed_tests)["tests"]
+        dep["problems"] = suite_problems(model["buildTypeId"], suite_status, suite_failed_tests)
         builds[dep_id] = dep
 
     run_all["duration"] = sum(builds[dep_id].get("duration", 0) for dep_id in dep_ids) + 7_000
     run_all["tests"] = [test for dep_id in dep_ids for test in builds[dep_id].get("tests", [])]
     run_all["problems"] = [problem for dep_id in dep_ids for problem in builds[dep_id].get("problems", [])]
+    run_all["status"] = "FAILURE" if run_all["problems"] else status
 
 
 def suite_model(suite):
@@ -817,6 +1000,7 @@ def build_xml(build_id, build, closed, port=None, all_builds=None):
 
     date_elements = "".join("<{0}>{1}</{0}>".format(name, xml_attr(build[name]))
                             for name in ["queuedDate", "startDate", "finishDate"] if build.get(name))
+    running_info = running_info_xml(build)
     deps = build.get("snapshotDependencies", [])
     snapshot_dependencies = ""
 
@@ -844,6 +1028,7 @@ def build_xml(build_id, build, closed, port=None, all_builds=None):
     return """<build {}>
   {}
   {}
+  {}
   <buildType id="{}" name="{}" href="/app/rest/latest/buildTypes/id:{}"/>
   <testOccurrences count="{}" passed="{}" failed="{}" ignored="0" muted="0" href="/app/rest/latest/testOccurrences?locator=build:(id:{})"/>
   <problemOccurrences count="{}" newFailed="{}" href="/app/rest/latest/problemOccurrences?locator=build:(id:{})"/>
@@ -852,6 +1037,7 @@ def build_xml(build_id, build, closed, port=None, all_builds=None):
         attr_text,
         date_elements,
         snapshot_dependencies,
+        running_info,
         xml_attr(build["buildTypeId"]),
         xml_attr(build["buildTypeId"].replace("IgniteTests24Java17_", "")),
         xml_attr(build["buildTypeId"]),
@@ -864,6 +1050,23 @@ def build_xml(build_id, build, closed, port=None, all_builds=None):
         build_id,
         build_id
     )
+
+
+def running_info_xml(build):
+    if build.get("state") != "running":
+        return ""
+
+    start_epoch = build.get("startEpoch", time.time())
+    elapsed = max(1, int(time.time() - start_epoch))
+    estimated_total = max(1, int(build.get("estimatedTotalSeconds", 4)))
+    percent = min(99, max(1, int(elapsed * 100 / estimated_total)))
+    left = max(0, estimated_total - elapsed)
+    stage = build.get("currentStageText", "Running emulated TeamCity build")
+
+    return ('<running-info percentageComplete="{0}" elapsedSeconds="{1}" estimatedTotalSeconds="{2}" '
+            'leftSeconds="{3}" currentStageText="{4}" outdated="false" probablyHanging="false" '
+            'lastActivityTime="{5}"/>').format(
+        percent, elapsed, estimated_total, left, xml_attr(stage), xml_attr(tc_date()))
 
 
 def test_counts(build):

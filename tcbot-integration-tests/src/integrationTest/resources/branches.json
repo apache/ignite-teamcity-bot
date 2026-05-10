@@ -58,12 +58,12 @@
       "disableIssueTypes": []
     },
     {
-      "id": "pull-request",
+      "id": "ignite-2.18",
       "chains": [
         {
           "serverId": "apache",
           "suiteId": "IgniteTests24Java17_RunAll",
-          "branchForRest": "pull/%PR%/head"
+          "branchForRest": "ignite-2.18"
         }
       ],
       "disableIssueTypes": []
