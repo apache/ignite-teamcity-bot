@@ -219,10 +219,24 @@ function loadData() {
         let stopProcessPolling;
         let completed = false;
         let serverId = findGetParameter("serverId");
+        let suiteId = findGetParameter("suiteId");
+        let branchForTc = findGetParameter("branchForTc");
+        let action = findGetParameter("action");
         let requestUrl = "rest/pr/actualizeBuildRefs?processId=" + encodeURIComponent(processId);
 
-        if (serverId != null)
-            requestUrl += "&serverId=" + encodeURIComponent(serverId);
+        function valueOrAny(value) {
+            return value == null || value === "" ? "<any>" : value;
+        }
+
+        function appendRequestParam(name, value) {
+            if (value != null)
+                requestUrl += "&" + name + "=" + encodeURIComponent(value);
+        }
+
+        appendRequestParam("serverId", serverId);
+        appendRequestParam("suiteId", suiteId);
+        appendRequestParam("branchForTc", branchForTc);
+        appendRequestParam("action", action);
 
         function appendStage(text) {
             appendActionStage(dialog, text);
@@ -240,11 +254,14 @@ function loadData() {
         button.prop("disabled", true);
         stages.empty();
         dialog.find(".action-error").hide().empty();
-        setActionStatus(dialog, "Refreshing TeamCity build references...");
+        setActionStatus(dialog, "Refreshing TeamCity build references for " + valueOrAny(branchForTc) + "...");
 
         openCenteredDialog(dialog, actionDialogOptions("Reload TeamCity refs", {}));
 
         appendStage("Created browser-side process id " + processId + ".");
+        appendStage("Requested page context: server=" + valueOrAny(serverId) + ", suite=" + valueOrAny(suiteId) +
+            ", branch=" + valueOrAny(branchForTc) + ", action=" + valueOrAny(action) + ".");
+        appendStage("The bot will actualize recent TeamCity build references for the server cache used by this PR report.");
         appendStage("Sending TeamCity build refs refresh request to the bot REST API.");
         appendStage("Waiting for the backend to register the refresh process.");
 

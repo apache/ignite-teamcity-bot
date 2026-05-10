@@ -30,6 +30,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
@@ -78,16 +79,11 @@ import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcservice.ITeamcity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Process pull request/untracked branch chain at particular server.
  */
 public class PrChainsProcessor {
-    /** Logger. */
-    private static final Logger logger = LoggerFactory.getLogger(PrChainsProcessor.class);
-
     /** Max time to wait for fresh AI prompt build context. */
     private static final long AI_PROMPT_CONTEXT_WAIT_MS = TimeUnit.MINUTES.toMillis(1);
 
@@ -201,8 +197,8 @@ public class PrChainsProcessor {
 
         List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(suiteId, branchForTc, buildResMergeCnt);
 
-        if (hist.isEmpty() && mode != SyncMode.NONE)
-            scheduleBuildRefsActualization(tcIgnited, srvCodeOrAlias);
+        if (hist.isEmpty() && mode == SyncMode.RELOAD_QUEUED)
+            scheduleBuildRefsActualization(tcIgnited, srvCodeOrAlias, suiteId, branchForTc);
 
         String baseBranchForTc = Strings.isNullOrEmpty(tcBaseBranchParm) ? dfltBaseTcBranch(srvCodeOrAlias) : tcBaseBranchParm;
 
@@ -244,24 +240,45 @@ public class PrChainsProcessor {
      *
      * @param tcIgnited TeamCity facade.
      * @param srvCodeOrAlias Server id.
+     * @param suiteId Suite id requested by PR page.
+     * @param branchForTc Branch requested by PR page.
      */
-    private void scheduleBuildRefsActualization(ITeamcityIgnited tcIgnited, String srvCodeOrAlias) {
+    private void scheduleBuildRefsActualization(ITeamcityIgnited tcIgnited, String srvCodeOrAlias, String suiteId,
+        String branchForTc) {
         String taskName = "Pr.actualizeBuildRefs." + String.valueOf(srvCodeOrAlias);
+        String context = "server=" + srvCodeOrAlias + ", suite=" + suiteId + ", branch=" + branchForTc;
+        Long processId = createProcessId();
 
         try {
-            boolean accepted = scheduler.runNamedNow(taskName, () -> {
-                logger.info("Started asynchronous TeamCity build refs actualization for PR page: " + srvCodeOrAlias);
-                tcIgnited.actualizeRecentBuildRefs();
-                logger.info("Finished asynchronous TeamCity build refs actualization for PR page: " + srvCodeOrAlias);
-            });
+            processMonitor.start(processId, "teamcityBuildRefsRefresh",
+                "PR page scheduled TeamCity build refs actualization. Context: " + context);
 
-            if (!accepted)
-                logger.info("TeamCity build refs actualization is already queued or running for PR page: " +
-                    srvCodeOrAlias);
+            boolean accepted = scheduler.runNamedNow(taskName, () -> {
+                try {
+                    processMonitor.status(processId,
+                        "Refreshing recent TeamCity build references after empty PR history. Context: " + context);
+                    tcIgnited.actualizeRecentBuildRefs();
+                    processMonitor.finish(processId,
+                        "TeamCity build references refreshed after empty PR history. Context: " + context);
+                }
+                catch (RuntimeException e) {
+                    processMonitor.fail(processId, e);
+                }
+            }, processId);
+
+            if (!accepted) {
+                processMonitor.fail(processId, "TeamCity build refs actualization is already queued or running: " +
+                    context);
+            }
         }
         catch (RuntimeException e) {
-            logger.warn("Failed to schedule TeamCity build refs actualization for PR page: " + srvCodeOrAlias, e);
+            processMonitor.fail(processId, e);
         }
+    }
+
+    /** */
+    private static long createProcessId() {
+        return System.currentTimeMillis() * 1000 + ThreadLocalRandom.current().nextInt(1000);
     }
 
     /**

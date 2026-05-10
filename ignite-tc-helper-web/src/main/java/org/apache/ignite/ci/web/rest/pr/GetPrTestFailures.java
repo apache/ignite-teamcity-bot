@@ -80,15 +80,19 @@ public class GetPrTestFailures {
     @RolesAllowed(AuthenticationFilter.ADMIN_ROLE)
     @Path("actualizeBuildRefs")
     public SimpleResult actualizeBuildRefs(@Nullable @QueryParam("serverId") String srvId,
+        @Nullable @QueryParam("suiteId") String suiteId,
+        @Nullable @QueryParam("branchForTc") String branchForTc,
+        @Nullable @QueryParam("action") String action,
         @Nullable @QueryParam("processId") Long processId) {
         TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
         ITeamcityIgnitedProvider tcProv = appCtx.getInstance(ITeamcityIgnitedProvider.class);
         BotProcessMonitor process = appCtx.getInstance(BotProcessMonitor.class);
         String taskName = "Pr.actualizeBuildRefs." + String.valueOf(srvId);
+        String pageCtx = prPageContext(srvId, suiteId, branchForTc, action);
 
         process.start(processId, "teamcityBuildRefsRefresh",
-            "Admin TeamCity build refs refresh request accepted.");
+            "Admin TeamCity build refs refresh request accepted. " + pageCtx);
 
         try {
             process.status(processId, "Checking TeamCity credentials for server " + srvId + ".");
@@ -102,9 +106,13 @@ public class GetPrTestFailures {
 
         boolean accepted = appCtx.getInstance(IScheduler.class).runNamedNow(taskName, () -> {
             try {
-                process.status(processId, "Refreshing TeamCity build references for server " + srvId + ".");
+                process.status(processId, "Refreshing recent TeamCity build references for server " + srvId +
+                    ". Requested from: " + pageCtx);
+                process.status(processId, "Calling TeamCity recent build refs actualization. This updates the bot " +
+                    "cache used by PR reports; page branch context is " + valueOrAny(branchForTc) + ".");
                 tcProv.server(srvId, creds).actualizeRecentBuildRefs();
-                process.finish(processId, "TeamCity build references refreshed for server " + srvId + ".");
+                process.finish(processId, "TeamCity build references refreshed for server " + srvId +
+                    ". Refresh context was: " + pageCtx);
             }
             catch (RuntimeException e) {
                 process.fail(processId, e);
@@ -121,6 +129,25 @@ public class GetPrTestFailures {
         }
 
         return new SimpleResult("TeamCity build refs refresh queued for server " + srvId + ".");
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param suiteId Suite id.
+     * @param branchForTc TeamCity branch.
+     * @param action PR report action.
+     */
+    private static String prPageContext(@Nullable String srvId, @Nullable String suiteId,
+        @Nullable String branchForTc, @Nullable String action) {
+        return "PR page context: server=" + valueOrAny(srvId) + ", suite=" + valueOrAny(suiteId) +
+            ", branch=" + valueOrAny(branchForTc) + ", action=" + valueOrAny(action) + ".";
+    }
+
+    /**
+     * @param val Value.
+     */
+    private static String valueOrAny(@Nullable String val) {
+        return val == null || val.trim().isEmpty() ? "<any>" : val;
     }
 
     @GET
