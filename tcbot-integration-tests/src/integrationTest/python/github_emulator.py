@@ -30,6 +30,7 @@ AVATAR_SVG = b"""<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" 
 </svg>"""
 BRANCHES = {
     "master": {"sha": "0f0f0f0abcdef1234567890abcdef1234567890", "protected": True},
+    "nightly": {"sha": "0f0f0f0abcdef1234567890abcdef1234567891", "protected": True},
     "pull/12001/head": {"sha": "a12001fabcdef1234567890abcdef1234567890"},
     "pull/12003/head": {"sha": "a12003fabcdef1234567890abcdef1234567890"},
     "pull/12005/head": {"sha": "a12005fabcdef1234567890abcdef1234567890"},

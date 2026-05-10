@@ -58,6 +58,29 @@
       "disableIssueTypes": []
     },
     {
+      "id": "master-nightly",
+      "chains": [
+        {
+          "serverId": "apache",
+          "suiteId": "IgniteTests24Java17_RunAllNightly",
+          "branchForRest": "nightly",
+          "triggerBuild": true,
+          "triggerBuildQuietPeriod": 30,
+          "triggerParameters": [
+            {
+              "name": "reverse.dep.*.env.JAVA_HOME",
+              "randomValue": true,
+              "selection": [
+                {"value": "%env.JDK_ORA_18%", "label": "JDK8"},
+                {"value": "%env.JDK_OPEN_11%", "label": "JDK11"}
+              ]
+            }
+          ]
+        }
+      ],
+      "disableIssueTypes": []
+    },
+    {
       "id": "ignite-2.18",
       "chains": [
         {

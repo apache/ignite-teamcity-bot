@@ -49,6 +49,7 @@ USERS = {
 TRIGGERED_RUN_ALL_SECONDS = 4
 TRIGGERED_SUITE_SECONDS = 30
 RUN_ALL = "IgniteTests24Java17_RunAll"
+RUN_ALL_NIGHTLY = "IgniteTests24Java17_RunAllNightly"
 PROJECT_ID = "ApacheIgnite"
 PROJECT_NAME = "Apache Ignite"
 SUITES = [
@@ -245,7 +246,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self.read_ok():
             return self.json(401, {"message": "Authentication required"})
 
-        build_types = [{"id": RUN_ALL, "name": "RunAll", "composite": True}]
+        build_types = composite_build_types()
         build_types.extend({"id": suite, "name": suite.replace("IgniteTests24Java17_", "")} for suite in SUITES)
         body = ['<?xml version="1.0" encoding="UTF-8"?><buildTypes count="{}">'.format(len(build_types))]
 
@@ -261,9 +262,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self.read_ok():
             return self.json(401, {"message": "Authentication required"})
 
-        build_types = {RUN_ALL: "RunAll"}
-        build_types.update({suite: suite.replace("IgniteTests24Java17_", "") for suite in SUITES})
-        name = build_types.get(build_type_id)
+        name = build_type_names().get(build_type_id)
 
         if name is None:
             return self.json(404, {"message": "Build type not found", "id": build_type_id})
@@ -283,7 +282,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self.read_ok():
             return self.json(401, {"message": "Authentication required"})
 
-        build_types = [{"id": RUN_ALL, "name": "RunAll"}]
+        build_types = composite_build_types()
         build_types.extend({"id": suite, "name": suite.replace("IgniteTests24Java17_", "")} for suite in SUITES)
         body = ['<?xml version="1.0" encoding="UTF-8"?>',
                 '<project id="{}" name="{}" href="/app/rest/latest/projects/{}"><buildTypes count="{}">'.format(
@@ -427,9 +426,7 @@ class Handler(BaseHTTPRequestHandler):
         ]) + "\n")
 
     def build_configuration_text_page(self, build_type_id, query):
-        build_types = {RUN_ALL: "RunAll"}
-        build_types.update({suite: suite.replace("IgniteTests24Java17_", "") for suite in SUITES})
-        name = build_types.get(build_type_id)
+        name = build_type_names().get(build_type_id)
         branch = first(query.get("branch", ["<default>"]))
 
         if name is None:
@@ -443,11 +440,13 @@ class Handler(BaseHTTPRequestHandler):
             "Project: {} ({})".format(PROJECT_NAME, PROJECT_ID),
             "Branch: {}".format(branch),
             "",
-            "RunAll test set:" if build_type_id == RUN_ALL else "Suite test set:",
+            "RunAll test set:" if is_run_all_build_type(build_type_id) else "Suite test set:",
         ]
 
         if build_type_id == RUN_ALL:
             lines.extend(" - {}".format(suite) for suite in SUITES)
+        elif build_type_id == RUN_ALL_NIGHTLY:
+            lines.append(" - {}".format(RUN_ALL))
         else:
             lines.append(" - org.apache.ignite.testsuites.{}.testHappyPath".format(name))
             lines.append(" - org.apache.ignite.testsuites.{}.testDeterministicBlocker".format(name))
@@ -509,7 +508,10 @@ class Handler(BaseHTTPRequestHandler):
         build_id = str(self.server.next_build)
         branch = payload.get("branchName", "pull/12001/head")
         suite = payload.get("buildTypeId", RUN_ALL)
-        planned_failed_tests = randomized_failed_tests(build_id, branch, [suite] if suite != RUN_ALL else None)
+        planned_failed_tests = randomized_failed_tests(
+            build_id,
+            branch,
+            None if is_run_all_build_type(suite) else [suite])
 
         if suite == RUN_ALL:
             build = create_run_all_chain(self.server.builds, build_id, branch, "UNKNOWN", "queued",
@@ -520,6 +522,15 @@ class Handler(BaseHTTPRequestHandler):
             build["estimatedTotalSeconds"] = TRIGGERED_RUN_ALL_SECONDS
             build["currentStageText"] = "Queued emulated Ignite RunAll suites"
             self.server.next_build = int(build_id) + len(SUITE_MODELS)
+        elif suite == RUN_ALL_NIGHTLY:
+            build = create_run_all_nightly_chain(self.server.builds, build_id, branch, "UNKNOWN", "queued",
+                                                failed_tests=planned_failed_tests)
+            build["plannedFailedTests"] = sorted(planned_failed_tests)
+            build["autoLifecycle"] = True
+            build["queuedEpoch"] = time.time()
+            build["estimatedTotalSeconds"] = TRIGGERED_RUN_ALL_SECONDS
+            build["currentStageText"] = "Queued emulated Ignite RunAll Nightly"
+            self.server.next_build = int(build_id) + len(SUITE_MODELS) + 1
         else:
             build = create_suite_build(build_id, suite, branch, "UNKNOWN", "queued",
                                        failed_tests=planned_failed_tests)
@@ -702,6 +713,8 @@ class Server(ThreadingHTTPServer):
 
         if build.get("buildTypeId") == RUN_ALL:
             complete_run_all_dependencies(self.builds, build, status, failed_tests)
+        elif build.get("buildTypeId") == RUN_ALL_NIGHTLY:
+            complete_run_all_nightly_dependencies(self.builds, build, status, failed_tests)
         else:
             completed = create_suite_build(build_id, build.get("buildTypeId"), build.get("branchName"),
                                            status, "finished", failed_tests=failed_tests)
@@ -712,6 +725,24 @@ class Server(ThreadingHTTPServer):
 
 def first(values):
     return values[0] if values else None
+
+
+def composite_build_types():
+    return [
+        {"id": RUN_ALL, "name": "RunAll", "composite": True},
+        {"id": RUN_ALL_NIGHTLY, "name": "RunAll Nightly", "composite": True}
+    ]
+
+
+def build_type_names():
+    build_types = {build_type["id"]: build_type["name"] for build_type in composite_build_types()}
+    build_types.update({suite: suite.replace("IgniteTests24Java17_", "") for suite in SUITES})
+
+    return build_types
+
+
+def is_run_all_build_type(build_type_id):
+    return build_type_id in [RUN_ALL, RUN_ALL_NIGHTLY]
 
 
 def normalize_branch(branch):
@@ -854,6 +885,31 @@ def create_run_all_chain(builds, build_id, branch, status, state, queued=None, s
     return run_all
 
 
+def create_run_all_nightly_chain(builds, build_id, branch, status, state, queued=None, started=None, finished=None,
+                                 suite_statuses=None, failed_tests=None):
+    run_all_id = str(int(build_id) + 1)
+    run_all = create_run_all_chain(builds, run_all_id, branch, status, state, queued, started, finished,
+                                   suite_statuses, failed_tests)
+    now = tc_date()
+    nightly = {
+        "buildTypeId": RUN_ALL_NIGHTLY,
+        "branchName": branch,
+        "status": status,
+        "state": state,
+        "queuedDate": queued or now,
+        "startDate": started if state != "queued" else None,
+        "finishDate": finished if state == "finished" else None,
+        "snapshotDependencies": [run_all_id],
+        "tests": run_all.get("tests", []) if state == "finished" else [],
+        "problems": run_all.get("problems", []) if state == "finished" else [],
+        "duration": run_all.get("duration", 0) + 1_000
+    }
+
+    builds[str(build_id)] = nightly
+
+    return nightly
+
+
 def create_suite_build(build_id, suite, branch, status, state, model=None, queued=None, started=None, finished=None,
                        failed_tests=None):
     model = model or suite_model(suite)
@@ -914,6 +970,32 @@ def complete_run_all_dependencies(builds, run_all, status, failed_tests=None):
     run_all["tests"] = [test for dep_id in dep_ids for test in builds[dep_id].get("tests", [])]
     run_all["problems"] = [problem for dep_id in dep_ids for problem in builds[dep_id].get("problems", [])]
     run_all["status"] = "FAILURE" if run_all["problems"] else status
+
+
+def complete_run_all_nightly_dependencies(builds, nightly, status, failed_tests=None):
+    dep_ids = nightly.get("snapshotDependencies")
+
+    if not dep_ids:
+        dep_ids = [str(max(int(build_id) for build_id in builds.keys()) + 1)]
+        nightly["snapshotDependencies"] = dep_ids
+
+    run_all_id = dep_ids[0]
+    run_all = builds.get(run_all_id)
+
+    if run_all is None:
+        run_all = create_run_all_chain(builds, run_all_id, nightly.get("branchName"), status, "running",
+                                       failed_tests=failed_tests)
+
+    run_all["state"] = "finished"
+    run_all["status"] = status
+    run_all["finishDate"] = run_all.get("finishDate") or tc_date()
+    run_all["autoLifecycle"] = False
+    complete_run_all_dependencies(builds, run_all, status, failed_tests)
+
+    nightly["duration"] = run_all.get("duration", 0) + 1_000
+    nightly["tests"] = run_all.get("tests", [])
+    nightly["problems"] = run_all.get("problems", [])
+    nightly["status"] = run_all.get("status", status)
 
 
 def suite_model(suite):
@@ -1022,7 +1104,7 @@ def build_json(build_id, build, port):
 
 
 def full_build_type_xml(build_type_id, name, port):
-    composite = build_type_id == RUN_ALL
+    composite = is_run_all_build_type(build_type_id)
     settings = {
         "artifactRules": "report.html" if composite else "work/log => logs.zip",
         "buildConfigurationType": "COMPOSITE" if composite else "REGULAR",
@@ -1056,11 +1138,17 @@ def full_build_type_xml(build_type_id, name, port):
             '<steps count="0"/><features count="0"/><triggers count="0"/>']
 
     if composite:
-        body.append('<snapshot-dependencies count="{}">'.format(len(SUITE_MODELS)))
+        dependency_build_types = []
 
-        for model in SUITE_MODELS:
-            suite_id = model["buildTypeId"]
-            suite_name = suite_id.replace("IgniteTests24Java17_", "")
+        if build_type_id == RUN_ALL:
+            dependency_build_types = [(model["buildTypeId"], model["buildTypeId"].replace("IgniteTests24Java17_", ""))
+                                      for model in SUITE_MODELS]
+        elif build_type_id == RUN_ALL_NIGHTLY:
+            dependency_build_types = [(RUN_ALL, "RunAll")]
+
+        body.append('<snapshot-dependencies count="{}">'.format(len(dependency_build_types)))
+
+        for suite_id, suite_name in dependency_build_types:
             body.append('<snapshot-dependency id="{0}" type="snapshot_dependency">'
                         '<properties count="5">'
                         '<property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>'
@@ -1115,7 +1203,7 @@ def build_xml(build_id, build, closed, port=None, all_builds=None):
         "webUrl": web_url
     }
 
-    if build.get("buildTypeId", "").endswith("_RunAll"):
+    if is_run_all_build_type(build.get("buildTypeId", "")):
         attrs["composite"] = "true"
 
     attr_text = " ".join('{}="{}"'.format(key, xml_attr(val)) for key, val in attrs.items())

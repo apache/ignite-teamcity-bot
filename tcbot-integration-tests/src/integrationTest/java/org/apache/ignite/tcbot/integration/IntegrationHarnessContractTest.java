@@ -192,8 +192,18 @@ public class IntegrationHarnessContractTest {
         assertTrue(runAllBuildType.body.contains("<parameters count="));
         assertTrue(runAllBuildType.body.contains("<snapshot-dependencies count=\"5\""));
         assertTrue(runAllBuildType.body.contains("source-buildType id=\"IgniteTests24Java17_Build\""));
+        IntegrationTestEnvironment.HttpResponse nightlyBuildType = request("GET",
+            env.teamcityUrl + "/app/rest/latest/buildTypes/id:IgniteTests24Java17_RunAllNightly",
+            env.basicAuth(), null, null);
+
+        assertEquals(200, nightlyBuildType.status);
+        assertTrue(nightlyBuildType.body.contains("<snapshot-dependencies count=\"1\""));
+        assertTrue(nightlyBuildType.body.contains("source-buildType id=\"IgniteTests24Java17_RunAll\""));
         assertEquals(200, request("GET",
             env.teamcityUrl + "/buildConfiguration/IgniteTests24Java17_RunAll",
+            null, null, null).status);
+        assertEquals(200, request("GET",
+            env.teamcityUrl + "/buildConfiguration/IgniteTests24Java17_RunAllNightly",
             null, null, null).status);
 
         IntegrationTestEnvironment.HttpResponse completed = request("POST",
