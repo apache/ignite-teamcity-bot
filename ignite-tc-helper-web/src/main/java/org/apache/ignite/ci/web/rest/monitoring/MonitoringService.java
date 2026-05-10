@@ -46,6 +46,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.security.RolesAllowed;
+import javax.cache.Cache;
 import javax.servlet.ServletContext;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.ClientErrorException;
@@ -136,7 +137,6 @@ public class MonitoringService {
             "compactVisasHistoryCacheV2",
             "gitHubBranch",
             "gitHubPr",
-            "jiraTestFixSyncState",
             "mutedIssues",
             "newTestsCache",
             "teamcityBuildRef",
