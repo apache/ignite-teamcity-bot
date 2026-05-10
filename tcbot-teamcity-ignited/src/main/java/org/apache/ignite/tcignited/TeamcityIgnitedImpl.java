@@ -96,6 +96,12 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Max build id diff to enforce reload during incremental refresh. */
     public static final int MAX_ID_DIFF_TO_ENFORCE_CONTINUE_SCAN = 3000;
 
+    /** Direct build ref recheck page size. */
+    private static final int RECHECK_BUILD_REF_PAGE_SIZE = 100;
+
+    /** Direct build ref recheck page cap. */
+    private static final int RECHECK_BUILD_REF_MAX_PAGES = 5;
+
     /** Server (service) code. */
     private String srvCode;
 
@@ -674,14 +680,28 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** {@inheritDoc} */
     @Override public String recheckBuildRef(String buildTypeId, String branchName) {
         AtomicReference<String> nextPage = new AtomicReference<>();
-        String locator = TeamcityLocator.buildsByTypeAndBranch(buildTypeId, branchName, 20);
+        String locator = TeamcityLocator.buildsByTypeAndBranch(buildTypeId, branchName, RECHECK_BUILD_REF_PAGE_SIZE);
+        List<BuildRefCompacted> found = new ArrayList<>();
+        int scannedRefs = 0;
+        int scannedPages = 0;
+        String page = locator;
 
-        List<BuildRefCompacted> found = conn.getBuildRefsPage(locator, nextPage).stream()
-            .filter(ref -> Objects.equals(buildTypeId, ref.buildTypeId()))
-            .filter(ref -> Objects.equals(BranchEquivalence.normalizeBranch(branchName),
-                BranchEquivalence.normalizeBranch(ref.branchName())))
-            .map(ref -> new BuildRefCompacted(compactor, ref))
-            .collect(Collectors.toList());
+        while (page != null && scannedPages < RECHECK_BUILD_REF_MAX_PAGES) {
+            List<BuildRef> refs = conn.getBuildRefsPage(page, nextPage);
+
+            scannedRefs += refs.size();
+            scannedPages++;
+
+            found.addAll(refs.stream()
+                .filter(ref -> Objects.equals(buildTypeId, ref.buildTypeId()))
+                .filter(ref -> Objects.equals(BranchEquivalence.normalizeBranch(branchName),
+                    BranchEquivalence.normalizeBranch(ref.branchName())))
+                .map(ref -> new BuildRefCompacted(compactor, ref))
+                .collect(Collectors.toList()));
+
+            page = nextPage.get();
+            nextPage.set(null);
+        }
 
         buildRefDao.saveTemporaryBuildRefs(srvIdMaskHigh, found);
 
@@ -691,7 +711,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             "direct build ref recheck for " + buildTypeId + ", branch " + branchName);
 
         return "Direct TeamCity build ref recheck for suite " + buildTypeId + ", branch " + branchName +
-            ": found " + found.size() + " ref(s)." + observer;
+            ": scanned " + scannedRefs + " ref(s) on " + scannedPages + " page(s), found " + found.size() +
+            " matching ref(s)." + observer;
     }
 
     /**
