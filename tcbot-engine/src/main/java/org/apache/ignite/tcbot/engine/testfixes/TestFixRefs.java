@@ -17,15 +17,17 @@
 
 package org.apache.ignite.tcbot.engine.testfixes;
 
+import java.util.ArrayList;
+import java.util.List;
 import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.persistence.IVersionedEntity;
 import org.apache.ignite.tcbot.persistence.Persisted;
 
 /**
- * Persisted detected relation between a test/suite name and a fix source.
+ * Reverse lookup from a suite/test spelling to source fix ids.
  */
 @Persisted
-public class TestFixMatch implements IVersionedEntity {
+public class TestFixRefs implements IVersionedEntity {
     /** Entity version. */
     private static final int LATEST_VERSION = 1;
 
@@ -53,41 +55,8 @@ public class TestFixMatch implements IVersionedEntity {
     /** Current master TeamCity suite status URL. */
     @Nullable public String currentStatusUrl;
 
-    /** Source type: jira or github. */
-    public String sourceType;
-
-    /** Source id. */
-    public String sourceId;
-
-    /** Source URL. */
-    public String sourceUrl;
-
-    /** Source title. */
-    @Nullable public String title;
-
-    /** Source status. */
-    @Nullable public String status;
-
-    /** Author name/login. */
-    @Nullable public String author;
-
-    /** Author URL. */
-    @Nullable public String authorUrl;
-
-    /** Author avatar URL. */
-    @Nullable public String authorAvatarUrl;
-
-    /** Updated timestamp. */
-    @Nullable public Long updatedTs;
-
-    /** Closed/resolved timestamp. */
-    @Nullable public Long closedTs;
-
-    /** Commit SHA, when known. */
-    @Nullable public String commitSha;
-
-    /** Commit URL, when known. */
-    @Nullable public String commitUrl;
+    /** Synthetic source ids. */
+    public List<String> sourceIds = new ArrayList<>();
 
     /** {@inheritDoc} */
     @Override public int version() {

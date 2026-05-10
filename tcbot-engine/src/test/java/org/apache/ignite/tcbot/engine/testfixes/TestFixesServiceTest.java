@@ -169,7 +169,7 @@ public class TestFixesServiceTest {
      * @param suiteId Run configuration id.
      */
     private static TestFixesService.TestFixCandidate candidate(String suiteId) {
-        return new TestFixesService.TestFixCandidate("master", suiteId, SUITE, FULL_TEST, SHORT_TEST,
+        return new TestFixesService.TestFixCandidate("master", suiteId, SUITE, 1, FULL_TEST, SHORT_TEST,
             "https://ci.example/buildConfiguration/" + suiteId + "?branch=%3Cdefault%3E");
     }
 }

@@ -34,6 +34,12 @@ public class ShortTestFailureUi {
     /** Test full Name */
     public String name;
 
+    /** Compacted test name id. */
+    @Nullable public Integer testNameId;
+
+    /** Suite build type id. */
+    @Nullable public String suiteId;
+
     /** suite (in code) short name */
     @Nullable public String suiteName;
 
@@ -56,6 +62,8 @@ public class ShortTestFailureUi {
 
     public ShortTestFailureUi initFrom(@Nonnull TestCompactedMult failure,
         ITeamcityIgnited tcIgn, Integer baseBranchId) {
+        testNameId = failure.testName();
+        suiteId = failure.suiteId();
         name = failure.getName();
 
         String[] split = Strings.nullToEmpty(name).split("\\:");

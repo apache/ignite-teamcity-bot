@@ -301,20 +301,7 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
         if (fullReindex)
             refreshOutdatedPrs(srvId, actualPrs);
 
-        if (cntSaved > 0)
-            signalSourceUpdate("github:" + srvId);
-
         return "Entries saved " + cntSaved + " PRs checked " + totalChecked;
-    }
-
-    /**
-     * @param key Source key.
-     */
-    private void signalSourceUpdate(String key) {
-        IgniteCache<String, Long> cache = igniteProvider.get().getOrCreateCache(
-            CacheConfigs.getCache8PartsConfig("testFixSourceUpdates"));
-
-        cache.put(key, System.currentTimeMillis());
     }
 
     /**

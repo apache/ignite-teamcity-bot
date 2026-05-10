@@ -21,52 +21,76 @@ import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
+import javax.annotation.Nullable;
 
 /**
- * In-memory lookup for decorating suites and test failures with known fix refs.
+ * Response-local lookup for decorating suites and test failures with known fix refs.
  */
 class TestFixLookupIndex {
+    /** Suite-level lookup entity. */
+    private static final String SUITE_ENTITY = "suite";
+
     /** Max refs shown for a suite/test. */
     private static final int MAX_REFS = 5;
 
-    /** Matches by normalized test/suite spellings. */
-    private final Map<String, List<TestFixRefUi>> refsByName = new HashMap<>();
+    /** Matches by suite id and compacted test id lookup key. */
+    private final Map<String, List<TestFixRefUi>> refsByKey = new HashMap<>();
 
     /** */
-    public void add(String name, TestFixRefUi ref) {
-        if (Strings.isNullOrEmpty(name) || ref == null)
+    public void add(String lookupKey, List<TestFixRefUi> refs) {
+        if (Strings.isNullOrEmpty(lookupKey) || refs == null || refs.isEmpty())
             return;
 
-        for (String key : lookupKeys(name))
-            refsByName.computeIfAbsent(key, unused -> new ArrayList<>()).add(ref);
+        refsByKey.computeIfAbsent(lookupKey, unused -> new ArrayList<>()).addAll(refs);
     }
 
     /** */
     public void finish() {
-        for (Map.Entry<String, List<TestFixRefUi>> entry : refsByName.entrySet())
+        for (Map.Entry<String, List<TestFixRefUi>> entry : refsByKey.entrySet())
             entry.setValue(limit(uniqueRefs(entry.getValue())));
     }
 
     /** */
-    public List<TestFixRefUi> find(String name) {
-        if (Strings.isNullOrEmpty(name))
+    public List<TestFixRefUi> findSuite(@Nullable String suiteId) {
+        return find(suiteLookupKey(suiteId));
+    }
+
+    /** */
+    public List<TestFixRefUi> findTest(@Nullable String suiteId, @Nullable Integer testNameId) {
+        return find(testLookupKey(suiteId, testNameId));
+    }
+
+    /** */
+    static String suiteLookupKey(@Nullable String suiteId) {
+        return lookupKey(suiteId, SUITE_ENTITY);
+    }
+
+    /** */
+    static String testLookupKey(@Nullable String suiteId, @Nullable Integer testNameId) {
+        if (testNameId == null)
+            return "";
+
+        return lookupKey(suiteId, "test:" + testNameId);
+    }
+
+    /** */
+    private List<TestFixRefUi> find(String lookupKey) {
+        if (Strings.isNullOrEmpty(lookupKey))
             return new ArrayList<>();
 
-        List<TestFixRefUi> refs = new ArrayList<>();
+        List<TestFixRefUi> found = refsByKey.get(lookupKey);
 
-        for (String key : lookupKeys(name)) {
-            List<TestFixRefUi> found = refsByName.get(key);
+        return found == null ? new ArrayList<>() : new ArrayList<>(found);
+    }
 
-            if (found != null)
-                refs.addAll(found);
-        }
+    /** */
+    private static String lookupKey(@Nullable String suiteId, String entityKey) {
+        if (Strings.isNullOrEmpty(suiteId))
+            return "";
 
-        return limit(uniqueRefs(refs));
+        return suiteId + "::" + entityKey;
     }
 
     /** */
@@ -85,53 +109,5 @@ class TestFixLookupIndex {
             return refs;
 
         return new ArrayList<>(refs.subList(0, MAX_REFS));
-    }
-
-    /** */
-    private static Set<String> lookupKeys(String name) {
-        Set<String> res = new LinkedHashSet<>();
-
-        addKeys(res, name);
-
-        int runCfgSep = name.indexOf("::");
-
-        if (runCfgSep >= 0)
-            addKeys(res, name.substring(runCfgSep + 2));
-
-        return res;
-    }
-
-    /** */
-    private static void addKeys(Set<String> res, String name) {
-        String normalized = normalize(name);
-
-        if (normalized.isEmpty())
-            return;
-
-        res.add(normalized);
-
-        String dotForm = normalized.replace('#', '.');
-
-        res.add(dotForm);
-
-        String classAndMethod = classAndMethod(dotForm);
-
-        if (!classAndMethod.isEmpty())
-            res.add(classAndMethod);
-    }
-
-    /** */
-    private static String classAndMethod(String name) {
-        String[] parts = name.split("\\.");
-
-        if (parts.length < 2)
-            return "";
-
-        return parts[parts.length - 2] + "." + parts[parts.length - 1];
-    }
-
-    /** */
-    private static String normalize(String name) {
-        return Strings.nullToEmpty(name).trim().toLowerCase(Locale.ROOT);
     }
 }

@@ -49,9 +49,6 @@ public class JiraTicketSync {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(JiraTicketSync.class);
 
-    /** Source update signal cache name. Also used by test-fix matching. */
-    private static final String SOURCE_UPDATES_CACHE_NAME = "testFixSourceUpdates";
-
     /** Test-fix JIRA sync state cache name. */
     private static final String TEST_FIX_SYNC_STATE_CACHE_NAME = "jiraTestFixSyncState";
 
@@ -151,23 +148,10 @@ public class JiraTicketSync {
 
         int saved = stats.saved + recent.saved + labeled.saved;
 
-        if (saved > 0)
-            signalSourceUpdate("jira:" + srvCode);
-
         return "Jira tickets saved " + saved + " from " +
             (stats.processed + recent.processed + labeled.processed) + " checked for service " + srvCode +
             " (recentDays=" + recentDays + ", labelSync=" + labelSync + ", duplicatesSkipped=" +
             (stats.duplicatesSkipped + recent.duplicatesSkipped + labeled.duplicatesSkipped) + ")";
-    }
-
-    /**
-     * @param key Source key.
-     */
-    private void signalSourceUpdate(String key) {
-        IgniteCache<String, Long> cache = igniteProvider.get().getOrCreateCache(
-            CacheConfigs.getCache8PartsConfig(SOURCE_UPDATES_CACHE_NAME));
-
-        cache.put(key, System.currentTimeMillis());
     }
 
     /**

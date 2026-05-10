@@ -22,36 +22,15 @@ import org.apache.ignite.tcbot.persistence.IVersionedEntity;
 import org.apache.ignite.tcbot.persistence.Persisted;
 
 /**
- * Persisted detected relation between a test/suite name and a fix source.
+ * Persisted fix source data keyed by synthetic source id.
  */
 @Persisted
-public class TestFixMatch implements IVersionedEntity {
+public class TestFixSource implements IVersionedEntity {
     /** Entity version. */
     private static final int LATEST_VERSION = 1;
 
     /** Entity version. */
     @SuppressWarnings("FieldCanBeLocal") private Integer _ver = LATEST_VERSION;
-
-    /** Matched test or suite name. */
-    public String entityName;
-
-    /** Matched suite name, when known. */
-    @Nullable public String suiteName;
-
-    /** Matched suite id, when known. */
-    @Nullable public String suiteId;
-
-    /** Matched test name, when known. */
-    @Nullable public String testName;
-
-    /** Compacted test name id, when known. */
-    @Nullable public Integer testNameId;
-
-    /** Tracked branch used to resolve this match. */
-    @Nullable public String trackedBranch;
-
-    /** Current master TeamCity suite status URL. */
-    @Nullable public String currentStatusUrl;
 
     /** Source type: jira or github. */
     public String sourceType;
