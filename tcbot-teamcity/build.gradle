@@ -27,5 +27,7 @@ dependencies {
     runtimeOnly 'com.sun.xml.bind:jaxb-core:2.3.0'
 
     implementation 'javax.inject:javax.inject:1'
+
+    testImplementation "junit:junit:$junitVer"
 }
 

@@ -72,6 +72,7 @@ import org.apache.ignite.tcignited.history.SuiteInvocationHistoryDao;
 import org.apache.ignite.tcignited.mute.MuteDao;
 import org.apache.ignite.tcignited.mute.MuteSync;
 import org.apache.ignite.tcservice.ITeamcityConn;
+import org.apache.ignite.tcservice.TeamcityLocator;
 import org.apache.ignite.tcservice.model.agent.Agent;
 import org.apache.ignite.tcservice.model.conf.Project;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
@@ -673,8 +674,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** {@inheritDoc} */
     @Override public String recheckBuildRef(String buildTypeId, String branchName) {
         AtomicReference<String> nextPage = new AtomicReference<>();
-        String locator = "app/rest/latest/builds?locator=defaultFilter:false,buildType:(id:" + buildTypeId +
-            "),branch:" + branchName + ",count:20";
+        String locator = TeamcityLocator.buildsByTypeAndBranch(buildTypeId, branchName, 20);
 
         List<BuildRefCompacted> found = conn.getBuildRefsPage(locator, nextPage).stream()
             .filter(ref -> Objects.equals(buildTypeId, ref.buildTypeId()))
