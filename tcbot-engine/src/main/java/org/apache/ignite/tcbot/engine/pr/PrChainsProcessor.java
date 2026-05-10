@@ -190,7 +190,7 @@ public class PrChainsProcessor {
         else
             logs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
 
-        List<Integer> hist = latestHistory(tcIgnited, suiteId, branchForTc, buildResMergeCnt, mode);
+        List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(suiteId, branchForTc, buildResMergeCnt);
 
         String baseBranchForTc = Strings.isNullOrEmpty(tcBaseBranchParm) ? dfltBaseTcBranch(srvCodeOrAlias) : tcBaseBranchParm;
 
@@ -225,26 +225,6 @@ public class PrChainsProcessor {
         res.initCounters(getPrUpdateCounters(srvCodeOrAlias, branchForTc, baseBranchForTc, creds));
 
         return res;
-    }
-
-    /**
-     * @param tcIgnited TeamCity facade.
-     * @param suiteId Suite id.
-     * @param branchForTc Branch name in TC identification.
-     * @param buildResMergeCnt Builds count.
-     * @param mode Sync mode requested by UI.
-     * @return Latest build ids from cached history, with one synchronous TeamCity ref refresh for interactive requests.
-     */
-    private List<Integer> latestHistory(ITeamcityIgnited tcIgnited, String suiteId, String branchForTc,
-        int buildResMergeCnt, SyncMode mode) {
-        List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(suiteId, branchForTc, buildResMergeCnt);
-
-        if (!hist.isEmpty() || mode == SyncMode.NONE)
-            return hist;
-
-        tcIgnited.actualizeRecentBuildRefs();
-
-        return tcIgnited.getLastNBuildsFromHistory(suiteId, branchForTc, buildResMergeCnt);
     }
 
     /**

@@ -1509,12 +1509,8 @@ public class TcBotTriggerAndSignOffService {
         else
             processMonitor.status(processId, "Repository branch refresh skipped because preferBranches=false.");
 
-        processMonitor.status(processId, "Refreshing TeamCity build references before contribution matching.");
-        ITeamcityIgnited teamcity = tcIgnitedProv.server(srvCodeOrAlias, credsProv);
-        teamcity.actualizeRecentBuildRefs();
-        processMonitor.status(processId, "TeamCity build reference refresh finished.");
-
-        processMonitor.status(processId, "Building contribution table from refreshed GitHub/JIRA/TeamCity data.");
+        processMonitor.status(processId, "Building contribution table from refreshed GitHub/JIRA data and cached " +
+            "TeamCity references.");
         return getContributionsToCheck(srvCodeOrAlias, credsProv, processId);
     }
 

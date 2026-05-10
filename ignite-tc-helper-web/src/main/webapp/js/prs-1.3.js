@@ -58,8 +58,8 @@ function drawTable(srvId, element) {
         "title='Show only PRs whose cached GitHub author matches your bot profile by email or configured GitHub IDs'>" +
         "<input id='onlyMyPrs-" + srvId + "' type='checkbox' " +
         (onlyMyPrsChecked ? "checked" : "") + "> Only my PRs</label>" +
-        "<button id='refreshContributions-" + srvId + "' type='button' title='Load current PR data from GitHub now'>" +
-        "Refresh now</button>" +
+        "<button id='refreshContributions-" + srvId + "' type='button' title='Reload pull requests from GitHub now'>" +
+        "Reload PRs</button>" +
         "<span id='expandAllButton-" + srvId + "'></span>" +
         "</div><br>" +
         "<table id=\"" + tableId + "\" class='ui-widget ui-widget-content'>\n" +
@@ -208,8 +208,8 @@ function refreshContributionsNow(srvId) {
         dialog.remove();
     }
 
-    $("body").append("<div id='refreshContributionsDialog' title='Refresh pull requests'>" +
-        actionStatusHtml("Preparing PR refresh.") +
+    $("body").append("<div id='refreshContributionsDialog' title='Reload PRs'>" +
+        actionStatusHtml("Preparing PR reload.") +
         actionStagesHtml(false, "refreshContributionsStages") +
         actionErrorHtml() +
         "</div>");
@@ -236,13 +236,13 @@ function refreshContributionsNow(srvId) {
     button.prop("disabled", true);
     stages.empty();
     dialog.find(".action-error").hide().empty();
-    setActionStatus(dialog, "Refreshing " + srvId + " contributions from GitHub...");
+    setActionStatus(dialog, "Reloading " + srvId + " pull requests from GitHub...");
 
-    openCenteredDialog(dialog, actionDialogOptions("Refresh pull requests", {}));
+    openCenteredDialog(dialog, actionDialogOptions("Reload PRs", {}));
 
     appendStage("Created browser-side process id " + processId + ".");
-    appendStage("Sending PR refresh request to the bot REST API.");
-    appendStage("Waiting for the backend to register the refresh process.");
+    appendStage("Sending PR reload request to the bot REST API.");
+    appendStage("Waiting for the backend to register the reload process.");
 
     stopProcessPolling = startBotProcessPolling(processId, function (processStatus) {
         let statusText = botProcessStatusText(processStatus);
@@ -260,7 +260,7 @@ function refreshContributionsNow(srvId) {
         repeatMs: 7000,
         repeatText: function (processStatus) {
             if (!isDefinedAndFilled(processStatus.kind))
-                return "Still waiting for the bot to register process " + processId + ".";
+                return "Still waiting for the bot to register reload process " + processId + ".";
 
             return "Still running: " + botProcessStatusText(processStatus);
         }
@@ -287,7 +287,7 @@ function refreshContributionsNow(srvId) {
             if (textStatus === "abort")
                 return;
 
-            setActionStatus(dialog, "Refresh failed.");
+            setActionStatus(dialog, "Reload failed.");
             appendStage("Error: " + (errorThrown || jqXHR.statusText || "unknown error"));
             dialog.find(".action-error").text(jqXHR.responseText || errorThrown || "Unknown request error.").show();
             finishProgress({

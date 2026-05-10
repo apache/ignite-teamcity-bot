@@ -169,7 +169,7 @@ function checkForUpdate() {
     });
 }
 
-    function loadData() {
+function loadData() {
         var curFailuresUrl = "rest/pr/results" + parmsForRest();
 
         $("#loadStatus").html("&#8987; Please wait. First load of PR run-all data may require significant time.");
@@ -191,6 +191,132 @@ function checkForUpdate() {
         });
     }
 
+    function actualizeBuildRefs() {
+        let button = $("#actualizeBuildRefsBtn");
+        let dialog = $("#actualizeBuildRefsDialog");
+
+        if (dialog.length > 0) {
+            if (dialog.data("ui-dialog"))
+                dialog.dialog("destroy");
+
+            dialog.remove();
+        }
+
+        $("body").append("<div id='actualizeBuildRefsDialog' title='Reload TeamCity refs'>" +
+            actionStatusHtml("Preparing TeamCity build refs refresh.") +
+            actionStagesHtml(false, "actualizeBuildRefsStages") +
+            actionErrorHtml() +
+            "</div>");
+        dialog = $("#actualizeBuildRefsDialog");
+
+        let stages = $("#actualizeBuildRefsStages");
+        let processId = createBotProcessId("actualizeBuildRefs");
+        let stopProcessPolling;
+        let completed = false;
+        let serverId = findGetParameter("serverId");
+        let requestUrl = "rest/pr/actualizeBuildRefs?processId=" + encodeURIComponent(processId);
+
+        if (serverId != null)
+            requestUrl += "&serverId=" + encodeURIComponent(serverId);
+
+        function appendStage(text) {
+            appendActionStage(dialog, text);
+            stages.scrollTop(stages.prop("scrollHeight"));
+        }
+
+        function finishProgress(buttons) {
+            if (stopProcessPolling)
+                stopProcessPolling();
+
+            dialog.dialog("option", "buttons", buttons);
+            button.prop("disabled", false);
+        }
+
+        button.prop("disabled", true);
+        stages.empty();
+        dialog.find(".action-error").hide().empty();
+        setActionStatus(dialog, "Refreshing TeamCity build references...");
+
+        openCenteredDialog(dialog, actionDialogOptions("Reload TeamCity refs", {}));
+
+        appendStage("Created browser-side process id " + processId + ".");
+        appendStage("Sending TeamCity build refs refresh request to the bot REST API.");
+        appendStage("Waiting for the backend to register the refresh process.");
+
+        stopProcessPolling = startBotProcessPolling(processId, function (processStatus) {
+            let statusText = botProcessStatusText(processStatus);
+
+            appendStage(statusText);
+
+            if (processStatus.running === false && !completed) {
+                completed = true;
+                setActionStatus(dialog, statusText);
+
+                if (statusText.indexOf("Failed:") === 0)
+                    dialog.find(".action-error").text(statusText).show();
+
+                finishProgress({
+                    "Reload page data": function () {
+                        loadDataNoSync();
+                        $(this).dialog("close");
+                    },
+                    "Ok": function () {
+                        $(this).dialog("close");
+                    }
+                });
+            }
+            else if (processStatus.running !== false)
+                setActionStatus(dialog, statusText);
+        }, {
+            intervalMs: 1000,
+            skipUnknown: false,
+            reportErrors: true,
+            repeatMs: 7000,
+            repeatText: function (processStatus) {
+                if (!isDefinedAndFilled(processStatus.kind))
+                    return "Still waiting for the bot to register process " + processId + ".";
+
+                return "Still running: " + botProcessStatusText(processStatus);
+            }
+        });
+
+        $.ajax({
+            url: requestUrl,
+            method: "POST",
+            success: function (result) {
+                appendStage(simpleResultText(result));
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                if (textStatus === "abort")
+                    return;
+
+                setActionStatus(dialog, "TeamCity build refs refresh failed.");
+                appendStage("Error: " + (errorThrown || jqXHR.statusText || "unknown error"));
+                dialog.find(".action-error").text(jqXHR.responseText || errorThrown || "Unknown request error.").show();
+                finishProgress({
+                    "Ok": function () {
+                        $(this).dialog("close");
+                    }
+                });
+            }
+        });
+    }
+
+
+    function loadDataNoSync() {
+        var curFailuresUrl = "rest/pr/resultsNoSync" + parmsForRest();
+
+        $("#loadStatus").html("&#8987; Loading cached PR run-all data.");
+        $.ajax({
+            url: curFailuresUrl,
+            success: function (result) {
+                $("#loadStatus").html("");
+                showData(result);
+                g_shownDataHashCodeHex = isDefinedAndFilled(result.hashCodeHex) ? result.hashCodeHex : "";
+            },
+            error: showErrInLoadStatus
+        });
+    }
 
     function loadPartialData() {
         var curFailuresUrl = "rest/pr/resultsNoSync" + parmsForRest();
@@ -239,6 +365,9 @@ function showData(result) {
                     {{ option }}
                 </option>
             </select>
+            <button id="actualizeBuildRefsBtn" type="button"
+                    title="Reload cached TeamCity build references in the background"
+                    onclick="actualizeBuildRefs()">Reload TeamCity refs</button>
             &nbsp;&nbsp;
             <span id="loadStatus"></span>
         </div>

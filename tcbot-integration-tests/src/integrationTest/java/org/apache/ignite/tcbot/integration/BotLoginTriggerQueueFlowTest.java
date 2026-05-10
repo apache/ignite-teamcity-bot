@@ -111,6 +111,7 @@ public class BotLoginTriggerQueueFlowTest {
 
         runTestOnlyAction(token, "refresh-jira", 700000003L);
         runTestOnlyAction(token, "refresh-github", 700000004L);
+        runPrBuildRefsRefresh(token, 700000005L);
 
         IntegrationTestEnvironment.HttpResponse prResults = request("GET", env.botUrl
             + "/rest/pr/results?serverId=apache"
@@ -204,6 +205,23 @@ public class BotLoginTriggerQueueFlowTest {
         assertTrue(start.body, start.body.contains("\"queued\":true"));
 
         return waitForProcess(processId, token);
+    }
+
+    /** */
+    private static String runPrBuildRefsRefresh(String token, long processId) throws Exception {
+        IntegrationTestEnvironment.HttpResponse start = request("POST", env.botUrl
+            + "/rest/pr/actualizeBuildRefs?serverId=apache&processId=" + processId,
+            "Token " + token, null, null);
+
+        assertEquals(start.body, 200, start.status);
+        assertTrue(start.body, start.body.contains("TeamCity build refs refresh queued"));
+
+        String status = waitForProcess(processId, token);
+
+        assertTrue(status, status.contains("\"kind\":\"teamcityBuildRefsRefresh\""));
+        assertTrue(status, status.contains("TeamCity build references refreshed"));
+
+        return status;
     }
 
     /** */
