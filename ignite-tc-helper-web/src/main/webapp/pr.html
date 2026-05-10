@@ -62,6 +62,7 @@
     $(document).ready(function () {
         $(document).tooltip();
         showQueryForm();
+        setupBuildRefsReloadButton();
         loadData();
 
         var branch = findGetParameter("branch");
@@ -192,6 +193,10 @@ function loadData() {
     }
 
     function actualizeBuildRefs() {
+        if (!confirm("Reload TeamCity refs is an admin-only heavy operation. It can make many TeamCity REST " +
+            "requests and may take time. Continue?"))
+            return;
+
         let button = $("#actualizeBuildRefsBtn");
         let dialog = $("#actualizeBuildRefsDialog");
 
@@ -302,6 +307,18 @@ function loadData() {
         });
     }
 
+    function setupBuildRefsReloadButton() {
+        $("#actualizeBuildRefsBtn").hide();
+
+        $.ajax({
+            url: "/rest/user/currentUserName",
+            success: function (result) {
+                if (result && result.admin === true)
+                    $("#actualizeBuildRefsBtn").show();
+            }
+        });
+    }
+
 
     function loadDataNoSync() {
         var curFailuresUrl = "rest/pr/resultsNoSync" + parmsForRest();
@@ -365,8 +382,8 @@ function showData(result) {
                     {{ option }}
                 </option>
             </select>
-            <button id="actualizeBuildRefsBtn" type="button"
-                    title="Reload cached TeamCity build references in the background"
+            <button id="actualizeBuildRefsBtn" type="button" style="display:none"
+                    title="Admin-only heavy operation: reload cached TeamCity build references in the background"
                     onclick="actualizeBuildRefs()">Reload TeamCity refs</button>
             &nbsp;&nbsp;
             <span id="loadStatus"></span>

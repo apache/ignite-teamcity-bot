@@ -19,6 +19,7 @@ package org.apache.ignite.ci.web.rest.pr;
 
 import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import javax.annotation.Nonnull;
+import javax.annotation.security.RolesAllowed;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.ClientErrorException;
@@ -32,6 +33,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.ci.web.auth.AuthenticationFilter;
 import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.tcbot.engine.build.TestFailuresAiPromptBuilder;
 import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
@@ -75,6 +77,7 @@ public class GetPrTestFailures {
      * @param processId User-visible process id.
      */
     @POST
+    @RolesAllowed(AuthenticationFilter.ADMIN_ROLE)
     @Path("actualizeBuildRefs")
     public SimpleResult actualizeBuildRefs(@Nullable @QueryParam("serverId") String srvId,
         @Nullable @QueryParam("processId") Long processId) {
@@ -84,7 +87,8 @@ public class GetPrTestFailures {
         BotProcessMonitor process = appCtx.getInstance(BotProcessMonitor.class);
         String taskName = "Pr.actualizeBuildRefs." + String.valueOf(srvId);
 
-        process.start(processId, "teamcityBuildRefsRefresh", "TeamCity build refs refresh request accepted.");
+        process.start(processId, "teamcityBuildRefsRefresh",
+            "Admin TeamCity build refs refresh request accepted.");
 
         try {
             process.status(processId, "Checking TeamCity credentials for server " + srvId + ".");

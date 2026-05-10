@@ -69,6 +69,7 @@ import org.apache.ignite.tcbot.engine.ui.ShortSuiteNewTestsUi;
 import org.apache.ignite.tcbot.engine.ui.ShortTestFailureUi;
 import org.apache.ignite.tcbot.engine.ui.ShortTestUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
@@ -77,11 +78,16 @@ import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcservice.ITeamcity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Process pull request/untracked branch chain at particular server.
  */
 public class PrChainsProcessor {
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(PrChainsProcessor.class);
+
     /** Max time to wait for fresh AI prompt build context. */
     private static final long AI_PROMPT_CONTEXT_WAIT_MS = TimeUnit.MINUTES.toMillis(1);
 
@@ -134,6 +140,9 @@ public class PrChainsProcessor {
 
     /** User-visible process monitor. */
     @Inject private BotProcessMonitor processMonitor;
+
+    /** Scheduler for best-effort background refreshes requested by PR pages. */
+    @Inject private IScheduler scheduler;
 
     /**
      * @param creds Credentials.
@@ -192,6 +201,9 @@ public class PrChainsProcessor {
 
         List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(suiteId, branchForTc, buildResMergeCnt);
 
+        if (hist.isEmpty() && mode != SyncMode.NONE)
+            scheduleBuildRefsActualization(tcIgnited, srvCodeOrAlias);
+
         String baseBranchForTc = Strings.isNullOrEmpty(tcBaseBranchParm) ? dfltBaseTcBranch(srvCodeOrAlias) : tcBaseBranchParm;
 
         FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
@@ -225,6 +237,31 @@ public class PrChainsProcessor {
         res.initCounters(getPrUpdateCounters(srvCodeOrAlias, branchForTc, baseBranchForTc, creds));
 
         return res;
+    }
+
+    /**
+     * Schedules TeamCity build refs actualization without blocking PR report rendering.
+     *
+     * @param tcIgnited TeamCity facade.
+     * @param srvCodeOrAlias Server id.
+     */
+    private void scheduleBuildRefsActualization(ITeamcityIgnited tcIgnited, String srvCodeOrAlias) {
+        String taskName = "Pr.actualizeBuildRefs." + String.valueOf(srvCodeOrAlias);
+
+        try {
+            boolean accepted = scheduler.runNamedNow(taskName, () -> {
+                logger.info("Started asynchronous TeamCity build refs actualization for PR page: " + srvCodeOrAlias);
+                tcIgnited.actualizeRecentBuildRefs();
+                logger.info("Finished asynchronous TeamCity build refs actualization for PR page: " + srvCodeOrAlias);
+            });
+
+            if (!accepted)
+                logger.info("TeamCity build refs actualization is already queued or running for PR page: " +
+                    srvCodeOrAlias);
+        }
+        catch (RuntimeException e) {
+            logger.warn("Failed to schedule TeamCity build refs actualization for PR page: " + srvCodeOrAlias, e);
+        }
     }
 
     /**
