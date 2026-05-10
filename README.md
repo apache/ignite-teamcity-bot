@@ -23,11 +23,11 @@ Local code can be set up using IntelliJ IDEA and Gradle project import.
 
 For local development, use one of the shared IDEA run configurations:
 
-* `TC Bot` starts the server directly from Java classes and serves static web resources from
+* `TC Bot Local` starts the server directly from Java classes and serves static web resources from
   `ignite-tc-helper-web/src/main/webapp`.
 * `TC Bot WAR` runs the production-like WAR launcher. Its before-run Gradle step builds
   `:ignite-tc-helper-web:war` and prepares `jetty-launcher/build/install/jetty-launcher`.
-* `TC Bot Super Emulated` starts GitHub, JIRA, and TeamCity emulators, then runs the bot server code in the same JVM.
+* `TC Bot Super Local` starts GitHub, JIRA, and TeamCity emulators, then runs the bot server code in the same JVM.
   Use it for normal debugging: breakpoints hit the server code, static resources are read from source on every request,
   and Python emulators can be restarted through the control REST without restarting the bot.
 * `TC Bot Emulated WAR` is the Gradle production-like emulator run that starts the bot from the built WAR.
@@ -38,7 +38,7 @@ For command-line production-like emulator checks, run:
 ./gradlew :tcbot-integration-tests:runEmulatedTcBotWar
 ```
 
-`TC Bot WAR` and `TC Bot Emulated WAR` use Gradle-built WAR artifacts. `TC Bot` and `TC Bot Super Emulated` are live
+`TC Bot WAR` and `TC Bot Emulated WAR` use Gradle-built WAR artifacts. `TC Bot Local` and `TC Bot Super Local` are live
 Java runs intended for IDE debugging. Refresh the browser for HTML/JS/CSS changes; restart the Java run only for Java
 changes.
 
@@ -80,8 +80,8 @@ Minimal local run checklist:
 * Import the Gradle project into IntelliJ IDEA.
 * Copy `conf/branches.json` to the bot working directory, or prepare another `branches.json` there.
 * Adjust TeamCity, JIRA, GitHub, and notification settings in the copied config.
-* Run `TC Bot WAR` for a production-like WAR run, or `TC Bot Super Emulated` for local emulator-backed UI work.
-* Open `http://localhost:8080/` for `TC Bot WAR`, or `http://127.0.0.1:5555/` for `TC Bot Super Emulated`.
+* Run `TC Bot WAR` for a production-like WAR run, or `TC Bot Super Local` for local emulator-backed UI work.
+* Open `http://localhost:8080/` for `TC Bot WAR`, or `http://127.0.0.1:5555/` for `TC Bot Super Local`.
 * Log in with actual TeamCity credentials for real-service runs, and add service credentials on the user page when a configured service requires them.
 * Use the `Authorize Server` action in the top menu when you need background jobs, triggering, JIRA comments, notifications, or queue checks to run under your current TeamCity credentials.
 
