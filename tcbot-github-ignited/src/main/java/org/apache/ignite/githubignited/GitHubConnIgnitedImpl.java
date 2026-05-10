@@ -104,8 +104,11 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
         branchCache = ignite.getOrCreateCache(CacheConfigs.getCache8PartsConfig(GIT_HUB_BRANCHES));
         userCache = ignite.getOrCreateCache(CacheConfigs.getCache8PartsConfig(GIT_HUB_USERS));
 
-        maintenanceActions.register(taskName("actualizePrs"), "Refresh GitHub pull requests for " + srvCode,
+        maintenanceActions.register(taskName("actualizePrs"),
+            "Refresh GitHub pull requests for " + srvCode + " (incremental, full resync=false)",
             this::refreshPullRequests);
+        maintenanceActions.register(taskName("fullReindex"),
+            "Refresh GitHub pull requests for " + srvCode + " (full resync=true)", this::fullReindex);
         maintenanceActions.register(taskName("actualizeBranches"), "Refresh GitHub branches for " + srvCode,
             this::refreshBranches);
     }
@@ -258,8 +261,8 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     /**
      *
      */
-    private void fullReindex() {
-        runActualizePrs(srvCode, true);
+    private String fullReindex() {
+        return runActualizePrs(srvCode, true);
     }
 
     /**
