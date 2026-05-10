@@ -16,6 +16,10 @@
  */
 package org.apache.ignite.ci.web.rest.monitoring;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import java.io.BufferedReader;
 import java.io.File;
@@ -31,7 +35,9 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,6 +49,7 @@ import javax.annotation.security.RolesAllowed;
 import javax.servlet.ServletContext;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.ClientErrorException;
+import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.NotFoundException;
@@ -109,6 +116,42 @@ public class MonitoringService {
 
     /** Max summary length. */
     private static final int SUMMARY_LIMIT = 240;
+
+    /** Default number of cache entries to preview. */
+    private static final int DFLT_CACHE_PEEK_LIMIT = 100;
+
+    /** Hard cache preview cap. */
+    private static final int MAX_CACHE_PEEK_LIMIT = 100;
+
+    /** System property with comma-separated exact cache names allowed for raw preview. */
+    private static final String CACHE_PEEK_ALLOWED_CACHES = "tcbot.monitoring.cachePeek.allowedCaches";
+
+    /** Built-in exact cache names allowed for raw preview. */
+    private static final Set<String> DFLT_CACHE_PEEK_ALLOWED_CACHES = Collections.unmodifiableSet(new HashSet<>(
+        Arrays.asList(
+            "botDetectedDefects",
+            "botDetectedIssues",
+            "buildLogCheckResult",
+            "buildsConditions",
+            "compactVisasHistoryCacheV2",
+            "gitHubBranch",
+            "gitHubPr",
+            "jiraTestFixSyncState",
+            "mutedIssues",
+            "newTestsCache",
+            "teamcityBuildRef",
+            "teamcityBuildStartTime",
+            "teamcityBuildTypeRef",
+            "teamcityChange",
+            "teamcityFatBuild",
+            "teamcityFatBuildType",
+            "teamcityMute",
+            "teamcitySuiteHistory"
+        )));
+
+    /** JSON mapper for raw cache entry values. */
+    private static final ObjectMapper CACHE_PEEK_MAPPER = new ObjectMapper()
+        .setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
 
     /** Log timestamp format. */
     private static final DateTimeFormatter LOG_TS_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
@@ -600,6 +643,110 @@ public class MonitoringService {
             res.add(new CacheMetricsUi(next, size, affinity.partitions(), resettableCaches.contains(next)));
         }
         return res;
+    }
+
+    @GET
+    @RolesAllowed(AuthenticationFilter.ADMIN_ROLE)
+    @Produces(MediaType.TEXT_PLAIN)
+    @Path("cachePeek")
+    public String cachePeek(@QueryParam("name") String name, @QueryParam("limit") Integer limit) {
+        if (Strings.isNullOrEmpty(name))
+            throw new BadRequestException("Cache name is required");
+
+        ensureCanPeekCache(name);
+
+        Ignite ignite = instance(Ignite.class);
+        IgniteCache<?, ?> cache = ignite.cache(name);
+
+        if (cache == null)
+            throw new NotFoundException("Cache not found: " + name);
+
+        int actualLimit = normalizeCachePeekLimit(limit);
+        StringBuilder res = new StringBuilder();
+        int shown = 0;
+        boolean truncated = false;
+
+        res.append("Cache: ").append(name).append('\n');
+        res.append("Size: not calculated by cachePeek").append('\n');
+        res.append("Limit: ").append(actualLimit).append("\n\n");
+
+        for (Cache.Entry<?, ?> entry : cache) {
+            if (shown >= actualLimit) {
+                truncated = true;
+
+                break;
+            }
+
+            shown++;
+
+            res.append("Entry #").append(shown).append('\n');
+            res.append("Key class: ").append(className(entry.getKey())).append('\n');
+            res.append(toJsonNode(entry.getKey()).toPrettyString()).append('\n');
+            res.append("Value class: ").append(className(entry.getValue())).append('\n');
+            res.append(toJsonNode(entry.getValue()).toPrettyString()).append("\n\n");
+        }
+
+        res.append("Entries shown: ").append(shown).append('\n');
+        res.append("Truncated: ").append(truncated).append('\n');
+
+        return res.toString();
+    }
+
+    /**
+     * @param limit Requested limit.
+     */
+    private static int normalizeCachePeekLimit(Integer limit) {
+        if (limit == null || limit <= 0)
+            return DFLT_CACHE_PEEK_LIMIT;
+
+        return Math.min(limit, MAX_CACHE_PEEK_LIMIT);
+    }
+
+    /**
+     * @param obj Object.
+     */
+    private static String className(Object obj) {
+        return obj == null ? "null" : obj.getClass().getName();
+    }
+
+    /**
+     * @param name Cache name.
+     */
+    private void ensureCanPeekCache(String name) {
+        if (cachePeekAllowedCaches().contains(name))
+            return;
+
+        throw new ForbiddenException("Cache peek is not allowed for cache: " + name +
+            ". Add the exact cache name to " + CACHE_PEEK_ALLOWED_CACHES + " to enable it.");
+    }
+
+    /**
+     * @return Exact cache names allowed for raw preview.
+     */
+    private static Set<String> cachePeekAllowedCaches() {
+        Set<String> res = new HashSet<>(DFLT_CACHE_PEEK_ALLOWED_CACHES);
+
+        Arrays.stream(Strings.nullToEmpty(System.getProperty(CACHE_PEEK_ALLOWED_CACHES)).split(","))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .forEach(res::add);
+
+        return res;
+    }
+
+    /**
+     * @param obj Object.
+     */
+    private static JsonNode toJsonNode(Object obj) {
+        try {
+            return CACHE_PEEK_MAPPER.valueToTree(obj);
+        }
+        catch (RuntimeException e) {
+            return CACHE_PEEK_MAPPER.createObjectNode()
+                .put("serializationError", e.getClass().getSimpleName() + ": " + e.getMessage())
+                .put("class", className(obj))
+                .put("toString", String.valueOf(obj));
+        }
     }
 
     @POST
