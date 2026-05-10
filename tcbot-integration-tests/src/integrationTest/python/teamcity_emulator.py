@@ -191,6 +191,9 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/app/rest/latest/builds":
             return self.builds(parse_qs(parsed.query))
 
+        if parsed.path == "/app/rest/buildQueue":
+            return self.build_queue()
+
         stats_build_id = statistics_build_id(parsed.path)
 
         if stats_build_id is not None:
@@ -327,6 +330,21 @@ class Handler(BaseHTTPRequestHandler):
         body = ['<?xml version="1.0" encoding="UTF-8"?><builds count="{}">'.format(len(history))]
         body.extend(build_xml(build_id, build, closed=True, port=self.server.server_port,
                               all_builds=self.server.builds) for build_id, build in history)
+        body.append("</builds>")
+
+        return self.xml(200, "".join(body))
+
+    def build_queue(self):
+        if not self.read_ok():
+            return self.json(401, {"message": "Authentication required"})
+
+        self.server.advance_build_lifecycle()
+        queued = [(build_id, build) for build_id, build in self.server.builds.items()
+                  if build.get("state") == "queued"]
+        queued.sort(key=lambda item: int(item[0]))
+        body = ['<?xml version="1.0" encoding="UTF-8"?><builds count="{}">'.format(len(queued))]
+        body.extend(build_xml(build_id, build, closed=True, port=self.server.server_port,
+                              all_builds=self.server.builds) for build_id, build in queued)
         body.append("</builds>")
 
         return self.xml(200, "".join(body))

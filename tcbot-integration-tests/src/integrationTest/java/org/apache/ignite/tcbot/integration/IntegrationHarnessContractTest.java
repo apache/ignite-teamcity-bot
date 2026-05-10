@@ -119,6 +119,11 @@ public class IntegrationHarnessContractTest {
 
         assertEquals(200, build.status);
         assertTrue(build.body, build.body.contains("state=\"queued\"") || build.body.contains("state=\"running\""));
+        IntegrationTestEnvironment.HttpResponse queue = request("GET", env.teamcityUrl + "/app/rest/buildQueue",
+            env.basicAuth(), null, null);
+
+        assertEquals(200, queue.status);
+        assertTrue(queue.body, queue.body.contains("<builds count=\""));
         IntegrationTestEnvironment.HttpResponse seededBuild = request("GET",
             env.teamcityUrl + "/app/rest/latest/builds/id:800101", env.basicAuth(), null, null);
 
