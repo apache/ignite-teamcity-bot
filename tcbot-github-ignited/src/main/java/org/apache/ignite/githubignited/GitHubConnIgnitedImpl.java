@@ -45,6 +45,7 @@ import org.apache.ignite.ci.github.GitHubIssueComment;
 import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
+import org.apache.ignite.tcbot.persistence.scheduler.MaintenanceActionRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,6 +68,9 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
 
     /** Scheduler. */
     @Inject IScheduler scheduler;
+
+    /** Admin maintenance actions. */
+    @Inject MaintenanceActionRegistry maintenanceActions;
 
     /** Server ID mask for cache Entries. */
     private int srvIdMaskHigh;
@@ -97,6 +101,11 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
         prCache = ignite.getOrCreateCache(CacheConfigs.getCache8PartsConfig(GIT_HUB_PR));
         branchCache = ignite.getOrCreateCache(CacheConfigs.getCache8PartsConfig(GIT_HUB_BRANCHES));
         userCache = ignite.getOrCreateCache(CacheConfigs.getCache8PartsConfig(GIT_HUB_USERS));
+
+        maintenanceActions.register(taskName("actualizePrs"), "Refresh GitHub pull requests for " + srvCode,
+            this::refreshPullRequests);
+        maintenanceActions.register(taskName("actualizeBranches"), "Refresh GitHub branches for " + srvCode,
+            this::refreshBranches);
     }
 
     /** {@inheritDoc} */

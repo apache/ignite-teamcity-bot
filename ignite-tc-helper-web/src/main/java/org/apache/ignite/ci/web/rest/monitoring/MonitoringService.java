@@ -28,6 +28,28 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.security.RolesAllowed;
+import javax.servlet.ServletContext;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.NotFoundException;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.CacheMetrics;
@@ -42,28 +64,21 @@ import org.apache.ignite.tcbot.engine.build.AiPromptRequestMonitor;
 import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
+import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
 import org.apache.ignite.tcbot.notify.IEmailSender;
 import org.apache.ignite.tcbot.notify.ISendEmailConfig;
 import org.apache.ignite.tcbot.notify.ISlackSender;
-
-import javax.annotation.security.RolesAllowed;
-import javax.servlet.ServletContext;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
+import org.apache.ignite.tcbot.persistence.scheduler.MaintenanceActionInfo;
+import org.apache.ignite.tcbot.persistence.scheduler.MaintenanceActionRegistry;
+import org.apache.ignite.tcbot.persistence.scheduler.ScheduledTaskInfo;
 
 @Path("monitoring")
 @Produces(MediaType.APPLICATION_JSON)
 public class MonitoringService {
+    /** Caches introduced after the old 2022 data model and safe to reset from UI. */
+    private static final Set<String> RESETTABLE_CACHES = Set.of("testFixMatches", "testFixSourceUpdates");
+
     /** Log line start. */
     private static final Pattern LOG_ENTRY_START = Pattern.compile(
         "^(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3})\\s+(\\S+)\\s+.*");
@@ -119,6 +134,65 @@ public class MonitoringService {
             res.count = invocation.count();
             return res;
         }).collect(Collectors.toList());
+    }
+
+    @GET
+    @RolesAllowed(AuthenticationFilter.ADMIN_ROLE)
+    @Path("scheduledTasks")
+    public List<ScheduledTaskInfo> getScheduledTasks() {
+        MaintenanceActionRegistry actions = instance(MaintenanceActionRegistry.class);
+
+        return instance(IScheduler.class).scheduledTasks().stream()
+            .peek(task -> {
+                task.runnableAvailable = actions.hasAction(task.name);
+                task.canStartNow = actions.hasAction(task.name) && !"RUNNING".equals(task.status);
+            })
+            .collect(Collectors.toList());
+    }
+
+    @GET
+    @RolesAllowed(AuthenticationFilter.ADMIN_ROLE)
+    @Path("maintenanceActions")
+    public List<MaintenanceActionInfo> getMaintenanceActions() {
+        return instance(MaintenanceActionRegistry.class).actions();
+    }
+
+    @POST
+    @RolesAllowed(AuthenticationFilter.ADMIN_ROLE)
+    @Path("maintenanceActions/start")
+    public SimpleResult startMaintenanceAction(@FormParam("name") String name,
+        @QueryParam("processId") Long processId) {
+        if (Strings.isNullOrEmpty(name))
+            throw new BadRequestException("Action name is required");
+
+        MaintenanceActionRegistry actions = instance(MaintenanceActionRegistry.class);
+        BotProcessMonitor process = instance(BotProcessMonitor.class);
+
+        if (!actions.hasAction(name)) {
+            process.fail(processId, "Maintenance action is not registered: " + name);
+
+            throw new NotFoundException("Maintenance action is not registered: " + name);
+        }
+
+        process.start(processId, "maintenanceAction", "Maintenance action request accepted: " + name);
+
+        Thread thread = new Thread(() -> {
+            try {
+                process.status(processId, "Running maintenance action: " + name);
+
+                String result = actions.run(name);
+
+                process.finish(processId, result);
+            }
+            catch (Exception e) {
+                process.fail(processId, e);
+            }
+        }, "maintenance-action-" + name.replaceAll("[^A-Za-z0-9_.-]", "_"));
+
+        thread.setDaemon(true);
+        thread.start();
+
+        return new SimpleResult("Maintenance action start requested: " + name);
     }
 
     @GET
@@ -477,9 +551,45 @@ public class MonitoringService {
 
             Affinity<Object> affinity = ignite.affinity(next);
 
-            res.add(new CacheMetricsUi(next, size, affinity.partitions()));
+            res.add(new CacheMetricsUi(next, size, affinity.partitions(), RESETTABLE_CACHES.contains(next)));
         }
         return res;
+    }
+
+    @POST
+    @RolesAllowed(AuthenticationFilter.ADMIN_ROLE)
+    @Path("resetCache")
+    public SimpleResult resetCache(@FormParam("name") String name, @QueryParam("processId") Long processId) {
+        BotProcessMonitor process = instance(BotProcessMonitor.class);
+
+        process.start(processId, "resetCache", "Cache reset request accepted: " + name);
+
+        if (!RESETTABLE_CACHES.contains(name)) {
+            process.fail(processId, "Cache reset is not allowed for: " + name);
+
+            throw new BadRequestException("Cache reset is not allowed for: " + name);
+        }
+
+        Ignite ignite = instance(Ignite.class);
+        IgniteCache<?, ?> cache = ignite.cache(name);
+
+        if (cache == null) {
+            process.fail(processId, "Cache not found: " + name);
+
+            throw new NotFoundException("Cache not found: " + name);
+        }
+
+        int size = cache.size();
+
+        process.status(processId, "Clearing cache: " + name);
+
+        cache.clear();
+
+        String result = "Cache reset: " + name + ", cleared entries: " + size;
+
+        process.finish(processId, result);
+
+        return new SimpleResult(result);
     }
 
     @GET

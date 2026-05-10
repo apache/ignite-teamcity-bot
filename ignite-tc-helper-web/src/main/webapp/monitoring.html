@@ -94,6 +94,9 @@
                 error: showErrInLoadStatus
             });
 
+            loadScheduledTasksData();
+            loadMaintenanceActionsData();
+
             $.ajax({
                 url: "rest/monitoring/appLogSummaryLink",
                 success: showAppLogSummaryLink,
@@ -115,6 +118,36 @@
         });
 
         loadAiPromptsData();
+    }
+
+    function loadScheduledTasksData() {
+        if (!monitoringAdmin)
+            return;
+
+        $.ajax({
+            url: "rest/monitoring/scheduledTasks",
+            success: function(result) {
+                $("#loadStatus").html("");
+
+                showScheduledTasks(result);
+            },
+            error: showErrInLoadStatus
+        });
+    }
+
+    function loadMaintenanceActionsData() {
+        if (!monitoringAdmin)
+            return;
+
+        $.ajax({
+            url: "rest/monitoring/maintenanceActions",
+            success: function(result) {
+                $("#loadStatus").html("");
+
+                showMaintenanceActions(result);
+            },
+            error: showErrInLoadStatus
+        });
     }
 
     function loadAiPromptsData() {
@@ -161,6 +194,68 @@
         }
         res += "</table>";
         $("#tasks").html(res);
+    }
+
+    function showScheduledTasks(result) {
+        var res = "<table class='stat'>" ;
+
+        res += "<tr>";
+        res += "<th>Name</th>";
+        res += "<th>Status</th>";
+        res += "<th>Last finished</th>";
+        res += "<th>Quiet period</th>";
+        res += "<th>Runnable</th>";
+        res += "<th>Actions</th>";
+        res += "</tr>";
+
+        for (var i = 0; i < result.length; i++) {
+            var task = result[i];
+
+            res += "<tr>";
+            res += "<td>" + escapeHtml(task.name) + "</td>";
+            res += "<td>" + escapeHtml(task.status) + "</td>";
+            res += "<td>" + escapeHtml(formatTs(task.lastFinishedTs)) + "</td>";
+            res += "<td>" + escapeHtml(formatDuration(task.quietPeriodMs)) + "</td>";
+            res += "<td>" + escapeHtml(task.runnableAvailable) + "</td>";
+            res += "<td>";
+
+            if (task.canStartNow) {
+                res += "<button onclick='startMaintenanceAction(" + JSON.stringify(task.name) +
+                    ")'>Start now</button>";
+            }
+
+            res += "</td>";
+            res += "</tr>";
+        }
+
+        res += "</table>";
+
+        $("#scheduledTasks").html(res);
+    }
+
+    function showMaintenanceActions(result) {
+        var res = "<table class='stat'>" ;
+
+        res += "<tr>";
+        res += "<th>Name</th>";
+        res += "<th>Description</th>";
+        res += "<th>Actions</th>";
+        res += "</tr>";
+
+        for (var i = 0; i < result.length; i++) {
+            var action = result[i];
+
+            res += "<tr>";
+            res += "<td>" + escapeHtml(action.name) + "</td>";
+            res += "<td>" + escapeHtml(action.description) + "</td>";
+            res += "<td><button onclick='startMaintenanceAction(" + JSON.stringify(action.name) +
+                ")'>Start now</button></td>";
+            res += "</tr>";
+        }
+
+        res += "</table>";
+
+        $("#maintenanceActions").html(res);
     }
 
     function showAppLogSummaryLink(result) {
@@ -235,6 +330,8 @@
         res += "<th>Name</th>";
         res += "<th>Size</th>";
         res += "<th>Parts</th>";
+        if (monitoringAdmin)
+            res += "<th>Actions</th>";
         res += "</tr>";
         for (var i = 0; i < result.length; i++) {
             var inv = result[i];
@@ -242,6 +339,14 @@
             res += "<td>" + escapeHtml(inv.name) + "</td>";
             res += "<td>" + escapeHtml(inv.size) + "</td>";
             res += "<td>" + escapeHtml(inv.parts) + "</td>";
+            if (monitoringAdmin) {
+                res += "<td>";
+                if (inv.resettable) {
+                    res += "<button onclick='resetCache(" + JSON.stringify(inv.name) +
+                        ")'>Reset</button>";
+                }
+                res += "</td>";
+            }
             res += "</tr>";
         }
         $("#caches").html(res);
@@ -306,6 +411,132 @@
         });
     }
 
+    function resetCache(name) {
+        if (!monitoringAdmin)
+            return false;
+
+        confirmAdminAction("Reset cache",
+            "Clear all entries from cache \"" + name + "\"? This action is admin-only.",
+            function() {
+                var processId = createBotProcessId("resetCache");
+                var dialog = openAdminProcessDialog("Reset cache",
+                    "Resetting cache \"" + name + "\"...");
+                var stopPolling = pollAdminProcess(dialog, processId, loadData);
+
+                $.ajax({
+                    url: "rest/monitoring/resetCache?processId=" + encodeURIComponent(processId),
+                    method: "post",
+                    data: {name: name},
+                    success: function(result) {
+                        appendActionStage(dialog, result.result || "Ok");
+                    },
+                    error: function(jqXHR, exception) {
+                        if (stopPolling)
+                            stopPolling();
+
+                        showActionError(dialog, jqXHR.responseText || exception);
+                        dialog.dialog("option", "buttons", {"Ok": function() { $(this).dialog("close"); }});
+                    }
+                });
+            });
+
+        return false;
+    }
+
+    function startMaintenanceAction(name) {
+        if (!monitoringAdmin)
+            return false;
+
+        confirmAdminAction("Start maintenance action",
+            "Start maintenance action \"" + name + "\" now? This action is admin-only.",
+            function() {
+                var processId = createBotProcessId("maintenanceAction");
+                var dialog = openAdminProcessDialog("Maintenance action",
+                    "Starting \"" + name + "\"...");
+                var stopPolling = pollAdminProcess(dialog, processId, function() {
+                    loadScheduledTasksData();
+                    loadMaintenanceActionsData();
+                });
+
+                $.ajax({
+                    url: "rest/monitoring/maintenanceActions/start?processId=" + encodeURIComponent(processId),
+                    method: "post",
+                    data: {name: name},
+                    success: function(result) {
+                        appendActionStage(dialog, result.result || "Started");
+                    },
+                    error: function(jqXHR, exception) {
+                        if (stopPolling)
+                            stopPolling();
+
+                        showActionError(dialog, jqXHR.responseText || exception);
+                        dialog.dialog("option", "buttons", {"Ok": function() { $(this).dialog("close"); }});
+                    }
+                });
+            });
+
+        return false;
+    }
+
+    function confirmAdminAction(title, text, onConfirm) {
+        var dialog = ensureActionDialog("adminConfirmDialog", title);
+
+        dialog.html(actionStatusHtml(text));
+
+        openActionDialog(dialog, title, {
+                "Confirm": function() {
+                    $(this).dialog("close");
+                    onConfirm();
+                },
+                "Cancel": function() {
+                    $(this).dialog("close");
+                }
+        });
+    }
+
+    function openAdminProcessDialog(title, status) {
+        var dialog = ensureActionDialog("adminProcessDialog", title);
+
+        dialog.html(actionStatusHtml(status) + actionStagesHtml(false) + actionErrorHtml());
+        openActionDialog(dialog, title, {});
+        appendActionStage(dialog, "Sending request to the bot REST API.");
+
+        return dialog;
+    }
+
+    function pollAdminProcess(dialog, processId, onComplete) {
+        return startBotProcessPolling(processId, function(status) {
+            appendActionStage(dialog, botProcessStatusText(status));
+
+            if (status.running === false) {
+                dialog.dialog("option", "buttons", {"Ok": function() { $(this).dialog("close"); }});
+
+                if (onComplete)
+                    onComplete();
+            }
+        }, {skipUnknown: false});
+    }
+
+    function formatTs(ts) {
+        if (!ts || ts <= 0)
+            return "";
+
+        return new Date(ts).toLocaleString();
+    }
+
+    function formatDuration(ms) {
+        if (!ms || ms <= 0)
+            return "";
+
+        if (ms < 60000)
+            return Math.round(ms / 1000) + "s";
+
+        if (ms < 3600000)
+            return Math.round(ms / 60000) + "m";
+
+        return Math.round(ms / 3600000) + "h";
+    }
+
     function testSlackNotification() {
         if (!monitoringAdmin)
             return false;
@@ -358,6 +589,14 @@
     Tasks Monitoring Data:
     <div id="appLogSummary" style="font-family: monospace"></div>
     <div id="tasks" style="font-family: monospace"></div>
+    <br>
+
+    Scheduled Tasks:
+    <div id="scheduledTasks" style="font-family: monospace"></div>
+    <br>
+
+    Maintenance Actions:
+    <div id="maintenanceActions" style="font-family: monospace"></div>
     <br>
 </div>
 

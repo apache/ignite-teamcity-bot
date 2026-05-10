@@ -135,6 +135,29 @@ class NamedTask {
         return cmd;
     }
 
+    /**
+     * @return User-visible task snapshot.
+     */
+    public ScheduledTaskInfo info() {
+        long readStamp = lock.readLock();
+
+        try {
+            ScheduledTaskInfo res = new ScheduledTaskInfo();
+
+            res.name = name;
+            res.status = status.name();
+            res.lastFinishedTs = lastFinishedTs;
+            res.quietPeriodMs = resValidityMs;
+            res.runnableAvailable = cmd != null;
+            res.canStartNow = false;
+
+            return res;
+        }
+        finally {
+            lock.unlockRead(readStamp);
+        }
+    }
+
     public boolean canSkipStartNow() {
         boolean canSkip = false;
         if (status == Status.RUNNING)

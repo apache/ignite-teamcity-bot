@@ -18,6 +18,8 @@ package org.apache.ignite.tcbot.persistence.scheduler;
 
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Scheduler is a way to run background syncs between Ignite DB and REST services.
@@ -35,6 +37,13 @@ public interface IScheduler {
     public void invokeLater(Runnable cmd, long delay, TimeUnit unit);
 
     public void sheduleNamed(String fullName, Runnable cmd, long queitPeriod, TimeUnit unit);
+
+    /**
+     * @return User-visible named task state.
+     */
+    public default List<ScheduledTaskInfo> scheduledTasks() {
+        return Collections.emptyList();
+    }
 
     public void stop();
 }

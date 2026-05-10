@@ -14,20 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.tcbot.persistence.scheduler;
 
-package org.apache.ignite.ci.web.rest.monitoring;
-
-@SuppressWarnings("WeakerAccess")
-public class CacheMetricsUi {
+/**
+ * User-visible maintenance action registered by a service.
+ */
+@SuppressWarnings("PublicField")
+public class MaintenanceActionInfo {
+    /** Action name. */
     public String name;
-    public Integer size;
-    public Integer parts;
-    public boolean resettable;
 
-    public CacheMetricsUi(String name, int size, int parts, boolean resettable) {
+    /** Action description. */
+    public String description;
+
+    /**
+     * @param name Action name.
+     * @param description Action description.
+     */
+    public MaintenanceActionInfo(String name, String description) {
         this.name = name;
-        this.size = size;
-        this.parts = parts;
-        this.resettable = resettable;
+        this.description = description;
     }
 }
