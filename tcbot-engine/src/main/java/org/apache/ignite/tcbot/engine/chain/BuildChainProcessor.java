@@ -242,8 +242,11 @@ public class BuildChainProcessor {
             };
         }
 
-        if (function != null)
-            contexts.sort(Comparator.comparing(function).reversed());
+        if (function != null) {
+            contexts.sort(Comparator
+                .comparing(MultBuildRunCtx::onlyCancelledBuilds)
+                .thenComparing(Comparator.comparing(function).reversed()));
+        }
 
         fullChainRunCtx.addAllSuites(contexts);
 
