@@ -18,6 +18,7 @@
 package org.apache.ignite.tcbot.engine.testfixes;
 
 import javax.annotation.Nullable;
+import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.tcbot.persistence.IVersionedEntity;
 import org.apache.ignite.tcbot.persistence.Persisted;
 
@@ -51,9 +52,11 @@ public class TestFixMatch implements IVersionedEntity {
     @Nullable public String currentStatusUrl;
 
     /** Source type: jira or github. */
+    @QuerySqlField(index = true, orderedGroups = {@QuerySqlField.Group(name = "source", order = 0)})
     public String sourceType;
 
     /** Source id. */
+    @QuerySqlField(index = true, orderedGroups = {@QuerySqlField.Group(name = "source", order = 1)})
     public String sourceId;
 
     /** Source URL. */
