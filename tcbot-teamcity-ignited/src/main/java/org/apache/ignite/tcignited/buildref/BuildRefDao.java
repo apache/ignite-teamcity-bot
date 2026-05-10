@@ -312,6 +312,48 @@ public class BuildRefDao {
     }
 
     /**
+     * Moves temporary refs that are older than the scanned sync horizon into the persistent cache.
+     *
+     * @param srvId Server id mask high.
+     * @param oldestCheckedBuildId Oldest TeamCity build id checked by the latest sync.
+     * @return Persistent cache keys added or updated.
+     */
+    public Set<Long> promoteTemporaryBuildRefsOutsideHorizon(int srvId, int oldestCheckedBuildId) {
+        if (oldestCheckedBuildId <= 0)
+            return Collections.emptySet();
+
+        Map<Long, BuildRefCompacted> inserted = new TreeMap<>();
+
+        temporaryBuildRefsInMemCache.asMap().forEach((key, refs) -> {
+            if (key.srvId() != srvId)
+                return;
+
+            List<BuildRefCompacted> kept = new ArrayList<>();
+
+            for (BuildRefCompacted ref : refs) {
+                if (ref.id() < oldestCheckedBuildId) {
+                    long cacheKey = buildIdToCacheKey(srvId, ref.id());
+
+                    if (buildRefsCache.putIfAbsent(cacheKey, ref))
+                        inserted.put(cacheKey, ref);
+                }
+                else
+                    kept.add(ref);
+            }
+
+            if (kept.isEmpty())
+                temporaryBuildRefsInMemCache.invalidate(key);
+            else if (kept.size() != refs.size())
+                temporaryBuildRefsInMemCache.put(key, kept);
+        });
+
+        if (!inserted.isEmpty())
+            invalidateHistoryInMem(srvId, inserted.values().stream());
+
+        return new HashSet<>(inserted.keySet());
+    }
+
+    /**
      * @param key History key.
      * @param persistentRefs Persistent refs already selected for the same key.
      */
