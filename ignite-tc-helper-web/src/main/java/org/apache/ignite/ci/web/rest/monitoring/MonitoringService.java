@@ -35,7 +35,9 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -117,13 +119,38 @@ public class MonitoringService {
     private static final int SUMMARY_LIMIT = 240;
 
     /** Default number of cache entries to preview. */
-    private static final int DFLT_CACHE_PEEK_LIMIT = 5;
+    private static final int DFLT_CACHE_PEEK_LIMIT = 100;
 
     /** Hard cache preview cap. */
-    private static final int MAX_CACHE_PEEK_LIMIT = 20;
+    private static final int MAX_CACHE_PEEK_LIMIT = 100;
 
     /** System property with comma-separated exact cache names allowed for raw preview. */
     private static final String CACHE_PEEK_ALLOWED_CACHES = "tcbot.monitoring.cachePeek.allowedCaches";
+
+    /** Built-in exact cache names allowed for raw preview. */
+    private static final Set<String> DFLT_CACHE_PEEK_ALLOWED_CACHES = Collections.unmodifiableSet(new HashSet<>(
+        Arrays.asList(
+            "botDetectedDefects",
+            "botDetectedIssues",
+            "buildLogCheckResult",
+            "buildsConditions",
+            "compactVisasHistoryCacheV2",
+            "gitHubBranch",
+            "gitHubPr",
+            "jiraTestFixSyncState",
+            "mutedIssues",
+            "newTestsCache",
+            "teamcityBuildRef",
+            "teamcityBuildStartTime",
+            "teamcityBuildTypeRef",
+            "teamcityChange",
+            "teamcityFatBuild",
+            "teamcityFatBuildType",
+            "teamcityMute",
+            "teamcitySuiteHistory",
+            "testFixMatches",
+            "testFixSourceUpdates"
+        )));
 
     /** JSON mapper for raw cache entry values. */
     private static final ObjectMapper CACHE_PEEK_MAPPER = new ObjectMapper()
@@ -700,10 +727,14 @@ public class MonitoringService {
      * @return Exact cache names allowed for raw preview.
      */
     private static Set<String> cachePeekAllowedCaches() {
-        return Arrays.stream(Strings.nullToEmpty(System.getProperty(CACHE_PEEK_ALLOWED_CACHES)).split(","))
+        Set<String> res = new HashSet<>(DFLT_CACHE_PEEK_ALLOWED_CACHES);
+
+        Arrays.stream(Strings.nullToEmpty(System.getProperty(CACHE_PEEK_ALLOWED_CACHES)).split(","))
             .map(String::trim)
             .filter(s -> !s.isEmpty())
-            .collect(Collectors.toSet());
+            .forEach(res::add);
+
+        return res;
     }
 
     /**
