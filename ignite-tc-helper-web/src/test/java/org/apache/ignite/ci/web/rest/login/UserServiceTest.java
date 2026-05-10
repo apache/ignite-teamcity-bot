@@ -34,6 +34,7 @@ import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.ci.tcbot.visa.GitHubUserResolver;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.user.TcHelperUser;
+import org.apache.ignite.ci.web.model.UserMenuResult;
 import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.user.IUserStorage;
@@ -157,8 +158,8 @@ public class UserServiceTest {
     }
 
     @Test
-    public void firstUserCanClaimUserAdminWhenNoUserAdminExists() throws Exception {
-        TcHelperUser user = user("user", false);
+    public void botAdminCanClaimUserAdminWhenNoUserAdminExists() throws Exception {
+        TcHelperUser user = user("user", true);
 
         IUserStorage users = mock(IUserStorage.class);
         when(users.getUser("user")).thenReturn(user);
@@ -168,6 +169,47 @@ public class UserServiceTest {
 
         assertTrue(user.isUserAdmin());
         verify(users).putUser(eq("user"), same(user));
+    }
+
+    @Test(expected = ForbiddenException.class)
+    public void nonBotAdminCannotClaimUserAdminWhenNoUserAdminExists() throws Exception {
+        TcHelperUser user = user("user", false);
+
+        IUserStorage users = mock(IUserStorage.class);
+        when(users.getUser("user")).thenReturn(user);
+        when(users.allUsers()).thenAnswer(invocation -> Stream.of(user));
+
+        service(users, creds("user")).claimUserAdmin();
+    }
+
+    @Test
+    public void nonBotAdminDoesNotSeeClaimUserAdminWhenNoUserAdminExists() throws Exception {
+        TcHelperUser user = user("user", false);
+
+        IUserStorage users = mock(IUserStorage.class);
+        when(users.getUser("user")).thenReturn(user);
+        when(users.allUsers()).thenAnswer(invocation -> Stream.of(user));
+
+        UserMenuResult res = (UserMenuResult)service(users, creds("user")).currentUserName();
+
+        assertFalse(res.admin);
+        assertFalse(res.userAdmin);
+        assertFalse(res.canClaimUserAdmin);
+    }
+
+    @Test
+    public void botAdminSeesClaimUserAdminWhenNoUserAdminExists() throws Exception {
+        TcHelperUser user = user("user", true);
+
+        IUserStorage users = mock(IUserStorage.class);
+        when(users.getUser("user")).thenReturn(user);
+        when(users.allUsers()).thenAnswer(invocation -> Stream.of(user));
+
+        UserMenuResult res = (UserMenuResult)service(users, creds("user")).currentUserName();
+
+        assertTrue(res.admin);
+        assertFalse(res.userAdmin);
+        assertTrue(res.canClaimUserAdmin);
     }
 
     @Test
