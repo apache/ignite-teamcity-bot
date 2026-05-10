@@ -406,7 +406,7 @@ function confirmClaimGithubAuthor(srvId, githubId) {
 
 function claimGithubAuthorHtml(srvId, row) {
     if (!isDefinedAndFilled(row) || !isDefinedAndFilled(row.prAuthor) || !myGithubLoginsByServer.has(srvId) ||
-        isMyGithubLogin(srvId, row.prAuthor))
+        isMyGithubLogin(srvId, row.prAuthor) || !isValidGithubLogin(row.prAuthor))
         return "";
 
     let explicitlyConfigured = explicitlyConfiguredGithubLoginsByServer.get(srvId);
@@ -417,6 +417,11 @@ function claimGithubAuthorHtml(srvId, row) {
     return "<br><a href='javascript:void(0);' title='Confirm adding " + escapeHtml(row.prAuthor) +
         " to your GitHub IDs' onclick='" + jsCallAttr("confirmClaimGithubAuthor", [srvId, row.prAuthor]) +
         "'>it's me</a>";
+}
+
+function isValidGithubLogin(login) {
+    return /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/.test(String(login)) &&
+        String(login).indexOf("--") === -1;
 }
 
 function myPrsCountInTable(srvId) {

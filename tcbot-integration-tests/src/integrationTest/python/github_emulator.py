@@ -23,6 +23,11 @@ from urllib.parse import urlparse
 
 
 TOKEN = "github-test-token"
+AVATAR_SVG = b"""<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <circle cx="32" cy="32" r="30" fill="#4fa657"/>
+  <path fill="#fff" d="M21.5 24.5c-5.8 5.8-5.8 15.2 0 21 2.9 2.9 6.7 4.4 10.5 4.4s7.6-1.5 10.5-4.4C49.8 38.2 51 16 51 16s-22.2 1.2-29.5 8.5zm18 18c-2 2-4.6 3-7.5 3s-5.5-1-7.5-3-3-4.6-3-7.5 1-5.5 3-7.5c3.1-3.1 10.9-5.2 18.7-6-0.8 7.8-2.9 15.9-3.7 21z"/>
+  <path fill="#fff" d="M27 32c1.7-1.7 4.6-3 7.6-3.8-0.8 3-2.1 5.9-3.8 7.6-1 1-2.4 1.6-3.8 1.6s-2.8-0.6-3.8-1.6c-2.1-2.1-2.1-5.6 0-7.8z"/>
+</svg>"""
 BRANCHES = {
     "master": {"sha": "0f0f0f0abcdef1234567890abcdef1234567890", "protected": True},
     "pull/12001/head": {"sha": "a12001fabcdef1234567890abcdef1234567890"},
@@ -35,7 +40,7 @@ PULL_REQUESTS = {
         "title": "IGNITE-20001 Fix rebalance progress under node restart",
         "head": "pull/12001/head",
         "base": {"ref": "master"},
-        "user": "ignite.tester"
+        "user": "ignite-tester"
     },
     12003: {
         "title": "Refactor binary metadata cleanup",
@@ -47,7 +52,7 @@ PULL_REQUESTS = {
         "title": "IGNITE-20005 Already validated SQL retry cleanup",
         "head": "pull/12005/head",
         "base": {"ref": "master"},
-        "user": "ignite.tester"
+        "user": "ignite-tester"
     },
     12006: {
         "title": "IGNITE-20006 Break SQL retry on contributor branch",
@@ -57,7 +62,7 @@ PULL_REQUESTS = {
     }
 }
 USERS = {
-    "ignite.tester": {
+    "ignite-tester": {
         "id": 1001,
         "name": "Ignite Integration Tester",
         "email": "ignite.tester@example.com"
@@ -87,6 +92,9 @@ class Handler(BaseHTTPRequestHandler):
 
         if parsed.path == "/favicon.ico":
             return self.respond(204, "image/x-icon", b"")
+
+        if parsed.path.startswith("/avatars/u/"):
+            return self.respond(200, "image/svg+xml", AVATAR_SVG)
 
         pr_web_number = pull_request_web_path(parsed.path)
 
@@ -338,7 +346,7 @@ def comment_payload(handler, number, idx, body):
         "body": body,
         "url": api_root(handler) + "repos/apache/ignite/issues/{}/comments/{}".format(number, idx),
         "html_url": api_root(handler) + "apache/ignite/pull/{}#issuecomment-{}".format(number, idx),
-        "user": user_payload("ignite.tester", handler.server.users["ignite.tester"], api_root(handler))
+        "user": user_payload("ignite-tester", handler.server.users["ignite-tester"], api_root(handler))
     }
 
 

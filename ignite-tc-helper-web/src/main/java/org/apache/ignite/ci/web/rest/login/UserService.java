@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
@@ -522,15 +523,21 @@ public class UserService {
             if (Strings.isNullOrEmpty(trimmed))
                 continue;
 
-            Preconditions.checkState(trimmed.matches("[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?"),
-                "Invalid GitHub ID: " + trimmed);
-
-            Preconditions.checkState(!trimmed.contains("--"), "Invalid GitHub ID: " + trimmed);
+            if (!isValidGithubId(trimmed))
+                throw new BadRequestException("Invalid GitHub ID: " + trimmed);
 
             res.add(trimmed);
         }
 
         return res;
+    }
+
+    /**
+     * @param githubId GitHub login.
+     */
+    private static boolean isValidGithubId(String githubId) {
+        return githubId.matches("[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?") &&
+            !githubId.contains("--");
     }
 
     /**
