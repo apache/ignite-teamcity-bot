@@ -53,6 +53,9 @@ public class TcBotJsonConfig implements ITrackedBranchesConfig {
     /** Bot user logins allowed to manage users. */
     @Nullable private List<String> userAdmins;
 
+    /** Ignite cache names admins may reset from monitoring UI. */
+    @Nullable private List<String> resettableCaches;
+
     /** Additional list Servers to be used for validation of PRs, but not for tracking any branches. */
     private List<TcServerConfig> tcServers = new ArrayList<>();
 
@@ -133,6 +136,13 @@ public class TcBotJsonConfig implements ITrackedBranchesConfig {
      */
     @Nullable public List<String> userAdmins() {
         return userAdmins;
+    }
+
+    /**
+     * @return Ignite cache names admins may reset from monitoring UI.
+     */
+    @Nullable public List<String> resettableCaches() {
+        return resettableCaches;
     }
 
     public Optional<TcServerConfig> getTcConfig(String code) {

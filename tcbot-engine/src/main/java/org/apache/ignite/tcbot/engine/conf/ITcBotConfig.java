@@ -23,6 +23,7 @@ import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Teamcity Bot configuration access interface.
@@ -39,6 +40,9 @@ public interface ITcBotConfig extends IDataSourcesConfigSupplier {
 
     /** Default TeamCity group id whose members are allowed to administer bot settings. */
     String DEFAULT_BOT_ADMIN_GROUP = "IGNITE_COMMITER";
+
+    /** Caches safe to reset from monitoring UI by default. */
+    List<String> DEFAULT_RESETTABLE_CACHES = List.of("testFixMatches", "testFixSourceUpdates");
 
     /** */
     String primaryServerCode();
@@ -82,6 +86,13 @@ public interface ITcBotConfig extends IDataSourcesConfigSupplier {
      */
     default Collection<String> userAdmins() {
         return Collections.emptyList();
+    }
+
+    /**
+     * @return Ignite cache names that admins may reset from monitoring UI.
+     */
+    default Collection<String> resettableCaches() {
+        return DEFAULT_RESETTABLE_CACHES;
     }
 
     /**

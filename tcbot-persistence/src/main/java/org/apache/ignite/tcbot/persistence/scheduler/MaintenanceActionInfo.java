@@ -27,6 +27,18 @@ public class MaintenanceActionInfo {
     /** Action description. */
     public String description;
 
+    /** Matching scheduler status, if the action has a named scheduler task. */
+    public String status;
+
+    /** Current user-visible bot process status, if this action is running through a monitored manual action. */
+    public String processStatus;
+
+    /** Bot process monitor id associated with the current manual run. */
+    public Long processId;
+
+    /** Action can be started by admin now. */
+    public boolean canStartNow = true;
+
     /**
      * @param name Action name.
      * @param description Action description.

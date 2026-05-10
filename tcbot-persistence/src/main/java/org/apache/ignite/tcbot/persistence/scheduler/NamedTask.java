@@ -40,6 +40,9 @@ class NamedTask {
     @GuardedBy("lock")
     private volatile boolean forceRun;
 
+    @GuardedBy("lock")
+    private volatile Long processId;
+
     enum Status {
         CREATED, RUNNING, COMPLETED;
     }
@@ -84,7 +87,7 @@ class NamedTask {
      * @param cmd Task body.
      * @return {@code true} if task was queued, {@code false} if it is already queued or running.
      */
-    public boolean scheduleNow(@Nonnull Runnable cmd) {
+    public boolean scheduleNow(@Nonnull Runnable cmd, Long processId) {
         long writeLockStamp = lock.writeLock();
 
         try {
@@ -93,6 +96,7 @@ class NamedTask {
 
             this.cmd = cmd;
             forceRun = true;
+            this.processId = processId;
 
             return true;
         }
@@ -152,6 +156,7 @@ class NamedTask {
             try {
                 lastFinishedTs = System.currentTimeMillis();
                 status = Status.COMPLETED;
+                processId = null;
             }
             finally {
                 lock.unlock(writeLockStamp2);
@@ -176,6 +181,7 @@ class NamedTask {
             res.quietPeriodMs = resValidityMs;
             res.runnableAvailable = cmd != null;
             res.canStartNow = status != Status.RUNNING && cmd == null;
+            res.processId = processId;
 
             return res;
         }

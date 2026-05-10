@@ -210,10 +210,11 @@
 
         for (var i = 0; i < result.length; i++) {
             var task = result[i];
+            var status = task.processStatus || task.status;
 
             res += "<tr>";
             res += "<td>" + escapeHtml(task.name) + "</td>";
-            res += "<td>" + escapeHtml(task.status) + "</td>";
+            res += "<td>" + escapeHtml(status) + "</td>";
             res += "<td>" + escapeHtml(formatTs(task.lastFinishedTs)) + "</td>";
             res += "<td>" + escapeHtml(formatDuration(task.quietPeriodMs)) + "</td>";
             res += "<td>" + escapeHtml(task.runnableAvailable) + "</td>";
@@ -239,17 +240,26 @@
         res += "<tr>";
         res += "<th>Name</th>";
         res += "<th>Description</th>";
+        res += "<th>Status</th>";
         res += "<th>Actions</th>";
         res += "</tr>";
 
         for (var i = 0; i < result.length; i++) {
             var action = result[i];
+            var status = action.processStatus || action.status || "";
 
             res += "<tr>";
             res += "<td>" + escapeHtml(action.name) + "</td>";
             res += "<td>" + escapeHtml(action.description) + "</td>";
-            res += "<td><button onclick='startMaintenanceAction(" + JSON.stringify(action.name) +
-                ")'>Start now</button></td>";
+            res += "<td>" + escapeHtml(status) + "</td>";
+            res += "<td>";
+
+            if (action.canStartNow !== false) {
+                res += "<button onclick='startMaintenanceAction(" + JSON.stringify(action.name) +
+                    ")'>Start now</button>";
+            }
+
+            res += "</td>";
             res += "</tr>";
         }
 

@@ -151,6 +151,15 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
         return userAdmins == null ? Collections.emptyList() : userAdmins;
     }
 
+    /** {@inheritDoc} */
+    @Override public Collection<String> resettableCaches() {
+        Collection<String> resettableCaches = getConfig().resettableCaches();
+
+        return resettableCaches == null || resettableCaches.isEmpty()
+            ? ITcBotConfig.DEFAULT_RESETTABLE_CACHES
+            : resettableCaches;
+    }
+
     @Override
     public ITrackedBranchesConfig getTrackedBranches() {
         return getConfig();

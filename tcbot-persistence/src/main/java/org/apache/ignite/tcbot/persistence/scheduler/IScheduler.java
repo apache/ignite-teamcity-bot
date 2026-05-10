@@ -47,6 +47,19 @@ public interface IScheduler {
      * queued.
      */
     public default boolean runNamedNow(String fullName, Runnable cmd) {
+        return runNamedNow(fullName, cmd, null);
+    }
+
+    /**
+     * Runs named action as soon as possible using scheduler executor.
+     *
+     * @param fullName Named task name.
+     * @param cmd Task body.
+     * @param processId Optional process monitor id associated with this manual run.
+     * @return {@code true} if the action was accepted, {@code false} if the same named task is already running or
+     * queued.
+     */
+    public default boolean runNamedNow(String fullName, Runnable cmd, Long processId) {
         sheduleNamed(fullName, cmd, 0, TimeUnit.MILLISECONDS);
 
         return true;

@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -67,6 +68,7 @@ import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
 import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
+import org.apache.ignite.tcbot.engine.process.BotProcessStatus;
 import org.apache.ignite.tcbot.notify.IEmailSender;
 import org.apache.ignite.tcbot.notify.ISendEmailConfig;
 import org.apache.ignite.tcbot.notify.ISlackSender;
@@ -78,9 +80,6 @@ import org.apache.ignite.tcbot.persistence.scheduler.ScheduledTaskInfo;
 @Path("monitoring")
 @Produces(MediaType.APPLICATION_JSON)
 public class MonitoringService {
-    /** Caches introduced after the old 2022 data model and safe to reset from UI. */
-    private static final Set<String> RESETTABLE_CACHES = Set.of("testFixMatches", "testFixSourceUpdates");
-
     /** Log line start. */
     private static final Pattern LOG_ENTRY_START = Pattern.compile(
         "^(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3})\\s+(\\S+)\\s+.*");
@@ -143,11 +142,10 @@ public class MonitoringService {
     @Path("scheduledTasks")
     public List<ScheduledTaskInfo> getScheduledTasks() {
         MaintenanceActionRegistry actions = instance(MaintenanceActionRegistry.class);
+        BotProcessMonitor process = instance(BotProcessMonitor.class);
 
         return instance(IScheduler.class).scheduledTasks().stream()
-            .peek(task -> {
-                task.canStartNow = actions.hasAction(task.name) && task.canStartNow;
-            })
+            .peek(task -> enrichScheduledTask(task, actions, process))
             .collect(Collectors.toList());
     }
 
@@ -155,7 +153,26 @@ public class MonitoringService {
     @RolesAllowed(AuthenticationFilter.ADMIN_ROLE)
     @Path("maintenanceActions")
     public List<MaintenanceActionInfo> getMaintenanceActions() {
-        return instance(MaintenanceActionRegistry.class).actions();
+        IScheduler scheduler = instance(IScheduler.class);
+        MaintenanceActionRegistry actions = instance(MaintenanceActionRegistry.class);
+        BotProcessMonitor process = instance(BotProcessMonitor.class);
+        Map<String, ScheduledTaskInfo> scheduled = scheduler.scheduledTasks().stream()
+            .peek(task -> enrichScheduledTask(task, actions, process))
+            .collect(Collectors.toMap(task -> task.name, task -> task, (first, second) -> first));
+
+        return actions.actions().stream()
+            .peek(action -> {
+                ScheduledTaskInfo task = scheduled.get(action.name);
+
+                if (task == null)
+                    return;
+
+                action.status = task.status;
+                action.processStatus = task.processStatus;
+                action.processId = task.processId;
+                action.canStartNow = task.canStartNow;
+            })
+            .collect(Collectors.toList());
     }
 
     @POST
@@ -190,7 +207,7 @@ public class MonitoringService {
                 process.fail(processId, e);
                 throw new RuntimeException(e);
             }
-        });
+        }, processId);
 
         if (!accepted) {
             process.fail(processId, "Maintenance action is already queued or running: " + name);
@@ -200,6 +217,27 @@ public class MonitoringService {
         }
 
         return new SimpleResult("Maintenance action start requested: " + name);
+    }
+
+    /**
+     * @param task Scheduled task.
+     * @param actions Maintenance actions.
+     * @param process Bot process monitor.
+     */
+    private void enrichScheduledTask(ScheduledTaskInfo task, MaintenanceActionRegistry actions,
+        BotProcessMonitor process) {
+        if (task.processId != null) {
+            BotProcessStatus status = process.status(task.processId);
+
+            if (status.id != null && !Strings.isNullOrEmpty(status.status)) {
+                task.processStatus = status.status;
+
+                if (status.isRunning())
+                    task.status = status.status;
+            }
+        }
+
+        task.canStartNow = actions.hasAction(task.name) && task.canStartNow;
     }
 
     @GET
@@ -535,6 +573,7 @@ public class MonitoringService {
     @Path("cacheMetrics")
     public List<CacheMetricsUi> getCacheStat() {
         Ignite ignite = instance(Ignite.class);
+        Set<String> resettableCaches = resettableCaches();
 
         final Collection<String> strings = ignite.cacheNames();
 
@@ -558,7 +597,7 @@ public class MonitoringService {
 
             Affinity<Object> affinity = ignite.affinity(next);
 
-            res.add(new CacheMetricsUi(next, size, affinity.partitions(), RESETTABLE_CACHES.contains(next)));
+            res.add(new CacheMetricsUi(next, size, affinity.partitions(), resettableCaches.contains(next)));
         }
         return res;
     }
@@ -568,10 +607,11 @@ public class MonitoringService {
     @Path("resetCache")
     public SimpleResult resetCache(@FormParam("name") String name, @QueryParam("processId") Long processId) {
         BotProcessMonitor process = instance(BotProcessMonitor.class);
+        Set<String> resettableCaches = resettableCaches();
 
         process.start(processId, "resetCache", "Cache reset request accepted: " + name);
 
-        if (!RESETTABLE_CACHES.contains(name)) {
+        if (!resettableCaches.contains(name)) {
             process.fail(processId, "Cache reset is not allowed for: " + name);
 
             throw new BadRequestException("Cache reset is not allowed for: " + name);
@@ -597,6 +637,13 @@ public class MonitoringService {
         process.finish(processId, result);
 
         return new SimpleResult(result);
+    }
+
+    /**
+     * @return Cache names admins may reset from monitoring UI.
+     */
+    private Set<String> resettableCaches() {
+        return Set.copyOf(instance(ITcBotConfig.class).resettableCaches());
     }
 
     @GET

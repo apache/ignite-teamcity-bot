@@ -38,4 +38,10 @@ public class ScheduledTaskInfo {
 
     /** Task can be started by admin now. */
     public boolean canStartNow;
+
+    /** Bot process monitor id associated with the currently queued/running manual action. */
+    public Long processId;
+
+    /** Current user-visible bot process status, if this task was started through a monitored manual action. */
+    public String processStatus;
 }
