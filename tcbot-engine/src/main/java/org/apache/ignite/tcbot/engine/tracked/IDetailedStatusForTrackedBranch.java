@@ -37,6 +37,7 @@ public interface IDetailedStatusForTrackedBranch {
      * @param calcTrustedTests Calculate trusted tests count.
      * @param tagSelected Selected tag based filter. If null or empty all data is returned.
      * @param tagForHistSelected Selected tag for filtering history (applicable to reruns and history stripe).
+     * @param suiteId Suite id to include. If null or empty all suites are returned.
      * @param displayMode Suites and tests display mode. Default - failures only.
      * @param sortOption Sort mode
      * @param maxDurationSec Show test as failed if duration is greater than provided seconds count.
@@ -52,6 +53,7 @@ public interface IDetailedStatusForTrackedBranch {
         boolean calcTrustedTests,
         @Nullable String tagSelected,
         @Nullable String tagForHistSelected,
+        @Nullable String suiteId,
         @Nullable DisplayMode displayMode,
         @Nullable SortOption sortOption,
         int maxDurationSec,

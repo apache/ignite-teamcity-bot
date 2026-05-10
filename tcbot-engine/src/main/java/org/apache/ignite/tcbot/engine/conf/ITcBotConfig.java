@@ -42,7 +42,15 @@ public interface ITcBotConfig extends IDataSourcesConfigSupplier {
     String DEFAULT_BOT_ADMIN_GROUP = "IGNITE_COMMITER";
 
     /** Caches safe to reset from monitoring UI by default. */
-    List<String> DEFAULT_RESETTABLE_CACHES = List.of("testFixMatches", "testFixSourceUpdates");
+    List<String> DEFAULT_RESETTABLE_CACHES = List.of(
+        "testFixRefsByTest",
+        "testFixSourcesById",
+        // Old test-fix cache names may still be restored from persistence after cache layout changes.
+        "testFixMatches",
+        "testFixMatchesV2",
+        "testFixSourcesV2",
+        "testFixSourceUpdates"
+    );
 
     /** */
     String primaryServerCode();

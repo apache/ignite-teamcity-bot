@@ -53,8 +53,10 @@ import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
 import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
 import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
+import org.apache.ignite.tcbot.engine.testfixes.TestFixesService;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
+import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
 import org.apache.ignite.tcbot.engine.ui.GuardBranchStatusUi;
 import org.apache.ignite.tcbot.engine.ui.LrTestsFullSummaryUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -111,6 +113,9 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
 
     /** User-visible process monitor. */
     @Inject private BotProcessMonitor processMonitor;
+
+    /** Test fix matcher. */
+    @Inject private TestFixesService testFixesService;
 
     /**
      * @param branch Branch.
@@ -356,6 +361,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         boolean calcTrustedTests,
         @Nullable String tagSelected,
         @Nullable String tagForHistSelected,
+        @Nullable String suiteId,
         @Nullable DisplayMode displayMode,
         @Nullable SortOption sortOption,
         int maxDurationSec,
@@ -443,9 +449,13 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
             chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor, calcTrustedTests, tagSelected,
                 displayMode, maxDurationSec, requireParamVal,
                 showMuted, showIgnored);
+            filterSuites(chainStatus, suiteId);
+            chainStatus.suites.forEach(testFixesService::decorate);
             uiInitNanos += System.nanoTime() - stepStart;
 
-            res.addChainOnServer(chainStatus);
+            if (Strings.isNullOrEmpty(suiteId) || suiteId.equals(chainStatus.suiteId) || !chainStatus.suites.isEmpty())
+                res.addChainOnServer(chainStatus);
+
             chainTotalNanos += System.nanoTime() - chainStart;
         }
 
@@ -468,6 +478,47 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         }
 
         return res;
+    }
+
+    /**
+     * Keeps a requested child suite inside the loaded root tracked chain.
+     *
+     * @param chainStatus Chain UI.
+     * @param suiteId Optional requested suite id.
+     */
+    private static void filterSuites(DsChainUi chainStatus, @Nullable String suiteId) {
+        if (chainStatus == null || Strings.isNullOrEmpty(suiteId) || suiteId.equals(chainStatus.suiteId))
+            return;
+
+        chainStatus.suites = chainStatus.suites.stream()
+            .filter(suite -> suiteId.equals(suite.suiteId))
+            .collect(Collectors.toList());
+
+        chainStatus.failedTests = sum(chainStatus.suites.stream().map(suite -> suite.failedTests)
+            .collect(Collectors.toList()));
+        chainStatus.totalTests = sum(chainStatus.suites.stream().map(suite -> suite.totalTests)
+            .collect(Collectors.toList()));
+        chainStatus.trustedTests = sum(chainStatus.suites.stream().map(suite -> suite.trustedTests)
+            .collect(Collectors.toList()));
+        chainStatus.totalBlockers = chainStatus.suites.stream().mapToInt(DsSuiteUi::totalBlockers).sum();
+    }
+
+    /**
+     * @param vals Values.
+     */
+    private static Integer sum(Collection<Integer> vals) {
+        int res = 0;
+        boolean found = false;
+
+        for (Integer val : vals) {
+            if (val == null)
+                continue;
+
+            res += val;
+            found = true;
+        }
+
+        return found ? res : null;
     }
 
     /**

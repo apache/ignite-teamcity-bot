@@ -24,7 +24,10 @@ public interface IFields {
         "status",
         "summary",
         "customfield_11050",
-        "description"
+        "description",
+        "labels",
+        "updated",
+        "resolutiondate"
     );
 
     /** Ticket status. */
@@ -38,4 +41,13 @@ public interface IFields {
 
     /** Description. */
     String description();
+
+    /** Labels. */
+    List<String> labels();
+
+    /** Last updated date as returned by JIRA. */
+    String updated();
+
+    /** Resolution date as returned by JIRA. */
+    String resolutionDate();
 }

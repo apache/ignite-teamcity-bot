@@ -39,7 +39,7 @@ public class PullRequest implements IVersionedEntity {
     public static final int INCLUDE_SHORT_VER = 7;
 
     /** Entitiy current (latest) version. */
-    private static final int LATEST_VERSION = 7;
+    private static final int LATEST_VERSION = 10;
 
     /** Entity version. */
     @SuppressWarnings("FieldCanBeLocal") private Integer _ver = LATEST_VERSION;
@@ -53,9 +53,14 @@ public class PullRequest implements IVersionedEntity {
     /** Pull Request title. */
     private String title;
 
+    /** Pull Request body. */
+    private String body;
+
     @SerializedName("html_url") private String htmlUrl;
 
     @SerializedName("updated_at") private String updatedAt;
+
+    @SerializedName("merged_at") private String mergedAt;
 
     /** Pull Request statuses URL. */
     @SerializedName("statuses_url") private String statusesUrl;
@@ -66,11 +71,20 @@ public class PullRequest implements IVersionedEntity {
 
     @SerializedName("base") private GitHubBranch base;
 
+    @SerializedName("merge_commit_sha") private String mergeCommitSha;
+
     /**
      * @return Pull Request time update.
      */
     public String getTimeUpdate() {
         return updatedAt;
+    }
+
+    /**
+     * @return Pull Request merge time.
+     */
+    @Nullable public String mergedAt() {
+        return mergedAt;
     }
 
     /**
@@ -92,6 +106,13 @@ public class PullRequest implements IVersionedEntity {
      */
     public String getTitle() {
         return title;
+    }
+
+    /**
+     * @return Pull Request body.
+     */
+    public String getBody() {
+        return body;
     }
 
     /**
@@ -129,6 +150,13 @@ public class PullRequest implements IVersionedEntity {
         return head;
     }
 
+    /**
+     * @return Merge commit SHA.
+     */
+    @Nullable public String mergeCommitSha() {
+        return mergeCommitSha;
+    }
+
     /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
@@ -152,17 +180,21 @@ public class PullRequest implements IVersionedEntity {
             Objects.equals(_ver, req._ver) &&
             Objects.equals(state, req.state) &&
             Objects.equals(title, req.title) &&
+            Objects.equals(body, req.body) &&
             Objects.equals(htmlUrl, req.htmlUrl) &&
             Objects.equals(updatedAt, req.updatedAt) &&
+            Objects.equals(mergedAt, req.mergedAt) &&
             Objects.equals(statusesUrl, req.statusesUrl) &&
             Objects.equals(gitHubUser, req.gitHubUser) &&
             Objects.equals(head, req.head) &&
-            Objects.equals(base, req.base);
+            Objects.equals(base, req.base) &&
+            Objects.equals(mergeCommitSha, req.mergeCommitSha);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(_ver, num, state, title, htmlUrl, updatedAt, statusesUrl, gitHubUser, head, base);
+        return Objects.hash(_ver, num, state, title, body, htmlUrl, updatedAt, mergedAt, statusesUrl, gitHubUser, head, base,
+            mergeCommitSha);
     }
 
     /** {@inheritDoc} */

@@ -17,11 +17,14 @@
 package org.apache.ignite.tcbot.engine.ui;
 
 import com.google.common.base.Strings;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
+import org.apache.ignite.tcbot.engine.testfixes.TestFixRefUi;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.history.IRunHistory;
 
@@ -30,6 +33,12 @@ public class ShortTestFailureUi {
 
     /** Test full Name */
     public String name;
+
+    /** Compacted test name id. */
+    @Nullable public Integer testNameId;
+
+    /** Suite build type id. */
+    @Nullable public String suiteId;
 
     /** suite (in code) short name */
     @Nullable public String suiteName;
@@ -41,6 +50,9 @@ public class ShortTestFailureUi {
     /** Blocker comment: indicates test seems to be introduced failure. */
     @Nullable public String blockerComment;
 
+    /** Matched tickets/PRs that mention fixing this test. */
+    public List<TestFixRefUi> fixRefs = new ArrayList<>();
+
     /**
      *
      */
@@ -50,6 +62,8 @@ public class ShortTestFailureUi {
 
     public ShortTestFailureUi initFrom(@Nonnull TestCompactedMult failure,
         ITeamcityIgnited tcIgn, Integer baseBranchId) {
+        testNameId = failure.testName();
+        suiteId = failure.suiteId();
         name = failure.getName();
 
         String[] split = Strings.nullToEmpty(name).split("\\:");

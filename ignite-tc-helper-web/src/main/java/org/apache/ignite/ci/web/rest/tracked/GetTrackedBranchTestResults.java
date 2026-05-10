@@ -124,6 +124,7 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("trustedTests") Boolean trustedTests,
         @Nullable @QueryParam("tagSelected") String tagSelected,
         @Nullable @QueryParam("tagForHistSelected") String tagForHistSelected,
+        @Nullable @QueryParam("suiteId") String suiteId,
         @Nullable @QueryParam("displayMode") String displayMode,
         @Nullable @QueryParam("sortOption") String sortOption,
         @Nullable @QueryParam("count") Integer mergeCnt,
@@ -131,7 +132,7 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("muted") Boolean showMuted,
         @Nullable @QueryParam("ignored") Boolean showIgnored) {
         return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, tagForHistSelected,
-            SyncMode.NONE, displayMode, sortOption, mergeCnt, showTestLongerThan, showMuted, showIgnored);
+            suiteId, SyncMode.NONE, displayMode, sortOption, mergeCnt, showTestLongerThan, showMuted, showIgnored);
     }
 
     @GET
@@ -143,6 +144,7 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("trustedTests") Boolean trustedTests,
         @Nullable @QueryParam("tagSelected") String tagSelected,
         @Nullable @QueryParam("tagForHistSelected") String tagForHistSelected,
+        @Nullable @QueryParam("suiteId") String suiteId,
         @Nullable @QueryParam("displayMode") String displayMode,
         @Nullable @QueryParam("sortOption") String sortOption,
         @Nullable @QueryParam("count") Integer mergeCnt,
@@ -150,7 +152,8 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("muted") Boolean showMuted,
         @Nullable @QueryParam("ignored") Boolean showIgnored) {
         return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, tagForHistSelected,
-            SyncMode.RELOAD_QUEUED, displayMode, sortOption, mergeCnt, showTestLongerThan, showMuted, showIgnored);
+            suiteId, SyncMode.RELOAD_QUEUED, displayMode, sortOption, mergeCnt, showTestLongerThan, showMuted,
+            showIgnored);
     }
 
     @NotNull private DsSummaryUi latestBuildResults(
@@ -159,6 +162,7 @@ public class GetTrackedBranchTestResults {
         @Nullable Boolean trustedTests,
         @Nullable String tagSelected,
         @Nullable String tagForHistSelected,
+        @Nullable String suiteId,
         @Nonnull SyncMode mode,
         @Nullable String displayMode,
         @Nullable String sortOption,
@@ -185,6 +189,7 @@ public class GetTrackedBranchTestResults {
                 Boolean.TRUE.equals(trustedTests),
                 tagSelected,
                 tagForHistSelected,
+                suiteId,
                 DisplayMode.parseStringValue(displayMode),
                 SortOption.parseStringValue(sortOption),
                 maxDurationSec,

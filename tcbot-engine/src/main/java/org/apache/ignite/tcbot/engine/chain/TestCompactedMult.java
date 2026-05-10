@@ -60,6 +60,10 @@ public class TestCompactedMult {
     @Nullable public Integer testName() {
         return occurrences.isEmpty() ? null : occurrences.iterator().next().testName();
     }
+
+    @Nullable public String suiteId() {
+        return ctx == null ? null : ctx.suiteId();
+    }
     
     public String getName() {
         return occurrences.isEmpty() ? "" : occurrences.iterator().next().testName(compactor);

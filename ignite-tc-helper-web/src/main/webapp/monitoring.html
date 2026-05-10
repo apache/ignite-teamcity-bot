@@ -17,6 +17,7 @@
 <body>
 <script>
     var monitoringAdmin = false;
+    var monitoringUserAdmin = false;
 
     $(document).ready(function() {
         $.getScript("js/common-1.7.js", function(data, textStatus, jqxhr){ });
@@ -27,6 +28,7 @@
             url: "/rest/user/currentUserName",
             success: function(result) {
                 monitoringAdmin = result.admin === true;
+                monitoringUserAdmin = result.userAdmin === true;
 
                 initAdminControls();
                 renderUserAdminLink(result, "#userAdminBlock");
@@ -35,6 +37,7 @@
             },
             error: function() {
                 monitoringAdmin = false;
+                monitoringUserAdmin = false;
 
                 initAdminControls();
                 $("#userAdminBlock").hide();
@@ -351,6 +354,8 @@
             res += "<td>" + escapeHtml(inv.parts) + "</td>";
             if (monitoringAdmin) {
                 res += "<td>";
+                if (canPeekCache(inv.name))
+                    res += "<button onclick='peekCache(" + JSON.stringify(inv.name) + ")'>Peek</button> ";
                 if (inv.resettable) {
                     res += "<button onclick='resetCache(" + JSON.stringify(inv.name) +
                         ")'>Reset</button>";
@@ -360,6 +365,49 @@
             res += "</tr>";
         }
         $("#caches").html(res);
+    }
+
+    function canPeekCache(name) {
+        if (!monitoringAdmin)
+            return false;
+
+        return !String(name || "").toLowerCase().includes("users") || monitoringUserAdmin;
+    }
+
+    function peekCache(name) {
+        if (!canPeekCache(name))
+            return false;
+
+        openTextCommandDialog({
+            dialogId: "cachePeekDialog",
+            statusId: "cachePeekStatus",
+            logId: "cachePeekProgressLog",
+            errorId: "cachePeekError",
+            title: "Cache peek",
+            initialMode: false,
+            requestUrl: function() {
+                return "rest/monitoring/cachePeek?" + $.param({name: name, limit: 20});
+            },
+            timeoutMs: 70000,
+            statusText: function() {
+                return "Loading cache " + name + "...";
+            },
+            progressMessage: function(mode, idx, elapsedMs) {
+                if (idx === 0)
+                    return "Sending request to the bot REST API.";
+
+                return "Still loading cache preview after " + Math.round(elapsedMs / 1000) + "s.";
+            },
+            openButtonText: "Open text",
+            downloadButtonText: "Download .txt",
+            downloadFileName: name.replace(/[^A-Za-z0-9_.-]+/g, "_") + "-cache-peek.txt",
+            readyStatusText: "Cache peek is ready.",
+            readyStepText: "Cache peek text is ready. Use Open text or Download .txt.",
+            failureStatusText: "Cache peek failed.",
+            failureMessagePrefix: "Cache peek failed: "
+        });
+
+        return false;
     }
 
     function showAiPrompts(result) {

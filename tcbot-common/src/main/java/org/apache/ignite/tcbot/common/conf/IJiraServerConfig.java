@@ -61,6 +61,20 @@ public interface IJiraServerConfig {
     @Nullable String decodedHttpAuthToken();
 
     /**
+     * JIRA label used to explicitly mark test-fix tickets.
+     */
+    default String testFixesLabel() {
+        return "MakeTeamcityGreenAgain";
+    }
+
+    /**
+     * Number of recent days to scan for test-fix tickets. Default matches base branch run-history horizon.
+     */
+    default int testFixesLookbackDays() {
+        return org.apache.ignite.tcbot.common.TcBotConst.HISTORY_MAX_DAYS;
+    }
+
+    /**
      * @return {@code True} if JIRA authorization token is available.
      */
     default boolean isJiraTokenAvailable() {
