@@ -263,6 +263,7 @@ public class TestFixesService {
         ensureCache();
 
         RefreshStats stats = new RefreshStats();
+        RefreshBuffer buffer = new RefreshBuffer();
 
         publishRefreshStatus(processId, "collecting test names from tracked suite history", stats);
         Map<String, List<TestFixCandidate>> candidatesByServer = candidatesByServer();
@@ -281,9 +282,11 @@ public class TestFixesService {
             publishRefreshStatus(processId, "loaded " + recentPrs.size() + " recent GitHub pull requests for " +
                 srvCode, stats);
 
-            refreshJira(srvCode, srvCandidates, recentPrs, stats, processId);
-            refreshGithub(srvCode, srvCandidates, recentPrs, stats, processId);
+            refreshJira(buffer, srvCode, srvCandidates, recentPrs, stats, processId);
+            refreshGithub(buffer, srvCode, srvCandidates, recentPrs, stats, processId);
         }
+
+        replaceCaches(buffer);
 
         return stats.finishText();
     }
@@ -325,8 +328,8 @@ public class TestFixesService {
      * @param srvCode Server code.
      * @param recentPrs Recent GitHub pull requests.
      */
-    private void refreshJira(String srvCode, List<TestFixCandidate> candidates, List<PullRequest> recentPrs,
-        RefreshStats stats, @Nullable Long processId) {
+    private void refreshJira(RefreshBuffer buffer, String srvCode, List<TestFixCandidate> candidates,
+        List<PullRequest> recentPrs, RefreshStats stats, @Nullable Long processId) {
         try {
             IJiraIgnited jira = jiraProvider.server(srvCode);
             IJiraServerConfig jiraCfg = jira.config();
@@ -365,13 +368,13 @@ public class TestFixesService {
                     match.updatedTs = updatedTs;
                     match.closedTs = closedTs;
 
-                    saveMatch(match);
+                    saveMatch(buffer, match);
                     stats.jiraSaved++;
 
                     for (PullRequest pr : linkedPrs) {
                         TestFixMatch linkedPrMatch = githubMatch(candidate, pr);
 
-                        saveMatch(linkedPrMatch);
+                        saveMatch(buffer, linkedPrMatch);
                         stats.githubSaved++;
                     }
                 }
@@ -389,8 +392,8 @@ public class TestFixesService {
      * @param srvCode Server code.
      * @param recentPrs Recent GitHub pull requests.
      */
-    private void refreshGithub(String srvCode, List<TestFixCandidate> candidates, List<PullRequest> recentPrs,
-        RefreshStats stats, @Nullable Long processId) {
+    private void refreshGithub(RefreshBuffer buffer, String srvCode, List<TestFixCandidate> candidates,
+        List<PullRequest> recentPrs, RefreshStats stats, @Nullable Long processId) {
         try {
             publishRefreshStatus(processId, "checking GitHub pull requests for " + srvCode, stats);
             for (PullRequest pr : recentPrs) {
@@ -404,7 +407,7 @@ public class TestFixesService {
                 for (TestFixCandidate candidate : matchingCandidates(text, candidates)) {
                     TestFixMatch match = githubMatch(candidate, pr);
 
-                    saveMatch(match);
+                    saveMatch(buffer, match);
                     stats.githubSaved++;
                 }
             }
@@ -598,16 +601,16 @@ public class TestFixesService {
     /**
      * @param match Match.
      */
-    private void saveMatch(TestFixMatch match) {
+    private void saveMatch(RefreshBuffer buffer, TestFixMatch match) {
         if (!isPlausibleMatch(match))
             return;
 
         String sourceId = sourceKey(match);
 
-        sourceCache.put(sourceId, source(match));
+        buffer.sources.put(sourceId, source(match));
 
         for (String key : lookupKeys(match)) {
-            TestFixRefs refs = lookupCache.get(key);
+            TestFixRefs refs = buffer.refs.get(key);
 
             if (refs == null)
                 refs = refs(match);
@@ -615,8 +618,24 @@ public class TestFixesService {
             if (!refs.sourceIds.contains(sourceId))
                 refs.sourceIds.add(sourceId);
 
-            lookupCache.put(key, refs);
+            buffer.refs.put(key, refs);
         }
+    }
+
+    /**
+     * Replaces persistent match caches with the latest successful refresh snapshot.
+     *
+     * @param buffer Newly collected mappings.
+     */
+    private void replaceCaches(RefreshBuffer buffer) {
+        lookupCache.removeAll();
+        sourceCache.removeAll();
+
+        if (!buffer.refs.isEmpty())
+            lookupCache.putAll(buffer.refs);
+
+        if (!buffer.sources.isEmpty())
+            sourceCache.putAll(buffer.sources);
     }
 
     /**
@@ -1221,6 +1240,15 @@ public class TestFixesService {
      */
     private void publishRefreshStatus(@Nullable Long processId, String stage, RefreshStats stats) {
         processMonitor.status(processId, "Test fix mapping: " + stage + ". " + stats.progressText());
+    }
+
+    /** In-memory refresh result applied to persistent caches after refresh completion. */
+    private static class RefreshBuffer {
+        /** Source fixes by id. */
+        private final Map<String, TestFixSource> sources = new HashMap<>();
+
+        /** Lookup refs by suite/test lookup key. */
+        private final Map<String, TestFixRefs> refs = new HashMap<>();
     }
 
     /** Test fix refresh counters. */
