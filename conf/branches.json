@@ -5,7 +5,14 @@
   // Apache Ignite test admins are exposed by TeamCity REST as key="IGNITE_COMMITER".
   "botAdminGroups": ["IGNITE_COMMITER"],
   // Ignite cache names admins may reset from monitoring UI.
-  "resettableCaches": ["testFixMatches", "testFixSourceUpdates"],
+  "resettableCaches": [
+    "testFixRefsByTest",
+    "testFixSourcesById",
+    "testFixMatches",
+    "testFixMatchesV2",
+    "testFixSourcesV2",
+    "testFixSourceUpdates"
+  ],
   "confidence": 0.995,
   "cleanerConfig": {
     "numOfItemsToDel": 100000,

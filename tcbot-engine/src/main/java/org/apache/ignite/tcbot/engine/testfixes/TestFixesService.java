@@ -19,12 +19,14 @@ package org.apache.ignite.tcbot.engine.testfixes;
 
 import com.google.common.base.Strings;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -50,7 +52,6 @@ import org.apache.ignite.ci.teamcity.ignited.buildtype.SnapshotDependencyCompact
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.githubignited.IGitHubConnIgnited;
 import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
-import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.jiraignited.IJiraIgnited;
 import org.apache.ignite.jiraignited.IJiraIgnitedProvider;
 import org.apache.ignite.jiraservice.JiraTicketStatusCode;
@@ -84,14 +85,14 @@ public class TestFixesService {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(TestFixesService.class);
 
-    /** Cache name. */
-    private static final String CACHE_NAME = "testFixMatchesV2";
+    /** Reverse lookup cache name. */
+    private static final String REFS_CACHE_NAME = "testFixRefsByTest";
+
+    /** Source fix cache name. */
+    private static final String SOURCE_CACHE_NAME = "testFixSourcesById";
 
     /** Background scheduled task name. */
     private static final String TASK_NAME = TestFixesService.class.getSimpleName() + ".refresh";
-
-    /** Source update signal cache name. Also used by JIRA/GitHub sync modules. */
-    private static final String SOURCE_UPDATES_CACHE_NAME = "testFixSourceUpdates";
 
     /** Ignite provider. */
     @Inject private Provider<Ignite> igniteProvider;
@@ -120,17 +121,11 @@ public class TestFixesService {
     /** String compactor. */
     @Inject private IStringCompactor compactor;
 
-    /** Cache. */
-    private volatile IgniteCache<String, TestFixMatch> cache;
+    /** Source fix cache keyed by synthetic source id. */
+    private volatile IgniteCache<String, TestFixSource> sourceCache;
 
-    /** Source update signals cache. */
-    private volatile IgniteCache<String, Long> signalCache;
-
-    /** Lookup index built from match cache for UI decoration. */
-    private volatile TestFixLookupIndex lookupIndex;
-
-    /** Last source update signal timestamp. */
-    private volatile long lastSignalTs;
+    /** Reverse lookup cache keyed by suite/test spelling. */
+    private volatile IgniteCache<String, TestFixRefs> lookupCache;
 
     /**
      * Starts rare background refresh.
@@ -139,7 +134,6 @@ public class TestFixesService {
         maintenanceActions.register(TASK_NAME, "Refresh JIRA/GitHub test-fix mapping", this::refresh);
 
         scheduler.invokeLater(this::refreshAndReschedule, 2, TimeUnit.MINUTES);
-        scheduler.invokeLater(this::watchSourceUpdates, 3, TimeUnit.MINUTES);
     }
 
     /**
@@ -173,9 +167,7 @@ public class TestFixesService {
         if (suite == null)
             return;
 
-        TestFixLookupIndex idx = lookupIndex();
-
-        decorate(suite, idx);
+        decorate(Collections.singletonList(suite));
     }
 
     /**
@@ -185,7 +177,7 @@ public class TestFixesService {
         if (suites == null || suites.isEmpty())
             return;
 
-        TestFixLookupIndex idx = lookupIndex();
+        TestFixLookupIndex idx = lookupIndex(suites);
 
         for (ShortSuiteUi suite : suites)
             decorate(suite, idx);
@@ -199,10 +191,10 @@ public class TestFixesService {
         if (suite == null)
             return;
 
-        suite.fixRefs = findRefs(suite.name, idx);
+        suite.fixRefs = idx.findSuite(suite.suiteId);
 
         for (ShortTestFailureUi failure : suite.testFailures())
-            decorate(failure, idx);
+            decorate(failure, suite.suiteId, idx);
     }
 
     /**
@@ -212,23 +204,23 @@ public class TestFixesService {
         if (failure == null)
             return;
 
-        decorate(failure, lookupIndex());
+        Set<String> keys = new LinkedHashSet<>();
+
+        addLookupKey(keys, TestFixLookupIndex.testLookupKey(failure.suiteId, failure.testNameId));
+
+        decorate(failure, failure.suiteId, lookupIndex(keys));
     }
 
     /**
      * @param failure Test failure UI.
+     * @param suiteId Suite id.
      * @param idx Test fix lookup index.
      */
-    private void decorate(ShortTestFailureUi failure, TestFixLookupIndex idx) {
+    private void decorate(ShortTestFailureUi failure, @Nullable String suiteId, TestFixLookupIndex idx) {
         if (failure == null)
             return;
 
-        List<TestFixRefUi> refs = new ArrayList<>();
-
-        refs.addAll(findRefs(failure.testName, idx));
-        refs.addAll(findRefs(failure.name, idx));
-
-        failure.fixRefs = uniqueRefs(refs);
+        failure.fixRefs = idx.findTest(suiteId, failure.testNameId);
     }
 
     /**
@@ -237,17 +229,20 @@ public class TestFixesService {
     public List<TestFixRefUi> recent(int limit) {
         ensureCache();
 
-        java.util.stream.Stream<TestFixMatch> stream = StreamSupport.stream(cache.spliterator(), false)
+        List<TestFixRefs> mappings = StreamSupport.stream(lookupCache.spliterator(), false)
             .map(Cache.Entry::getValue)
-            .filter(TestFixesService::isPlausibleMatch)
-            .sorted(Comparator.comparingLong(TestFixesService::sortTs).reversed());
+            .collect(Collectors.toList());
+
+        Map<String, TestFixSource> sources = sources(sourceIds(mappings));
+
+        java.util.stream.Stream<TestFixRefUi> stream = mappings.stream()
+            .flatMap(mapping -> refsFor(mapping, sources).stream())
+            .sorted(Comparator.comparingLong((TestFixRefUi ref) -> sortTs(ref)).reversed());
 
         if (limit > 0)
             stream = stream.limit(limit);
 
-        return stream
-            .map(this::toUi)
-            .collect(Collectors.toList());
+        return uniqueRefs(stream.collect(Collectors.toList()));
     }
 
     /**
@@ -269,33 +264,28 @@ public class TestFixesService {
 
         RefreshStats stats = new RefreshStats();
 
-        try {
-            publishRefreshStatus(processId, "collecting test names from tracked suite history", stats);
-            Map<String, List<TestFixCandidate>> candidatesByServer = candidatesByServer();
-            stats.collectCandidateStats(candidatesByServer);
-            publishRefreshStatus(processId, "collected test names from tracked suite history", stats);
+        publishRefreshStatus(processId, "collecting test names from tracked suite history", stats);
+        Map<String, List<TestFixCandidate>> candidatesByServer = candidatesByServer();
+        stats.collectCandidateStats(candidatesByServer);
+        publishRefreshStatus(processId, "collected test names from tracked suite history", stats);
 
-            for (String srvCode : serverCodes()) {
-                List<TestFixCandidate> srvCandidates = candidatesByServer.get(srvCode);
+        for (String srvCode : serverCodes()) {
+            List<TestFixCandidate> srvCandidates = candidatesByServer.get(srvCode);
 
-                if (srvCandidates == null || srvCandidates.isEmpty())
-                    continue;
+            if (srvCandidates == null || srvCandidates.isEmpty())
+                continue;
 
-                publishRefreshStatus(processId, "loading recent GitHub pull requests for " + srvCode, stats);
-                List<PullRequest> recentPrs = recentPullRequests(srvCode);
-                stats.githubLoaded += recentPrs.size();
-                publishRefreshStatus(processId, "loaded " + recentPrs.size() + " recent GitHub pull requests for " +
-                    srvCode, stats);
+            publishRefreshStatus(processId, "loading recent GitHub pull requests for " + srvCode, stats);
+            List<PullRequest> recentPrs = recentPullRequests(srvCode);
+            stats.githubLoaded += recentPrs.size();
+            publishRefreshStatus(processId, "loaded " + recentPrs.size() + " recent GitHub pull requests for " +
+                srvCode, stats);
 
-                refreshJira(srvCode, srvCandidates, recentPrs, stats, processId);
-                refreshGithub(srvCode, srvCandidates, recentPrs, stats, processId);
-            }
-
-            return stats.finishText();
+            refreshJira(srvCode, srvCandidates, recentPrs, stats, processId);
+            refreshGithub(srvCode, srvCandidates, recentPrs, stats, processId);
         }
-        finally {
-            invalidateLookupIndex();
-        }
+
+        return stats.finishText();
     }
 
     /**
@@ -304,25 +294,6 @@ public class TestFixesService {
     private void refreshAndReschedule() {
         safeRefresh();
         scheduler.sheduleNamed(TASK_NAME, this::refreshAndReschedule, 6, TimeUnit.HOURS);
-    }
-
-    /**
-     * Watches cheap update signals from JIRA/GitHub cache refreshes.
-     */
-    private void watchSourceUpdates() {
-        try {
-            long signalTs = latestSignalTs();
-
-            if (signalTs > lastSignalTs) {
-                lastSignalTs = signalTs;
-                requestMatchSoon();
-            }
-        }
-        catch (RuntimeException e) {
-            logger.debug("Failed to watch test fix update signals", e);
-        }
-
-        scheduler.sheduleNamed(TASK_NAME + ".watchUpdates", this::watchSourceUpdates, 5, TimeUnit.MINUTES);
     }
 
     /**
@@ -394,13 +365,13 @@ public class TestFixesService {
                     match.updatedTs = updatedTs;
                     match.closedTs = closedTs;
 
-                    cache.put(cacheKey(match), match);
+                    saveMatch(match);
                     stats.jiraSaved++;
 
                     for (PullRequest pr : linkedPrs) {
                         TestFixMatch linkedPrMatch = githubMatch(candidate, pr);
 
-                        cache.put(cacheKey(linkedPrMatch), linkedPrMatch);
+                        saveMatch(linkedPrMatch);
                         stats.githubSaved++;
                     }
                 }
@@ -433,7 +404,7 @@ public class TestFixesService {
                 for (TestFixCandidate candidate : matchingCandidates(text, candidates)) {
                     TestFixMatch match = githubMatch(candidate, pr);
 
-                    cache.put(cacheKey(match), match);
+                    saveMatch(match);
                     stats.githubSaved++;
                 }
             }
@@ -570,27 +541,6 @@ public class TestFixesService {
     }
 
     /**
-     * @param name Entity name.
-     */
-    private List<TestFixRefUi> findRefs(@Nullable String name) {
-        if (Strings.isNullOrEmpty(name))
-            return new ArrayList<>();
-
-        return findRefs(name, lookupIndex());
-    }
-
-    /**
-     * @param name Entity name.
-     * @param idx Test fix lookup index.
-     */
-    private List<TestFixRefUi> findRefs(@Nullable String name, TestFixLookupIndex idx) {
-        if (Strings.isNullOrEmpty(name))
-            return new ArrayList<>();
-
-        return idx.find(name);
-    }
-
-    /**
      * @param refs Refs.
      */
     private static List<TestFixRefUi> uniqueRefs(List<TestFixRefUi> refs) {
@@ -603,29 +553,30 @@ public class TestFixesService {
     }
 
     /**
-     * @param match Match.
+     * @param refs Reverse refs.
+     * @param source Source.
      */
-    private TestFixRefUi toUi(TestFixMatch match) {
+    private TestFixRefUi toUi(TestFixRefs refs, TestFixSource source) {
         TestFixRefUi res = new TestFixRefUi();
 
-        res.entityName = match.entityName;
-        res.suiteId = match.suiteId;
-        res.suiteName = match.suiteName;
-        res.testName = match.testName;
-        res.trackedBranch = match.trackedBranch;
-        res.currentStatusUrl = match.currentStatusUrl;
-        res.sourceType = match.sourceType;
-        res.text = match.sourceId;
-        res.url = match.sourceUrl;
-        res.title = match.title;
-        res.status = match.status;
-        res.author = match.author;
-        res.authorUrl = match.authorUrl;
-        res.authorAvatarUrl = match.authorAvatarUrl;
-        res.updatedDate = formatDate(match.updatedTs);
-        res.closedDate = formatDate(match.closedTs);
-        res.commitUrl = match.commitUrl;
-        res.commitText = Strings.isNullOrEmpty(match.commitSha) ? null : shortSha(match.commitSha);
+        res.entityName = refs.entityName;
+        res.suiteId = refs.suiteId;
+        res.suiteName = refs.suiteName;
+        res.testName = refs.testName;
+        res.trackedBranch = refs.trackedBranch;
+        res.currentStatusUrl = refs.currentStatusUrl;
+        res.sourceType = source.sourceType;
+        res.text = source.sourceId;
+        res.url = source.sourceUrl;
+        res.title = source.title;
+        res.status = source.status;
+        res.author = source.author;
+        res.authorUrl = source.authorUrl;
+        res.authorAvatarUrl = source.authorAvatarUrl;
+        res.updatedDate = formatDate(source.updatedTs);
+        res.closedDate = formatDate(source.closedTs);
+        res.commitUrl = source.commitUrl;
+        res.commitText = Strings.isNullOrEmpty(source.commitSha) ? null : shortSha(source.commitSha);
 
         return res;
     }
@@ -647,56 +598,184 @@ public class TestFixesService {
     /**
      * @param match Match.
      */
-    private static String cacheKey(TestFixMatch match) {
-        return match.sourceType + ":" + match.sourceId + ":" + normalize(match.trackedBranch) + ":" +
-            normalize(match.suiteId) + ":" + normalize(match.entityName);
-    }
+    private void saveMatch(TestFixMatch match) {
+        if (!isPlausibleMatch(match))
+            return;
 
-    /** */
-    private void invalidateLookupIndex() {
-        lookupIndex = null;
-    }
+        String sourceId = sourceKey(match);
 
-    /** */
-    private TestFixLookupIndex lookupIndex() {
-        TestFixLookupIndex idx = lookupIndex;
+        sourceCache.put(sourceId, source(match));
 
-        if (idx != null)
-            return idx;
+        for (String key : lookupKeys(match)) {
+            TestFixRefs refs = lookupCache.get(key);
 
-        ensureCache();
+            if (refs == null)
+                refs = refs(match);
 
-        synchronized (this) {
-            idx = lookupIndex;
+            if (!refs.sourceIds.contains(sourceId))
+                refs.sourceIds.add(sourceId);
 
-            if (idx == null) {
-                idx = buildLookupIndex();
-                lookupIndex = idx;
-            }
-
-            return idx;
+            lookupCache.put(key, refs);
         }
     }
 
-    /** */
-    private TestFixLookupIndex buildLookupIndex() {
+    /**
+     * @param match Match.
+     */
+    private static TestFixSource source(TestFixMatch match) {
+        TestFixSource res = new TestFixSource();
+
+        res.sourceType = match.sourceType;
+        res.sourceId = match.sourceId;
+        res.sourceUrl = match.sourceUrl;
+        res.title = match.title;
+        res.status = match.status;
+        res.author = match.author;
+        res.authorUrl = match.authorUrl;
+        res.authorAvatarUrl = match.authorAvatarUrl;
+        res.updatedTs = match.updatedTs;
+        res.closedTs = match.closedTs;
+        res.commitSha = match.commitSha;
+        res.commitUrl = match.commitUrl;
+
+        return res;
+    }
+
+    /**
+     * @param match Match.
+     */
+    private static TestFixRefs refs(TestFixMatch match) {
+        TestFixRefs res = new TestFixRefs();
+
+        res.entityName = match.entityName;
+        res.suiteId = match.suiteId;
+        res.suiteName = match.suiteName;
+        res.testName = match.testName;
+        res.testNameId = match.testNameId;
+        res.trackedBranch = match.trackedBranch;
+        res.currentStatusUrl = match.currentStatusUrl;
+
+        return res;
+    }
+
+    /**
+     * @param match Match.
+     */
+    private static String sourceKey(TestFixMatch match) {
+        return normalize(match.sourceType) + ":" + normalize(match.sourceId);
+    }
+
+    /**
+     * @param match Match.
+     */
+    private static Set<String> lookupKeys(TestFixMatch match) {
+        Set<String> res = new LinkedHashSet<>();
+
+        addLookupKey(res, TestFixLookupIndex.suiteLookupKey(match.suiteId));
+        addLookupKey(res, TestFixLookupIndex.testLookupKey(match.suiteId, match.testNameId));
+
+        return res;
+    }
+
+    /**
+     * @param res Target keys.
+     * @param key Lookup key.
+     */
+    private static void addLookupKey(Set<String> res, String key) {
+        if (!Strings.isNullOrEmpty(key))
+            res.add(key);
+    }
+
+    /**
+     * @param suites Suites UI.
+     */
+    private TestFixLookupIndex lookupIndex(Collection<ShortSuiteUi> suites) {
+        Set<String> keys = new LinkedHashSet<>();
+
+        for (ShortSuiteUi suite : suites)
+            collectLookupKeys(suite, keys);
+
+        return lookupIndex(keys);
+    }
+
+    /**
+     * @param lookupKeys Requested lookup keys.
+     */
+    private TestFixLookupIndex lookupIndex(Set<String> lookupKeys) {
+        ensureCache();
+
         TestFixLookupIndex idx = new TestFixLookupIndex();
 
-        StreamSupport.stream(cache.spliterator(), false)
-            .map(Cache.Entry::getValue)
-            .filter(TestFixesService::isPlausibleMatch)
-            .sorted(Comparator.comparingLong(TestFixesService::sortTs).reversed())
-            .forEach(match -> {
-                TestFixRefUi ref = toUi(match);
+        if (lookupKeys.isEmpty())
+            return idx;
 
-                idx.add(match.entityName, ref);
-                idx.add(match.testName, ref);
-                idx.add(match.suiteName, ref);
-            });
+        Map<String, TestFixRefs> mappings = lookupCache.getAll(lookupKeys);
+        Map<String, TestFixSource> sources = sources(sourceIds(mappings.values()));
+
+        for (Map.Entry<String, TestFixRefs> entry : mappings.entrySet())
+            idx.add(entry.getKey(), refsFor(entry.getValue(), sources));
 
         idx.finish();
 
         return idx;
+    }
+
+    /**
+     * @param suite Suite UI.
+     * @param keys Target keys.
+     */
+    private static void collectLookupKeys(ShortSuiteUi suite, Set<String> keys) {
+        if (suite == null)
+            return;
+
+        addLookupKey(keys, TestFixLookupIndex.suiteLookupKey(suite.suiteId));
+
+        for (ShortTestFailureUi failure : suite.testFailures()) {
+            addLookupKey(keys, TestFixLookupIndex.testLookupKey(suite.suiteId, failure.testNameId));
+        }
+    }
+
+    /**
+     * @param mappings Reverse mappings.
+     */
+    private static Set<String> sourceIds(Collection<TestFixRefs> mappings) {
+        Set<String> res = new LinkedHashSet<>();
+
+        for (TestFixRefs mapping : mappings) {
+            if (mapping != null && mapping.sourceIds != null)
+                res.addAll(mapping.sourceIds);
+        }
+
+        return res;
+    }
+
+    /**
+     * @param sourceIds Source ids.
+     */
+    private Map<String, TestFixSource> sources(Set<String> sourceIds) {
+        return sourceIds.isEmpty() ? Collections.emptyMap() : sourceCache.getAll(sourceIds);
+    }
+
+    /**
+     * @param refs Reverse refs.
+     * @param sources Source fixes by id.
+     */
+    private List<TestFixRefUi> refsFor(TestFixRefs refs, Map<String, TestFixSource> sources) {
+        List<TestFixRefUi> res = new ArrayList<>();
+
+        if (refs == null || refs.sourceIds == null)
+            return res;
+
+        for (String sourceId : refs.sourceIds) {
+            TestFixSource source = sources.get(sourceId);
+
+            if (source != null)
+                res.add(toUi(refs, source));
+        }
+
+        return res.stream()
+            .sorted(Comparator.comparingLong((TestFixRefUi ref) -> sortTs(ref)).reversed())
+            .collect(Collectors.toList());
     }
 
     /**
@@ -717,6 +796,33 @@ public class TestFixesService {
             return match.updatedTs;
 
         return 0;
+    }
+
+    /**
+     * @param ref UI ref.
+     */
+    private static long sortTs(TestFixRefUi ref) {
+        long closed = dateScore(ref.closedDate);
+
+        if (closed > 0)
+            return closed;
+
+        return dateScore(ref.updatedDate);
+    }
+
+    /**
+     * @param date ISO local date.
+     */
+    private static long dateScore(@Nullable String date) {
+        if (Strings.isNullOrEmpty(date))
+            return 0;
+
+        try {
+            return LocalDate.parse(date).toEpochDay();
+        }
+        catch (DateTimeParseException ignored) {
+            return 0;
+        }
     }
 
     /**
@@ -848,7 +954,7 @@ public class TestFixesService {
             String currentStatusUrl = tc.host() + "buildConfiguration/" + suiteId + "?branch=" +
                 org.apache.ignite.tcbot.common.util.UrlUtil.escape(ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME);
 
-            res.add(new TestFixCandidate(branch.name(), suiteId, suiteName, fullTestName, shortTestName,
+            res.add(new TestFixCandidate(branch.name(), suiteId, suiteName, testNameId, fullTestName, shortTestName,
                 currentStatusUrl));
         }
 
@@ -1095,36 +1201,17 @@ public class TestFixesService {
      * Initializes cache.
      */
     private void ensureCache() {
-        if (cache != null)
+        if (sourceCache != null)
             return;
 
         synchronized (this) {
-            if (cache == null) {
-                CacheConfiguration<String, TestFixMatch> cacheCfg = CacheConfigs.getCache8PartsConfig(CACHE_NAME);
-
-                cacheCfg.setIndexedTypes(String.class, TestFixMatch.class);
-
-                cache = igniteProvider.get().getOrCreateCache(cacheCfg);
-                signalCache = igniteProvider.get().getOrCreateCache(
-                    CacheConfigs.getCache8PartsConfig(SOURCE_UPDATES_CACHE_NAME));
+            if (sourceCache == null) {
+                sourceCache = igniteProvider.get().getOrCreateCache(
+                    CacheConfigs.getCache8PartsConfig(SOURCE_CACHE_NAME));
+                lookupCache = igniteProvider.get().getOrCreateCache(
+                    CacheConfigs.getCache8PartsConfig(REFS_CACHE_NAME));
             }
         }
-    }
-
-    /**
-     * @return Latest source update signal timestamp.
-     */
-    private long latestSignalTs() {
-        ensureCache();
-
-        long res = 0;
-
-        for (Cache.Entry<String, Long> entry : signalCache) {
-            if (entry.getValue() != null)
-                res = Math.max(res, entry.getValue());
-        }
-
-        return res;
     }
 
     /**
@@ -1213,6 +1300,9 @@ public class TestFixesService {
         /** Suite display name. */
         private final String suiteName;
 
+        /** Compacted full test name id. */
+        private final Integer testNameId;
+
         /** Full test name. */
         private final String fullTestName;
 
@@ -1226,14 +1316,16 @@ public class TestFixesService {
          * @param trackedBranch Tracked branch.
          * @param suiteId Suite id.
          * @param suiteName Suite display name.
+         * @param testNameId Compacted full test name id.
          * @param fullTestName Full test name.
          * @param shortTestName Short test name.
          */
-        TestFixCandidate(String trackedBranch, String suiteId, @Nullable String suiteName, String fullTestName,
-            @Nullable String shortTestName, String currentStatusUrl) {
+        TestFixCandidate(String trackedBranch, String suiteId, @Nullable String suiteName, Integer testNameId,
+            String fullTestName, @Nullable String shortTestName, String currentStatusUrl) {
             this.trackedBranch = trackedBranch;
             this.suiteId = suiteId;
             this.suiteName = suiteName;
+            this.testNameId = testNameId;
             this.fullTestName = fullTestName;
             this.shortTestName = shortTestName;
             this.currentStatusUrl = currentStatusUrl;
@@ -1265,6 +1357,7 @@ public class TestFixesService {
             match.suiteId = suiteId;
             match.suiteName = suiteName;
             match.testName = Strings.isNullOrEmpty(shortTestName) ? fullTestName : shortTestName;
+            match.testNameId = testNameId;
             match.currentStatusUrl = currentStatusUrl;
 
             return match;

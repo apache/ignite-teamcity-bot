@@ -31,6 +31,9 @@ import org.apache.ignite.tcignited.history.IRunHistory;
 import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.buildWebLinkToBuild;
 
 public class ShortSuiteUi extends DsHistoryStatUi {
+    /** Suite build type id. */
+    @Nullable public String suiteId;
+
     /** Suite Name */
     public String name;
 
@@ -71,6 +74,7 @@ public class ShortSuiteUi extends DsHistoryStatUi {
         ITeamcityIgnited tcIgnited,
         IStringCompactor compactor,
         IRunHistory baseBranchHist) {
+        suiteId = suite.suiteId();
         name = suite.suiteName();
         result = suite.getResult();
         webToBuild = buildWebLinkToBuild(tcIgnited, suite);

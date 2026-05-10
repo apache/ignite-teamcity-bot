@@ -148,9 +148,8 @@ public class MonitoringService {
             "teamcityFatBuildType",
             "teamcityMute",
             "teamcitySuiteHistory",
-            "testFixMatches",
-            "testFixMatchesV2",
-            "testFixSourceUpdates"
+            "testFixRefsByTest",
+            "testFixSourcesById"
         )));
 
     /** JSON mapper for raw cache entry values. */
