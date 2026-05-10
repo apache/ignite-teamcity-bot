@@ -30,6 +30,7 @@ import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.tcbot.common.exeption.ServiceUnauthorizedException;
+import org.apache.ignite.tcbot.persistence.scheduler.MaintenanceActionRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +44,9 @@ public class BuildObserver {
 
     /** Time between observing actions in milliseconds. */
     private static final long PERIOD = 10 * 60 * 1_000;
+
+    /** Maintenance action name. */
+    private static final String RUN_NOW_ACTION = "runningVisas.checkResults";
 
     /** Timer. */
     private final Timer timer;
@@ -61,7 +65,7 @@ public class BuildObserver {
     /**
      */
     @Inject
-    public BuildObserver(ObserverTask observerTask) {
+    public BuildObserver(ObserverTask observerTask, MaintenanceActionRegistry maintenanceActions) {
         timer = new Timer();
 
         timer.schedule(observerTask, 0, PERIOD);
@@ -69,6 +73,9 @@ public class BuildObserver {
         this.observerTask = observerTask;
 
         this.observerTask.init();
+
+        maintenanceActions.register(RUN_NOW_ACTION, "Check running visa build results and publish ready visa comments",
+            this::runNow);
     }
 
     /**
