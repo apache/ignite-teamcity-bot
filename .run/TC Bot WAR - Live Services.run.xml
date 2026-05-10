@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="TC Bot WAR" type="Application" factoryName="Application">
+  <configuration default="false" name="TC Bot WAR - Live Services" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="org.apache.ignite.ci.TcHelperJettyLauncher" />
     <module name="ignite-teamcity-bot.jetty-launcher.main" />
     <option name="VM_PARAMETERS" value="-Dfile.encoding=UTF-8 -Djava.net.preferIPv4Stack=true -Dteamcity.helper.home=$PROJECT_DIR$/jetty-launcher/build/install/jetty-launcher/work -Dtcbot.http.port=8080 -Dtcbot.ignite.discovery.port=47500 -Dteamcity.bot.regionsize=1 -Dhttp.maxConnections=30 -XX:+IgnoreUnrecognizedVMOptions --add-exports=java.base/jdk.internal.misc=ALL-UNNAMED --add-exports=java.base/sun.nio.ch=ALL-UNNAMED --add-exports=java.management/com.sun.jmx.mbeanserver=ALL-UNNAMED --add-exports=jdk.internal.jvmstat/sun.jvmstat.monitor=ALL-UNNAMED --add-exports=java.base/sun.reflect.generics.reflectiveObjects=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.time=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED" />
