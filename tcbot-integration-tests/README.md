@@ -22,6 +22,10 @@ The launcher starts separate Python emulator processes for GitHub, JIRA, and Tea
 directory under `tcbot-integration-tests/build/emulated-bot/work`, and starts the production launcher class against the
 built WAR. Open the UI at `http://127.0.0.1:5555/`.
 
+Press Enter in the launcher console to stop the bot and all Python emulators cleanly. If the launcher is started from a
+non-interactive Gradle process and standard input closes, it also shuts the emulated environment down and exits
+successfully.
+
 Login immediately after opening the link:
 
 * User: `ignite.tester`

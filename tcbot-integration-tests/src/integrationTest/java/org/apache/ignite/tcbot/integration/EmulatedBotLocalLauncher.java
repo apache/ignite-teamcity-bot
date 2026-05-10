@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -98,10 +99,10 @@ public class EmulatedBotLocalLauncher {
         System.out.println("Restart Python: POST http://127.0.0.1:" + CONTROL_PORT
             + "/__test__/emulators/restart?service=github|jira|teamcity");
         System.out.println("Work dir: " + botWorkDir);
-        System.out.println("Stop this IDEA run configuration to stop the bot and all emulators.");
+        System.out.println("Press Enter in this console to stop the bot and all emulators.");
         System.out.println();
 
-        waitForProcesses(bot, emulators.values());
+        waitForStopSignalOrProcessExit(bot, control, emulators.values());
     }
 
     /** */
@@ -273,9 +274,30 @@ public class EmulatedBotLocalLauncher {
     }
 
     /** */
-    private static void waitForProcesses(Process bot, Collection<ManagedEmulator> emulators) throws InterruptedException {
-        while (bot.isAlive() && emulators.stream().allMatch(ManagedEmulator::isAlive))
-            sleep(1000);
+    private static void waitForStopSignalOrProcessExit(Process bot, HttpServer control,
+        Collection<ManagedEmulator> emulators) throws InterruptedException {
+        CountDownLatch stopRequested = new CountDownLatch(1);
+
+        Thread stdin = new Thread(() -> {
+            try {
+                System.in.read();
+                System.out.println("Stop requested from standard input.");
+            }
+            catch (IOException e) {
+                System.out.println("Standard input closed: " + e.getMessage());
+            }
+            finally {
+                stopRequested.countDown();
+            }
+        }, "emulated-bot-stdin-stop");
+
+        stdin.setDaemon(true);
+        stdin.start();
+
+        while (bot.isAlive() && emulators.stream().allMatch(ManagedEmulator::isAlive)) {
+            if (stopRequested.await(1, TimeUnit.SECONDS))
+                break;
+        }
 
         if (!bot.isAlive())
             System.out.println("Bot process exited with code " + bot.exitValue());
@@ -286,6 +308,7 @@ public class EmulatedBotLocalLauncher {
         }
 
         stop(bot);
+        control.stop(0);
         emulators.forEach(ManagedEmulator::stop);
     }
 
