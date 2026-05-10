@@ -18,6 +18,8 @@
 package org.apache.ignite.ci.jira.ignited;
 
 import java.util.Objects;
+import java.util.ArrayList;
+import java.util.List;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.tcbot.common.StringFieldCompacted;
 import org.apache.ignite.jiraservice.Status;
@@ -56,6 +58,15 @@ public class TicketCompacted {
     /** Internal JIRA id of ticket status, see {@link org.apache.ignite.jiraservice.JiraTicketStatusCode}. */
     public int statusCodeId;
 
+    /** Labels joined by new lines, nullable because of older entry versions. */
+    @Nullable private StringFieldCompacted labels = new StringFieldCompacted();
+
+    /** Last updated date as returned by JIRA, nullable because of older entry versions. */
+    @Nullable private StringFieldCompacted updated = new StringFieldCompacted();
+
+    /** Resolution date as returned by JIRA, nullable because of older entry versions. */
+    @Nullable private StringFieldCompacted resolutiondate = new StringFieldCompacted();
+
     /**
      * @param ticket Jira ticket.
      * @param comp Compactor.
@@ -68,6 +79,9 @@ public class TicketCompacted {
         summary.setValue(ticket.fields.summary());
         customfield_11050.setValue(ticket.fields.igniteLink()/*customfield_11050*/);
         description.setValue(ticket.fields.description());
+        labels.setValue(String.join("\n", ticket.fields.labels()));
+        updated.setValue(ticket.fields.updated());
+        resolutiondate.setValue(ticket.fields.resolutionDate());
     }
 
     /**
@@ -85,10 +99,35 @@ public class TicketCompacted {
         fields.summary = summary != null ? summary.getValue() : null;
         fields.customfield_11050 = customfield_11050 != null ? customfield_11050.getValue() : null;
         fields.description = description != null ? description.getValue() : null;
+        fields.labels = splitLines(labels);
+        fields.updated = updated != null ? updated.getValue() : null;
+        fields.resolutiondate = resolutiondate != null ? resolutiondate.getValue() : null;
 
         ticket.fields = fields;
 
         return ticket;
+    }
+
+    /**
+     * @param val Compacted string field.
+     */
+    private static List<String> splitLines(@Nullable StringFieldCompacted val) {
+        List<String> res = new ArrayList<>();
+
+        if (val == null)
+            return res;
+
+        String text = val.getValue();
+
+        if (text == null || text.isEmpty())
+            return res;
+
+        for (String label : text.split("\\n")) {
+            if (!label.isEmpty())
+                res.add(label);
+        }
+
+        return res;
     }
 
     /** {@inheritDoc} */
@@ -106,11 +145,15 @@ public class TicketCompacted {
             statusCodeId == compacted.statusCodeId &&
             Objects.equals(summary, compacted.summary) &&
             Objects.equals(customfield_11050, compacted.customfield_11050) &&
-            Objects.equals(description, compacted.description);
+            Objects.equals(description, compacted.description) &&
+            Objects.equals(labels, compacted.labels) &&
+            Objects.equals(updated, compacted.updated) &&
+            Objects.equals(resolutiondate, compacted.resolutiondate);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(id, igniteId, statusCodeId, summary, customfield_11050, description);
+        return Objects.hash(id, igniteId, statusCodeId, summary, customfield_11050, description, labels, updated,
+            resolutiondate);
     }
 }

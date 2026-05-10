@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Apache Ignite Teamcity Bot - Test fixes history</title>
+    <link rel="icon" href="img/leaf.svg">
+    <link rel="stylesheet" href="css/style-1.5.css">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.16/css/jquery.dataTables.min.css">
+
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.js"></script>
+    <script src="https://cdn.datatables.net/1.10.16/js/dataTables.jqueryui.js"></script>
+    <script src="js/common-1.7.js"></script>
+
+    <style>
+        body {
+            margin: 16px;
+        }
+
+        .toolbar {
+            margin: 0 0 12px 0;
+        }
+
+        .muted {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .source-badge {
+            border: 1px solid #b6b6b6;
+            border-radius: 3px;
+            color: #444;
+            display: inline-block;
+            font-size: 11px;
+            line-height: 16px;
+            margin-right: 6px;
+            min-width: 30px;
+            padding: 0 4px;
+            text-align: center;
+        }
+
+        .resolved-match {
+            margin-bottom: 6px;
+        }
+
+        .resolved-suite {
+            margin-bottom: 8px;
+        }
+
+        .resolved-tests {
+            margin-left: 12px;
+        }
+
+        .avatar {
+            border-radius: 50%;
+            height: 22px;
+            margin-right: 6px;
+            object-fit: cover;
+            vertical-align: middle;
+            width: 22px;
+        }
+    </style>
+</head>
+<body>
+<div id="loadStatus"></div>
+
+<div class="toolbar">
+    Show latest
+    <select id="historyLimit" onchange="loadData(false)">
+        <option value="0" selected>all</option>
+        <option value="100">100</option>
+        <option value="500">500</option>
+        <option value="1000">1000</option>
+    </select>
+    matched fixes
+    <button onclick="loadData(true)">Refresh mapping</button>
+</div>
+
+<table id="testFixesTable" class="row-border" style="width:100%">
+    <thead>
+        <tr class="ui-widget-header">
+            <th>Fix / commit</th>
+            <th>Resolved tests</th>
+            <th>Author</th>
+            <th>Status</th>
+            <th>Dates</th>
+        </tr>
+    </thead>
+</table>
+
+<div id="version"></div>
+
+<script>
+var currentRows = [];
+var testFixesRefreshPollStop = null;
+
+$(document).ready(function() {
+    loadData(false);
+
+    $.ajax({url: "rest/branches/version", success: showVersionInfo, error: showErrInLoadStatus});
+});
+
+function loadData(refresh) {
+    var limit = $("#historyLimit").val() || "0";
+    var endpoint = refresh ? "refresh" : "recent";
+    var processId = refresh ? createBotProcessId("testFixesRefresh") : null;
+
+    if (testFixesRefreshPollStop) {
+        testFixesRefreshPollStop();
+        testFixesRefreshPollStop = null;
+    }
+
+    if (refresh) {
+        var reloaded = false;
+
+        $("#loadStatus").html("Starting test fix mapping refresh...");
+        testFixesRefreshPollStop = startBotProcessPolling(processId, function(processStatus) {
+            $("#loadStatus").text(botProcessStatusText(processStatus));
+
+            if (processStatus.running === false && !reloaded) {
+                reloaded = true;
+                loadData(false);
+            }
+        }, {
+            intervalMs: 1500,
+            skipUnknown: false
+        });
+    }
+    else
+        $("#loadStatus").html("Loading test fixes...");
+
+    $.ajax({
+        url: "rest/testFixes/" + endpoint + "?limit=" + encodeURIComponent(limit) +
+            (processId === null ? "" : "&processId=" + encodeURIComponent(processId)),
+        success: function(result) {
+            currentRows = result || [];
+            showTable(currentRows);
+
+            if (!refresh)
+                $("#loadStatus").html("");
+        },
+        error: function(jqXHR, exception) {
+            if (testFixesRefreshPollStop) {
+                testFixesRefreshPollStop();
+                testFixesRefreshPollStop = null;
+            }
+
+            showErrInLoadStatus(jqXHR, exception);
+        }
+    });
+}
+
+function showTable(rows) {
+    var table = $("#testFixesTable");
+    var groups = groupedTestFixes(rows);
+
+    if ($.fn.DataTable.isDataTable("#testFixesTable")) {
+        table.DataTable().destroy();
+        table.find("tbody").empty();
+    }
+
+    table.DataTable({
+        order: [[4, "desc"]],
+        data: groups,
+        iDisplayLength: 30,
+        deferRender: true,
+        processing: true,
+        autoWidth: false,
+        columns: [
+            {
+                data: "sortTitle",
+                title: "Fix / commit",
+                render: function(data, type, row) {
+                    return type === "display" ? titleHtml(row.head) : data;
+                }
+            },
+            {
+                data: "resolvedText",
+                title: "Resolved tests",
+                render: function(data, type, row) {
+                    return type === "display" ? resolvedHtml(row) : data;
+                }
+            },
+            {
+                data: "author",
+                title: "Author",
+                defaultContent: "",
+                render: function(data, type, row) {
+                    return type === "display" ? authorHtml(row.head) : data;
+                }
+            },
+            {
+                data: "status",
+                title: "Status",
+                defaultContent: ""
+            },
+            {
+                data: "sortDate",
+                title: "Dates",
+                render: function(data, type, row) {
+                    return type === "display" ? datesHtml(row.head) : data;
+                }
+            }
+        ]
+    });
+}
+
+function groupedTestFixes(rows) {
+    var byKey = {};
+    var res = [];
+
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var key = testFixGroupKey(row);
+
+        if (!byKey[key]) {
+            byKey[key] = {
+                head: row,
+                matches: [],
+                sortTitle: (row.text || "") + " " + (row.title || ""),
+                resolvedText: "",
+                author: row.author || "",
+                status: row.status || "",
+                sortDate: row.closedDate || row.updatedDate || ""
+            };
+            res.push(byKey[key]);
+        }
+
+        byKey[key].matches.push(row);
+    }
+
+    for (var j = 0; j < res.length; j++)
+        res[j].resolvedText = resolvedText(res[j]);
+
+    return res;
+}
+
+function testFixGroupKey(row) {
+    return (row.sourceType || "") + "|" + (row.url || "") + "|" + (row.text || "");
+}
+
+function titleHtml(row) {
+    var label = isDefinedAndFilled(row.text) ? row.text : row.sourceType;
+    var res = "<span class='source-badge'>" + escapeHtml((row.sourceType || "").toUpperCase()) + "</span>" +
+        linkOrText(row.url, label);
+
+    if (isDefinedAndFilled(row.title))
+        res += "<div>" + escapeHtml(row.title) + "</div>";
+
+    if (isDefinedAndFilled(row.commitUrl))
+        res += "<div class='muted'>commit " + linkOrText(row.commitUrl, row.commitText || "link") + "</div>";
+
+    return res;
+}
+
+function resolvedHtml(group) {
+    var res = "";
+    var suites = groupedResolvedSuites(group);
+
+    for (var i = 0; i < suites.length; i++) {
+        var suite = suites[i];
+
+        res += "<div class='resolved-suite'>";
+        res += "<div class='muted'>" + linkOrText(suiteReportUrl(suite.row), suite.name) + "</div>";
+        res += "<div class='resolved-tests'>";
+
+        var shownTests = Math.min(suite.tests.length, 5);
+
+        for (var j = 0; j < shownTests; j++)
+            res += "<div>" + escapeHtml(suite.tests[j]) + "</div>";
+
+        if (suite.tests.length > shownTests)
+            res += "<div class='muted'>+" + (suite.tests.length - shownTests) + " more</div>";
+
+        res += "</div>";
+        res += "</div>";
+    }
+
+    return res || "<span class='muted'>No resolved test names</span>";
+}
+
+function resolvedText(group) {
+    var parts = [];
+    var suites = groupedResolvedSuites(group);
+
+    for (var i = 0; i < suites.length; i++)
+        parts.push(suites[i].name + " " + suites[i].tests.join(" "));
+
+    return parts.join(" ");
+}
+
+function groupedResolvedSuites(group) {
+    var bySuite = {};
+    var suites = [];
+
+    for (var i = 0; i < group.matches.length; i++) {
+        var row = group.matches[i];
+        var testText = row.testName || row.entityName || "";
+        var suiteText = row.suiteId || row.suiteName || "";
+
+        if (!isPlausibleTestName(testText) || !isDefinedAndFilled(suiteText))
+            continue;
+
+        if (!bySuite[suiteText]) {
+            bySuite[suiteText] = {
+                name: suiteText,
+                row: row,
+                tests: [],
+                seenTests: {}
+            };
+
+            suites.push(bySuite[suiteText]);
+        }
+
+        if (!bySuite[suiteText].seenTests[testText]) {
+            bySuite[suiteText].seenTests[testText] = true;
+            bySuite[suiteText].tests.push(testText);
+        }
+    }
+
+    return suites;
+}
+
+function suiteReportUrl(row) {
+    if (isDefinedAndFilled(row.suiteId)) {
+        var branch = isDefinedAndFilled(row.trackedBranch) ? row.trackedBranch : "master";
+
+        return "current.html?" + $.param({branch: branch, suiteId: row.suiteId});
+    }
+
+    return row.currentStatusUrl;
+}
+
+function isPlausibleTestName(testName) {
+    return isDefinedAndFilled(testName) &&
+        /^[A-Za-z_$][A-Za-z0-9_$]*[.][A-Za-z_$][A-Za-z0-9_$]*(?:\[[^\]]+\])?$/.test(testName);
+}
+
+function authorHtml(row) {
+    if (!isDefinedAndFilled(row.author))
+        return "";
+
+    var img = isDefinedAndFilled(row.authorAvatarUrl)
+        ? "<img class='avatar' src='" + escapeHtml(row.authorAvatarUrl) + "' loading='lazy' " +
+            "onerror='this.style.display=\"none\"'>"
+        : "";
+
+    return img + linkOrText(row.authorUrl, row.author);
+}
+
+function datesHtml(row) {
+    var res = "";
+
+    if (isDefinedAndFilled(row.closedDate))
+        res += "<div>resolved " + escapeHtml(row.closedDate) + "</div>";
+
+    if (isDefinedAndFilled(row.updatedDate))
+        res += "<div class='muted'>updated " + escapeHtml(row.updatedDate) + "</div>";
+
+    return res;
+}
+
+function linkOrText(url, text) {
+    if (isDefinedAndFilled(url))
+        return "<a href='" + escapeHtml(url) + "' target='_blank' rel='noopener noreferrer'>" +
+            escapeHtml(text || "") + "</a>";
+
+    return escapeHtml(text || "");
+}
+</script>
+</body>
+</html>

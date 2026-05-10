@@ -16,12 +16,18 @@
  */
 package org.apache.ignite.tcignited.history;
 
+import java.util.Set;
 import java.util.Map;
 import javax.annotation.Nullable;
 
 public interface ISuiteRunHistory {
     IRunHistory self();
     @Nullable IRunHistory getTestRunHist(int testName);
+
+    /**
+     * @return Test name ids present in this suite history.
+     */
+    Set<Integer> testNames();
 
     ISuiteRunHistory filter(Map<Integer, Integer> requireParameters);
 }

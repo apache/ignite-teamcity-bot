@@ -732,6 +732,7 @@ function showMenu(menuData) {
         res += "<a href=\"/compare.html\" title='Compare builds tests test'>Compare builds</a>";
         res += "<a href=\"/issues.html\" title='Detected issues list'>Issues history</a>";
         res += "<a href=\"/visas.html\" title='Issued TC Bot Visa history'>Visas history</a>";
+        res += "<a href=\"/testfixes.html\" title='Matched test fixes history'>Test fixes history</a>";
         res += "<a href=\"/mutes.html\" title='Muted tests list'>Muted tests</a>";
         res += "<a href=\"/mutedissues/index.html\" title='Muted issues list'>Muted issues</a>";
         res += "<a href=\"/board/index.html\" title='Board'>Board</a>";

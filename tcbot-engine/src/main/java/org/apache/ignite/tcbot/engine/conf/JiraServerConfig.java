@@ -37,6 +37,12 @@ public class JiraServerConfig implements IJiraServerConfig {
     /** JIRA URL to build links to tickets. */
     public static final String JIRA_URL = "jira.url";
 
+    /** Explicit JIRA label for test-fix tickets. */
+    public static final String JIRA_TEST_FIXES_LABEL = "jira.test_fixes_label";
+
+    /** Recent days window for test-fix ticket matching. */
+    public static final String JIRA_TEST_FIXES_LOOKBACK_DAYS = "jira.test_fixes_lookback_days";
+
     /** Prefix for JIRA ticket names. */
     @Deprecated
     public static final String JIRA_TICKET_TEMPLATE = "jira.ticket_template";
@@ -78,6 +84,12 @@ public class JiraServerConfig implements IJiraServerConfig {
      * We use the default api version if it is not specified by the configuration.
      **/
     private JiraApiVersion apiVersion = JiraApiVersion.defaultApiVersion();
+
+    /** Explicit JIRA label for test-fix tickets. */
+    private String testFixesLabel;
+
+    /** Recent days window for test-fix ticket matching. */
+    @Nullable private Integer testFixesLookbackDays;
 
     public JiraServerConfig() {
     }
@@ -137,6 +149,32 @@ public class JiraServerConfig implements IJiraServerConfig {
     /** {@inheritDoc} */
     @Nullable @Override public String branchNumPrefix() {
         return Strings.emptyToNull(branchNumPrefix);
+    }
+
+    /** {@inheritDoc} */
+    @Override public String testFixesLabel() {
+        if (!Strings.isNullOrEmpty(testFixesLabel))
+            return testFixesLabel;
+
+        return props != null
+            ? props.getProperty(JIRA_TEST_FIXES_LABEL, IJiraServerConfig.super.testFixesLabel())
+            : IJiraServerConfig.super.testFixesLabel();
+    }
+
+    /** {@inheritDoc} */
+    @Override public int testFixesLookbackDays() {
+        if (testFixesLookbackDays != null)
+            return testFixesLookbackDays;
+
+        if (props == null)
+            return IJiraServerConfig.super.testFixesLookbackDays();
+
+        String val = props.getProperty(JIRA_TEST_FIXES_LOOKBACK_DAYS);
+
+        if (Strings.isNullOrEmpty(val))
+            return IJiraServerConfig.super.testFixesLookbackDays();
+
+        return Integer.parseInt(val);
     }
 
     /** {@inheritDoc} */

@@ -54,6 +54,14 @@ public interface IGitHubConnIgnited {
     public String refreshPullRequests();
 
     /**
+     * Loads recently updated pull requests, including closed/merged PRs.
+     *
+     * @param lookbackDays Number of recent days.
+     * @return Recent pull requests.
+     */
+    public List<PullRequest> getRecentPullRequests(int lookbackDays);
+
+    /**
      * Reloads branches from GitHub immediately.
      *
      * @return Reload summary.

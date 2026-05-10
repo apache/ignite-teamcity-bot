@@ -18,6 +18,8 @@ package org.apache.ignite.githubignited;
 
 import java.io.FileNotFoundException;
 import java.io.UncheckedIOException;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -156,6 +158,12 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
 
     /** {@inheritDoc} */
     @AutoProfiling
+    @Override public List<PullRequest> getRecentPullRequests(int lookbackDays) {
+        return loadRecentPullRequests(Math.max(1, lookbackDays));
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
     @Override public List<String> getBranches() {
         final int rescanIntervalMins = config().isPreferBranches() ? 5 : 120;
 
@@ -196,6 +204,55 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
         scheduler.invokeLater(
             () -> scheduler.sheduleNamed(taskName("fullReindex"), this::fullReindex, 2, TimeUnit.HOURS),
             5, TimeUnit.MINUTES);
+    }
+
+    /**
+     * @param lookbackDays Lookback window.
+     */
+    private List<PullRequest> loadRecentPullRequests(int lookbackDays) {
+        long cutoffMs = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(lookbackDays);
+        AtomicReference<String> outLinkNext = new AtomicReference<>();
+        List<PullRequest> res = new java.util.ArrayList<>();
+        String nextPageUrl = null;
+
+        do {
+            List<PullRequest> page = conn.getRecentPullRequestsPage(nextPageUrl, outLinkNext);
+
+            enrichPullRequestAuthors(page);
+            savePrsChunk(page);
+
+            for (PullRequest pr : page) {
+                Long updatedTs = parseGithubTime(pr.getTimeUpdate());
+
+                if (updatedTs == null || updatedTs >= cutoffMs)
+                    res.add(pr);
+            }
+
+            boolean reachedOldPage = page.stream()
+                .map(PullRequest::getTimeUpdate)
+                .map(GitHubConnIgnitedImpl::parseGithubTime)
+                .anyMatch(ts -> ts != null && ts < cutoffMs);
+
+            nextPageUrl = reachedOldPage ? null : outLinkNext.get();
+        }
+        while (nextPageUrl != null);
+
+        return res;
+    }
+
+    /**
+     * @param time GitHub ISO time.
+     */
+    @Nullable private static Long parseGithubTime(@Nullable String time) {
+        if (time == null || time.isEmpty())
+            return null;
+
+        try {
+            return Instant.parse(time).toEpochMilli();
+        }
+        catch (DateTimeParseException e) {
+            return null;
+        }
     }
 
     /**
@@ -244,7 +301,20 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
         if (fullReindex)
             refreshOutdatedPrs(srvId, actualPrs);
 
+        if (cntSaved > 0)
+            signalSourceUpdate("github:" + srvId);
+
         return "Entries saved " + cntSaved + " PRs checked " + totalChecked;
+    }
+
+    /**
+     * @param key Source key.
+     */
+    private void signalSourceUpdate(String key) {
+        IgniteCache<String, Long> cache = igniteProvider.get().getOrCreateCache(
+            CacheConfigs.getCache8PartsConfig("testFixSourceUpdates"));
+
+        cache.put(key, System.currentTimeMillis());
     }
 
     /**

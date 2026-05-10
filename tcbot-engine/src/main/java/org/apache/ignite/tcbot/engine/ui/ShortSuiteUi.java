@@ -23,6 +23,7 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
+import org.apache.ignite.tcbot.engine.testfixes.TestFixRefUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.history.IRunHistory;
@@ -43,6 +44,9 @@ public class ShortSuiteUi extends DsHistoryStatUi {
     @Nullable public String blockerComment;
 
     public List<ShortTestFailureUi> testShortFailures = new ArrayList<>();
+
+    /** Matched tickets/PRs that mention fixing this suite. */
+    public List<TestFixRefUi> fixRefs = new ArrayList<>();
 
 
     /** Web Href. to suite particular run */

@@ -53,6 +53,7 @@ import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
 import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
 import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
+import org.apache.ignite.tcbot.engine.testfixes.TestFixesService;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.GuardBranchStatusUi;
@@ -111,6 +112,9 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
 
     /** User-visible process monitor. */
     @Inject private BotProcessMonitor processMonitor;
+
+    /** Test fix matcher. */
+    @Inject private TestFixesService testFixesService;
 
     /**
      * @param branch Branch.
@@ -356,6 +360,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         boolean calcTrustedTests,
         @Nullable String tagSelected,
         @Nullable String tagForHistSelected,
+        @Nullable String suiteId,
         @Nullable DisplayMode displayMode,
         @Nullable SortOption sortOption,
         int maxDurationSec,
@@ -379,6 +384,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
 
         List<ITrackedChain> accessibleChains = tracked.chainsStream()
             .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverCode(), creds))
+            .filter(chainTracked -> Strings.isNullOrEmpty(suiteId) || suiteId.equals(chainTracked.tcSuiteId()))
             .collect(Collectors.toList());
 
         for (ITrackedChain chainTracked : accessibleChains) {
@@ -443,6 +449,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
             chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor, calcTrustedTests, tagSelected,
                 displayMode, maxDurationSec, requireParamVal,
                 showMuted, showIgnored);
+            chainStatus.suites.forEach(testFixesService::decorate);
             uiInitNanos += System.nanoTime() - stepStart;
 
             res.addChainOnServer(chainStatus);

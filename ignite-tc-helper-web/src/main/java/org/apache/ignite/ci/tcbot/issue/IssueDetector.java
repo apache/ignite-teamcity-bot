@@ -632,6 +632,7 @@ public class IssueDetector {
             false,
             null,
             null,
+            null,
             DisplayMode.None,
             null,
             -1, false, false);
@@ -643,6 +644,7 @@ public class IssueDetector {
                 creds,
                 SyncMode.RELOAD_QUEUED,
                 false,
+                null,
                 null,
                 null,
                 DisplayMode.OnlyFailures,

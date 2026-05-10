@@ -414,6 +414,11 @@ function claimGithubAuthorHtml(srvId, row) {
     if (isDefinedAndFilled(explicitlyConfigured) && explicitlyConfigured.has(String(row.prAuthor).toLowerCase()))
         return "";
 
+    let explicitlyConfigured = explicitlyConfiguredGithubLoginsByServer.get(srvId);
+
+    if (isDefinedAndFilled(explicitlyConfigured) && explicitlyConfigured.has(String(row.prAuthor).toLowerCase()))
+        return "";
+
     return "<br><a href='javascript:void(0);' title='Confirm adding " + escapeHtml(row.prAuthor) +
         " to your GitHub IDs' onclick='" + jsCallAttr("confirmClaimGithubAuthor", [srvId, row.prAuthor]) +
         "'>it's me</a>";
