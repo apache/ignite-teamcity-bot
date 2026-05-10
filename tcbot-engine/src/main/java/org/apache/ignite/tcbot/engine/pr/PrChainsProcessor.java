@@ -661,7 +661,7 @@ public class PrChainsProcessor {
         Predicate<MultBuildRunCtx> filter = suite ->
             suite.isFailed() || suite.hasTestToReport(tcIgnited, baseBranchId, false, false);
 
-        return fullChainRunCtx
+        List<ShortSuiteUi> suites = fullChainRunCtx
             .filteredChildSuites(filter)
             .map((ctx) -> {
                 IRunHistory statInBaseBranch = ctx.history(tcIgnited, baseBranchId, null);
@@ -683,8 +683,6 @@ public class PrChainsProcessor {
                         .testShortFailures(failures)
                         .initFrom(ctx, tcIgnited, compactor, statInBaseBranch);
 
-                    testFixesService.decorate(suite);
-
                     return suite;
                 }
 
@@ -692,6 +690,10 @@ public class PrChainsProcessor {
             })
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
+
+        testFixesService.decorate(suites);
+
+        return suites;
     }
 
     /**

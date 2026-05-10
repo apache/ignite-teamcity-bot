@@ -149,6 +149,7 @@ public class MonitoringService {
             "teamcityMute",
             "teamcitySuiteHistory",
             "testFixMatches",
+            "testFixMatchesV2",
             "testFixSourceUpdates"
         )));
 

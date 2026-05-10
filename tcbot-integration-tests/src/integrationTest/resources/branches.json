@@ -1,7 +1,7 @@
 {
   "primaryServerCode": "apache",
   "botAdminGroups": ["IGNITE_COMMITTER"],
-  "resettableCaches": ["testFixMatches", "testFixSourceUpdates"],
+  "resettableCaches": ["testFixMatches", "testFixMatchesV2", "testFixSourceUpdates"],
   "confidence": 0.995,
   "tcServers": [
     {
