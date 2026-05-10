@@ -36,6 +36,9 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
 
 public class Ignite2Configurer {
+    /** Enables in-memory Ignite storage for integration/emulation runs. */
+    public static final String IN_MEMORY_PROPERTY = "tcbot.ignite.inMemory";
+
     public static void configLogger(File workDir, String subdir) {
         LoggerContext logCtx = (LoggerContext)LoggerFactory.getILoggerFactory();
 
@@ -93,7 +96,7 @@ public class Ignite2Configurer {
     @NotNull
     public static DataRegionConfiguration getDataRegionConfiguration() {
         final DataRegionConfiguration regConf = new DataRegionConfiguration()
-            .setPersistenceEnabled(true);
+            .setPersistenceEnabled(!Boolean.getBoolean(IN_MEMORY_PROPERTY));
 
         String regSzGb = System.getProperty(TcBotSystemProperties.TEAMCITY_BOT_REGIONSIZE);
 
@@ -126,7 +129,7 @@ public class Ignite2Configurer {
 
     @SuppressWarnings("deprecation")
     public static DataStorageConfiguration getDataStorageConfiguration(DataRegionConfiguration regConf) {
-        return new DataStorageConfiguration()
+        DataStorageConfiguration cfg = new DataStorageConfiguration()
             // .setWalCompactionEnabled(true)
             .setWalMode(WALMode.LOG_ONLY)
             .setWalHistorySize(1)
@@ -134,5 +137,10 @@ public class Ignite2Configurer {
             .setCheckpointFrequency(5 * 60 * 1000)
             .setWriteThrottlingEnabled(true)
             .setDefaultDataRegionConfiguration(regConf);
+
+        if (Boolean.getBoolean(IN_MEMORY_PROPERTY))
+            cfg.setWalMode(WALMode.NONE);
+
+        return cfg;
     }
 }

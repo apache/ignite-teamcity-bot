@@ -1,0 +1,72 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+apply plugin: 'java'
+
+sourceSets {
+    integrationTest {
+        java.setSrcDirs([file('src/integrationTest/java')])
+        resources.setSrcDirs([file('src/integrationTest/resources')])
+        compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
+        runtimeClasspath += output + compileClasspath
+    }
+}
+
+configurations {
+    integrationTestImplementation.extendsFrom testImplementation
+    integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+dependencies {
+    integrationTestImplementation project(':ignite-tc-helper-web')
+    integrationTestImplementation 'javax.ws.rs:javax.ws.rs-api:2.1.1'
+    integrationTestImplementation "junit:junit:$junitVer"
+}
+
+tasks.register('integrationTest', Test) {
+    group = 'verification'
+    description = 'Runs production-like TC Bot integration tests. Not wired into check/build by default.'
+
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+
+    shouldRunAfter test
+    dependsOn ':ignite-tc-helper-web:war', ':jetty-launcher:installDist'
+
+    systemProperty 'tcbot.integration.bot.port', '0'
+    systemProperty 'tcbot.integration.github.port', '0'
+    systemProperty 'tcbot.integration.jira.port', '0'
+    systemProperty 'tcbot.integration.teamcity.port', '0'
+    systemProperty 'tcbot.integration.war',
+        project(':ignite-tc-helper-web').tasks.named('war').get().archiveFile.get().asFile.absolutePath
+    systemProperty 'tcbot.integration.launcher.home',
+        project(':jetty-launcher').layout.buildDirectory.dir('install/jetty-launcher').get().asFile.absolutePath
+
+    jvmArgs igniteJava17JvmArgs
+}
+
+tasks.register('runEmulatedBot', JavaExec) {
+    group = 'application'
+    description = 'Starts a local production-like bot against Python GitHub/JIRA/TeamCity emulators.'
+
+    mainClass = 'org.apache.ignite.tcbot.integration.EmulatedBotLocalLauncher'
+    classpath = sourceSets.integrationTest.runtimeClasspath
+
+    dependsOn integrationTestClasses, ':ignite-tc-helper-web:war', ':jetty-launcher:installDist'
+
+    standardInput = System.in
+}
