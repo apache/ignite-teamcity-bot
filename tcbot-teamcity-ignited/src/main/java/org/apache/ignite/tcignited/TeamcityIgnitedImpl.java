@@ -56,6 +56,7 @@ import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
+import org.apache.ignite.tcbot.persistence.scheduler.MaintenanceActionNames;
 import org.apache.ignite.tcbot.persistence.scheduler.MaintenanceActionRegistry;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.build.ProactiveFatBuildSync;
@@ -674,8 +675,13 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         buildRefDao.saveTemporaryBuildRefs(srvIdMaskHigh, found);
 
+        String observer = runObserverIfObservedBranchCompleted(found.stream()
+                .filter(ref -> !ref.isQueued(compactor) && !ref.isRunning(compactor))
+                .collect(Collectors.toList()),
+            "direct build ref recheck for " + buildTypeId + ", branch " + branchName);
+
         return "Direct TeamCity build ref recheck for suite " + buildTypeId + ", branch " + branchName +
-            ": found " + found.size() + " ref(s).";
+            ": found " + found.size() + " ref(s)." + observer;
     }
 
     /**
@@ -715,12 +721,87 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             fatBuildSync.doLoadBuilds(-1, srvCode, conn, paginateUntil);
         }
 
+        String observer = runObserverIfObservedBranchCompletedAfterSync(running,
+            "incremental build ref sync for " + srvNme);
+
         // schedule full resync later
         scheduler.invokeLater(this::sheduleResyncBuildRefs, 15, TimeUnit.MINUTES);
 
         return "Build queue " + running.size() + ", relatively fresh: " + cntFreshBuilds +
              ", fresh but not found by scan: " + freshButNotFoundByBuildsRefsScan +
-            ", old builds sheduled " + directUpload.size() + ". " + buildRefsSyncResult;
+            ", old builds sheduled " + directUpload.size() + ". " + buildRefsSyncResult + observer;
+    }
+
+    /** */
+    private String runObserverIfObservedBranchCompleted(Collection<BuildRefCompacted> refs, String reason) {
+        if (refs.isEmpty() || !maintenanceActions.hasAction(MaintenanceActionNames.RUNNING_VISAS_CHECK_RESULTS)
+            || !maintenanceActions.hasAction(MaintenanceActionNames.RUNNING_VISAS_OBSERVED_BRANCHES))
+            return "";
+
+        Set<String> observedBranches = observedVisaBranches();
+
+        if (observedBranches.isEmpty())
+            return "";
+
+        boolean touchedObservedCompleted = refs.stream()
+            .map(ref -> observedBranchKey(ref.branchName(compactor)))
+            .anyMatch(observedBranches::contains);
+
+        if (!touchedObservedCompleted)
+            return "";
+
+        try {
+            String res = maintenanceActions.run(MaintenanceActionNames.RUNNING_VISAS_CHECK_RESULTS);
+
+            return " Observer rechecked after " + reason + ": " + res;
+        }
+        catch (Exception e) {
+            logger.warn("Unable to run build observer after {}.", reason, e);
+
+            return " Observer recheck failed after " + reason + ": " + e.getMessage();
+        }
+    }
+
+    /** */
+    private String runObserverIfObservedBranchCompletedAfterSync(Collection<BuildRefCompacted> previouslyRunning,
+        String reason) {
+        if (previouslyRunning.isEmpty())
+            return "";
+
+        Set<Integer> stillRunning = buildRefDao.getQueuedAndRunning(srvIdMaskHigh).stream()
+            .map(BuildRefCompacted::id)
+            .collect(Collectors.toSet());
+
+        List<BuildRefCompacted> completed = previouslyRunning.stream()
+            .filter(ref -> !stillRunning.contains(ref.id()))
+            .collect(Collectors.toList());
+
+        return runObserverIfObservedBranchCompleted(completed, reason);
+    }
+
+    /** */
+    private Set<String> observedVisaBranches() {
+        try {
+            String res = maintenanceActions.run(MaintenanceActionNames.RUNNING_VISAS_OBSERVED_BRANCHES);
+
+            if (res == null || res.trim().isEmpty())
+                return Collections.emptySet();
+
+            return Stream.of(res.split("\\R"))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toSet());
+        }
+        catch (Exception e) {
+            logger.warn("Unable to load observed visa branches.", e);
+
+            return Collections.emptySet();
+        }
+    }
+
+    /** */
+    private String observedBranchKey(String branchForTc) {
+        return srvCode + "|" + BranchEquivalence.normalizeBranch(branchForTc);
     }
 
     /**
