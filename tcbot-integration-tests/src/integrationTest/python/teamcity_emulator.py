@@ -22,7 +22,7 @@ import json
 import random
 import re
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 from xml.sax.saxutils import escape
@@ -97,10 +97,58 @@ SUITE_MODELS = [
     }
 ]
 MASTER_HISTORY = [
-    {"name": "testNotFlakyAlwaysGreen", "type": "stable", "runs": ["SUCCESS", "SUCCESS"]},
-    {"name": "testKnownFlakyWithMarker", "type": "flaky-with-marker", "runs": ["SUCCESS", "FAILURE"]},
-    {"name": "testFlakyWithoutMarkerSingleShot", "type": "flaky-without-marker", "runs": ["FAILURE", "SUCCESS"]},
-    {"name": "testDeterministicBlocker", "type": "deterministic-failure", "runs": ["FAILURE", "FAILURE"]}
+    {"name": "testBaselineCachePutGet", "type": "stable", "daysAgo": 13, "hour": 8,
+     "suite": "IgniteTests24Java17_Cache1", "runs": ["SUCCESS", "SUCCESS"]},
+    {"name": "testHistoricalRebalanceRetry", "type": "flaky-with-marker", "daysAgo": 13, "hour": 14,
+     "suite": "IgniteTests24Java17_Cache1", "runs": ["SUCCESS", "FAILURE"],
+     "failedTests": ["org.apache.ignite.cache.CacheRebalanceTest.testHistoricalRebalance"]},
+    {"name": "testComputeFailoverAfterNodeLeft", "type": "flaky-without-marker", "daysAgo": 12, "hour": 9,
+     "suite": "IgniteTests24Java17_ComputeGrid", "runs": ["FAILURE", "SUCCESS"]},
+    {"name": "testWalArchiveDelay", "type": "flaky-with-marker", "daysAgo": 12, "hour": 15,
+     "suite": "IgniteTests24Java17_Pds1", "runs": ["SUCCESS", "FAILURE"],
+     "failedTests": ["org.apache.ignite.randomized.RandomizedPdsTest.testRandomizedWalArchiveDelay"]},
+    {"name": "testSqlQueryCancelRace", "type": "flaky-without-marker", "daysAgo": 11, "hour": 10,
+     "suite": "IgniteTests24Java17_Sql", "runs": ["FAILURE", "SUCCESS"]},
+    {"name": "testCheckpointUnderLoad", "type": "deterministic-failure", "daysAgo": 10, "hour": 16,
+     "suite": "IgniteTests24Java17_Pds1", "runs": ["FAILURE", "FAILURE"],
+     "failedTests": ["org.apache.ignite.pds.CheckpointTest.testCheckpointUnderLoad"]},
+    {"name": "testCacheOptimisticTx", "type": "stable", "daysAgo": 9, "hour": 8,
+     "suite": "IgniteTests24Java17_Cache1", "runs": ["SUCCESS", "SUCCESS"]},
+    {"name": "testComputeMapReduce", "type": "stable", "daysAgo": 8, "hour": 13,
+     "suite": "IgniteTests24Java17_ComputeGrid", "runs": ["SUCCESS", "SUCCESS"]},
+    {"name": "testSqlIndexRebuild", "type": "deterministic-failure", "daysAgo": 7, "hour": 11,
+     "suite": "IgniteTests24Java17_Sql", "runs": ["FAILURE", "FAILURE"],
+     "failedTests": ["org.apache.ignite.sql.SqlIndexTest.testIndexRebuild"]},
+    {"name": "testCachePartitionLoss", "type": "flaky-with-marker", "daysAgo": 7, "hour": 12,
+     "suite": "IgniteTests24Java17_Cache1", "runs": ["SUCCESS", "FAILURE"],
+     "failedTests": ["org.apache.ignite.randomized.RandomizedCacheTest.testRandomizedCachePartitionLoss"]},
+    {"name": "testRetryOnTopologyChange", "type": "flaky-with-marker", "daysAgo": 6, "hour": 8,
+     "suite": "IgniteTests24Java17_Sql", "runs": ["SUCCESS", "FAILURE"],
+     "failedTests": ["org.apache.ignite.sql.SqlRetryTest.testRetryOnTopologyChange"]},
+    {"name": "testCachePutGet", "type": "stable", "daysAgo": 6, "hour": 14,
+     "suite": "IgniteTests24Java17_Cache1", "runs": ["SUCCESS", "SUCCESS"]},
+    {"name": "testComputeRandomizedNodeLeft", "type": "flaky-without-marker", "daysAgo": 5, "hour": 9,
+     "suite": "IgniteTests24Java17_ComputeGrid", "runs": ["FAILURE", "SUCCESS"]},
+    {"name": "testWalRecoveryAfterRestart", "type": "stable", "daysAgo": 4, "hour": 15,
+     "suite": "IgniteTests24Java17_Pds1", "runs": ["SUCCESS", "SUCCESS"]},
+    {"name": "testSqlIndexRebuildRetry", "type": "stable", "daysAgo": 4, "hour": 10,
+     "suite": "IgniteTests24Java17_Sql", "runs": ["SUCCESS", "SUCCESS"]},
+    {"name": "testCacheTxNearBackup", "type": "deterministic-failure", "daysAgo": 3, "hour": 16,
+     "suite": "IgniteTests24Java17_Cache1", "runs": ["FAILURE", "FAILURE"],
+     "failedTests": ["org.apache.ignite.cache.CacheTxTest.testOptimisticTx"]},
+    {"name": "testComputeFailoverRecovered", "type": "stable", "daysAgo": 2, "hour": 8,
+     "suite": "IgniteTests24Java17_ComputeGrid", "runs": ["SUCCESS", "SUCCESS"]},
+    {"name": "testCheckpointUnderLoadRetry", "type": "flaky-with-marker", "daysAgo": 2, "hour": 11,
+     "suite": "IgniteTests24Java17_Pds1", "runs": ["SUCCESS", "FAILURE"],
+     "failedTests": ["org.apache.ignite.pds.CheckpointTest.testCheckpointUnderLoad"]},
+    {"name": "testSqlQueryCancelRecovered", "type": "stable", "daysAgo": 1, "hour": 10,
+     "suite": "IgniteTests24Java17_Sql", "runs": ["SUCCESS", "SUCCESS"]},
+    {"name": "testFullRunMultiSuiteBlocker", "type": "deterministic-failure", "daysAgo": 0, "hour": 7,
+     "suite": "IgniteTests24Java17_Cache1", "runs": ["FAILURE", "FAILURE"],
+     "failedTests": [
+         "org.apache.ignite.cache.CacheRebalanceTest.testHistoricalRebalance",
+         "org.apache.ignite.sql.SqlRetryTest.testRetryOnTopologyChange"
+     ]}
 ]
 INITIAL_BUILDS = {}
 
@@ -739,13 +787,12 @@ def create_master_history(builds):
     for idx, hist in enumerate(MASTER_HISTORY, start=1):
         build_id = str(base_id + idx * 10)
         failed = hist["runs"][-1] == "FAILURE"
-        models = [model for model in SUITE_MODELS if model["tests"]]
-        model = models[(idx - 1) % len(models)]
+        model = suite_model(hist["suite"])
         failed_tests = set()
         suite_statuses = {model["buildTypeId"]: "FAILURE" if failed else "SUCCESS"}
 
         if failed:
-            failed_tests.add(first_randomized_test(model))
+            failed_tests.update(hist.get("failedTests") or [first_randomized_test(model)])
 
         if idx == len(MASTER_HISTORY):
             suite_statuses.update({
@@ -758,11 +805,17 @@ def create_master_history(builds):
             })
 
         create_run_all_chain(builds, build_id, "<default>", "FAILURE" if failed else "SUCCESS", "finished",
-                             queued="20260510T0{}0000+0000".format(idx),
-                             started="20260510T0{}0010+0000".format(idx),
-                             finished="20260510T0{}0110+0000".format(idx),
+                             queued=tc_history_date(hist, 0),
+                             started=tc_history_date(hist, 1),
+                             finished=tc_history_date(hist, 6),
                              suite_statuses=suite_statuses,
                              failed_tests=failed_tests)
+
+
+def tc_history_date(hist, minute_offset):
+    day = datetime.now(timezone.utc) - timedelta(days=hist["daysAgo"])
+
+    return "{}T{:02d}{:02d}00+0000".format(day.strftime("%Y%m%d"), hist["hour"], minute_offset)
 
 
 def create_run_all_chain(builds, build_id, branch, status, state, queued=None, started=None, finished=None,

@@ -145,6 +145,14 @@ public class IntegrationHarnessContractTest {
         assertEquals(200, masterGreen.status);
         assertTrue(masterGreen.body.contains("branchName=\"&lt;default&gt;\""));
         assertTrue(masterGreen.body.contains("status=\"SUCCESS\""));
+        IntegrationTestEnvironment.HttpResponse masterHistory = request("GET", env.teamcityUrl
+            + "/app/rest/latest/builds?locator=buildType:(id:IgniteTests24Java17_RunAll)&branch=%3Cdefault%3E",
+            env.basicAuth(), null, null);
+
+        assertEquals(200, masterHistory.status);
+        assertTrue(masterHistory.body, count(masterHistory.body, "buildTypeId=\"IgniteTests24Java17_RunAll\"") >= 21);
+        assertTrue(masterHistory.body, masterHistory.body.contains("id=\"810200\""));
+        assertTrue(masterHistory.body, masterHistory.body.contains("id=\"810010\""));
 
         IntegrationTestEnvironment.HttpResponse compilationFailedBuild = request("GET",
             env.teamcityUrl + "/app/rest/latest/builds/id:800401", env.basicAuth(), null, null);
@@ -197,5 +205,23 @@ public class IntegrationHarnessContractTest {
         assertEquals(200, request("GET", env.teamcityUrl
             + "/app/rest/latest/problemOccurrences?locator=build:(id:900001)&fields=problemOccurrence(id)",
             env.basicAuth(), null, null).status);
+    }
+
+    /** */
+    private static int count(String text, String needle) {
+        int res = 0;
+        int start = 0;
+
+        while (start < text.length()) {
+            int idx = text.indexOf(needle, start);
+
+            if (idx < 0)
+                return res;
+
+            res++;
+            start = idx + needle.length();
+        }
+
+        return res;
     }
 }
