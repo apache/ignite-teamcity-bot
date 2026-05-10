@@ -620,9 +620,10 @@ public class BotLoginTriggerQueueFlowTest {
         long processId = processBase;
         String lastJira = "";
         String lastGithub = "";
+        String lastObserver = "";
 
         while (System.nanoTime() < deadline) {
-            runBuildObserver(token, processId++);
+            lastObserver = runBuildObserver(token, processId++);
 
             IntegrationTestEnvironment.HttpResponse jira = request("GET", jiraUrl, "Bearer jira-test-token", null,
                 null);
@@ -641,7 +642,8 @@ public class BotLoginTriggerQueueFlowTest {
         }
 
         throw new IllegalStateException("Observed visa comments were not found for " + branch
-            + ", last JIRA response: " + lastJira + ", last GitHub response: " + lastGithub);
+            + ", last observer response: " + lastObserver + ", last JIRA response: " + lastJira
+            + ", last GitHub response: " + lastGithub);
     }
 
     /** */

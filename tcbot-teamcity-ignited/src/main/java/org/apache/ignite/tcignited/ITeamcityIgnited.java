@@ -164,6 +164,14 @@ public interface ITeamcityIgnited {
      */
     public FatBuildCompacted getFatBuild(int id, SyncMode mode);
 
+    /**
+     * @param id Id.
+     * @param mode Refresh mode.
+     */
+    public default FatBuildCompacted getFatBuildFresh(int id, SyncMode mode) {
+        return getFatBuild(id, mode);
+    }
+
     public Collection<ChangeCompacted> getAllChanges(int[] changeIds);
 
     /**

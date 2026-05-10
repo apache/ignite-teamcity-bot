@@ -615,6 +615,16 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** {@inheritDoc} */
     @GuavaCached(maximumSize = 500, expireAfterAccessSecs = 30, softValues = true)
     @Override public FatBuildCompacted getFatBuild(int buildId, SyncMode mode) {
+        return loadFatBuild(buildId, mode);
+    }
+
+    /** {@inheritDoc} */
+    @Override public FatBuildCompacted getFatBuildFresh(int buildId, SyncMode mode) {
+        return loadFatBuild(buildId, mode);
+    }
+
+    /** */
+    private FatBuildCompacted loadFatBuild(int buildId, SyncMode mode) {
         FatBuildCompacted existingBuild = getFatBuildFromIgnite(buildId);
 
         if (mode == SyncMode.NONE) {
