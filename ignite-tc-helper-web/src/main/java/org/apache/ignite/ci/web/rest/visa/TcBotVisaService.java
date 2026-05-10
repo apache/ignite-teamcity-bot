@@ -157,15 +157,19 @@ public class TcBotVisaService {
         TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
         BotProcessMonitor process = appCtx.getInstance(BotProcessMonitor.class);
 
-        process.start(processId, "refreshContributions", "Sending PR refresh request to the bot REST API.");
+        process.start(processId, "refreshContributions", "PR refresh REST endpoint accepted the request.");
 
         try {
+            process.status(processId, "Checking TeamCity credentials for server " + srvCode + ".");
+
             appCtx.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, credsProv);
+
+            process.status(processId, "TeamCity credentials accepted. Starting GitHub cache refresh.");
 
             List<ContributionToCheck> res = appCtx.getInstance(TcBotTriggerAndSignOffService.class)
                 .refreshContributionsToCheck(srvCode, credsProv, processId);
 
-            process.finish(processId, "count=" + res.size());
+            process.finish(processId, "PR refresh finished. Loaded " + res.size() + " contributions.");
 
             return res;
         }

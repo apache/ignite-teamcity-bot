@@ -121,8 +121,27 @@ function startBotProcessPolling(processId, onStatus, options) {
 
     var opts = options || {};
     var lastStatus = null;
+    var lastReportAt = 0;
     var stopped = false;
     var timer;
+
+    function reportStatus(status) {
+        var now = Date.now();
+        var statusText = status && isDefinedAndFilled(status.status) ? status.status : "";
+        var repeated = statusText === lastStatus;
+
+        if (repeated && (!opts.repeatMs || now - lastReportAt < opts.repeatMs))
+            return;
+
+        if (repeated && typeof opts.repeatText === "function") {
+            status = $.extend({}, status);
+            status.status = opts.repeatText(status);
+        }
+
+        lastStatus = statusText;
+        lastReportAt = now;
+        onStatus(status);
+    }
 
     function poll() {
         if (stopped)
@@ -138,13 +157,23 @@ function startBotProcessPolling(processId, onStatus, options) {
                 if (!isDefinedAndFilled(status.kind) && opts.skipUnknown !== false)
                     return;
 
-                if (status.status !== lastStatus) {
-                    lastStatus = status.status;
-                    onStatus(status);
-                }
+                reportStatus(status);
 
                 if (status.running === false)
                     stop();
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                if (stopped || opts.reportErrors !== true || textStatus === "abort")
+                    return;
+
+                reportStatus({
+                    id: processId,
+                    kind: "process-status",
+                    running: true,
+                    status: "Unable to read bot process status: " +
+                        (jqXHR.status ? "HTTP " + jqXHR.status + " " : "") +
+                        (errorThrown || jqXHR.statusText || textStatus || "unknown error")
+                });
             }
         });
     }

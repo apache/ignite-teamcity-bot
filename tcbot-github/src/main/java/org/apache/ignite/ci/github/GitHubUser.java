@@ -25,6 +25,7 @@ import java.util.Objects;
 public class GitHubUser {
     @SerializedName("login") private String login;
     @SerializedName("url") private String url;
+    @SerializedName("html_url") private String htmlUrl;
     @SerializedName("avatar_url") private String avatarUrl;
     @SerializedName("email") private String email;
     /*See full example in prsList.json */
@@ -41,6 +42,13 @@ public class GitHubUser {
      */
     public String url() {
         return url;
+    }
+
+    /**
+     * @return GitHub web user URL.
+     */
+    public String htmlUrl() {
+        return htmlUrl;
     }
 
     /**
@@ -66,12 +74,13 @@ public class GitHubUser {
         GitHubUser user = (GitHubUser)o;
         return Objects.equals(login, user.login) &&
             Objects.equals(url, user.url) &&
+            Objects.equals(htmlUrl, user.htmlUrl) &&
             Objects.equals(avatarUrl, user.avatarUrl) &&
             Objects.equals(email, user.email);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(login, url, avatarUrl, email);
+        return Objects.hash(login, url, htmlUrl, avatarUrl, email);
     }
 }
