@@ -30,6 +30,22 @@ from xml.sax.saxutils import escape
 
 USER = "ignite.tester"
 PASSWORD = "ignite-password"
+USERS = {
+    USER: {
+        "password": PASSWORD,
+        "id": "1001",
+        "name": "Ignite Integration Tester",
+        "email": "ignite.tester@example.com",
+        "groups": [("IGNITE_COMMITTER", "Apache Ignite Committers")]
+    },
+    "nonadmin": {
+        "password": "nonadmin",
+        "id": "1002",
+        "name": "Non Admin User",
+        "email": "nonadmin@example.com",
+        "groups": []
+    }
+}
 TRIGGERED_RUN_ALL_SECONDS = 4
 TRIGGERED_SUITE_SECONDS = 30
 RUN_ALL = "IgniteTests24Java17_RunAll"
@@ -99,7 +115,7 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/favicon.ico":
             return self.respond(204, "image/x-icon", b"")
 
-        if parsed.path == "/viewLog.html":
+        if parsed.path in ["/viewLog.html", "/downloadBuildLog.html"]:
             return self.build_text_page(parse_qs(parsed.query))
 
         if parsed.path == "/viewQueued.html":
@@ -157,15 +173,25 @@ class Handler(BaseHTTPRequestHandler):
         return self.json(500, {"error": "unexpected TeamCity POST", "path": self.path})
 
     def current_user(self):
-        if not self.basic_ok():
+        user_login = self.authenticated_user()
+
+        if user_login is None:
             return self.json(401, {"message": "Authentication required"})
 
+        user = USERS[user_login]
+        groups = "".join(
+            '<group key="{}" name="{}" href="/app/rest/userGroups/key:{}"/>'.format(
+                xml_attr(key), xml_attr(name), xml_attr(key))
+            for key, name in user["groups"])
+
         return self.xml(200, """<?xml version="1.0" encoding="UTF-8"?>
-<user id="1001" username="{}" name="Ignite Integration Tester" email="ignite.tester@example.com" href="/app/rest/users/id:1001">
+<user id="{}" username="{}" name="{}" email="{}" href="/app/rest/users/id:{}">
   <groups>
-    <group key="IGNITE_COMMITTER" name="Apache Ignite Committers" href="/app/rest/userGroups/key:IGNITE_COMMITTER"/>
+    {}
   </groups>
-</user>""".format(USER))
+</user>""".format(
+            xml_attr(user["id"]), xml_attr(user_login), xml_attr(user["name"]), xml_attr(user["email"]),
+            xml_attr(user["id"]), groups))
 
     def build_types(self):
         if not self.read_ok():
@@ -391,10 +417,12 @@ class Handler(BaseHTTPRequestHandler):
         body = ['<?xml version="1.0" encoding="UTF-8"?><problemOccurrences count="{}">'.format(len(problems))]
 
         for idx, problem in enumerate(problems, start=1):
-            body.append('<problemOccurrence id="{}" type="TC_FAILED_TESTS" identity="{}" '
+            problem_type = teamcity_problem_type(problem)
+            body.append('<problemOccurrence id="{}" type="{}" identity="{}" '
                         'href="/app/rest/latest/problemOccurrences/problem:(id:{}),build:(id:{})" '
                         'details="{}"><build id="{}"/></problemOccurrence>'.format(
-                            idx, xml_attr(problem), idx, xml_attr(build_id), xml_attr(problem), xml_attr(build_id)))
+                            idx, xml_attr(problem_type), xml_attr(teamcity_problem_identity(problem_type, problem)),
+                            idx, xml_attr(build_id), xml_attr(problem), xml_attr(build_id)))
 
         body.append("</problemOccurrences>")
 
@@ -503,9 +531,18 @@ class Handler(BaseHTTPRequestHandler):
         return self.json(200, {"status": "reset", "service": "teamcity"})
 
     def basic_ok(self):
-        expected = "Basic " + base64.b64encode((USER + ":" + PASSWORD).encode("utf-8")).decode("ascii")
+        return self.authenticated_user() is not None
 
-        return self.headers.get("Authorization") == expected
+    def authenticated_user(self):
+        auth = self.headers.get("Authorization")
+
+        for login, user in USERS.items():
+            expected = "Basic " + base64.b64encode((login + ":" + user["password"]).encode("utf-8")).decode("ascii")
+
+            if auth == expected:
+                return login
+
+        return None
 
     def read_ok(self):
         auth = self.headers.get("Authorization")
@@ -666,7 +703,7 @@ def randomized_failed_tests(build_id, branch, suite_ids=None):
         suite_ids = set(suite_ids)
         models = [model for model in SUITE_MODELS if model["buildTypeId"] in suite_ids]
 
-    candidates = [first_randomized_test(model) for model in models]
+    candidates = [first_randomized_test(model) for model in models if model["tests"]]
 
     if not candidates:
         return set()
@@ -702,17 +739,29 @@ def create_master_history(builds):
     for idx, hist in enumerate(MASTER_HISTORY, start=1):
         build_id = str(base_id + idx * 10)
         failed = hist["runs"][-1] == "FAILURE"
-        model = SUITE_MODELS[(idx - 1) % len(SUITE_MODELS)]
+        models = [model for model in SUITE_MODELS if model["tests"]]
+        model = models[(idx - 1) % len(models)]
         failed_tests = set()
+        suite_statuses = {model["buildTypeId"]: "FAILURE" if failed else "SUCCESS"}
 
         if failed:
             failed_tests.add(first_randomized_test(model))
+
+        if idx == len(MASTER_HISTORY):
+            suite_statuses.update({
+                "IgniteTests24Java17_Cache1": "FAILURE",
+                "IgniteTests24Java17_Sql": "FAILURE"
+            })
+            failed_tests.update({
+                "org.apache.ignite.cache.CacheRebalanceTest.testHistoricalRebalance",
+                "org.apache.ignite.sql.SqlRetryTest.testRetryOnTopologyChange"
+            })
 
         create_run_all_chain(builds, build_id, "<default>", "FAILURE" if failed else "SUCCESS", "finished",
                              queued="20260510T0{}0000+0000".format(idx),
                              started="20260510T0{}0010+0000".format(idx),
                              finished="20260510T0{}0110+0000".format(idx),
-                             suite_statuses={model["buildTypeId"]: "FAILURE" if failed else "SUCCESS"},
+                             suite_statuses=suite_statuses,
                              failed_tests=failed_tests)
 
 
@@ -838,6 +887,20 @@ def suite_problems(suite, status, failed_tests=None):
         return ["{}: failed {}".format(suite, test) for test in sorted(failed_tests)]
 
     return ["{}: deterministic blocker in {}".format(suite, suite.replace("IgniteTests24Java17_", ""))]
+
+
+def teamcity_problem_type(problem):
+    if str(problem).startswith("IgniteTests24Java17_Build:"):
+        return "TC_COMPILATION_ERROR"
+
+    return "TC_FAILED_TESTS"
+
+
+def teamcity_problem_identity(problem_type, problem):
+    if problem_type == "TC_COMPILATION_ERROR":
+        return "Compilation failed during Build stage"
+
+    return problem
 
 
 def master_history_build(idx, branch):

@@ -100,16 +100,22 @@ public class BotLoginTriggerQueueFlowTest {
 
     /** */
     private static void createIssueAndPullRequest12004() throws Exception {
+        createIssueAndPullRequest(12004, "IGNITE-20004", "Integration test generated issue");
+    }
+
+    /** */
+    private static void createIssueAndPullRequest(int prNum, String ticket, String summary) throws Exception {
         IntegrationTestEnvironment.HttpResponse issue = request("POST", env.jiraUrl + "/__test__/jira/create-issue",
-            null, "application/json", "{\"key\":\"IGNITE-20004\",\"summary\":\"Integration test generated issue\"}");
+            null, "application/json", "{\"key\":\"" + ticket + "\",\"summary\":\"" + summary + "\"}");
 
         assertEquals(issue.body, 201, issue.status);
 
         IntegrationTestEnvironment.HttpResponse pr = request("POST", env.githubUrl + "/__test__/github/create-pr",
-            null, "application/json", "{\"issue\":\"IGNITE-20004\",\"number\":12004}");
+            null, "application/json", "{\"issue\":\"" + ticket + "\",\"number\":" + prNum
+                + ",\"user\":\"ignite-tester\"}");
 
         assertEquals(pr.body, 201, pr.status);
-        assertTrue(pr.body, pr.body.contains("\"number\": 12004"));
+        assertTrue(pr.body, pr.body.contains("\"number\": " + prNum));
     }
 
     /** */
@@ -139,7 +145,7 @@ public class BotLoginTriggerQueueFlowTest {
 
         runTestOnlyAction(token, "refresh-jira", 700000003L);
         runTestOnlyAction(token, "refresh-github", 700000004L);
-        runPrBuildRefsRefresh(token, 700000005L);
+        runPrBuildRefRecheck(token, 700000005L, "IgniteTests24Java17_RunAll", "pull/12006/head");
 
         IntegrationTestEnvironment.HttpResponse prResults = request("GET", env.botUrl
             + "/rest/pr/results?serverId=apache"
@@ -182,7 +188,7 @@ public class BotLoginTriggerQueueFlowTest {
 
         runTestOnlyAction(token, "refresh-jira", 700000020L);
         runTestOnlyAction(token, "refresh-github", 700000021L);
-        runPrBuildRefsRefresh(token, 700000022L);
+        runPrBuildRefRecheck(token, 700000022L, "IgniteTests24Java17_RunAll", "pull/12006/head");
 
         IntegrationTestEnvironment.HttpResponse prResults = request("GET", env.botUrl
             + "/rest/pr/results?serverId=apache"
@@ -202,7 +208,7 @@ public class BotLoginTriggerQueueFlowTest {
         assertServiceCommentContains("JIRA", env.jiraUrl + "/rest/api/2/issue/IGNITE-20006/comment",
             "Bearer jira-test-token", "tcbot-analysis-comment", "pull/12006/head");
         assertServiceCommentContains("GitHub", env.githubUrl + "/repos/apache/ignite/issues/12006/comments",
-            "Bearer github-test-token", "tcbot-analysis-comment", "pull/12006/head");
+            "Bearer CAFEBABE", "tcbot-analysis-comment", "pull/12006/head");
     }
 
     /** */
@@ -241,12 +247,66 @@ public class BotLoginTriggerQueueFlowTest {
 
     /** */
     @Test
+    public void authorizedUserCanRequestVisaForFullRunAndBlockerRerun() throws Exception {
+        String token = env.login();
+
+        authorizeServer(token);
+        createIssueAndPullRequest(12008, "IGNITE-20008", "Integration full run visa");
+        runTestOnlyAction(token, "refresh-jira", 700000050L);
+        runTestOnlyAction(token, "refresh-github", 700000051L);
+
+        triggerObservedVisa(token, 700000052L, "pull/12008/head", "IgniteTests24Java17_RunAll",
+            "IGNITE-20008", 12008, false);
+        waitForVisaHistoryEntry(token, "pull/12008/head", "IGNITE-20008", 12008, 90);
+        waitForObservedVisaComments(token, 700001000L, "pull/12008/head", "IGNITE-20008", 12008);
+
+        runPrBuildRefRecheck(token, 700000053L, "IgniteTests24Java17_RunAll", "pull/12006/head");
+        triggerObservedVisa(token, 700000054L, "pull/12006/head", "IgniteTests24Java17_Sql",
+            "IGNITE-20006", 12006, false);
+
+        String running = refreshRunningVisas(token, 700000055L);
+
+        assertTrue(running, running.contains("\"branchName\":\"pull/12006/head\""));
+        assertTrue(running, running.contains("\"ticket\":\"IGNITE-20006\""));
+        assertTrue(running, running.contains("\"rerun\":true"));
+        assertTrue(running, running.contains("\"buildIds\""));
+        waitForVisaHistoryEntry(token, "pull/12006/head", "IGNITE-20006", 12006, 120);
+        waitForObservedVisaComments(token, 700002000L, "pull/12006/head", "IGNITE-20006", 12006);
+    }
+
+    /** */
+    @Test
+    public void singleBuildReportCanPostAnalysisComment() throws Exception {
+        String token = env.login();
+
+        runTestOnlyAction(token, "refresh-jira", 700000060L);
+        runTestOnlyAction(token, "refresh-github", 700000061L);
+
+        IntegrationTestEnvironment.HttpResponse report = request("GET", env.botUrl
+            + "/rest/build/failures?serverId=apache&buildId=800201",
+            "Token " + token, null, null);
+
+        assertEquals(report.body, 200, report.status);
+        assertTrue(report.body, report.body.contains("SqlRetryTest.testRetryOnTopologyChange"));
+
+        String status = commentBuildAnalysis(token, 700000062L, "pull/12006/head", "IGNITE-20006", 12006);
+
+        assertTrue(status, status.contains("JIRA ticket commented: IGNITE-20006"));
+        assertTrue(status, status.contains("GitHub PR commented: PR #12006"));
+        assertServiceCommentContains("JIRA", env.jiraUrl + "/rest/api/2/issue/IGNITE-20006/comment",
+            "Bearer jira-test-token", "tcbot-analysis-comment", "pull/12006/head");
+        assertServiceCommentContains("GitHub", env.githubUrl + "/repos/apache/ignite/issues/12006/comments",
+            "Bearer CAFEBABE", "tcbot-analysis-comment", "pull/12006/head");
+    }
+
+    /** */
+    @Test
     public void suiteRetriggerAppearsInPrResults() throws Exception {
         String token = env.login();
 
         runTestOnlyAction(token, "refresh-jira", 700000040L);
         runTestOnlyAction(token, "refresh-github", 700000041L);
-        runPrBuildRefsRefresh(token, 700000042L);
+        runPrBuildRefRecheck(token, 700000042L, "IgniteTests24Java17_RunAll", "pull/12006/head");
 
         IntegrationTestEnvironment.HttpResponse before = request("GET", env.botUrl
             + "/rest/pr/results?serverId=apache"
@@ -279,6 +339,8 @@ public class BotLoginTriggerQueueFlowTest {
 
         assertTrue("Suite retrigger should create a concrete suite build id", buildId > 0);
         assertTrue("Suite retrigger should create the second concrete suite build id", secondBuildId > 0);
+        runPrBuildRefRecheck(token, 700000044L, suiteId, "pull/12006/head");
+        runPrBuildRefRecheck(token, 700000045L, secondSuiteId, "pull/12006/head");
         waitForPrResultsSuiteBuild(token, "pull/12006/head", suiteId);
         waitForPrResultsSuiteBuild(token, "pull/12006/head", secondSuiteId);
     }
@@ -356,7 +418,13 @@ public class BotLoginTriggerQueueFlowTest {
 
     /** */
     private static void waitForVisaHistoryEntry(String token, String branch, String ticket, int prNum) throws Exception {
-        long deadline = System.nanoTime() + Duration.ofSeconds(30).toNanos();
+        waitForVisaHistoryEntry(token, branch, ticket, prNum, 30);
+    }
+
+    /** */
+    private static void waitForVisaHistoryEntry(String token, String branch, String ticket, int prNum, int timeoutSec)
+        throws Exception {
+        long deadline = System.nanoTime() + Duration.ofSeconds(timeoutSec).toNanos();
         String url = env.botUrl + "/rest/visa/history?limit=20";
         String lastBody = "";
 
@@ -411,18 +479,72 @@ public class BotLoginTriggerQueueFlowTest {
     }
 
     /** */
-    private static String runPrBuildRefsRefresh(String token, long processId) throws Exception {
+    private static void authorizeServer(String token) throws Exception {
+        IntegrationTestEnvironment.HttpResponse response = request("POST", env.botUrl + "/rest/user/authorize",
+            "Token " + token, null, null);
+
+        assertEquals(response.body, 200, response.status);
+        assertTrue(response.body, response.body.contains("\"authorizedState\":true"));
+    }
+
+    /** */
+    private static void triggerObservedVisa(String token, long processId, String branch, String suiteId, String ticket,
+        int prNum, boolean commentOnlyIfNoBlockers) throws Exception {
+        IntegrationTestEnvironment.HttpResponse trigger = request("GET", env.botUrl + "/rest/build/triggerBuildsAsync"
+            + "?srvCode=apache"
+            + "&branchName=" + enc(branch)
+            + "&parentSuiteId=" + enc("IgniteTests24Java17_RunAll")
+            + "&suiteIdList=" + enc(suiteId)
+            + "&top=false"
+            + "&observe=true"
+            + "&ticketId=" + enc(ticket)
+            + "&comment=" + enc("JIRA,GITHUB")
+            + "&prNum=" + prNum
+            + "&commentOnlyIfNoBlockers=" + commentOnlyIfNoBlockers
+            + "&cleanRebuild=false"
+            + "&processId=" + processId,
+            "Token " + token, null, null);
+
+        assertEquals(trigger.body, 200, trigger.status);
+        assertTrue(trigger.body, trigger.body.contains("Trigger process started"));
+        waitForProcess(processId, token);
+    }
+
+    /** */
+    private static String refreshRunningVisas(String token, long processId) throws Exception {
+        IntegrationTestEnvironment.HttpResponse response = request("GET", env.botUrl
+            + "/rest/visa/running?limit=100&processId=" + processId,
+            "Token " + token, null, null);
+
+        assertEquals(response.body, 200, response.status);
+        waitForProcess(processId, token);
+
+        IntegrationTestEnvironment.HttpResponse refreshed = request("GET", env.botUrl
+            + "/rest/visa/running?limit=100",
+            "Token " + token, null, null);
+
+        assertEquals(refreshed.body, 200, refreshed.status);
+
+        return refreshed.body;
+    }
+
+    /** */
+    private static String runPrBuildRefRecheck(String token, long processId, String suiteId, String branch)
+        throws Exception {
         IntegrationTestEnvironment.HttpResponse start = request("POST", env.botUrl
-            + "/rest/pr/actualizeBuildRefs?serverId=apache&processId=" + processId,
+            + "/rest/pr/actualizeBuildRefs?serverId=apache"
+            + "&suiteId=" + enc(suiteId)
+            + "&branchForTc=" + enc(branch)
+            + "&processId=" + processId,
             "Token " + token, null, null);
 
         assertEquals(start.body, 200, start.status);
-        assertTrue(start.body, start.body.contains("TeamCity build refs refresh queued"));
+        assertTrue(start.body, start.body.contains("TeamCity build ref recheck queued"));
 
         String status = waitForProcess(processId, token);
 
-        assertTrue(status, status.contains("\"kind\":\"teamcityBuildRefsRefresh\""));
-        assertTrue(status, status.contains("TeamCity build references refreshed"));
+        assertTrue(status, status.contains("\"kind\":\"teamcityBuildRefRecheck\""));
+        assertTrue(status, status.contains("TeamCity build reference rechecked"));
 
         return status;
     }
@@ -462,6 +584,80 @@ public class BotLoginTriggerQueueFlowTest {
         for (String fragment : expected)
             assertTrue(service + " comment should contain " + fragment + ": " + response.body,
                 response.body.contains(fragment));
+    }
+
+    /** */
+    private static void waitForServiceCommentContains(String service, String url, String auth, String... expected)
+        throws Exception {
+        long deadline = System.nanoTime() + Duration.ofSeconds(90).toNanos();
+        String lastBody = "";
+
+        while (System.nanoTime() < deadline) {
+            IntegrationTestEnvironment.HttpResponse response = request("GET", url, auth, null, null);
+            lastBody = response.status + " " + response.body;
+
+            boolean found = response.status == 200;
+
+            for (String fragment : expected)
+                found &= response.body.contains(fragment);
+
+            if (found)
+                return;
+
+            Thread.sleep(500);
+        }
+
+        throw new IllegalStateException(service + " comment was not found at " + url + ", last response: " +
+            lastBody);
+    }
+
+    /** */
+    private static void waitForObservedVisaComments(String token, long processBase, String branch, String ticket,
+        int prNum) throws Exception {
+        String jiraUrl = env.jiraUrl + "/rest/api/2/issue/" + ticket + "/comment";
+        String githubUrl = env.githubUrl + "/repos/apache/ignite/issues/" + prNum + "/comments";
+        long deadline = System.nanoTime() + Duration.ofSeconds(120).toNanos();
+        long processId = processBase;
+        String lastJira = "";
+        String lastGithub = "";
+
+        while (System.nanoTime() < deadline) {
+            runBuildObserver(token, processId++);
+
+            IntegrationTestEnvironment.HttpResponse jira = request("GET", jiraUrl, "Bearer jira-test-token", null,
+                null);
+            IntegrationTestEnvironment.HttpResponse github = request("GET", githubUrl, "Bearer CAFEBABE", null,
+                null);
+
+            lastJira = jira.status + " " + jira.body;
+            lastGithub = github.status + " " + github.body;
+
+            if (jira.status == 200 && github.status == 200
+                && jira.body.contains("tcbot-analysis-comment") && jira.body.contains(branch)
+                && github.body.contains("tcbot-analysis-comment") && github.body.contains(branch))
+                return;
+
+            Thread.sleep(500);
+        }
+
+        throw new IllegalStateException("Observed visa comments were not found for " + branch
+            + ", last JIRA response: " + lastJira + ", last GitHub response: " + lastGithub);
+    }
+
+    /** */
+    private static String runBuildObserver(String token, long processId) throws Exception {
+        IntegrationTestEnvironment.HttpResponse start = request("POST", env.botUrl
+            + "/rest/__test__/bot/run-build-observer?processId=" + processId,
+            "Token " + token, null, null);
+
+        assertEquals(start.body, 200, start.status);
+        assertTrue(start.body, start.body.contains("\"queued\":true"));
+
+        String status = waitForProcess(processId, token);
+
+        assertTrue(status, status.contains("Checked "));
+
+        return status;
     }
 
     /** */

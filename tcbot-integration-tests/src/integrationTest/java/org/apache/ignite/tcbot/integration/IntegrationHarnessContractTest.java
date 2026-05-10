@@ -24,6 +24,7 @@ import org.junit.Test;
 
 import static org.apache.ignite.tcbot.integration.IntegrationTestEnvironment.request;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -50,14 +51,29 @@ public class IntegrationHarnessContractTest {
         assertEquals(200, request("GET", env.githubUrl + "/health", null, null, null).status);
         assertEquals(200, request("GET", env.jiraUrl + "/health", null, null, null).status);
         assertEquals(200, request("GET", env.teamcityUrl + "/health", null, null, null).status);
+        IntegrationTestEnvironment.HttpResponse nonAdminTcUser = request("GET",
+            env.teamcityUrl + "/app/rest/users/current", env.basicAuth("nonadmin", "nonadmin"), null, null);
+
+        assertEquals(200, nonAdminTcUser.status);
+        assertTrue(nonAdminTcUser.body.contains("username=\"nonadmin\""));
+        assertFalse(nonAdminTcUser.body.contains("IGNITE_COMMITTER"));
+
+        String nonAdminToken = env.login("nonadmin", "nonadmin");
+        IntegrationTestEnvironment.HttpResponse nonAdminBotUser = request("GET",
+            env.botUrl + "/rest/user/currentUserName", "Token " + nonAdminToken, null, null);
+
+        assertEquals(200, nonAdminBotUser.status);
+        assertTrue(nonAdminBotUser.body.contains("\"admin\":false"));
+        assertTrue(nonAdminBotUser.body.contains("\"userAdmin\":false"));
+
         assertEquals(200, request("GET", env.githubUrl + "/repos/apache/ignite/branches",
-            "token github-test-token", null, null).status);
+            "token CAFEBABE", null, null).status);
         assertEquals(401, request("GET", env.githubUrl + "/repos/apache/ignite/branches",
             "token wrong-token", null, null).status);
         assertEquals(404, request("GET", env.githubUrl + "/repos/apache/ignite/pulls/99999",
-            "Bearer github-test-token", null, null).status);
+            "Bearer CAFEBABE", null, null).status);
         IntegrationTestEnvironment.HttpResponse seededPr = request("GET", env.githubUrl
-            + "/repos/apache/ignite/pulls/12005", "Bearer github-test-token", null, null);
+            + "/repos/apache/ignite/pulls/12005", "Bearer CAFEBABE", null, null);
 
         assertEquals(200, seededPr.status);
         assertTrue(seededPr.body.contains("IGNITE-20005"));
@@ -65,7 +81,7 @@ public class IntegrationHarnessContractTest {
         assertEquals(200, request("GET", env.githubUrl + "/apache/ignite/pull/12005",
             null, null, null).status);
         IntegrationTestEnvironment.HttpResponse unhappyPr = request("GET", env.githubUrl
-            + "/repos/apache/ignite/pulls/12006", "Bearer github-test-token", null, null);
+            + "/repos/apache/ignite/pulls/12006", "Bearer CAFEBABE", null, null);
 
         assertEquals(200, unhappyPr.status);
         assertTrue(unhappyPr.body.contains("IGNITE-20006"));
@@ -102,7 +118,7 @@ public class IntegrationHarnessContractTest {
             "<build branchName=\"pull/12004/head\"><buildType id=\"IgniteTests24Java17_RunAll\"/></build>");
 
         assertEquals(200, build.status);
-        assertTrue(build.body.contains("state=\"running\""));
+        assertTrue(build.body, build.body.contains("state=\"queued\"") || build.body.contains("state=\"running\""));
         IntegrationTestEnvironment.HttpResponse seededBuild = request("GET",
             env.teamcityUrl + "/app/rest/latest/builds/id:800101", env.basicAuth(), null, null);
 
@@ -129,6 +145,25 @@ public class IntegrationHarnessContractTest {
         assertEquals(200, masterGreen.status);
         assertTrue(masterGreen.body.contains("branchName=\"&lt;default&gt;\""));
         assertTrue(masterGreen.body.contains("status=\"SUCCESS\""));
+
+        IntegrationTestEnvironment.HttpResponse compilationFailedBuild = request("GET",
+            env.teamcityUrl + "/app/rest/latest/builds/id:800401", env.basicAuth(), null, null);
+
+        assertEquals(200, compilationFailedBuild.status);
+        assertTrue(compilationFailedBuild.body.contains("branchName=\"pull/12007/head\""));
+        assertTrue(compilationFailedBuild.body.contains("buildTypeId=\"IgniteTests24Java17_Build\""));
+        assertTrue(compilationFailedBuild.body.contains("buildTypeId=\"IgniteTests24Java17_Cache1\""));
+        assertTrue(compilationFailedBuild.body.contains("status=\"FAILURE\""));
+        assertTrue(compilationFailedBuild.body.contains("status=\"UNKNOWN\""));
+
+        IntegrationTestEnvironment.HttpResponse compilationProblem = request("GET", env.teamcityUrl
+            + "/app/rest/latest/problemOccurrences?locator=build:(id:800402)&fields=problemOccurrence(id)",
+            env.basicAuth(), null, null);
+
+        assertEquals(200, compilationProblem.status);
+        assertTrue(compilationProblem.body.contains("type=\"TC_COMPILATION_ERROR\""));
+        assertTrue(compilationProblem.body.contains("Compilation failed during Build stage"));
+
         IntegrationTestEnvironment.HttpResponse masterTests = request("GET", env.teamcityUrl
             + "/app/rest/latest/testOccurrences?locator=build:(id:800301)&fields=testOccurrence(id)",
             env.basicAuth(), null, null);
@@ -147,7 +182,8 @@ public class IntegrationHarnessContractTest {
         assertEquals(200, runAllBuildType.status);
         assertTrue(runAllBuildType.body.contains("<settings count="));
         assertTrue(runAllBuildType.body.contains("<parameters count="));
-        assertTrue(runAllBuildType.body.contains("<snapshot-dependencies count=\"4\""));
+        assertTrue(runAllBuildType.body.contains("<snapshot-dependencies count=\"5\""));
+        assertTrue(runAllBuildType.body.contains("source-buildType id=\"IgniteTests24Java17_Build\""));
         assertEquals(200, request("GET",
             env.teamcityUrl + "/buildConfiguration/IgniteTests24Java17_RunAll",
             null, null, null).status);
