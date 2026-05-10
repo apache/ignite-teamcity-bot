@@ -39,6 +39,9 @@ class BuildLogProcessor implements IBuildLogProcessor {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(BuildLogProcessor.class);
 
+    /** Empty result for builds without a downloadable log. */
+    private static final LogCheckResultCompacted EMPTY_LOG_CHECK_RESULT = new LogCheckResultCompacted();
+
     @Inject
     private Provider<LogCheckTask> taskProvider;
 
@@ -75,15 +78,18 @@ class BuildLogProcessor implements IBuildLogProcessor {
                     logger.error(msg, e);
 
                     //protecting from retrying for invalid build log.
-                    logCheckResultCompacted = new LogCheckResultCompacted();
+                    logCheckResultCompacted = EMPTY_LOG_CHECK_RESULT;
                 }
+
+                if (logCheckResultCompacted == null)
+                    logCheckResultCompacted = EMPTY_LOG_CHECK_RESULT;
 
                 try {
                     logCheckResultDao.put(teamcity.serverCode(), buildId, logCheckResultCompacted);
                 }
                 catch (Exception ex) {
                     logger.error("serverCode: " + teamcity.serverCode() + "; buildId: " + buildId +
-                        "; logCheck: " + logCheckResultCompacted.toString());
+                        "; logCheck: " + logCheckResultCompacted);
                     throw ex;
                 }
 
