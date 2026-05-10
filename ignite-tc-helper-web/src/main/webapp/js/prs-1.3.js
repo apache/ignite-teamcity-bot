@@ -183,7 +183,17 @@ function requestTableForServer(srvId, element) {
                 loadGithubResolutionForContributions(srvId);
                 fillBranchAutocompleteList(result, srvId);
                 setAutocompleteFilter();
+            },
+        error: function (jqXHR, exception) {
+            let table = $("#" + tableId);
+
+            if (table.length > 0) {
+                table.find("thead").html("<tr class='ui-widget-header'><th>Failed to load contributions</th></tr>");
+                table.append("<tbody><tr><td>" + escapeHtml(jqXHR.responseText || "Request failed") + "</td></tr></tbody>");
             }
+
+            showErrInLoadStatus(jqXHR, exception);
+        }
     });
 }
 
@@ -230,10 +240,30 @@ function refreshContributionsNow(srvId) {
 
     openCenteredDialog(dialog, actionDialogOptions("Refresh pull requests", {}));
 
+    appendStage("Created browser-side process id " + processId + ".");
     appendStage("Sending PR refresh request to the bot REST API.");
+    appendStage("Waiting for the backend to register the refresh process.");
 
     stopProcessPolling = startBotProcessPolling(processId, function (processStatus) {
-        appendStage(botProcessStatusText(processStatus));
+        let statusText = botProcessStatusText(processStatus);
+
+        if (!isDefinedAndFilled(processStatus.kind))
+            statusText += " The refresh HTTP request may still be entering the backend endpoint.";
+        else if (processStatus.running !== false)
+            setActionStatus(dialog, statusText);
+
+        appendStage(statusText);
+    }, {
+        intervalMs: 1000,
+        skipUnknown: false,
+        reportErrors: true,
+        repeatMs: 7000,
+        repeatText: function (processStatus) {
+            if (!isDefinedAndFilled(processStatus.kind))
+                return "Still waiting for the bot to register process " + processId + ".";
+
+            return "Still running: " + botProcessStatusText(processStatus);
+        }
     });
 
     xhr = $.ajax({

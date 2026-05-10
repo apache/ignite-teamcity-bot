@@ -24,5 +24,6 @@ public class SchedulerModule extends AbstractModule {
     /** {@inheritDoc} */
     @Override protected void configure() {
         bind(IScheduler.class).to(TcBotScheduler.class).in(Scopes.SINGLETON);
+        bind(MaintenanceActionRegistry.class).in(Scopes.SINGLETON);
     }
 }

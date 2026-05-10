@@ -766,7 +766,9 @@ public class TcBotTriggerAndSignOffService {
                 visaStatus.prAuthor = author.login();
                 visaStatus.prAuthorAvatarUrl = author.avatarUrl();
 
-                if (!Strings.isNullOrEmpty(author.login()))
+                if (!Strings.isNullOrEmpty(author.htmlUrl()))
+                    visaStatus.prAuthorUrl = author.htmlUrl();
+                else if (!Strings.isNullOrEmpty(author.login()))
                     visaStatus.prAuthorUrl = "https://github.com/" + author.login();
             }
         }
@@ -1262,7 +1264,8 @@ public class TcBotTriggerAndSignOffService {
         AtomicInteger activeBuildLookupCnt = new AtomicInteger();
 
         long stepStart = System.nanoTime();
-        processMonitor.status(processId, "Building the contribution list from cached bot data.");
+        processMonitor.status(processId, "Resolving GitHub, JIRA, and TeamCity services for server " +
+            srvCodeOrAlias + ".");
 
         IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCodeOrAlias);
 
@@ -1272,14 +1275,17 @@ public class TcBotTriggerAndSignOffService {
         serviceResolveNanos = System.nanoTime() - stepStart;
 
         stepStart = System.nanoTime();
-        processMonitor.status(processId, "Loading pull request details from GitHub.");
+        processMonitor.status(processId, "Loading pull request details from the GitHub cache.");
         List<PullRequest> prs = gitHubConnIgnited.getPullRequests();
         prsLoadNanos = System.nanoTime() - stepStart;
+        int prsCnt = prs == null ? 0 : prs.size();
+        processMonitor.status(processId, "Loaded " + prsCnt + " open pull requests from the GitHub cache.");
 
         stepStart = System.nanoTime();
         processMonitor.status(processId, "Loading JIRA tickets for contribution matching.");
         Set<Ticket> tickets = jiraIntegration.getTickets();
         ticketsLoadNanos = System.nanoTime() - stepStart;
+        processMonitor.status(processId, "Loaded " + tickets.size() + " JIRA tickets for contribution matching.");
 
         Map<String, Ticket> ticketsByKey = tickets.stream()
             .filter(ticket -> ticket.key != null)
@@ -1289,13 +1295,15 @@ public class TcBotTriggerAndSignOffService {
         IGitHubConfig ghCfg = gitHubConnIgnited.config();
 
         stepStart = System.nanoTime();
+        processMonitor.status(processId, "Resolving default TeamCity build type for contribution links.");
         String defBtForTcServ = findDefaultBuildType(srvCodeOrAlias);
         defaultBuildTypeNanos = System.nanoTime() - stepStart;
 
         List<ContributionToCheck> contribsList = new ArrayList<>();
 
         stepStart = System.nanoTime();
-        processMonitor.status(processId, "Matching pull requests, JIRA tickets, and TeamCity branches.");
+        processMonitor.status(processId, "Matching " + prsCnt + " pull requests with JIRA tickets and TeamCity " +
+            "branches.");
         if (prs != null) {
             prs.forEach(pr -> {
                 ContributionToCheck c = new ContributionToCheck();
@@ -1310,7 +1318,8 @@ public class TcBotTriggerAndSignOffService {
                 GitHubUser user = pr.gitHubUser();
                 if (user != null) {
                     c.prAuthor = user.login();
-                    c.prAuthorUrl = Strings.isNullOrEmpty(user.login()) ? "" : "https://github.com/" + user.login();
+                    c.prAuthorUrl = !Strings.isNullOrEmpty(user.htmlUrl()) ? user.htmlUrl()
+                        : Strings.isNullOrEmpty(user.login()) ? "" : "https://github.com/" + user.login();
                     c.prAuthorAvatarUrl = user.avatarUrl();
                 }
                 else {
@@ -1345,7 +1354,12 @@ public class TcBotTriggerAndSignOffService {
                         .findAny()
                         .ifPresent(bName -> c.tcBranchName = bName);
                 prBuildLookupNanos.addAndGet(System.nanoTime() - buildLookupStart);
-                prBuildLookupCnt.incrementAndGet();
+                int processed = prBuildLookupCnt.incrementAndGet();
+
+                if (processed % 10 == 0 || processed == prsCnt) {
+                    processMonitor.status(processId, "Matched " + processed + " of " + prsCnt +
+                        " pull requests with JIRA tickets and TeamCity builds.");
+                }
 
                 contribsList.add(c);
             });
@@ -1353,16 +1367,19 @@ public class TcBotTriggerAndSignOffService {
         prLoopNanos = System.nanoTime() - stepStart;
 
         stepStart = System.nanoTime();
-        processMonitor.status(processId, "Loading repository branches.");
+        processMonitor.status(processId, "Loading repository branches from the GitHub cache.");
         List<String> branches = gitHubConnIgnited.getBranches();
         Set<String> branchesSet = new HashSet<>(branches);
         branchesLoadNanos = System.nanoTime() - stepStart;
+        processMonitor.status(processId, "Loaded " + branches.size() + " repository branches from the GitHub cache.");
 
         stepStart = System.nanoTime();
         List<Ticket> activeTickets = tickets.stream()
             .filter(ticket -> JiraTicketStatusCode.isActiveContribution(ticket.status()))
             .collect(Collectors.toList());
         activeTicketsFilterNanos = System.nanoTime() - stepStart;
+        processMonitor.status(processId, "Checking " + activeTickets.size() +
+            " active JIRA tickets for PR-less contributions.");
 
         stepStart = System.nanoTime();
         activeTickets.forEach(ticket -> {
@@ -1438,7 +1455,7 @@ public class TcBotTriggerAndSignOffService {
                 activeBuildLookupCnt.get());
         }
 
-        processMonitor.status(processId, "The contribution list is ready.");
+        processMonitor.status(processId, "The contribution list is ready: " + contribsList.size() + " rows.");
 
         return contribsList;
     }
@@ -1462,16 +1479,29 @@ public class TcBotTriggerAndSignOffService {
     public List<ContributionToCheck> refreshContributionsToCheck(String srvCodeOrAlias,
         ITcBotUserCreds credsProv,
         @Nullable Long processId) {
+        processMonitor.status(processId, "Resolving GitHub connection for server " + srvCodeOrAlias + ".");
+
         IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
+        IGitHubConfig ghCfg = gitHubConnIgnited.config();
+        String gitApiUrl = ghCfg.gitApiUrl();
 
-        processMonitor.status(processId, "Refreshing pull requests from GitHub.");
-        gitHubConnIgnited.refreshPullRequests();
+        processMonitor.status(processId, "Refreshing pull requests from GitHub API into the bot cache: GET " +
+            gitApiUrl + "pulls?sort=updated&direction=desc (" + gitHubRateLimiterSummary(ghCfg) + ").");
+        String prsRefresh = gitHubConnIgnited.refreshPullRequests();
+        processMonitor.status(processId, "GitHub pull request refresh finished: " +
+            compactProcessMessage(prsRefresh));
 
-        if (gitHubConnIgnited.config().isPreferBranches()) {
-            processMonitor.status(processId, "Refreshing repository branches.");
-            gitHubConnIgnited.refreshBranches();
+        if (ghCfg.isPreferBranches()) {
+            processMonitor.status(processId, "Refreshing repository branches from GitHub API into the bot cache: GET " +
+                gitApiUrl + "branches (" + gitHubRateLimiterSummary(ghCfg) + ").");
+            String branchesRefresh = gitHubConnIgnited.refreshBranches();
+            processMonitor.status(processId, "GitHub branch refresh finished: " +
+                compactProcessMessage(branchesRefresh));
         }
+        else
+            processMonitor.status(processId, "Repository branch refresh skipped because preferBranches=false.");
 
+        processMonitor.status(processId, "Building contribution table from refreshed GitHub/JIRA/TeamCity data.");
         return getContributionsToCheck(srvCodeOrAlias, credsProv, processId);
     }
 
@@ -2506,6 +2536,32 @@ public class TcBotTriggerAndSignOffService {
      */
     private static long millisSince(long startNanos) {
         return nanosToMillis(System.nanoTime() - startNanos);
+    }
+
+    /**
+     * @param msg Process summary returned by an integration refresh.
+     */
+    private static String compactProcessMessage(@Nullable String msg) {
+        if (Strings.isNullOrEmpty(msg))
+            return "done";
+
+        String compact = msg.replace('\r', ' ').replace('\n', ' ').trim();
+
+        if (compact.length() <= 220)
+            return compact;
+
+        return compact.substring(0, 217) + "...";
+    }
+
+    /**
+     * @param cfg GitHub config.
+     */
+    private static String gitHubRateLimiterSummary(IGitHubConfig cfg) {
+        if (cfg.isGitTokenAvailable())
+            return "GitHub rate limiter active with token, up to 5000 requests/hour";
+
+        return "GitHub rate limiter active without token, up to 60 requests/hour; configure GitHub token for faster " +
+            "refresh";
     }
 
     /**

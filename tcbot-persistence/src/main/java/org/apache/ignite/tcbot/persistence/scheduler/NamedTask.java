@@ -37,6 +37,12 @@ class NamedTask {
     @GuardedBy("lock")
     private volatile long resValidityMs = 0;
 
+    @GuardedBy("lock")
+    private volatile boolean forceRun;
+
+    @GuardedBy("lock")
+    private volatile Long processId;
+
     enum Status {
         CREATED, RUNNING, COMPLETED;
     }
@@ -77,6 +83,28 @@ class NamedTask {
 
     }
 
+    /**
+     * @param cmd Task body.
+     * @return {@code true} if task was queued, {@code false} if it is already queued or running.
+     */
+    public boolean scheduleNow(@Nonnull Runnable cmd, Long processId) {
+        long writeLockStamp = lock.writeLock();
+
+        try {
+            if (status == Status.RUNNING || this.cmd != null)
+                return false;
+
+            this.cmd = cmd;
+            forceRun = true;
+            this.processId = processId;
+
+            return true;
+        }
+        finally {
+            lock.unlock(writeLockStamp);
+        }
+    }
+
     public Runnable runIfNeeded() throws Exception {
         long optReadStamp = lock.tryOptimisticRead();
         boolean canSkip = canSkipStartNow();
@@ -108,8 +136,10 @@ class NamedTask {
             this.cmd = null;
 
             // because here lock is not upgraded from read lock cmd may come here with null
-            if (cmd != null)
+            if (cmd != null) {
+                forceRun = false;
                 status = Status.RUNNING;
+            }
         }
         finally {
             lock.unlock(writeLockStamp);
@@ -126,6 +156,7 @@ class NamedTask {
             try {
                 lastFinishedTs = System.currentTimeMillis();
                 status = Status.COMPLETED;
+                processId = null;
             }
             finally {
                 lock.unlock(writeLockStamp2);
@@ -135,7 +166,34 @@ class NamedTask {
         return cmd;
     }
 
+    /**
+     * @return User-visible task snapshot.
+     */
+    public ScheduledTaskInfo info() {
+        long readStamp = lock.readLock();
+
+        try {
+            ScheduledTaskInfo res = new ScheduledTaskInfo();
+
+            res.name = name;
+            res.status = status.name();
+            res.lastFinishedTs = lastFinishedTs;
+            res.quietPeriodMs = resValidityMs;
+            res.runnableAvailable = cmd != null;
+            res.canStartNow = status != Status.RUNNING && cmd == null;
+            res.processId = processId;
+
+            return res;
+        }
+        finally {
+            lock.unlockRead(readStamp);
+        }
+    }
+
     public boolean canSkipStartNow() {
+        if (forceRun)
+            return false;
+
         boolean canSkip = false;
         if (status == Status.RUNNING)
             canSkip = true;

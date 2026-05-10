@@ -18,6 +18,8 @@ package org.apache.ignite.tcbot.persistence.scheduler;
 
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Scheduler is a way to run background syncs between Ignite DB and REST services.
@@ -35,6 +37,40 @@ public interface IScheduler {
     public void invokeLater(Runnable cmd, long delay, TimeUnit unit);
 
     public void sheduleNamed(String fullName, Runnable cmd, long queitPeriod, TimeUnit unit);
+
+    /**
+     * Runs named action as soon as possible using scheduler executor.
+     *
+     * @param fullName Named task name.
+     * @param cmd Task body.
+     * @return {@code true} if the action was accepted, {@code false} if the same named task is already running or
+     * queued.
+     */
+    public default boolean runNamedNow(String fullName, Runnable cmd) {
+        return runNamedNow(fullName, cmd, null);
+    }
+
+    /**
+     * Runs named action as soon as possible using scheduler executor.
+     *
+     * @param fullName Named task name.
+     * @param cmd Task body.
+     * @param processId Optional process monitor id associated with this manual run.
+     * @return {@code true} if the action was accepted, {@code false} if the same named task is already running or
+     * queued.
+     */
+    public default boolean runNamedNow(String fullName, Runnable cmd, Long processId) {
+        sheduleNamed(fullName, cmd, 0, TimeUnit.MILLISECONDS);
+
+        return true;
+    }
+
+    /**
+     * @return User-visible named task state.
+     */
+    public default List<ScheduledTaskInfo> scheduledTasks() {
+        return Collections.emptyList();
+    }
 
     public void stop();
 }

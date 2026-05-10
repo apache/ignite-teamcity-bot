@@ -19,6 +19,7 @@ package org.apache.ignite.tcbot.persistence.scheduler;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -29,6 +30,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,6 +79,23 @@ class TcBotScheduler implements IScheduler {
         }
     }
 
+    /** {@inheritDoc} */
+    @Override public boolean runNamedNow(String fullName, Runnable cmd) {
+        return runNamedNow(fullName, cmd, null);
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean runNamedNow(String fullName, Runnable cmd, Long processId) {
+        NamedTask task = namedTasks.computeIfAbsent(fullName, NamedTask::new);
+
+        if (!task.scheduleNow(cmd, processId))
+            return false;
+
+        service().execute(() -> checkNamedTasks("Manual"));
+
+        return true;
+    }
+
     /**
      * @param threadNme Runner name to be used in display.
      */
@@ -98,6 +117,14 @@ class TcBotScheduler implements IScheduler {
         });
 
         return "Finished " + run.get() + " task(s) " + (problems.isEmpty() ? "" : (", exceptions: " + problems.toString()));
+    }
+
+    /** {@inheritDoc} */
+    @Override public List<ScheduledTaskInfo> scheduledTasks() {
+        return namedTasks.values().stream()
+            .map(NamedTask::info)
+            .sorted(Comparator.comparing(info -> info.name))
+            .collect(Collectors.toList());
     }
 
     /** {@inheritDoc} */

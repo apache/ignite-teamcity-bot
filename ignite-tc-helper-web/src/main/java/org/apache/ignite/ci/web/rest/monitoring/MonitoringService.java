@@ -28,6 +28,31 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.security.RolesAllowed;
+import javax.servlet.ServletContext;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.ClientErrorException;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.NotFoundException;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.CacheMetrics;
@@ -42,24 +67,15 @@ import org.apache.ignite.tcbot.engine.build.AiPromptRequestMonitor;
 import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
+import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
+import org.apache.ignite.tcbot.engine.process.BotProcessStatus;
 import org.apache.ignite.tcbot.notify.IEmailSender;
 import org.apache.ignite.tcbot.notify.ISendEmailConfig;
 import org.apache.ignite.tcbot.notify.ISlackSender;
-
-import javax.annotation.security.RolesAllowed;
-import javax.servlet.ServletContext;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
+import org.apache.ignite.tcbot.persistence.scheduler.MaintenanceActionInfo;
+import org.apache.ignite.tcbot.persistence.scheduler.MaintenanceActionRegistry;
+import org.apache.ignite.tcbot.persistence.scheduler.ScheduledTaskInfo;
 
 @Path("monitoring")
 @Produces(MediaType.APPLICATION_JSON)
@@ -119,6 +135,109 @@ public class MonitoringService {
             res.count = invocation.count();
             return res;
         }).collect(Collectors.toList());
+    }
+
+    @GET
+    @RolesAllowed(AuthenticationFilter.ADMIN_ROLE)
+    @Path("scheduledTasks")
+    public List<ScheduledTaskInfo> getScheduledTasks() {
+        MaintenanceActionRegistry actions = instance(MaintenanceActionRegistry.class);
+        BotProcessMonitor process = instance(BotProcessMonitor.class);
+
+        return instance(IScheduler.class).scheduledTasks().stream()
+            .peek(task -> enrichScheduledTask(task, actions, process))
+            .collect(Collectors.toList());
+    }
+
+    @GET
+    @RolesAllowed(AuthenticationFilter.ADMIN_ROLE)
+    @Path("maintenanceActions")
+    public List<MaintenanceActionInfo> getMaintenanceActions() {
+        IScheduler scheduler = instance(IScheduler.class);
+        MaintenanceActionRegistry actions = instance(MaintenanceActionRegistry.class);
+        BotProcessMonitor process = instance(BotProcessMonitor.class);
+        Map<String, ScheduledTaskInfo> scheduled = scheduler.scheduledTasks().stream()
+            .peek(task -> enrichScheduledTask(task, actions, process))
+            .collect(Collectors.toMap(task -> task.name, task -> task, (first, second) -> first));
+
+        return actions.actions().stream()
+            .peek(action -> {
+                ScheduledTaskInfo task = scheduled.get(action.name);
+
+                if (task == null)
+                    return;
+
+                action.status = task.status;
+                action.processStatus = task.processStatus;
+                action.processId = task.processId;
+                action.canStartNow = task.canStartNow;
+            })
+            .collect(Collectors.toList());
+    }
+
+    @POST
+    @RolesAllowed(AuthenticationFilter.ADMIN_ROLE)
+    @Path("maintenanceActions/start")
+    public SimpleResult startMaintenanceAction(@FormParam("name") String name,
+        @QueryParam("processId") Long processId) {
+        if (Strings.isNullOrEmpty(name))
+            throw new BadRequestException("Action name is required");
+
+        MaintenanceActionRegistry actions = instance(MaintenanceActionRegistry.class);
+        IScheduler scheduler = instance(IScheduler.class);
+        BotProcessMonitor process = instance(BotProcessMonitor.class);
+
+        if (!actions.hasAction(name)) {
+            process.fail(processId, "Maintenance action is not registered: " + name);
+
+            throw new NotFoundException("Maintenance action is not registered: " + name);
+        }
+
+        process.start(processId, "maintenanceAction", "Maintenance action request accepted: " + name);
+
+        boolean accepted = scheduler.runNamedNow(name, () -> {
+            try {
+                process.status(processId, "Running maintenance action: " + name);
+
+                String result = actions.run(name);
+
+                process.finish(processId, result);
+            }
+            catch (Exception e) {
+                process.fail(processId, e);
+                throw new RuntimeException(e);
+            }
+        }, processId);
+
+        if (!accepted) {
+            process.fail(processId, "Maintenance action is already queued or running: " + name);
+
+            throw new ClientErrorException("Maintenance action is already queued or running: " + name,
+                Response.Status.CONFLICT);
+        }
+
+        return new SimpleResult("Maintenance action start requested: " + name);
+    }
+
+    /**
+     * @param task Scheduled task.
+     * @param actions Maintenance actions.
+     * @param process Bot process monitor.
+     */
+    private void enrichScheduledTask(ScheduledTaskInfo task, MaintenanceActionRegistry actions,
+        BotProcessMonitor process) {
+        if (task.processId != null) {
+            BotProcessStatus status = process.status(task.processId);
+
+            if (status.id != null && !Strings.isNullOrEmpty(status.status)) {
+                task.processStatus = status.status;
+
+                if (status.isRunning())
+                    task.status = status.status;
+            }
+        }
+
+        task.canStartNow = actions.hasAction(task.name) && task.canStartNow;
     }
 
     @GET
@@ -454,6 +573,7 @@ public class MonitoringService {
     @Path("cacheMetrics")
     public List<CacheMetricsUi> getCacheStat() {
         Ignite ignite = instance(Ignite.class);
+        Set<String> resettableCaches = resettableCaches();
 
         final Collection<String> strings = ignite.cacheNames();
 
@@ -477,9 +597,53 @@ public class MonitoringService {
 
             Affinity<Object> affinity = ignite.affinity(next);
 
-            res.add(new CacheMetricsUi(next, size, affinity.partitions()));
+            res.add(new CacheMetricsUi(next, size, affinity.partitions(), resettableCaches.contains(next)));
         }
         return res;
+    }
+
+    @POST
+    @RolesAllowed(AuthenticationFilter.ADMIN_ROLE)
+    @Path("resetCache")
+    public SimpleResult resetCache(@FormParam("name") String name, @QueryParam("processId") Long processId) {
+        BotProcessMonitor process = instance(BotProcessMonitor.class);
+        Set<String> resettableCaches = resettableCaches();
+
+        process.start(processId, "resetCache", "Cache reset request accepted: " + name);
+
+        if (!resettableCaches.contains(name)) {
+            process.fail(processId, "Cache reset is not allowed for: " + name);
+
+            throw new BadRequestException("Cache reset is not allowed for: " + name);
+        }
+
+        Ignite ignite = instance(Ignite.class);
+        IgniteCache<?, ?> cache = ignite.cache(name);
+
+        if (cache == null) {
+            process.fail(processId, "Cache not found: " + name);
+
+            throw new NotFoundException("Cache not found: " + name);
+        }
+
+        int size = cache.size();
+
+        process.status(processId, "Clearing cache: " + name);
+
+        cache.clear();
+
+        String result = "Cache reset: " + name + ", cleared entries: " + size;
+
+        process.finish(processId, result);
+
+        return new SimpleResult(result);
+    }
+
+    /**
+     * @return Cache names admins may reset from monitoring UI.
+     */
+    private Set<String> resettableCaches() {
+        return Set.copyOf(instance(ITcBotConfig.class).resettableCaches());
     }
 
     @GET

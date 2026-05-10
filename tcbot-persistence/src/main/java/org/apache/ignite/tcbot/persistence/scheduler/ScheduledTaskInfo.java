@@ -14,20 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.tcbot.persistence.scheduler;
 
-package org.apache.ignite.ci.web.rest.monitoring;
-
-@SuppressWarnings("WeakerAccess")
-public class CacheMetricsUi {
+/**
+ * User-visible state of a named scheduled task.
+ */
+@SuppressWarnings("PublicField")
+public class ScheduledTaskInfo {
+    /** Task name. */
     public String name;
-    public Integer size;
-    public Integer parts;
-    public boolean resettable;
 
-    public CacheMetricsUi(String name, int size, int parts, boolean resettable) {
-        this.name = name;
-        this.size = size;
-        this.parts = parts;
-        this.resettable = resettable;
-    }
+    /** Task status. */
+    public String status;
+
+    /** Last finished timestamp. */
+    public long lastFinishedTs;
+
+    /** Fresh result validity period. */
+    public long quietPeriodMs;
+
+    /** Task has runnable action registered. */
+    public boolean runnableAvailable;
+
+    /** Task can be started by admin now. */
+    public boolean canStartNow;
+
+    /** Bot process monitor id associated with the currently queued/running manual action. */
+    public Long processId;
+
+    /** Current user-visible bot process status, if this task was started through a monitored manual action. */
+    public String processStatus;
 }
