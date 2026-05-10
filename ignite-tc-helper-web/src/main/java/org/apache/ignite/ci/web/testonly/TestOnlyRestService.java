@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.web.rest.testonly;
+package org.apache.ignite.ci.web.testonly;
 
 import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
