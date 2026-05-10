@@ -30,6 +30,8 @@ from xml.sax.saxutils import escape
 
 USER = "ignite.tester"
 PASSWORD = "ignite-password"
+TRIGGERED_RUN_ALL_SECONDS = 4
+TRIGGERED_SUITE_SECONDS = 30
 RUN_ALL = "IgniteTests24Java17_RunAll"
 PROJECT_ID = "ApacheIgnite"
 PROJECT_NAME = "Apache Ignite"
@@ -439,7 +441,7 @@ class Handler(BaseHTTPRequestHandler):
             build["plannedFailedTests"] = sorted(planned_failed_tests)
             build["autoLifecycle"] = True
             build["queuedEpoch"] = time.time()
-            build["estimatedTotalSeconds"] = 4
+            build["estimatedTotalSeconds"] = TRIGGERED_RUN_ALL_SECONDS
             build["currentStageText"] = "Queued emulated Ignite RunAll suites"
             self.server.next_build = int(build_id) + len(SUITE_MODELS)
         else:
@@ -448,7 +450,7 @@ class Handler(BaseHTTPRequestHandler):
             build["plannedFailedTests"] = sorted(planned_failed_tests)
             build["autoLifecycle"] = True
             build["queuedEpoch"] = time.time()
-            build["estimatedTotalSeconds"] = 3
+            build["estimatedTotalSeconds"] = TRIGGERED_SUITE_SECONDS
             build["currentStageText"] = "Queued emulated suite {}".format(suite)
             self.server.builds[build_id] = build
 
@@ -984,7 +986,7 @@ def build_xml(build_id, build, closed, port=None, all_builds=None):
         "id": build_id,
         "buildTypeId": build["buildTypeId"],
         "branchName": build.get("branchName", "<default>"),
-        "status": build.get("status", "UNKNOWN"),
+        "status": tc_rest_status(build),
         "state": build.get("state", "finished"),
         "href": "/app/rest/latest/builds/id:{}".format(build_id),
         "webUrl": web_url
@@ -1011,7 +1013,7 @@ def build_xml(build_id, build, closed, port=None, all_builds=None):
             dep_type = dep.get("buildTypeId", RUN_ALL) if dep else RUN_ALL
             dep_branch = dep.get("branchName", build.get("branchName", "<default>")) if dep else build.get(
                 "branchName", "<default>")
-            dep_status = dep.get("status", "UNKNOWN") if dep else "UNKNOWN"
+            dep_status = tc_rest_status(dep) if dep else "SUCCESS"
             dep_state = dep.get("state", "running") if dep else "running"
             dep_web_url = "http://127.0.0.1:{}/viewLog.html?buildId={}".format(port, dep_id) if port is not None \
                 else "/viewLog.html?buildId={}".format(dep_id)
@@ -1050,6 +1052,14 @@ def build_xml(build_id, build, closed, port=None, all_builds=None):
         build_id,
         build_id
     )
+
+
+def tc_rest_status(build):
+    """Expose live build refs as active builds; the bot treats UNKNOWN refs as cancelled."""
+    if build is not None and build.get("state") in ["queued", "running"] and build.get("status") == "UNKNOWN":
+        return "SUCCESS"
+
+    return (build or {}).get("status", "UNKNOWN")
 
 
 def running_info_xml(build):

@@ -28,7 +28,7 @@
       "code": "apache",
       "preferBranches": false,
       "branchPrefix": "ignite-",
-      "authTok": "",
+      "authTok": "github-test-token",
       "apiUrl": "http://127.0.0.1:8011/repos/apache/ignite/"
     }
   ],
