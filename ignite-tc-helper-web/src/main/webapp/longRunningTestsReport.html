@@ -1,51 +1,15 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Apache Ignite Teamcity Bot - Long Running Tests Report</title>
+    <meta charset="UTF-8">
+    <title>Apache Ignite Teamcity Bot - Test Durations</title>
     <link rel="icon" href="img/leaf.svg">
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-    <link rel="stylesheet" href="css/style-1.5.css">
-
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css"
-          integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
-
-    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
-    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-
-    <script src="js/common-1.7.js"></script>
-    <script src="js/long_running-1.1.js"></script>
-
+    <meta http-equiv="refresh" content="0; url=buildtime.html#tests">
     <script>
-        $(document).ready(function() {
-            $.getScript("js/long_running-1.1.js", function(data, textStatus, jqxhr){ });
-
-            loadData();
-        });
-
-        function loadData() {
-            var longRunningUrl = "rest/long_running/summary?branch=master";
-
-            $("#loadStatus").html("&#8987; Please wait");
-
-            $.ajax({
-                url: longRunningUrl,
-
-                success: function(result) {
-                    $("#loadStatus").html("");
-
-                    showData(result);
-                },
-
-                error: showErrInLoadStatus
-            });
-        }
-
-        function showData(result) {
-            $("#divLongRunningSummary").html(showLongRunningTestsSummary(result));
-        }
+        window.location.replace("buildtime.html#tests");
     </script>
 </head>
 <body>
-    <div id="loadStatus"></div>
-    <div id="divLongRunningSummary"></div>
+    <a href="buildtime.html#tests">Test durations</a>
 </body>
 </html>

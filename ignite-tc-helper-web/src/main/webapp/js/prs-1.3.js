@@ -17,6 +17,7 @@
 const prReportDefaultSuites = new Map();
 const contributionsByServer = new Map();
 const myGithubLoginsByServer = new Map();
+const explicitlyConfiguredGithubLoginsByServer = new Map();
 const ONLY_MY_PRS_STORAGE_PREFIX = "tcbot.prs.onlyMyPrs.";
 const ONLY_MY_PRS_SHARED_STORAGE_KEY = "tcbot.prs.onlyMyPrs";
 
@@ -318,6 +319,7 @@ function loadGithubResolutionForContributions(srvId) {
         },
         error: function (jqXHR) {
             myGithubLoginsByServer.set(srvId, new Set());
+            explicitlyConfiguredGithubLoginsByServer.set(srvId, new Set());
             updateOnlyMyPrsControl(srvId, "GitHub profile resolution failed: " +
                 (jqXHR.statusText || "unknown error"));
             renderContributionsTable(srvId, "");
@@ -349,13 +351,20 @@ function isMyGithubLogin(srvId, login) {
 
 function updateGithubResolution(srvId, result) {
     let logins = new Set();
+    let explicitlyConfigured = new Set();
 
     if (isDefinedAndFilled(result) && isDefinedAndFilled(result.allLogins)) {
         for (let i = 0; i < result.allLogins.length; i++)
             logins.add(String(result.allLogins[i]).toLowerCase());
     }
 
+    if (isDefinedAndFilled(result) && isDefinedAndFilled(result.allConfiguredLogins)) {
+        for (let i = 0; i < result.allConfiguredLogins.length; i++)
+            explicitlyConfigured.add(String(result.allConfiguredLogins[i]).toLowerCase());
+    }
+
     myGithubLoginsByServer.set(srvId, logins);
+    explicitlyConfiguredGithubLoginsByServer.set(srvId, explicitlyConfigured);
     updateOnlyMyPrsControl(srvId);
 }
 
@@ -398,6 +407,11 @@ function confirmClaimGithubAuthor(srvId, githubId) {
 function claimGithubAuthorHtml(srvId, row) {
     if (!isDefinedAndFilled(row) || !isDefinedAndFilled(row.prAuthor) || !myGithubLoginsByServer.has(srvId) ||
         isMyGithubLogin(srvId, row.prAuthor))
+        return "";
+
+    let explicitlyConfigured = explicitlyConfiguredGithubLoginsByServer.get(srvId);
+
+    if (isDefinedAndFilled(explicitlyConfigured) && explicitlyConfigured.has(String(row.prAuthor).toLowerCase()))
         return "";
 
     return "<br><a href='javascript:void(0);' title='Confirm adding " + escapeHtml(row.prAuthor) +

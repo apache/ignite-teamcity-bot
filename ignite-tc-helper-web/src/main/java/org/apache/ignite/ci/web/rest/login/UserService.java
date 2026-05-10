@@ -25,6 +25,7 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -250,7 +251,12 @@ public class UserService {
 
         Collection<GitHubUser> cachedAuthors = cachedPullRequestAuthorsOrEmpty(appCtx, srvCode, ITcBotUserCreds.get(req));
 
-        return new GitHubUserResolutionUi(appCtx.getInstance(GitHubUserResolver.class).resolve(user, cachedAuthors));
+        GitHubUserResolutionUi res = new GitHubUserResolutionUi(appCtx.getInstance(GitHubUserResolver.class)
+            .resolve(user, cachedAuthors));
+
+        res.allConfiguredLogins.addAll(configuredGithubIds(users).keySet());
+
+        return res;
     }
 
     /**
@@ -279,14 +285,24 @@ public class UserService {
         boolean alreadyConfigured = user.getGithubIds().stream()
             .anyMatch(normalizedId::equalsIgnoreCase);
 
+        Map<String, String> configuredIds = configuredGithubIds(users);
+        String configuredUser = configuredIds.get(normalizedId.toLowerCase(Locale.ROOT));
+
+        Preconditions.checkState(configuredUser == null || configuredUser.equals(currUserLogin),
+            "GitHub ID is already configured for user: " + configuredUser);
+
         if (!alreadyConfigured) {
             user.getGithubIds().add(normalizedId);
 
             users.putUser(currUserLogin, user);
         }
 
-        return new GitHubUserResolutionUi(appCtx.getInstance(GitHubUserResolver.class)
+        GitHubUserResolutionUi res = new GitHubUserResolutionUi(appCtx.getInstance(GitHubUserResolver.class)
             .resolve(user, java.util.Collections.emptyList()));
+
+        res.allConfiguredLogins.addAll(configuredGithubIds(users).keySet());
+
+        return res;
     }
 
     /**
@@ -515,6 +531,18 @@ public class UserService {
         }
 
         return res;
+    }
+
+    /**
+     * @param users User storage.
+     */
+    private static Map<String, String> configuredGithubIds(IUserStorage users) {
+        return users.allUsers()
+            .flatMap(user -> user.getGithubIds().stream()
+                .filter(id -> !Strings.isNullOrEmpty(id))
+                .map(id -> new java.util.AbstractMap.SimpleEntry<>(id.toLowerCase(Locale.ROOT), user.username)))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (first, second) -> first,
+                java.util.LinkedHashMap::new));
     }
 
     /** User list row. */

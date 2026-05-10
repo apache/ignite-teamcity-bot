@@ -17,11 +17,14 @@
 package org.apache.ignite.tcbot.engine.ui;
 
 import com.google.common.base.Strings;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
+import org.apache.ignite.tcbot.engine.testfixes.TestFixRefUi;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.history.IRunHistory;
 
@@ -40,6 +43,9 @@ public class ShortTestFailureUi {
 
     /** Blocker comment: indicates test seems to be introduced failure. */
     @Nullable public String blockerComment;
+
+    /** Matched tickets/PRs that mention fixing this test. */
+    public List<TestFixRefUi> fixRefs = new ArrayList<>();
 
     /**
      *

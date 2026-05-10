@@ -102,6 +102,11 @@ public class SuiteHistory implements ISuiteRunHistory {
     }
 
     /** {@inheritDoc} */
+    @Override public Set<Integer> testNames() {
+        return testsInvStatues.keySet();
+    }
+
+    /** {@inheritDoc} */
     @Override public ISuiteRunHistory filter(Map<Integer, Integer> requireParameters) {
         RunHistCompacted suitesFiltered = suiteHist.filterSuiteInvByParms(requireParameters);
 

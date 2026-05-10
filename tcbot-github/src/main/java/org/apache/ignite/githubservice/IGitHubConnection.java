@@ -51,6 +51,13 @@ public interface IGitHubConnection {
     public List<PullRequest> getPullRequestsPage(@Nullable String fullUrl, @Nullable AtomicReference<String> outLinkNext);
 
     /**
+     * @param fullUrl Full url - null for first page, not null for next page.
+     * @param outLinkNext Out link for return next page full url.
+     */
+    public List<PullRequest> getRecentPullRequestsPage(@Nullable String fullUrl,
+        @Nullable AtomicReference<String> outLinkNext);
+
+    /**
      * @param prNum Pull request number.
      * @return Pull request issue comments.
      */

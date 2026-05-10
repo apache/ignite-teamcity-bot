@@ -61,6 +61,7 @@ import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
 import org.apache.ignite.tcbot.engine.newtests.NewTestsStorage;
 import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
 import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
+import org.apache.ignite.tcbot.engine.testfixes.TestFixesService;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
 import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
@@ -134,6 +135,9 @@ public class PrChainsProcessor {
 
     /** User-visible process monitor. */
     @Inject private BotProcessMonitor processMonitor;
+
+    /** Test fix matcher. */
+    @Inject private TestFixesService testFixesService;
 
     /**
      * @param creds Credentials.
@@ -216,6 +220,7 @@ public class PrChainsProcessor {
             //fail rate reference is always default (master)
             chainStatus.initFromContext(tcIgnited, ctx, baseBranchForTc, compactor, false,
                     null, null, -1, null, false, false); // don't need for PR
+            chainStatus.suites.forEach(testFixesService::decorate);
             chainStatus.findNewTests(ctx, tcIgnited, baseBranchForTc, compactor, newTestsStorage);
             initJiraAndGitInfo(chainStatus, jiraIntegration, gitHubConnIgnited);
         }
@@ -673,9 +678,13 @@ public class PrChainsProcessor {
 
                 // test failure based blockers and/or blocker found by suite results
                 if (!failures.isEmpty() || !Strings.isNullOrEmpty(suiteComment)) {
-                    return new ShortSuiteUi()
+                    ShortSuiteUi suite = new ShortSuiteUi()
                         .testShortFailures(failures)
                         .initFrom(ctx, tcIgnited, compactor, statInBaseBranch);
+
+                    testFixesService.decorate(suite);
+
+                    return suite;
                 }
 
                 return null;

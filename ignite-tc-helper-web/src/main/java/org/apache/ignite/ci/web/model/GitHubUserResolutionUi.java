@@ -33,6 +33,9 @@ public class GitHubUserResolutionUi {
     /** All logins usable for filtering current user's PRs. */
     public List<String> allLogins = new ArrayList<>();
 
+    /** GitHub logins explicitly configured for any bot user. */
+    public List<String> allConfiguredLogins = new ArrayList<>();
+
     /** */
     public GitHubUserResolutionUi() {
         // No-op.

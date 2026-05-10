@@ -21,6 +21,9 @@ import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
+import javax.inject.Provider;
+import org.apache.ignite.Ignite;
+import org.apache.ignite.IgniteCache;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.jiraservice.IFields;
 import org.apache.ignite.jiraservice.IJiraIntegration;
@@ -29,6 +32,7 @@ import org.apache.ignite.jiraservice.ITickets;
 import org.apache.ignite.jiraservice.Ticket;
 import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
+import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +48,9 @@ public class JiraTicketSync {
 
     /** Scheduler. */
     @Inject private IScheduler scheduler;
+
+    /** Ignite provider. */
+    @Inject private Provider<Ignite> igniteProvider;
 
     /** Mute DAO. */
     @Inject private JiraTicketDao jiraDao;
@@ -98,11 +105,54 @@ public class JiraTicketSync {
 
         IJiraServerConfig cfg = jira.config();
         String projectCode = cfg.projectCodeForVisa();
-        String baseUrl = cfg.getApiVersion().searchUrl() + escape("project=" + projectCode + " order by updated DESC")
-            + "&" +
-            "fields=" + reqFields +
-            "&maxResults=100";
+        String baseUrl = searchUrl(cfg, "project=" + projectCode + " order by updated DESC", reqFields);
 
+        SyncStats stats = loadQuery(jira, cfg, srvIdMaskHigh, projectCode, baseUrl, fullResync);
+        SyncStats recent = loadQuery(jira, cfg, srvIdMaskHigh, projectCode,
+            searchUrl(cfg, "project=" + projectCode + " AND updated >= -" + cfg.testFixesLookbackDays() +
+                "d order by updated DESC", reqFields), true);
+        SyncStats labeled = loadQuery(jira, cfg, srvIdMaskHigh, projectCode,
+            searchUrl(cfg, "project=" + projectCode + " AND labels = " + cfg.testFixesLabel() +
+                " order by updated DESC", reqFields), true);
+
+        int saved = stats.saved + recent.saved + labeled.saved;
+
+        if (saved > 0)
+            signalSourceUpdate("jira:" + srvCode);
+
+        return "Jira tickets saved " + saved + " from " +
+            (stats.processed + recent.processed + labeled.processed) + " checked for service " + srvCode;
+    }
+
+    /**
+     * @param key Source key.
+     */
+    private void signalSourceUpdate(String key) {
+        IgniteCache<String, Long> cache = igniteProvider.get().getOrCreateCache(
+            CacheConfigs.getCache8PartsConfig("testFixSourceUpdates"));
+
+        cache.put(key, System.currentTimeMillis());
+    }
+
+    /**
+     * @param cfg JIRA config.
+     * @param jql JQL query.
+     * @param reqFields Requested fields.
+     */
+    private String searchUrl(IJiraServerConfig cfg, String jql, String reqFields) {
+        return cfg.getApiVersion().searchUrl() + escape(jql) + "&fields=" + reqFields + "&maxResults=100";
+    }
+
+    /**
+     * @param jira JIRA facade.
+     * @param cfg JIRA config.
+     * @param srvIdMaskHigh Server id mask high.
+     * @param projectCode Project code.
+     * @param baseUrl Search URL.
+     * @param fullResync Full resync flag.
+     */
+    private SyncStats loadQuery(IJiraIntegration jira, IJiraServerConfig cfg, int srvIdMaskHigh, String projectCode,
+        String baseUrl, boolean fullResync) {
         String url = baseUrl;
 
         logger.info("Requesting JIRA tickets using URL " + url + ("\n" + cfg.restApiUrl() + url));
@@ -110,12 +160,14 @@ public class JiraTicketSync {
         Collection<Ticket> page = tickets.issues();
 
         if (F.isEmpty(page))
-            return "Something went wrong - no tickets found. Check jira availability: " +
-                "[project=" + projectCode + ", url=" + url + "]";
+            return new SyncStats();
+
+        SyncStats res = new SyncStats();
 
         int ticketsSaved = jiraDao.saveChunk(srvIdMaskHigh, page, projectCode);
 
-        int ticketsProcessed = page.size();
+        res.saved += ticketsSaved;
+        res.processed += page.size();
 
         if (ticketsSaved != 0 || fullResync) {
             while (tickets.hasNextPage()) {
@@ -131,14 +183,23 @@ public class JiraTicketSync {
 
                 int savedNow = jiraDao.saveChunk(srvIdMaskHigh, page, projectCode);
 
-                ticketsSaved += savedNow;
-                ticketsProcessed += page.size();
+                res.saved += savedNow;
+                res.processed += page.size();
 
                 if (savedNow == 0 && !fullResync)
                     break; // find not updated chunk and exit
             }
         }
 
-        return "Jira tickets saved " + ticketsSaved + " from " + ticketsProcessed + " checked for service " + srvCode;
+        return res;
+    }
+
+    /** Sync stats. */
+    private static class SyncStats {
+        /** Saved count. */
+        private int saved;
+
+        /** Processed count. */
+        private int processed;
     }
 }

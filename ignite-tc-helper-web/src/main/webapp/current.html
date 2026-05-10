@@ -204,7 +204,11 @@ function parmsForRest() {
 
     let tagForHistSelected = gVue.$data.tagForHistSelected;
     if (tagForHistSelected != null && tagForHistSelected !== "")
-        curReqParms += "&tagForHistSelected=" + tagForHistSelected;
+        curReqParms += "&tagForHistSelected=" + encodeURIComponent(tagForHistSelected);
+
+    let suiteId = findGetParameter("suiteId");
+    if (suiteId != null && suiteId !== "")
+        curReqParms += "&suiteId=" + encodeURIComponent(suiteId);
 
     let runTime = gVue.$data.showTestLongerThan;
     if (runTime != null && runTime > 0)

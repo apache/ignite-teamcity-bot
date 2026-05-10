@@ -265,6 +265,26 @@ class GitHubConnectionImpl implements IGitHubConnection {
         return readOnePage(outLinkNext, url, rspHeaders, tok);
     }
 
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public List<PullRequest> getRecentPullRequestsPage(@Nullable String fullUrl,
+        @Nullable AtomicReference<String> outLinkNext) {
+        String gitApiUrl = getApiUrlMandatory();
+
+        String url = fullUrl != null ? fullUrl : gitApiUrl + "pulls?state=all&sort=updated&direction=desc&per_page=100";
+
+        HashMap<String, String> rspHeaders = new HashMap<>();
+        if (outLinkNext != null) {
+            outLinkNext.set(null);
+            rspHeaders.put("Link", null);
+        }
+
+        TypeToken<ArrayList<PullRequest>> tok = new TypeToken<ArrayList<PullRequest>>() {
+        };
+
+        return readOnePage(outLinkNext, url, rspHeaders, tok);
+    }
+
     @Nonnull public String getApiUrlMandatory() {
         String gitApiUrl = config().gitApiUrl();
 

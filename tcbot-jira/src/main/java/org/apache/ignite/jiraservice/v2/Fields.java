@@ -18,6 +18,8 @@
 package org.apache.ignite.jiraservice.v2;
 
 import com.google.common.base.MoreObjects;
+import java.util.Collections;
+import java.util.List;
 import org.apache.ignite.jiraservice.IFields;
 import org.apache.ignite.jiraservice.Status;
 
@@ -36,6 +38,15 @@ public class Fields implements IFields {
 
     /** Description. */
     public String description;
+
+    /** Labels. */
+    public List<String> labels;
+
+    /** Last updated date. */
+    public String updated;
+
+    /** Resolution date. */
+    public String resolutiondate;
 
     /** {@inheritDoc} */
     @Override public Status status() {
@@ -58,11 +69,27 @@ public class Fields implements IFields {
     }
 
     /** {@inheritDoc} */
+    @Override public List<String> labels() {
+        return labels == null ? Collections.emptyList() : labels;
+    }
+
+    /** {@inheritDoc} */
+    @Override public String updated() {
+        return updated;
+    }
+
+    /** {@inheritDoc} */
+    @Override public String resolutionDate() {
+        return resolutiondate;
+    }
+
+    /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("status", status)
             .add("summary", summary)
             .add("customfield_11050", customfield_11050)
+            .add("updated", updated)
             .toString();
     }
 }

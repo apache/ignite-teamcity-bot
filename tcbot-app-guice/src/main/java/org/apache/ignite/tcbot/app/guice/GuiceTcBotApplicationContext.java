@@ -38,6 +38,7 @@ import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
 import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
+import org.apache.ignite.tcbot.engine.testfixes.TestFixesService;
 import org.apache.ignite.tcbot.notify.ISlackSender;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcservice.http.TeamcityRecorder;
@@ -91,6 +92,7 @@ class GuiceTcBotApplicationContext implements TcBotApplicationContext {
 
                 getInstance(BuildObserver.class);
                 getInstance(UserAdminRefreshService.class).start();
+                getInstance(TestFixesService.class).start();
                 ready.set(true);
             }
             catch (Exception e) {

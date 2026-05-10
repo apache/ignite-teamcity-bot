@@ -1500,6 +1500,8 @@ function showSuiteData(suite, settings, prNum) {
         res += "title='Open AI prompt with TeamCity context for this suite'>[AI Prompt]</a>";
     }
 
+    res += testFixRefsHtml(suite.fixRefs);
+
     if(isDefinedAndFilled(suite.tags)) {
         for (let i = 0; i < suite.tags.length; i++) {
             const tag = suite.tags[i];
@@ -1767,6 +1769,8 @@ function showTestFailData(testFail, isFailureShown, settings) {
         res += "title='Open AI prompt with TeamCity context for this test'>[AI Prompt]</a>";
     }
 
+    res += testFixRefsHtml(testFail.fixRefs);
+
     var histContent = "";
 
     //see class TestHistory
@@ -1848,6 +1852,34 @@ function showTestFailData(testFail, isFailureShown, settings) {
     res += "&nbsp;</td>";
 
     res += "</td></tr>";
+
+    return res;
+}
+
+function testFixRefsHtml(refs) {
+    if (!isDefinedAndFilled(refs) || refs.length === 0)
+        return "";
+
+    var res = "";
+
+    for (var i = 0; i < refs.length; i++) {
+        var ref = refs[i];
+        var text = ref.sourceType === "github" ? "GH" : "JIRA";
+        var title = "Matched fix";
+
+        if (isDefinedAndFilled(ref.title))
+            title += ": " + ref.title;
+
+        if (isDefinedAndFilled(ref.status))
+            title += " [" + ref.status + "]";
+
+        if (isDefinedAndFilled(ref.closedDate))
+            title += " closed " + ref.closedDate;
+
+        res += " <a href='" + escapeHtml(ref.url) + "' title='" + escapeHtml(title) +
+            "' style='border:1px solid #b8b8b8; border-radius:3px; color:#333; font-size:11px; " +
+            "font-weight:bold; padding:0 4px; text-decoration:none'>" + escapeHtml(text) + "</a>";
+    }
 
     return res;
 }
