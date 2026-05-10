@@ -34,6 +34,9 @@ import org.eclipse.jetty.ee8.webapp.WebAppContext;
  * For client only node use {@link LauncherIgniteClientMode} and {@link TcHelperDb} for server.
  */
 public class Launcher {
+    /** HTTP port property. */
+    public static final String HTTP_PORT_PROPERTY = "tcbot.http.port";
+
     /** */
     public static void main(String[] args) throws Exception {
         runServer(true);
@@ -52,7 +55,7 @@ public class Launcher {
         Server srv = new Server();
 
         ServerConnector connector = new ServerConnector(srv);
-        int port = 8080;
+        int port = Integer.getInteger(HTTP_PORT_PROPERTY, 8080);
         connector.setPort(port);
         srv.addConnector(connector);
 

@@ -21,6 +21,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
@@ -113,6 +115,12 @@ public class TcBotTriggerAndSignOffService {
 
     /** Slow visa operation threshold. */
     private static final long SLOW_VISA_OPERATION_WARN_MS = Long.getLong("tcbot.visa.slowOperationWarnMs", 1000L);
+
+    /** */
+    private static final String INTEGRATION_TEST_PROFILE = "integration-test";
+
+    /** */
+    private static final String PROFILE_PROPERTY = "tcbot.profile";
 
     /** */
     private static final ThreadLocal<DateFormat> THREAD_FORMATTER = new ThreadLocal<DateFormat>() {
@@ -1501,7 +1509,8 @@ public class TcBotTriggerAndSignOffService {
         else
             processMonitor.status(processId, "Repository branch refresh skipped because preferBranches=false.");
 
-        processMonitor.status(processId, "Building contribution table from refreshed GitHub/JIRA/TeamCity data.");
+        processMonitor.status(processId, "Building contribution table from refreshed GitHub/JIRA data and cached " +
+            "TeamCity references.");
         return getContributionsToCheck(srvCodeOrAlias, credsProv, processId);
     }
 
@@ -2557,11 +2566,47 @@ public class TcBotTriggerAndSignOffService {
      * @param cfg GitHub config.
      */
     private static String gitHubRateLimiterSummary(IGitHubConfig cfg) {
+        if (isIntegrationTestLoopback(cfg.gitApiUrl()))
+            return "integration-test loopback endpoint, GitHub rate limiter disabled";
+
         if (cfg.isGitTokenAvailable())
             return "GitHub rate limiter active with token, up to 5000 requests/hour";
 
         return "GitHub rate limiter active without token, up to 60 requests/hour; configure GitHub token for faster " +
             "refresh";
+    }
+
+    /**
+     * @param url URL.
+     */
+    private static boolean isIntegrationTestLoopback(@Nullable String url) {
+        if (!INTEGRATION_TEST_PROFILE.equals(System.getProperty(PROFILE_PROPERTY)) || Strings.isNullOrEmpty(url))
+            return false;
+
+        try {
+            return isLoopbackHost(new URL(url).getHost());
+        }
+        catch (MalformedURLException e) {
+            return false;
+        }
+    }
+
+    /**
+     * @param host URL host.
+     */
+    private static boolean isLoopbackHost(String host) {
+        if (host == null)
+            return false;
+
+        String normalized = host.toLowerCase();
+
+        return "localhost".equals(normalized)
+            || "127.0.0.1".equals(normalized)
+            || normalized.startsWith("127.")
+            || "::1".equals(normalized)
+            || "0:0:0:0:0:0:0:1".equals(normalized)
+            || "[::1]".equals(normalized)
+            || "[0:0:0:0:0:0:0:1]".equals(normalized);
     }
 
     /**

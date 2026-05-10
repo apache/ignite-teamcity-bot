@@ -36,6 +36,15 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
 
 public class Ignite2Configurer {
+    /** Enables in-memory Ignite storage for integration/emulation runs. */
+    public static final String IN_MEMORY_PROPERTY = "tcbot.ignite.inMemory";
+
+    /** JVM profile property. */
+    public static final String PROFILE_PROPERTY = "tcbot.profile";
+
+    /** Profile allowed to use in-memory Ignite storage. */
+    public static final String INTEGRATION_TEST_PROFILE = "integration-test";
+
     public static void configLogger(File workDir, String subdir) {
         LoggerContext logCtx = (LoggerContext)LoggerFactory.getILoggerFactory();
 
@@ -93,7 +102,7 @@ public class Ignite2Configurer {
     @NotNull
     public static DataRegionConfiguration getDataRegionConfiguration() {
         final DataRegionConfiguration regConf = new DataRegionConfiguration()
-            .setPersistenceEnabled(true);
+            .setPersistenceEnabled(!inMemoryModeEnabled());
 
         String regSzGb = System.getProperty(TcBotSystemProperties.TEAMCITY_BOT_REGIONSIZE);
 
@@ -126,7 +135,7 @@ public class Ignite2Configurer {
 
     @SuppressWarnings("deprecation")
     public static DataStorageConfiguration getDataStorageConfiguration(DataRegionConfiguration regConf) {
-        return new DataStorageConfiguration()
+        DataStorageConfiguration cfg = new DataStorageConfiguration()
             // .setWalCompactionEnabled(true)
             .setWalMode(WALMode.LOG_ONLY)
             .setWalHistorySize(1)
@@ -134,5 +143,26 @@ public class Ignite2Configurer {
             .setCheckpointFrequency(5 * 60 * 1000)
             .setWriteThrottlingEnabled(true)
             .setDefaultDataRegionConfiguration(regConf);
+
+        if (inMemoryModeEnabled())
+            cfg.setWalMode(WALMode.NONE);
+
+        return cfg;
+    }
+
+    /**
+     * @return {@code true} if in-memory Ignite storage is explicitly allowed for the current JVM.
+     */
+    private static boolean inMemoryModeEnabled() {
+        if (!Boolean.getBoolean(IN_MEMORY_PROPERTY))
+            return false;
+
+        String profile = System.getProperty(PROFILE_PROPERTY);
+
+        if (INTEGRATION_TEST_PROFILE.equals(profile))
+            return true;
+
+        throw new IllegalStateException("Property " + IN_MEMORY_PROPERTY + "=true is allowed only with " +
+            PROFILE_PROPERTY + "=" + INTEGRATION_TEST_PROFILE + ". Refusing to start volatile Ignite storage.");
     }
 }

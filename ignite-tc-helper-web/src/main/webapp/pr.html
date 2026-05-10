@@ -13,7 +13,7 @@
     <!-- production version, optimized for size and speed -->
     <!--<script src="https://cdn.jsdelivr.net/npm/vue"></script>-->
     <script src="js/common-1.7.js?v=20260509-6"></script>
-    <script src="js/testfails-2.3.js?v=20260509-22"></script>
+    <script src="js/testfails-2.3.js?v=20260510-2"></script>
 </head>
 <body>
 <script>
@@ -169,7 +169,7 @@ function checkForUpdate() {
     });
 }
 
-    function loadData() {
+function loadData() {
         var curFailuresUrl = "rest/pr/results" + parmsForRest();
 
         $("#loadStatus").html("&#8987; Please wait. First load of PR run-all data may require significant time.");
@@ -191,6 +191,20 @@ function checkForUpdate() {
         });
     }
 
+    function loadDataNoSync() {
+        var curFailuresUrl = "rest/pr/resultsNoSync" + parmsForRest();
+
+        $("#loadStatus").html("&#8987; Loading cached PR run-all data.");
+        $.ajax({
+            url: curFailuresUrl,
+            success: function (result) {
+                $("#loadStatus").html("");
+                showData(result);
+                g_shownDataHashCodeHex = isDefinedAndFilled(result.hashCodeHex) ? result.hashCodeHex : "";
+            },
+            error: showErrInLoadStatus
+        });
+    }
 
     function loadPartialData() {
         var curFailuresUrl = "rest/pr/resultsNoSync" + parmsForRest();

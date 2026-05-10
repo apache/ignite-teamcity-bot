@@ -25,12 +25,15 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.ClientErrorException;
 import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
@@ -42,6 +45,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Form;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
@@ -250,7 +254,12 @@ public class UserService {
 
         Collection<GitHubUser> cachedAuthors = cachedPullRequestAuthorsOrEmpty(appCtx, srvCode, ITcBotUserCreds.get(req));
 
-        return new GitHubUserResolutionUi(appCtx.getInstance(GitHubUserResolver.class).resolve(user, cachedAuthors));
+        GitHubUserResolutionUi res = new GitHubUserResolutionUi(appCtx.getInstance(GitHubUserResolver.class)
+            .resolve(user, cachedAuthors));
+
+        res.allConfiguredLogins.addAll(configuredGithubIds(users).keySet());
+
+        return res;
     }
 
     /**
@@ -273,11 +282,20 @@ public class UserService {
 
         Set<String> normalizedIds = normalizeGithubIds(githubId);
 
-        Preconditions.checkState(normalizedIds.size() == 1, "One GitHub ID is expected.");
+        if (normalizedIds.size() != 1)
+            throw new BadRequestException("One GitHub ID is expected.");
 
         String normalizedId = normalizedIds.iterator().next();
         boolean alreadyConfigured = user.getGithubIds().stream()
             .anyMatch(normalizedId::equalsIgnoreCase);
+
+        Map<String, String> configuredIds = configuredGithubIds(users);
+        String configuredUser = configuredIds.get(normalizedId.toLowerCase(Locale.ROOT));
+
+        if (configuredUser != null && !configuredUser.equals(currUserLogin)) {
+            throw new ClientErrorException("GitHub ID is already configured for user: " + configuredUser,
+                Response.Status.CONFLICT);
+        }
 
         if (!alreadyConfigured) {
             user.getGithubIds().add(normalizedId);
@@ -285,8 +303,12 @@ public class UserService {
             users.putUser(currUserLogin, user);
         }
 
-        return new GitHubUserResolutionUi(appCtx.getInstance(GitHubUserResolver.class)
+        GitHubUserResolutionUi res = new GitHubUserResolutionUi(appCtx.getInstance(GitHubUserResolver.class)
             .resolve(user, java.util.Collections.emptyList()));
+
+        res.allConfiguredLogins.addAll(configuredGithubIds(users).keySet());
+
+        return res;
     }
 
     /**
@@ -506,15 +528,33 @@ public class UserService {
             if (Strings.isNullOrEmpty(trimmed))
                 continue;
 
-            Preconditions.checkState(trimmed.matches("[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?"),
-                "Invalid GitHub ID: " + trimmed);
-
-            Preconditions.checkState(!trimmed.contains("--"), "Invalid GitHub ID: " + trimmed);
+            if (!isValidGithubId(trimmed))
+                throw new BadRequestException("Invalid GitHub ID: " + trimmed);
 
             res.add(trimmed);
         }
 
         return res;
+    }
+
+    /**
+     * @param githubId GitHub login.
+     */
+    private static boolean isValidGithubId(String githubId) {
+        return githubId.matches("[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?") &&
+            !githubId.contains("--");
+    }
+
+    /**
+     * @param users User storage.
+     */
+    private static Map<String, String> configuredGithubIds(IUserStorage users) {
+        return users.allUsers()
+            .flatMap(user -> user.getGithubIds().stream()
+                .filter(id -> !Strings.isNullOrEmpty(id))
+                .map(id -> new java.util.AbstractMap.SimpleEntry<>(id.toLowerCase(Locale.ROOT), user.username)))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (first, second) -> first,
+                java.util.LinkedHashMap::new));
     }
 
     /** User list row. */

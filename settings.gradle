@@ -12,4 +12,5 @@ include 'tcbot-github-ignited'
 include 'tcbot-jira'
 include 'tcbot-jira-ignited'
 include 'tcbot-engine'
+include 'tcbot-integration-tests'
 

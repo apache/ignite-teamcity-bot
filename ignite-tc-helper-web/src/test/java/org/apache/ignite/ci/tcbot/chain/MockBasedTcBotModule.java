@@ -45,6 +45,7 @@ import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.apache.ignite.tcbot.notify.IEmailSender;
 import org.apache.ignite.tcbot.notify.ISlackSender;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcbot.persistence.InMemoryStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
@@ -140,6 +141,7 @@ public class MockBasedTcBotModule extends AbstractModule {
 
         bind(IEmailSender.class).toInstance(Mockito.mock(IEmailSender.class));
         bind(ISlackSender.class).toInstance(Mockito.mock(ISlackSender.class));
+        bind(IScheduler.class).toInstance(Mockito.mock(IScheduler.class));
 
         bind(Ignite.class).toInstance(Mockito.mock(Ignite.class));
         bind(NewTestsStorage.class).toInstance(Mockito.mock(NewTestsStorage.class));

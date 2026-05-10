@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.stream.Stream;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.ClientErrorException;
 import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.core.Form;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
@@ -175,11 +176,50 @@ public class UserServiceTest {
 
         IUserStorage users = mock(IUserStorage.class);
         when(users.getUser("user")).thenReturn(user);
+        when(users.allUsers()).thenAnswer(invocation -> Stream.of(user));
 
         service(users, creds("user")).claimGithubId("dspavlov-github", null);
 
         assertTrue(user.getGithubIds().contains("dspavlov-github"));
         verify(users).putUser(eq("user"), same(user));
+    }
+
+    @Test
+    public void currentUserClaimingOwnGithubIdIsNoop() throws Exception {
+        TcHelperUser user = user("user", false);
+        user.getGithubIds().add("dspavlov-github");
+
+        IUserStorage users = mock(IUserStorage.class);
+        when(users.getUser("user")).thenReturn(user);
+        when(users.allUsers()).thenAnswer(invocation -> Stream.of(user));
+
+        service(users, creds("user")).claimGithubId("dspavlov-github", null);
+
+        assertEquals(1, user.getGithubIds().size());
+        verify(users, never()).putUser(eq("user"), same(user));
+    }
+
+    @Test
+    public void currentUserClaimingOtherUserGithubIdReturnsConflict() throws Exception {
+        TcHelperUser user = user("user", false);
+        TcHelperUser other = user("other", false);
+        other.getGithubIds().add("dspavlov-github");
+
+        IUserStorage users = mock(IUserStorage.class);
+        when(users.getUser("user")).thenReturn(user);
+        when(users.allUsers()).thenReturn(Stream.of(user, other));
+
+        try {
+            service(users, creds("user")).claimGithubId("dspavlov-github", null);
+        }
+        catch (ClientErrorException e) {
+            assertEquals(409, e.getResponse().getStatus());
+            verify(users, never()).putUser(eq("user"), same(user));
+
+            return;
+        }
+
+        throw new AssertionError("Expected GitHub ID conflict.");
     }
 
     private static UserService service(IUserStorage users, ITcBotUserCreds creds) throws Exception {

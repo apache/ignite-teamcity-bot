@@ -17,6 +17,7 @@
 const prReportDefaultSuites = new Map();
 const contributionsByServer = new Map();
 const myGithubLoginsByServer = new Map();
+const explicitlyConfiguredGithubLoginsByServer = new Map();
 const ONLY_MY_PRS_STORAGE_PREFIX = "tcbot.prs.onlyMyPrs.";
 const ONLY_MY_PRS_SHARED_STORAGE_KEY = "tcbot.prs.onlyMyPrs";
 
@@ -58,8 +59,8 @@ function drawTable(srvId, element) {
         "title='Show only PRs whose cached GitHub author matches your bot profile by email or configured GitHub IDs'>" +
         "<input id='onlyMyPrs-" + srvId + "' type='checkbox' " +
         (onlyMyPrsChecked ? "checked" : "") + "> Only my PRs</label>" +
-        "<button id='refreshContributions-" + srvId + "' type='button' title='Load current PR data from GitHub now'>" +
-        "Refresh now</button>" +
+        "<button id='refreshContributions-" + srvId + "' type='button' title='Reload pull requests from GitHub now'>" +
+        "Reload PRs</button>" +
         "<span id='expandAllButton-" + srvId + "'></span>" +
         "</div><br>" +
         "<table id=\"" + tableId + "\" class='ui-widget ui-widget-content'>\n" +
@@ -208,8 +209,8 @@ function refreshContributionsNow(srvId) {
         dialog.remove();
     }
 
-    $("body").append("<div id='refreshContributionsDialog' title='Refresh pull requests'>" +
-        actionStatusHtml("Preparing PR refresh.") +
+    $("body").append("<div id='refreshContributionsDialog' title='Reload PRs'>" +
+        actionStatusHtml("Preparing PR reload.") +
         actionStagesHtml(false, "refreshContributionsStages") +
         actionErrorHtml() +
         "</div>");
@@ -236,13 +237,13 @@ function refreshContributionsNow(srvId) {
     button.prop("disabled", true);
     stages.empty();
     dialog.find(".action-error").hide().empty();
-    setActionStatus(dialog, "Refreshing " + srvId + " contributions from GitHub...");
+    setActionStatus(dialog, "Reloading " + srvId + " pull requests from GitHub...");
 
-    openCenteredDialog(dialog, actionDialogOptions("Refresh pull requests", {}));
+    openCenteredDialog(dialog, actionDialogOptions("Reload PRs", {}));
 
     appendStage("Created browser-side process id " + processId + ".");
-    appendStage("Sending PR refresh request to the bot REST API.");
-    appendStage("Waiting for the backend to register the refresh process.");
+    appendStage("Sending PR reload request to the bot REST API.");
+    appendStage("Waiting for the backend to register the reload process.");
 
     stopProcessPolling = startBotProcessPolling(processId, function (processStatus) {
         let statusText = botProcessStatusText(processStatus);
@@ -260,7 +261,7 @@ function refreshContributionsNow(srvId) {
         repeatMs: 7000,
         repeatText: function (processStatus) {
             if (!isDefinedAndFilled(processStatus.kind))
-                return "Still waiting for the bot to register process " + processId + ".";
+                return "Still waiting for the bot to register reload process " + processId + ".";
 
             return "Still running: " + botProcessStatusText(processStatus);
         }
@@ -287,7 +288,7 @@ function refreshContributionsNow(srvId) {
             if (textStatus === "abort")
                 return;
 
-            setActionStatus(dialog, "Refresh failed.");
+            setActionStatus(dialog, "Reload failed.");
             appendStage("Error: " + (errorThrown || jqXHR.statusText || "unknown error"));
             dialog.find(".action-error").text(jqXHR.responseText || errorThrown || "Unknown request error.").show();
             finishProgress({
@@ -318,6 +319,7 @@ function loadGithubResolutionForContributions(srvId) {
         },
         error: function (jqXHR) {
             myGithubLoginsByServer.set(srvId, new Set());
+            explicitlyConfiguredGithubLoginsByServer.set(srvId, new Set());
             updateOnlyMyPrsControl(srvId, "GitHub profile resolution failed: " +
                 (jqXHR.statusText || "unknown error"));
             renderContributionsTable(srvId, "");
@@ -349,13 +351,20 @@ function isMyGithubLogin(srvId, login) {
 
 function updateGithubResolution(srvId, result) {
     let logins = new Set();
+    let explicitlyConfigured = new Set();
 
     if (isDefinedAndFilled(result) && isDefinedAndFilled(result.allLogins)) {
         for (let i = 0; i < result.allLogins.length; i++)
             logins.add(String(result.allLogins[i]).toLowerCase());
     }
 
+    if (isDefinedAndFilled(result) && isDefinedAndFilled(result.allConfiguredLogins)) {
+        for (let i = 0; i < result.allConfiguredLogins.length; i++)
+            explicitlyConfigured.add(String(result.allConfiguredLogins[i]).toLowerCase());
+    }
+
     myGithubLoginsByServer.set(srvId, logins);
+    explicitlyConfiguredGithubLoginsByServer.set(srvId, explicitlyConfigured);
     updateOnlyMyPrsControl(srvId);
 }
 
@@ -397,12 +406,22 @@ function confirmClaimGithubAuthor(srvId, githubId) {
 
 function claimGithubAuthorHtml(srvId, row) {
     if (!isDefinedAndFilled(row) || !isDefinedAndFilled(row.prAuthor) || !myGithubLoginsByServer.has(srvId) ||
-        isMyGithubLogin(srvId, row.prAuthor))
+        isMyGithubLogin(srvId, row.prAuthor) || !isValidGithubLogin(row.prAuthor))
+        return "";
+
+    let explicitlyConfigured = explicitlyConfiguredGithubLoginsByServer.get(srvId);
+
+    if (isDefinedAndFilled(explicitlyConfigured) && explicitlyConfigured.has(String(row.prAuthor).toLowerCase()))
         return "";
 
     return "<br><a href='javascript:void(0);' title='Confirm adding " + escapeHtml(row.prAuthor) +
         " to your GitHub IDs' onclick='" + jsCallAttr("confirmClaimGithubAuthor", [srvId, row.prAuthor]) +
         "'>it's me</a>";
+}
+
+function isValidGithubLogin(login) {
+    return /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/.test(String(login)) &&
+        String(login).indexOf("--") === -1;
 }
 
 function myPrsCountInTable(srvId) {
@@ -813,6 +832,17 @@ function repaintLater(srvId) {
     }, 3000);
 }
 
+function refreshBuildRefsFallbackReload(context) {
+    if (context && isDefinedAndFilled(context.serverId)) {
+        repaint(context.serverId);
+
+        return;
+    }
+
+    if (typeof loadData === "function")
+        loadData();
+}
+
 /**
  *
  * @param status contribution status related to selected run-configuration.
@@ -840,11 +870,11 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
         ticketLink: isDefinedAndFilled(row.jiraIssueUrl) ? row.jiraIssueUrl : "",
         prLink: isDefinedAndFilled(row.prHtmlUrl) ? row.prHtmlUrl : ""
     };
-    let githubCleanOnlyUiLinks = {
+    let githubAlwaysUiLinks = {
         ticketLink: isDefinedAndFilled(row.jiraIssueUrl) ? row.jiraIssueUrl : "",
         prLink: isDefinedAndFilled(row.prHtmlUrl) ? row.prHtmlUrl : "",
-        commentPolicyHint: "By default GitHub will be commented only if no blockers are found. " +
-            "If you need a GitHub comment for any result, switch the option to Comment always."
+        commentPolicyHint: "By default GitHub will be commented for any result. " +
+            "If the comment is noisy, delete it in GitHub or switch the option to clean runs only."
     };
     let hasQueued = status.queuedBuilds > 0 || status.runningBuilds > 0;
     let queuedStatus = "Has queued builds: " + status.queuedBuilds  + " queued " + " " + status.runningBuilds  + " running";
@@ -906,8 +936,17 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
 
         if (!isDefinedAndFilled(status.resolvedBranch))
             noBuildsHtml += ", please trigger it when branch is resolved";
+        else
+            noBuildsHtml += buildRefsRefreshFallbackHtmlFor(
+                srvId,
+                suiteIdSelected,
+                status.resolvedBranch,
+                "Contributions",
+                false
+            );
 
         tdForPr.html(noBuildsHtml);
+        setupTcBuildRefsFallbackButtons();
     }
 
 
@@ -963,7 +1002,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
         if (row.prNumber > 0) {
             let trigGithubCall = jsCall("triggerBuilds", [
                 srvId, null, suiteIdSelected, status.resolvedBranch,
-                false, true, jiraOptional, row.prNumber, null, false, "GITHUB", true, githubCleanOnlyUiLinks
+                false, true, jiraOptional, row.prNumber, null, false, "GITHUB", false, githubAlwaysUiLinks
             ]);
 
             res += " <button onClick='" + jsEventAttr([trigGithubCall, jsCall("repaintLater", [srvId])]) + "'";

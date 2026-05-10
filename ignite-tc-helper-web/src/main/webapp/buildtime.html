@@ -1,138 +1,146 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>Apache Ignite Teamcity Bot - Build Time Analytics</title>
+    <meta charset="UTF-8">
+    <title>Apache Ignite Teamcity Bot - Duration Analytics</title>
     <link rel="icon" href="img/leaf.svg">
+    <link rel="stylesheet" href="css/style-1.5.css">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-
-
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
-    <!-- production version, optimized for size and speed -->
-    <!--<script src="https://cdn.jsdelivr.net/npm/vue"></script>-->
-
-    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900|Material+Icons" rel="stylesheet">
-
-    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
-
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-    <link rel="stylesheet" href="css/style-1.5.css">
-
-    <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
-
     <script src="js/common-1.7.js"></script>
-    <script>
-$(document).ready(function() {
-    $.getScript("js/common-1.7.js", function(data, textStatus, jqxhr){ });
+    <script src="js/long_running-1.1.js"></script>
 
-    $( document ).tooltip();
-    loadData();
-});
-
-function loadAnalytics() {
-    let app = new Vue({
-        el: '#app',
-        vuetify: new Vuetify(),
-        data: {
-            headers: [
-                {text: 'Build Type', value: 'buildType'},
-                {text: 'Average Duration', value: 'averageDuration'},
-                {text: 'Duration', value: 'totalDuration'}
-            ],
-            byBuildType: [],
-            timedOutByBuildType: []
-        },
-        created() {
-            this.initialize()
-        },
-
-        methods: {
-            setBuildTimeStat(data) {
-                this.byBuildType = data.byBuildType;
-                this.timedOutByBuildType = data.timedOutByBuildType;
-
-                $("#loadStatus").html("");
-            },
-            initialize() {
-                $.ajax({ url: "/rest/buildtime/analytics",
-                    success: this.setBuildTimeStat,
-                    error: showErrInLoadStatus });
-            }
+    <style>
+        body {
+            margin: 16px;
         }
-    })
-}
+
+        .duration-table {
+            border-collapse: collapse;
+            margin-bottom: 18px;
+            width: 100%;
+        }
+
+        .duration-table th,
+        .duration-table td {
+            border-bottom: 1px solid #ddd;
+            padding: 6px 8px;
+            text-align: left;
+        }
+
+        .duration-table th {
+            background: #f2f2f2;
+        }
+
+        .duration-note {
+            color: #555;
+            margin: 4px 0 10px 0;
+        }
+    </style>
+</head>
+<body>
+<div id="loadStatus"></div>
+
+<div id="durationTabs">
+    <ul>
+        <li><a href="#suiteDurationsTab">Suites</a></li>
+        <li><a href="#testDurationsTab">Tests</a></li>
+    </ul>
+
+    <div id="suiteDurationsTab">
+        <div class="duration-note">Longest suite duration over recent builds.</div>
+        <div id="suiteDurations"></div>
+    </div>
+
+    <div id="testDurationsTab">
+        <div class="duration-note">Long running tests in tracked master branch suites.</div>
+        <div id="testDurations"></div>
+    </div>
+</div>
+
+<div id="version"></div>
+
+<script>
+$(document).ready(function() {
+    $("#durationTabs").tabs({
+        activate: function(event, ui) {
+            window.location.hash = ui.newPanel.attr("id") === "testDurationsTab" ? "tests" : "suites";
+        }
+    });
+
+    if (window.location.hash === "#tests")
+        $("#durationTabs").tabs("option", "active", 1);
+
+    loadData();
+    $.ajax({url: "rest/branches/version", success: showVersionInfo, error: showErrInLoadStatus});
+});
 
 function loadData() {
     $("#loadStatus").html("&#8987; Please wait");
 
-    $("#version").html(" " + "<a href=\"monitoring.html\">TC Bot Monitoring Page</a> <br>");
-    $.ajax({
-        url: "rest/branches/version",
-        success: showVersionInfo,
-        error: showErrInLoadStatus
-    });
-
-
-    loadAnalytics();
+    loadSuiteDurations();
+    loadTestDurations();
 }
 
+function loadSuiteDurations() {
+    $.ajax({
+        url: "/rest/buildtime/analytics",
+        success: function(result) {
+            showSuiteDurations(result || {});
+            $("#loadStatus").html("");
+        },
+        error: showErrInLoadStatus
+    });
+}
 
+function loadTestDurations() {
+    $.ajax({
+        url: "rest/long_running/summary?branch=master",
+        success: function(result) {
+            $("#testDurations").html(showLongRunningTestsSummary(result));
+            $("#loadStatus").html("");
+        },
+        error: showErrInLoadStatus
+    });
+}
+
+function showSuiteDurations(result) {
+    var res = "";
+
+    res += "<h3>Suites by average duration</h3>";
+    res += "<div class='duration-note'>Average duration more than 90 minutes and total duration more than 4 hours.</div>";
+    res += suiteDurationTable(result.byBuildType || []);
+
+    res += "<h3>Timed out suites</h3>";
+    res += "<div class='duration-note'>Timed out suite average duration more than 60 minutes.</div>";
+    res += suiteDurationTable(result.timedOutByBuildType || []);
+
+    $("#suiteDurations").html(res);
+}
+
+function suiteDurationTable(rows) {
+    var res = "<table class='duration-table'>";
+
+    res += "<tr><th>Suite</th><th>Average duration</th><th>Total duration</th><th>Count</th></tr>";
+
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+
+        res += "<tr>";
+        res += "<td>" + escapeHtml(row.buildType || "") + "</td>";
+        res += "<td>" + escapeHtml(row.averageDuration || "") + "</td>";
+        res += "<td>" + escapeHtml(row.totalDuration || "") + "</td>";
+        res += "<td>" + escapeHtml(row.cnt || "") + "</td>";
+        res += "</tr>";
+    }
+
+    if (rows.length === 0)
+        res += "<tr><td colspan='4'>No duration data.</td></tr>";
+
+    return res + "</table>";
+}
 </script>
-</head>
-<body>
-
-<div id="loadStatus"></div>
-
-
-<div class="formgroup"  id="app">
-
-    <v-app id="readyForReview">
-        <!--<v-expansion-panel>-->
-            <!--<v-expansion-panel-content-->
-                    <!--v-for="(item,i) in 1"-->
-                    <!--:key="i"-->
-            <!--&gt;-->
-                <template v-slot:header>
-                    <div>Build types longest avg.duration</div>
-                </template>
-                <v-card>
-                    <div>Longest average duration (more than 90 minutes)</div>
-                    <v-data-table
-                            :headers="headers"
-                            :items="byBuildType"
-                            class="elevation-1"
-                    >
-                        <template v-slot:items="props">
-                            <!--<td>-->
-                                <!--<a :href="props.item.prHtmlUrl">{{ props.item.prNumber }} </a> {{ props.item.prTitle }}</td>-->
-                            <!--<td class="text-xs-right">{{ props.item.b }}</td>-->
-                            <!--<td class="text-xs-right">-->
-                                <!--<img :src="props.item.prAuthorAvatarUrl" width='20px' height='20px'> {{ props.item.prAuthor }}</td>-->
-                            <td class="text-xs-right">{{ props.item.buildType }}</td>
-                            <td class="text-xs-right">{{ props.item.averageDuration }}</td>
-                            <td class="text-xs-right">{{ props.item.totalDuration }}</td>
-                        </template>
-                    </v-data-table>
-
-                    <div>Timed out suites average duration (more than 60 minutes)</div>
-                    <v-data-table
-                            :headers="headers"
-                            :items="timedOutByBuildType"
-                            class="elevation-1"
-                    >
-                        <template v-slot:items="props">
-                            <td class="text-xs-right">{{ props.item.buildType }}</td>
-                            <td class="text-xs-right">{{ props.item.averageDuration }}</td>
-                            <td class="text-xs-right">{{ props.item.totalDuration }}</td>
-                        </template>
-                    </v-data-table>
-                </v-card>
-            <!--</v-expansion-panel-content>-->
-        <!--</v-expansion-panel>-->
-
-    </v-app>
-</div>
-
-<div id="version"></div>
 </body>
 </html>

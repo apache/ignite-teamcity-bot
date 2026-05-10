@@ -91,7 +91,7 @@ class NamedTask {
         long writeLockStamp = lock.writeLock();
 
         try {
-            if (status == Status.RUNNING || this.cmd != null)
+            if (status == Status.RUNNING || this.cmd != null || this.processId != null)
                 return false;
 
             this.cmd = cmd;
@@ -180,7 +180,7 @@ class NamedTask {
             res.lastFinishedTs = lastFinishedTs;
             res.quietPeriodMs = resValidityMs;
             res.runnableAvailable = cmd != null;
-            res.canStartNow = status != Status.RUNNING && cmd == null;
+            res.canStartNow = status != Status.RUNNING && cmd == null && processId == null;
             res.processId = processId;
 
             return res;

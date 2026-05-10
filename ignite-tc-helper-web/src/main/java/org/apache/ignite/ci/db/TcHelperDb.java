@@ -42,6 +42,12 @@ import static org.apache.ignite.ci.web.Launcher.waitStopSignal;
  *
  */
 public class TcHelperDb {
+    /** Ignite discovery port system property. */
+    public static final String DISCOVERY_PORT_PROPERTY = "tcbot.ignite.discovery.port";
+
+    /** Default Ignite discovery port. */
+    public static final int DFLT_DISCOVERY_PORT = 54433;
+
 
     public static void main(String[] args) {
         Ignite ignite = new Ignite1Init().startIgnite();
@@ -79,7 +85,7 @@ public class TcHelperDb {
     }
 
     public static void setupDisco(IgniteConfiguration cfg) {
-        setupSinglePortDisco(cfg, 54433);
+        setupSinglePortDisco(cfg, Integer.getInteger(DISCOVERY_PORT_PROPERTY, DFLT_DISCOVERY_PORT));
     }
 
     private static void setupSinglePortDisco(IgniteConfiguration cfg, int locPort) {
