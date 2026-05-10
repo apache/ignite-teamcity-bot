@@ -808,6 +808,9 @@ def initial_builds():
     create_run_all_chain(builds, "800301", "<default>", "SUCCESS", "finished",
                          queued="20260510T084500+0000", started="20260510T084510+0000",
                          finished="20260510T084650+0000")
+    create_run_all_nightly_chain(builds, "800501", "nightly", "SUCCESS", "finished",
+                                 queued=tc_days_ago(1, 22, 0), started=tc_days_ago(1, 22, 1),
+                                 finished=tc_days_ago(1, 22, 12))
 
     return builds
 
@@ -847,6 +850,12 @@ def tc_history_date(hist, minute_offset):
     day = datetime.now(timezone.utc) - timedelta(days=hist["daysAgo"])
 
     return "{}T{:02d}{:02d}00+0000".format(day.strftime("%Y%m%d"), hist["hour"], minute_offset)
+
+
+def tc_days_ago(days_ago, hour, minute):
+    day = datetime.now(timezone.utc) - timedelta(days=days_ago)
+
+    return "{}T{:02d}{:02d}00+0000".format(day.strftime("%Y%m%d"), hour, minute)
 
 
 def create_run_all_chain(builds, build_id, branch, status, state, queued=None, started=None, finished=None,

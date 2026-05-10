@@ -153,6 +153,26 @@ public class IntegrationHarnessContractTest {
         assertTrue(masterHistory.body, count(masterHistory.body, "buildTypeId=\"IgniteTests24Java17_RunAll\"") >= 21);
         assertTrue(masterHistory.body, masterHistory.body.contains("id=\"810200\""));
         assertTrue(masterHistory.body, masterHistory.body.contains("id=\"810010\""));
+        IntegrationTestEnvironment.HttpResponse nightlyHistory = request("GET", env.teamcityUrl
+            + "/app/rest/latest/builds?locator=buildType:(id:IgniteTests24Java17_RunAllNightly)&branch=nightly",
+            env.basicAuth(), null, null);
+
+        assertEquals(200, nightlyHistory.status);
+        assertTrue(nightlyHistory.body, nightlyHistory.body.contains("id=\"800501\""));
+        assertTrue(nightlyHistory.body,
+            nightlyHistory.body.contains("buildTypeId=\"IgniteTests24Java17_RunAllNightly\""));
+        IntegrationTestEnvironment.HttpResponse nightlyBuild = request("GET",
+            env.teamcityUrl + "/app/rest/latest/builds/id:800501", env.basicAuth(), null, null);
+
+        assertEquals(200, nightlyBuild.status);
+        assertTrue(nightlyBuild.body, nightlyBuild.body.contains("buildTypeId=\"IgniteTests24Java17_RunAll\""));
+        assertTrue(nightlyBuild.body, nightlyBuild.body.contains("<snapshot-dependencies count=\"1\""));
+        IntegrationTestEnvironment.HttpResponse allBuildRefs = request("GET",
+            env.teamcityUrl + "/app/rest/latest/builds?locator=defaultFilter:false", env.basicAuth(), null, null);
+
+        assertEquals(200, allBuildRefs.status);
+        assertTrue(allBuildRefs.body, allBuildRefs.body.contains("buildTypeId=\"IgniteTests24Java17_RunAllNightly\""));
+        assertTrue(allBuildRefs.body, allBuildRefs.body.contains("buildTypeId=\"IgniteTests24Java17_RunAll\""));
 
         IntegrationTestEnvironment.HttpResponse compilationFailedBuild = request("GET",
             env.teamcityUrl + "/app/rest/latest/builds/id:800401", env.basicAuth(), null, null);
