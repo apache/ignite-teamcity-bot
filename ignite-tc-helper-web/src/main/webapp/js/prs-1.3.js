@@ -920,8 +920,16 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
 
         if (!isDefinedAndFilled(status.resolvedBranch))
             noBuildsHtml += ", please trigger it when branch is resolved";
+        else
+            noBuildsHtml += buildRefsRefreshFallbackHtmlFor(
+                srvId,
+                suiteIdSelected,
+                status.resolvedBranch,
+                "Contributions"
+            );
 
         tdForPr.html(noBuildsHtml);
+        setupTcBuildRefsFallbackButtons();
     }
 
 

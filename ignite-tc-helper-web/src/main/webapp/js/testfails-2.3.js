@@ -432,11 +432,15 @@ function showChainCurrentStatusData(chain, settings) {
 }
 
 function buildRefsRefreshFallbackHtml(chain) {
-    var serverId = chain.serverCode;
-    var suiteId = isDefinedAndFilled(chain.suiteId) ? chain.suiteId : findGetParameter("suiteId");
-    var branchForTc = chain.branchName;
-    var action = findGetParameter("action");
+    return buildRefsRefreshFallbackHtmlFor(
+        chain.serverCode,
+        isDefinedAndFilled(chain.suiteId) ? chain.suiteId : findGetParameter("suiteId"),
+        chain.branchName,
+        findGetParameter("action")
+    );
+}
 
+function buildRefsRefreshFallbackHtmlFor(serverId, suiteId, branchForTc, action) {
     if (!isDefinedAndFilled(serverId) || !isDefinedAndFilled(branchForTc))
         return "";
 
