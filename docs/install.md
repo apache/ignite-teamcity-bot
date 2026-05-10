@@ -116,6 +116,76 @@ call jetty-launcher.bat
 
 </details>
 
+### Emulated bot clean check
+
+Use this variant for a quick clean build of any PR followed by a local emulated TC Bot UI. It uses a separate checkout,
+does not launch the production bot, and starts the integration-test launcher with local GitHub/JIRA/TeamCity emulators
+on `http://127.0.0.1:5555/`. Unit tests and emulated integration tests are opt-in flags, so the default path stays fast
+before opening the UI.
+
+```bat
+@echo off
+setlocal
+
+set "CHECK_ROOT=%~dp0"
+set "REPO=%CHECK_ROOT%ignite-teamcity-bot-emulated-check"
+if not "%~1"=="" set "PR_REF=%~1"
+rem Usage:
+rem   checkie.bat pull/225/head
+rem   checkie.bat 225
+rem set "RUN_TESTS=1"
+rem set "RUN_EMULATED_TESTS=1"
+rem set "TEST_FILTER=--tests org.apache.ignite.tcbot.integration.BotLoginTriggerQueueFlowTest"
+
+if "%PR_REF%"=="" (
+    echo Usage: %~nx0 ^<PR number or ref^>
+    echo Example: %~nx0 225
+    echo Example: %~nx0 pull/225/head
+    exit /b 2
+)
+
+echo %PR_REF%| findstr /R "^[0-9][0-9]*$" >NUL
+if "%ERRORLEVEL%"=="0" set "PR_REF=pull/%PR_REF%/head"
+
+if not exist "%REPO%\.git" git clone https://github.com/apache/ignite-teamcity-bot.git "%REPO%" || exit /b 1
+cd /d "%REPO%" || exit /b 1
+git fetch origin master || exit /b 1
+git switch master || exit /b 1
+git reset --hard origin/master || exit /b 1
+git clean -fdx || exit /b 1
+
+if not "%PR_REF%"=="" (
+    git branch -D pr-emulated-check 2>NUL
+    git fetch origin "%PR_REF%:refs/heads/pr-emulated-check" || exit /b 1
+    git switch pr-emulated-check || exit /b 1
+)
+
+if "%RUN_TESTS%"=="1" (
+    call gradlew.bat clean build --no-daemon || exit /b 1
+) else (
+    call gradlew.bat clean assemble --no-daemon || exit /b 1
+)
+
+if "%RUN_EMULATED_TESTS%"=="1" (
+    call gradlew.bat :tcbot-integration-tests:integrationTest %TEST_FILTER% --no-daemon || exit /b 1
+) else (
+    echo Skipping emulated integration tests. Set RUN_EMULATED_TESTS=1 to enable.
+)
+
+echo.
+echo Starting emulated TC Bot UI:
+echo   http://127.0.0.1:5555/
+echo   Username: ignite.tester
+echo   Password: ignite-password
+echo.
+call gradlew.bat :tcbot-integration-tests:runEmulatedBot --no-daemon || exit /b 1
+```
+
+When `RUN_EMULATED_TESTS=1`, the emulated integration task builds the WAR, starts the production-like launcher on an
+isolated port, starts separate Python emulators for GitHub, JIRA, and TeamCity, and then shuts them down after the test
+JVM exits. The final `runEmulatedBot` step starts the same emulator-backed bot for manual UI checks and keeps running
+until the process is stopped.
+
 <details>
 <summary>Linux</summary>
 

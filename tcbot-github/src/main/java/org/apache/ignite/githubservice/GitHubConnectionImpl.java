@@ -27,9 +27,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.net.ConnectException;
+import java.net.MalformedURLException;
 import java.net.URLEncoder;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -57,6 +59,12 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 class GitHubConnectionImpl implements IGitHubConnection {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(GitHubConnectionImpl.class);
+
+    /** */
+    private static final String INTEGRATION_TEST_PROFILE = "integration-test";
+
+    /** */
+    private static final String PROFILE_PROPERTY = "tcbot.profile";
 
     /** Config. */
     private final IDataSourcesConfigSupplier cfg;
@@ -411,6 +419,9 @@ class GitHubConnectionImpl implements IGitHubConnection {
     //https://developer.github.com/v3/#rate-limiting
     @AutoProfiling
     protected void velocityControl(String tok) {
+        if (isIntegrationTestLoopbackGitHub())
+            return;
+
         final int reqPerHour = Strings.isNullOrEmpty(tok) ? 60 : 5000;
         final long nanosInHour = Duration.ofHours(1).toNanos();
         final long waitBeforeNextReq = nanosInHour / reqPerHour;
@@ -431,6 +442,37 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
             win = this.lastRq.compareAndSet(lastRq, curNs);
         } while (!win);
+    }
+
+    /** */
+    private boolean isIntegrationTestLoopbackGitHub() {
+        if (!INTEGRATION_TEST_PROFILE.equals(System.getProperty(PROFILE_PROPERTY)))
+            return false;
+
+        try {
+            return isLoopbackHost(new URL(getApiUrlMandatory()).getHost());
+        }
+        catch (MalformedURLException e) {
+            return false;
+        }
+    }
+
+    /**
+     * @param host URL host.
+     */
+    private static boolean isLoopbackHost(String host) {
+        if (host == null)
+            return false;
+
+        String normalized = host.toLowerCase();
+
+        return "localhost".equals(normalized)
+            || "127.0.0.1".equals(normalized)
+            || normalized.startsWith("127.")
+            || "::1".equals(normalized)
+            || "0:0:0:0:0:0:0:1".equals(normalized)
+            || "[::1]".equals(normalized)
+            || "[0:0:0:0:0:0:0:1]".equals(normalized);
     }
 
     /** {@inheritDoc} */

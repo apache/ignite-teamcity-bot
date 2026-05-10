@@ -19,20 +19,30 @@ package org.apache.ignite.ci.web.rest.pr;
 
 import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import javax.annotation.Nonnull;
+import javax.annotation.security.RolesAllowed;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.ClientErrorException;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.ci.web.auth.AuthenticationFilter;
+import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.tcbot.engine.build.TestFailuresAiPromptBuilder;
+import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
 import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.UpdateInfo;
+import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -59,6 +69,94 @@ public class GetPrTestFailures {
         return new UpdateInfo().initCounters(
             CtxListener.getApplicationContext(ctx).getInstance(PrChainsProcessor.class)
                 .getPrUpdateCounters(srvCodeOrAlias, branchForTc, baseBranchForTc, ITcBotUserCreds.get(req)));
+    }
+
+    /**
+     * Starts explicit TeamCity build refs actualization for PR report pages.
+     *
+     * @param srvId Server id.
+     * @param processId User-visible process id.
+     */
+    @POST
+    @RolesAllowed(AuthenticationFilter.ADMIN_ROLE)
+    @Path("actualizeBuildRefs")
+    public SimpleResult actualizeBuildRefs(@Nullable @QueryParam("serverId") String srvId,
+        @Nullable @QueryParam("suiteId") String suiteId,
+        @Nullable @QueryParam("branchForTc") String branchForTc,
+        @Nullable @QueryParam("action") String action,
+        @Nullable @QueryParam("processId") Long processId) {
+        if (srvId == null || srvId.trim().isEmpty())
+            throw new BadRequestException("serverId query parameter is required.");
+
+        final String serverId = srvId.trim();
+
+        TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        ITcBotUserCreds creds = ITcBotUserCreds.get(req);
+        ITeamcityIgnitedProvider tcProv = appCtx.getInstance(ITeamcityIgnitedProvider.class);
+        BotProcessMonitor process = appCtx.getInstance(BotProcessMonitor.class);
+        String taskName = "Pr.actualizeBuildRefs." + serverId;
+        String pageCtx = pageContext(serverId, suiteId, branchForTc, action);
+
+        process.start(processId, "teamcityBuildRefsRefresh",
+            "Admin TeamCity build refs refresh request accepted. " + pageCtx);
+
+        try {
+            process.status(processId, "Checking TeamCity credentials for server " + serverId + ".");
+            tcProv.checkAccess(serverId, creds);
+        }
+        catch (RuntimeException e) {
+            process.fail(processId, e);
+
+            throw e;
+        }
+
+        boolean accepted = appCtx.getInstance(IScheduler.class).runNamedNow(taskName, () -> {
+            try {
+                process.status(processId, "Refreshing recent TeamCity build references for server " + serverId +
+                    ". Requested from: " + pageCtx);
+                process.status(processId, "Calling TeamCity recent build refs actualization. This updates the bot " +
+                    "server-wide recent refs cache used by PR reports; page branch context is " +
+                    valueOrAny(branchForTc) + ".");
+                String res = tcProv.server(serverId, creds).actualizeRecentBuildRefs();
+                process.status(processId, "TeamCity build refs actualization result for server " + serverId +
+                    ": " + res);
+                process.finish(processId, "TeamCity build references refreshed for server " + serverId +
+                    ". " + res + ". Refresh context was: " + pageCtx);
+            }
+            catch (RuntimeException e) {
+                process.fail(processId, e);
+
+                throw e;
+            }
+        }, processId);
+
+        if (!accepted) {
+            process.fail(processId, "TeamCity build refs refresh is already queued or running for server " + serverId + ".");
+
+            throw new ClientErrorException("TeamCity build refs refresh is already queued or running for server "
+                + serverId, Response.Status.CONFLICT);
+        }
+
+        return new SimpleResult("TeamCity build refs refresh queued for server " + serverId + ".");
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param suiteId Suite id.
+     * @param branchForTc TeamCity branch.
+     * @param action PR report action.
+     */
+    private static String pageContext(@Nullable String srvId, @Nullable String suiteId,
+        @Nullable String branchForTc, @Nullable String action) {
+        return "Page context: server=" + valueOrAny(srvId) + ", suite=" + valueOrAny(suiteId) +
+            ", branch=" + valueOrAny(branchForTc) + ", action=" + valueOrAny(action) + ".";
+    }
+
+    /**
+     * @param val Value.
+     */
+    private static String valueOrAny(@Nullable String val) {
+        return val == null || val.trim().isEmpty() ? "<any>" : val;
     }
 
     @GET

@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.web.rest.testfixes;
 
 import java.util.List;
+import javax.annotation.security.RolesAllowed;
 import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -26,6 +27,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.ci.web.auth.AuthenticationFilter;
 import org.apache.ignite.tcbot.engine.testfixes.TestFixRefUi;
 import org.apache.ignite.tcbot.engine.testfixes.TestFixesService;
 
@@ -56,6 +58,7 @@ public class TestFixesRestService {
      * @param processId Optional user-visible process id.
      */
     @GET
+    @RolesAllowed(AuthenticationFilter.ADMIN_ROLE)
     @Path("refresh")
     public List<TestFixRefUi> refresh(@QueryParam("limit") Integer limit, @QueryParam("processId") Long processId) {
         TestFixesService svc = CtxListener.getApplicationContext(ctx).getInstance(TestFixesService.class);

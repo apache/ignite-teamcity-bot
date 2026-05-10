@@ -55,6 +55,7 @@ import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
+import org.apache.ignite.tcbot.persistence.scheduler.MaintenanceActionRegistry;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.build.ProactiveFatBuildSync;
 import org.apache.ignite.tcignited.buildlog.BuildLogCheckResultDao;
@@ -100,6 +101,9 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     /** Scheduler. */
     @Inject private IScheduler scheduler;
+
+    /** Admin maintenance actions. */
+    @Inject private MaintenanceActionRegistry maintenanceActions;
 
     /** Build reference DAO. */
     @Inject private BuildRefDao buildRefDao;
@@ -172,6 +176,9 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         muteDao.init();
         logCheckResDao.init();
         histDao.init();
+
+        maintenanceActions.register(taskName("fullReindex"), "Full TeamCity build refs reindex for " + srvCode,
+            this::fullReindex);
     }
 
     /**
@@ -645,8 +652,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return changes.values();
     }
 
-    public void actualizeRecentBuildRefs() {
-        actualizeRecentBuildRefs(srvCode);
+    public String actualizeRecentBuildRefs() {
+        return actualizeRecentBuildRefs(srvCode);
     }
 
     /**
@@ -677,7 +684,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         //schedule direct reload for Fat Builds for all queued too-old builds
         fatBuildSync.scheduleBuildsLoad(conn, directUpload);
 
-        buildRefSync.runActualizeBuildRefs(srvCode, BuildRefSync.SyncMode.INCREMENTAL, paginateUntil, conn);
+        String buildRefsSyncResult = buildRefSync.runActualizeBuildRefs(srvCode, BuildRefSync.SyncMode.INCREMENTAL,
+            paginateUntil, conn);
 
         int freshButNotFoundByBuildsRefsScan = paginateUntil.size();
         if (freshButNotFoundByBuildsRefsScan > 0) {
@@ -690,7 +698,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         return "Build queue " + running.size() + ", relatively fresh: " + cntFreshBuilds +
              ", fresh but not found by scan: " + freshButNotFoundByBuildsRefsScan +
-            ", old builds sheduled " + directUpload.size();
+            ", old builds sheduled " + directUpload.size() + ". " + buildRefsSyncResult;
     }
 
     /**
@@ -703,7 +711,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /**
      *
      */
-    void fullReindex() {
-        buildRefSync.runActualizeBuildRefs(srvCode, BuildRefSync.SyncMode.FULL_REINDEX, null, conn);
+    String fullReindex() {
+        return buildRefSync.runActualizeBuildRefs(srvCode, BuildRefSync.SyncMode.FULL_REINDEX, null, conn);
     }
 }

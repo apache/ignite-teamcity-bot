@@ -29,6 +29,7 @@ import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.model.ContributionKey;
+import org.apache.ignite.tcbot.common.exeption.ServiceUnauthorizedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,6 +76,16 @@ public class BuildObserver {
      */
     public void stop() {
         timer.cancel();
+    }
+
+    /**
+     * Runs observer immediately in the current thread. Intended for admin/test hooks which already control
+     * single-flight execution outside of the timer.
+     *
+     * @return Observer summary.
+     */
+    public String runNow() {
+        return observerTask.runObserverTask();
     }
 
     /**
@@ -149,11 +160,17 @@ public class BuildObserver {
 
         BuildsInfo buildsInfo = observerTask.getInfo(key);
 
+        if (Objects.isNull(buildsInfo))
+            return sb.toString();
+
         ITcBotUserCreds creds = tcBotBgAuth.getServerAuthorizerCreds();
+
+        if (creds == null)
+            return "comment scheduled: waiting for bot background TeamCity authorization.";
 
         ITeamcityIgnited teamcity = teamcityIgnitedProvider.server(key.srvId, creds);
 
-        if (Objects.nonNull(buildsInfo)) {
+        try {
             int buildsCnt = buildsInfo.buildsCount();
             int finishedCnt = buildsInfo.finishedBuildsCount(teamcity, strCompactor);
             String targets = CommentTargets.normalize(buildsInfo.commentTargets);
@@ -164,6 +181,12 @@ public class BuildObserver {
             else
                 sb.append(targets).append(" comment scheduled: waiting for builds (")
                     .append(finishedCnt).append('/').append(buildsCnt).append(" finished).");
+        }
+        catch (ServiceUnauthorizedException e) {
+            logger.warn("Unable to load observed build status because TeamCity authorization failed [srv={}, branch={}]",
+                key.srvId, key.branchForTc, e);
+
+            return "comment scheduled: TeamCity authorization failed while checking observed builds.";
         }
 
         return sb.toString();

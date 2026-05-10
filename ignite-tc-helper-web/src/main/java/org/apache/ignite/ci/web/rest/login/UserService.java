@@ -32,6 +32,8 @@ import java.util.stream.Collectors;
 import org.apache.ignite.tcbot.common.application.TcBotApplicationContext;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.ClientErrorException;
 import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
@@ -43,6 +45,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Form;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
@@ -279,7 +282,8 @@ public class UserService {
 
         Set<String> normalizedIds = normalizeGithubIds(githubId);
 
-        Preconditions.checkState(normalizedIds.size() == 1, "One GitHub ID is expected.");
+        if (normalizedIds.size() != 1)
+            throw new BadRequestException("One GitHub ID is expected.");
 
         String normalizedId = normalizedIds.iterator().next();
         boolean alreadyConfigured = user.getGithubIds().stream()
@@ -288,8 +292,10 @@ public class UserService {
         Map<String, String> configuredIds = configuredGithubIds(users);
         String configuredUser = configuredIds.get(normalizedId.toLowerCase(Locale.ROOT));
 
-        Preconditions.checkState(configuredUser == null || configuredUser.equals(currUserLogin),
-            "GitHub ID is already configured for user: " + configuredUser);
+        if (configuredUser != null && !configuredUser.equals(currUserLogin)) {
+            throw new ClientErrorException("GitHub ID is already configured for user: " + configuredUser,
+                Response.Status.CONFLICT);
+        }
 
         if (!alreadyConfigured) {
             user.getGithubIds().add(normalizedId);
@@ -522,15 +528,21 @@ public class UserService {
             if (Strings.isNullOrEmpty(trimmed))
                 continue;
 
-            Preconditions.checkState(trimmed.matches("[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?"),
-                "Invalid GitHub ID: " + trimmed);
-
-            Preconditions.checkState(!trimmed.contains("--"), "Invalid GitHub ID: " + trimmed);
+            if (!isValidGithubId(trimmed))
+                throw new BadRequestException("Invalid GitHub ID: " + trimmed);
 
             res.add(trimmed);
         }
 
         return res;
+    }
+
+    /**
+     * @param githubId GitHub login.
+     */
+    private static boolean isValidGithubId(String githubId) {
+        return githubId.matches("[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?") &&
+            !githubId.contains("--");
     }
 
     /**

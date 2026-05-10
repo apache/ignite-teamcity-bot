@@ -37,9 +37,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -48,7 +46,6 @@ import java.util.stream.Stream;
 import javax.annotation.security.RolesAllowed;
 import javax.cache.Cache;
 import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.ClientErrorException;
 import javax.ws.rs.ForbiddenException;
@@ -66,8 +63,6 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.CacheMetrics;
 import org.apache.ignite.cache.affinity.Affinity;
-import org.apache.ignite.ci.user.ITcBotUserCreds;
-import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.auth.AuthenticationFilter;
 import org.apache.ignite.ci.web.model.SimpleResult;
@@ -80,7 +75,6 @@ import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
 import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
 import org.apache.ignite.tcbot.engine.process.BotProcessStatus;
-import org.apache.ignite.tcbot.engine.user.IUserStorage;
 import org.apache.ignite.tcbot.notify.IEmailSender;
 import org.apache.ignite.tcbot.notify.ISendEmailConfig;
 import org.apache.ignite.tcbot.notify.ISlackSender;
@@ -123,10 +117,13 @@ public class MonitoringService {
     private static final int SUMMARY_LIMIT = 240;
 
     /** Default number of cache entries to preview. */
-    private static final int DFLT_CACHE_PEEK_LIMIT = 20;
+    private static final int DFLT_CACHE_PEEK_LIMIT = 5;
 
     /** Hard cache preview cap. */
-    private static final int MAX_CACHE_PEEK_LIMIT = 100;
+    private static final int MAX_CACHE_PEEK_LIMIT = 20;
+
+    /** System property with comma-separated exact cache names allowed for raw preview. */
+    private static final String CACHE_PEEK_ALLOWED_CACHES = "tcbot.monitoring.cachePeek.allowedCaches";
 
     /** JSON mapper for raw cache entry values. */
     private static final ObjectMapper CACHE_PEEK_MAPPER = new ObjectMapper()
@@ -138,10 +135,6 @@ public class MonitoringService {
     /** Context. */
     @Context
     private ServletContext ctx;
-
-    /** Request. */
-    @Context
-    private HttpServletRequest req;
 
     @GET
     @Path("tasks")
@@ -650,7 +643,7 @@ public class MonitoringService {
         boolean truncated = false;
 
         res.append("Cache: ").append(name).append('\n');
-        res.append("Size: ").append(cache.size()).append('\n');
+        res.append("Size: not calculated by cachePeek").append('\n');
         res.append("Limit: ").append(actualLimit).append("\n\n");
 
         for (Cache.Entry<?, ?> entry : cache) {
@@ -696,50 +689,21 @@ public class MonitoringService {
      * @param name Cache name.
      */
     private void ensureCanPeekCache(String name) {
-        if (!isUsersCache(name))
+        if (cachePeekAllowedCaches().contains(name))
             return;
 
-        ITcBotUserCreds creds = ITcBotUserCreds.get(req);
-        TcHelperUser user = creds == null ? null : instance(IUserStorage.class).getUser(creds.getPrincipalId());
-
-        if (!isUserAdmin(user, instance(ITcBotConfig.class)))
-            throw new ForbiddenException("Only user admin can inspect Users caches");
+        throw new ForbiddenException("Cache peek is not allowed for cache: " + name +
+            ". Add the exact cache name to " + CACHE_PEEK_ALLOWED_CACHES + " to enable it.");
     }
 
     /**
-     * @param name Cache name.
+     * @return Exact cache names allowed for raw preview.
      */
-    private static boolean isUsersCache(String name) {
-        return !Strings.isNullOrEmpty(name) && name.toLowerCase(Locale.ROOT).contains("users");
-    }
-
-    /**
-     * @param user User.
-     * @param cfg Config.
-     */
-    private static boolean isUserAdmin(TcHelperUser user, ITcBotConfig cfg) {
-        return user != null && (user.isUserAdmin() || isConfigUserAdmin(user.username, cfg));
-    }
-
-    /**
-     * @param username Username.
-     * @param cfg Config.
-     */
-    private static boolean isConfigUserAdmin(String username, ITcBotConfig cfg) {
-        if (Strings.isNullOrEmpty(username))
-            return false;
-
-        Collection<String> cfgUserAdmins = cfg.userAdmins();
-
-        if (cfgUserAdmins == null)
-            return false;
-
-        String normalized = username.toLowerCase(Locale.ROOT);
-
-        return cfgUserAdmins.stream()
-            .filter(Objects::nonNull)
-            .map(s -> s.toLowerCase(Locale.ROOT))
-            .anyMatch(normalized::equals);
+    private static Set<String> cachePeekAllowedCaches() {
+        return Arrays.stream(Strings.nullToEmpty(System.getProperty(CACHE_PEEK_ALLOWED_CACHES)).split(","))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .collect(Collectors.toSet());
     }
 
     /**

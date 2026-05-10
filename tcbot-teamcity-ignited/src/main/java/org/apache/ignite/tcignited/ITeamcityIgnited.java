@@ -270,7 +270,7 @@ public interface ITeamcityIgnited {
      * Enforce reloading of recent build references for this server. At least queued/running builds from TC Bot DB
      * should be re-synced.
      */
-    public void actualizeRecentBuildRefs();
+    public String actualizeRecentBuildRefs();
 
     public Long getBuildStartTime(int buildId);
 

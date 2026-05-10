@@ -56,6 +56,12 @@ public class HttpUtil {
     private static final Logger logger = LoggerFactory.getLogger(HttpUtil.class);
 
     /** */
+    private static final String INTEGRATION_TEST_PROFILE = "integration-test";
+
+    /** */
+    private static final String PROFILE_PROPERTY = "tcbot.profile";
+
+    /** */
     private static final int ERR_RESPONSE_BODY_LIMIT = 4_096;
 
     /** */
@@ -87,6 +93,7 @@ public class HttpUtil {
     public static InputStream sendGetWithBasicAuth(String basicAuthTok, String url) throws IOException {
         final Stopwatch started = Stopwatch.createStarted();
         URL obj = new URL(url);
+        ensureIntegrationTestTarget(obj);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
         con.setConnectTimeout(TIMEOUT_MS);
         con.setReadTimeout(TIMEOUT_MS);
@@ -122,7 +129,10 @@ public class HttpUtil {
     public static InputStream sendGetToGit(String githubAuthTok, String url, @Nullable Map<String, String> rspHeaders) throws IOException {
         Stopwatch started = Stopwatch.createStarted();
         URL obj = new URL(url);
+        ensureIntegrationTestTarget(obj);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
+        con.setConnectTimeout(TIMEOUT_MS);
+        con.setReadTimeout(TIMEOUT_MS);
 
         if (githubAuthTok != null)
             con.setRequestProperty("Authorization", "token " + githubAuthTok);
@@ -170,7 +180,10 @@ public class HttpUtil {
     private static InputStream sendPostWithBasicAuth(String tok, String url,
         String body) throws IOException {
         URL obj = new URL(url);
+        ensureIntegrationTestTarget(obj);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
+        con.setConnectTimeout(TIMEOUT_MS);
+        con.setReadTimeout(TIMEOUT_MS);
 
         con.setRequestMethod("POST");
         con.setRequestProperty("Authorization", "Basic " + tok);
@@ -350,7 +363,10 @@ public class HttpUtil {
     public static String sendPostAsStringToGit(@Nullable String githubAuthTok, String url, String body)
         throws IOException {
         URL obj = new URL(url);
+        ensureIntegrationTestTarget(obj);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
+        con.setConnectTimeout(TIMEOUT_MS);
+        con.setReadTimeout(TIMEOUT_MS);
         Charset charset = StandardCharsets.UTF_8;
 
         con.setRequestProperty("accept-charset", charset.toString());
@@ -388,7 +404,10 @@ public class HttpUtil {
      */
     public static String sendPostAsStringToJira(String jiraAuthTok, String url, String body) throws IOException {
         URL obj = new URL(url);
+        ensureIntegrationTestTarget(obj);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
+        con.setConnectTimeout(TIMEOUT_MS);
+        con.setReadTimeout(TIMEOUT_MS);
         Charset charset = StandardCharsets.UTF_8;
 
         con.setRequestProperty("accept-charset", charset.toString());
@@ -421,7 +440,10 @@ public class HttpUtil {
     public static String sendGetToJira(String jiraAuthTok, String url) throws IOException {
         Stopwatch started = Stopwatch.createStarted();
         URL obj = new URL(url);
+        ensureIntegrationTestTarget(obj);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
+        con.setConnectTimeout(TIMEOUT_MS);
+        con.setReadTimeout(TIMEOUT_MS);
         Charset charset = StandardCharsets.UTF_8;
 
         con.setRequestProperty("accept-charset", charset.toString());
@@ -445,6 +467,39 @@ public class HttpUtil {
     private static void useKeepAlive(HttpURLConnection con) {
         con.setRequestProperty("Connection", "Keep-Alive");
         con.setRequestProperty("Keep-Alive", "header");
+    }
+
+    /**
+     * Integration tests must use local emulators and fail fast on accidental real external calls.
+     *
+     * @param url Target URL.
+     */
+    private static void ensureIntegrationTestTarget(URL url) throws IOException {
+        if (!INTEGRATION_TEST_PROFILE.equals(System.getProperty(PROFILE_PROPERTY)))
+            return;
+
+        if (isLoopbackHost(url.getHost()))
+            return;
+
+        throw new IOException("Integration-test profile blocks external HTTP call: " + url);
+    }
+
+    /**
+     * @param host URL host.
+     */
+    private static boolean isLoopbackHost(String host) {
+        if (host == null)
+            return false;
+
+        String normalized = host.toLowerCase();
+
+        return "localhost".equals(normalized)
+            || "127.0.0.1".equals(normalized)
+            || normalized.startsWith("127.")
+            || "::1".equals(normalized)
+            || "0:0:0:0:0:0:0:1".equals(normalized)
+            || "[::1]".equals(normalized)
+            || "[0:0:0:0:0:0:0:1]".equals(normalized);
     }
 
     private static void acceptUtf8(HttpURLConnection con) {

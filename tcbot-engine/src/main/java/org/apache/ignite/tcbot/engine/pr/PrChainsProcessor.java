@@ -211,6 +211,7 @@ public class PrChainsProcessor {
         DsChainUi chainStatus = new DsChainUi(srvCodeOrAlias, tcIgnited.serverCode(), branchForTc);
 
         chainStatus.baseBranchForTc = baseBranchForTc;
+        chainStatus.suiteId = suiteId;
 
         if (ctx.isFakeStub()) {
             if (!initInProgressChainStatus(chainStatus, tcIgnited, suiteId, branchForTc, mode))
