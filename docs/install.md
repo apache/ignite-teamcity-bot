@@ -48,9 +48,6 @@ The distribution archive is:
 
 It contains `bin`, `lib`, and `war/ignite-tc-helper-web.war`.
 
-Do not commit built archives or unpacked binary distributions to the Apache repository. Keep them only in the runtime
-directory, a deployment staging directory, or an external artifact store.
-
 ## 4. Stop the current service
 
 Stop TC Bot before copying or migrating anything:
