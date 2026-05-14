@@ -12,6 +12,8 @@ Major use cases are the following:
 * MCTGA Bot for slack and for email notifications.
 
 User-facing bot rules and workflows are documented in [TeamCity bot user guide](docs/teamcity-bot-user-guide.md).
+Production build and deployment are documented in [Build and installation](docs/install.md).
+Local clean checks and emulated bot runs are documented in [Testing](docs/testing.md).
 
 This tool is available on [https://mtcga.gridgain.com/](https://mtcga.gridgain.com/) - requires apache CI credentials.
 
@@ -75,10 +77,6 @@ Please install following components for development using IntelliJ IDEA
 * Apply [Code Inspection Profile](https://cwiki.apache.org/confluence/display/IGNITE/Coding+Guidelines#CodingGuidelines-C.CodeInspection)
 * Configure [IDEA Codestyle](https://cwiki.apache.org/confluence/display/IGNITE/Coding+Guidelines#CodingGuidelines-A.ConfigureIntelliJIDEAcodestyle)
 
-### Build and installation
-Build, production installation, Linux service setup, and Windows production-check commands are documented in
-[Build and installation](docs/install.md).
-
 ### Internal Design
 Main bot logic is placed in [ignite-tc-helper-web](ignite-tc-helper-web) module. 
 [jetty-launcher](jetty-launcher) is an application module to start bot in production.
@@ -139,5 +137,5 @@ The same migrator can also be run as a standalone tool from the `migrator` modul
 standalone module uses the same Ignite version as the rest of the project through the shared `ignVer` Gradle property.
 
 Heavyweight persistent-storage integration tests are excluded from the regular `test` and `build` tasks. Run them
-explicitly with `./gradlew :migrator:integrationTest --no-daemon` when checking old Ignite 2.14 persistent storage
+explicitly with `gradle :migrator:integrationTest --no-daemon` when checking old Ignite 2.14 persistent storage
 compatibility or migration recovery for corrupted binary metadata.
