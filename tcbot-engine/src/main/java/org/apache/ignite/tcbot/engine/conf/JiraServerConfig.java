@@ -33,6 +33,17 @@ public class JiraServerConfig implements IJiraServerConfig {
     /** JIRA authorization token property name. */
     public static final String JIRA_AUTH_TOKEN = "jira.auth_token";
 
+    /** JIRA authorization token PasswordEncoder flag property name. */
+    public static final String JIRA_AUTH_TOKEN_ENCODED = "jira.auth_token.encoded";
+
+    /** JIRA authorization scheme property name. */
+    public static final String JIRA_AUTH_SCHEME = "jira.auth_scheme";
+
+    /** JIRA Basic authorization scheme. */
+    public static final String JIRA_AUTH_SCHEME_BASIC = "Basic";
+
+    /** JIRA Bearer authorization scheme. */
+    public static final String JIRA_AUTH_SCHEME_BEARER = "Bearer";
 
     /** JIRA URL to build links to tickets. */
     public static final String JIRA_URL = "jira.url";
@@ -63,10 +74,22 @@ public class JiraServerConfig implements IJiraServerConfig {
     private Properties props;
 
     /**
-     * JIRA Auth token encoded to access JIRA, use {@link PasswordEncoder#encodeJiraTok(String,
-     * String)} to set up value in a config.
+     * JIRA Auth token to access JIRA. Plain and {@link PasswordEncoder}-encoded tokens are auto-detected unless
+     * {@link #authTokEncoded} is set explicitly.
      */
     private String authTok;
+
+    /**
+     * {@code True} if {@link #authTok} is encoded with {@link PasswordEncoder}, {@code false} if it is plain, or
+     * {@code null} to auto-detect.
+     */
+    private Boolean authTokEncoded;
+
+    /**
+     * HTTP Authorization scheme. Use {@code Bearer} for JIRA personal access tokens and {@code Basic} for legacy
+     * base64 username/password tokens.
+     */
+    private String authScheme;
 
     /**
      * JIRA Server URL. HTTPs is highly recommended.
@@ -143,16 +166,76 @@ public class JiraServerConfig implements IJiraServerConfig {
     @Nullable
     @Override
     public String decodedHttpAuthToken() {
-        String tok;
-
-        if (Strings.isNullOrEmpty(authTok) && props != null)
-            tok = props.getProperty(JIRA_AUTH_TOKEN);
-        else
-            tok = authTok;
+        String tok = authTokenConfigured();
 
         if (isNullOrEmpty(tok))
             return null;
 
-        return PasswordEncoder.decode(tok);
+        Boolean encoded = isAuthTokenEncoded();
+
+        if (encoded == null)
+            return PasswordEncoder.decodeIfEncoded(tok);
+
+        return encoded ? PasswordEncoder.decode(tok) : tok;
+    }
+
+    /** {@inheritDoc} */
+    @Nullable
+    @Override
+    public String httpAuthorizationHeader() {
+        String tok = decodedHttpAuthToken();
+
+        return isNullOrEmpty(tok) ? null : authScheme() + " " + tok;
+    }
+
+    /**
+     * @return Configured auth token.
+     */
+    @Nullable
+    private String authTokenConfigured() {
+        if (!Strings.isNullOrEmpty(authTok))
+            return authTok;
+
+        return props != null ? props.getProperty(JIRA_AUTH_TOKEN) : null;
+    }
+
+    /**
+     * @return {@code True} if configured auth token is encoded with {@link PasswordEncoder}, {@code false} if it is
+     * plain, or {@code null} if it should be auto-detected.
+     */
+    @Nullable
+    private Boolean isAuthTokenEncoded() {
+        if (authTokEncoded != null)
+            return authTokEncoded;
+
+        if (props != null && Strings.isNullOrEmpty(authTok)) {
+            String encoded = props.getProperty(JIRA_AUTH_TOKEN_ENCODED);
+
+            return Strings.isNullOrEmpty(encoded) ? null : Boolean.parseBoolean(encoded);
+        }
+
+        return null;
+    }
+
+    /**
+     * @return HTTP Authorization scheme.
+     */
+    private String authScheme() {
+        String scheme;
+
+        if (!Strings.isNullOrEmpty(authScheme))
+            scheme = authScheme;
+        else if (props != null && Strings.isNullOrEmpty(authTok))
+            scheme = props.getProperty(JIRA_AUTH_SCHEME, JIRA_AUTH_SCHEME_BASIC);
+        else
+            scheme = JIRA_AUTH_SCHEME_BEARER;
+
+        if (JIRA_AUTH_SCHEME_BASIC.equalsIgnoreCase(scheme))
+            return JIRA_AUTH_SCHEME_BASIC;
+
+        if (JIRA_AUTH_SCHEME_BEARER.equalsIgnoreCase(scheme))
+            return JIRA_AUTH_SCHEME_BEARER;
+
+        throw new IllegalStateException("Unsupported JIRA auth scheme: " + scheme);
     }
 }

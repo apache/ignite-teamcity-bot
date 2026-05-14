@@ -33,6 +33,9 @@ public class GitHubConfig implements IGitHubConfig {
     /** GitHub authorization token property name. */
     public static final String GITHUB_AUTH_TOKEN = "github.auth_token";
 
+    /** GitHub authorization token PasswordEncoder flag property name. */
+    public static final String GITHUB_AUTH_TOKEN_ENCODED = "github.auth_token.encoded";
+
     /** Git branch naming prefix for PRLess contributions. */
     public static final String GIT_BRANCH_PREFIX = "git.branch_prefix";
 
@@ -49,10 +52,16 @@ public class GitHubConfig implements IGitHubConfig {
     private String branchPrefix;
 
     /**
-     * Git Auth token encoded to access non-public git repos, use {@link PasswordEncoder#encodeJiraTok(String,
-     * String)} to set up value in a config.
+     * Git Auth token to access non-public git repos. Plain and {@link PasswordEncoder}-encoded tokens are
+     * auto-detected unless {@link #authTokEncoded} is set explicitly.
      */
     private String authTok;
+
+    /**
+     * {@code True} if {@link #authTok} is encoded with {@link PasswordEncoder}, {@code false} if it is plain, or
+     * {@code null} to auto-detect.
+     */
+    private Boolean authTokEncoded;
 
     private Properties props;
 
@@ -102,9 +111,17 @@ public class GitHubConfig implements IGitHubConfig {
     /** {@inheritDoc} */
     @Nullable
     @Override public String gitAuthTok() {
-        String encAuth = gitAuthTokenEncoded();
+        String authTok = gitAuthTokenConfigured();
 
-        return isNullOrEmpty(encAuth) ? null : PasswordEncoder.decode(encAuth);
+        if (isNullOrEmpty(authTok))
+            return null;
+
+        Boolean encoded = isAuthTokenEncoded();
+
+        if (encoded == null)
+            return PasswordEncoder.decodeIfEncoded(authTok);
+
+        return encoded ? PasswordEncoder.decode(authTok) : authTok;
     }
 
     /** {@inheritDoc} */
@@ -145,12 +162,39 @@ public class GitHubConfig implements IGitHubConfig {
      *
      */
     @Nullable
-    public String gitAuthTokenEncoded() {
+    public String gitAuthTokenConfigured() {
         if (!Strings.isNullOrEmpty(authTok))
             return authTok;
 
         return props != null
             ? props.getProperty(GITHUB_AUTH_TOKEN)
             : null;
+    }
+
+    /**
+     * @return Configured Github auth token.
+     */
+    @Deprecated
+    @Nullable
+    public String gitAuthTokenEncoded() {
+        return gitAuthTokenConfigured();
+    }
+
+    /**
+     * @return {@code True} if configured auth token is encoded with {@link PasswordEncoder}, {@code false} if it is
+     * plain, or {@code null} if it should be auto-detected.
+     */
+    @Nullable
+    private Boolean isAuthTokenEncoded() {
+        if (authTokEncoded != null)
+            return authTokEncoded;
+
+        if (props != null && Strings.isNullOrEmpty(authTok)) {
+            String encoded = props.getProperty(GITHUB_AUTH_TOKEN_ENCODED);
+
+            return Strings.isNullOrEmpty(encoded) ? null : Boolean.parseBoolean(encoded);
+        }
+
+        return null;
     }
 }
