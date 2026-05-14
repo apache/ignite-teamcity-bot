@@ -56,7 +56,17 @@ public class AuthTokenConfigTest {
         String basicTok = PasswordEncoder.userPwdToToken("user", "password");
         JiraServerConfig cfg = withField(new JiraServerConfig(), "authTok", PasswordEncoder.encode(basicTok));
 
-        withField(cfg, "authScheme", "Basic");
+        assertEquals(basicTok, cfg.decodedHttpAuthToken());
+        assertEquals("Basic " + basicTok, cfg.httpAuthorizationHeader());
+    }
+
+    /** */
+    @Test
+    public void jiraJsonTokenExplicitlyEncodedDefaultsToBasic() throws Exception {
+        String basicTok = PasswordEncoder.userPwdToToken("user", "password");
+        JiraServerConfig cfg = withField(new JiraServerConfig(), "authTok", PasswordEncoder.encode(basicTok));
+
+        withField(cfg, "authTokEncoded", true);
 
         assertEquals(basicTok, cfg.decodedHttpAuthToken());
         assertEquals("Basic " + basicTok, cfg.httpAuthorizationHeader());

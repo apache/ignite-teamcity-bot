@@ -87,7 +87,7 @@ public class JiraServerConfig implements IJiraServerConfig {
 
     /**
      * HTTP Authorization scheme. Use {@code Bearer} for JIRA personal access tokens and {@code Basic} for legacy
-     * base64 username/password tokens.
+     * base64 username/password tokens. Encoded tokens default to Basic when the scheme is not set.
      */
     private String authScheme;
 
@@ -221,14 +221,10 @@ public class JiraServerConfig implements IJiraServerConfig {
      * @return HTTP Authorization scheme.
      */
     private String authScheme() {
-        String scheme;
+        String scheme = authSchemeConfigured();
 
-        if (!Strings.isNullOrEmpty(authScheme))
-            scheme = authScheme;
-        else if (props != null && Strings.isNullOrEmpty(authTok))
-            scheme = props.getProperty(JIRA_AUTH_SCHEME, JIRA_AUTH_SCHEME_BASIC);
-        else
-            scheme = JIRA_AUTH_SCHEME_BEARER;
+        if (Strings.isNullOrEmpty(scheme))
+            scheme = defaultAuthScheme();
 
         if (JIRA_AUTH_SCHEME_BASIC.equalsIgnoreCase(scheme))
             return JIRA_AUTH_SCHEME_BASIC;
@@ -237,5 +233,35 @@ public class JiraServerConfig implements IJiraServerConfig {
             return JIRA_AUTH_SCHEME_BEARER;
 
         throw new IllegalStateException("Unsupported JIRA auth scheme: " + scheme);
+    }
+
+    /**
+     * @return Configured HTTP Authorization scheme.
+     */
+    @Nullable
+    private String authSchemeConfigured() {
+        if (!Strings.isNullOrEmpty(authScheme))
+            return authScheme;
+
+        return props != null && Strings.isNullOrEmpty(authTok) ? props.getProperty(JIRA_AUTH_SCHEME) : null;
+    }
+
+    /**
+     * @return Default HTTP Authorization scheme.
+     */
+    private String defaultAuthScheme() {
+        if (props != null && Strings.isNullOrEmpty(authTok))
+            return JIRA_AUTH_SCHEME_BASIC;
+
+        return isAuthTokenEncodedOrAutoDetected() ? JIRA_AUTH_SCHEME_BASIC : JIRA_AUTH_SCHEME_BEARER;
+    }
+
+    /**
+     * @return {@code True} if configured token is known or detected as encoded.
+     */
+    private boolean isAuthTokenEncodedOrAutoDetected() {
+        Boolean encoded = isAuthTokenEncoded();
+
+        return encoded != null ? encoded : PasswordEncoder.isEncoded(authTokenConfigured());
     }
 }

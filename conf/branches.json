@@ -69,7 +69,8 @@
       /* JIRA Url, HTTPs is highly recommended. */
       "url": "https://issues.apache.org/jira/",
       /** JIRA authorization scheme. Use Bearer for personal access tokens, or Basic for
-        base64 pre-encoded username/password tokens. Default for branches.json is Bearer. */
+        base64 pre-encoded username/password tokens. If omitted, plain tokens default to Bearer
+        and PasswordEncoder-protected tokens default to Basic for backward compatibility. */
       "authScheme": "Bearer",
       /** JIRA Auth token to access. Personal Access Token can be specified as plain text by default.
         PasswordEncoder-protected hex values are auto-detected. Set authTokEncoded to true or false

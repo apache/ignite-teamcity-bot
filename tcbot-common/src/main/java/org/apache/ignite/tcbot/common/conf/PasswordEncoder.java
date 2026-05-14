@@ -59,6 +59,20 @@ public class PasswordEncoder {
         }
     }
 
+    public static boolean isEncoded(String tok) {
+        if (!mayBeEncoded(tok))
+            return false;
+
+        try {
+            decode(tok);
+
+            return true;
+        }
+        catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
     private static boolean mayBeEncoded(String tok) {
         if (Strings.isNullOrEmpty(tok))
             return false;
