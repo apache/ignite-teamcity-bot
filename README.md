@@ -58,7 +58,12 @@ Main config file is [conf/branches.json](conf/branches.json). This file needs to
 The running bot reloads `branches.json` lazily: configuration reads are cached for up to 3 minutes, so most changes
 become visible without a restart after the cache expires. Restart the bot only when you need the change to take effect
 immediately.
-Extra setup is required using security-sensitive information using PasswordEncoder. No TeamCity credentials are required because TC bot asks users to enter creds.
+JIRA and GitHub tokens can be specified as plain text in `branches.json` or protected with `PasswordEncoder`.
+When `authTokEncoded` is not set, the bot auto-detects encoded hex values and otherwise treats tokens as plain.
+Set `authTokEncoded` only when you need to force a mode. For JIRA Personal Access Tokens, use
+`authScheme: "Bearer"`; legacy base64 username/password tokens can still use `authScheme: "Basic"`. If
+JIRA `authScheme` is omitted, encoded tokens default to Basic for compatibility and plain tokens default to Bearer.
+No TeamCity credentials are required because TC bot asks users to enter creds.
 
 Minimal local run checklist:
 * Import the Gradle project into IntelliJ IDEA.

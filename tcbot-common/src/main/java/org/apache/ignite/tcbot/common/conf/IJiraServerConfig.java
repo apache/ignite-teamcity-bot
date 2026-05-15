@@ -61,10 +61,20 @@ public interface IJiraServerConfig {
     @Nullable String decodedHttpAuthToken();
 
     /**
+     * @return Null or full HTTP Authorization header value for JIRA.
+     */
+    @Nullable
+    default String httpAuthorizationHeader() {
+        String tok = decodedHttpAuthToken();
+
+        return Strings.isNullOrEmpty(tok) ? null : "Basic " + tok;
+    }
+
+    /**
      * @return {@code True} if JIRA authorization token is available.
      */
     default boolean isJiraTokenAvailable() {
-        return !Strings.isNullOrEmpty(decodedHttpAuthToken());
+        return !Strings.isNullOrEmpty(httpAuthorizationHeader());
     }
 
     default String restApiUrl() {
