@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Emulated TC Bot" type="GradleRunConfiguration" factoryName="Gradle">
+  <configuration default="false" name="TC Bot WAR - Stub Services" type="GradleRunConfiguration" factoryName="Gradle">
     <ExternalSystemSettings>
       <option name="executionName" />
       <option name="externalProjectPath" value="$PROJECT_DIR$" />
@@ -10,7 +10,7 @@
       </option>
       <option name="taskNames">
         <list>
-          <option value=":tcbot-integration-tests:runEmulatedBot" />
+          <option value=":tcbot-integration-tests:runEmulatedTcBotWar" />
         </list>
       </option>
       <option name="vmOptions" value="" />

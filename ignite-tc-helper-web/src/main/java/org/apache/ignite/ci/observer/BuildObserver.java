@@ -19,6 +19,7 @@ package org.apache.ignite.ci.observer;
 
 import java.util.Objects;
 import java.util.Timer;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import org.apache.ignite.ci.tcbot.visa.CommentTargets;
@@ -30,6 +31,9 @@ import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.tcbot.common.exeption.ServiceUnauthorizedException;
+import org.apache.ignite.tcbot.persistence.scheduler.MaintenanceActionNames;
+import org.apache.ignite.tcbot.persistence.scheduler.MaintenanceActionRegistry;
+import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +65,7 @@ public class BuildObserver {
     /**
      */
     @Inject
-    public BuildObserver(ObserverTask observerTask) {
+    public BuildObserver(ObserverTask observerTask, MaintenanceActionRegistry maintenanceActions) {
         timer = new Timer();
 
         timer.schedule(observerTask, 0, PERIOD);
@@ -69,6 +73,11 @@ public class BuildObserver {
         this.observerTask = observerTask;
 
         this.observerTask.init();
+
+        maintenanceActions.register(MaintenanceActionNames.RUNNING_VISAS_CHECK_RESULTS,
+            "Check running visa build results and publish ready visa comments", this::runNow);
+        maintenanceActions.register(MaintenanceActionNames.RUNNING_VISAS_OBSERVED_BRANCHES,
+            "List branches currently watched by running visa observer", this::observedBranchKeys);
     }
 
     /**
@@ -86,6 +95,20 @@ public class BuildObserver {
      */
     public String runNow() {
         return observerTask.runObserverTask();
+    }
+
+    /** */
+    private String observedBranchKeys() {
+        return observerTask.getInfos().stream()
+            .map(info -> observedBranchKey(info.srvId, info.branchForTc))
+            .distinct()
+            .sorted()
+            .collect(Collectors.joining("\n"));
+    }
+
+    /** */
+    public static String observedBranchKey(String srvId, @Nullable String branchForTc) {
+        return srvId + "|" + BranchEquivalence.normalizeBranch(branchForTc);
     }
 
     /**

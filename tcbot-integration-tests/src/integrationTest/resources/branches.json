@@ -28,7 +28,7 @@
       "code": "apache",
       "preferBranches": false,
       "branchPrefix": "ignite-",
-      "authTok": "github-test-token",
+      "authTok": "E3C9FD4531B8A2BC4EDF0CA283B0031ED1ACCCF0C021B055B7DF6D5D63560C6DDE666BDAF08380D629A147AA79C5FF05",
       "apiUrl": "http://127.0.0.1:8011/repos/apache/ignite/"
     }
   ],
@@ -53,6 +53,29 @@
           "serverId": "apache",
           "suiteId": "IgniteTests24Java17_RunAll",
           "branchForRest": "<default>"
+        }
+      ],
+      "disableIssueTypes": []
+    },
+    {
+      "id": "master-nightly",
+      "chains": [
+        {
+          "serverId": "apache",
+          "suiteId": "IgniteTests24Java17_RunAllNightly",
+          "branchForRest": "nightly",
+          "triggerBuild": true,
+          "triggerBuildQuietPeriod": 30,
+          "triggerParameters": [
+            {
+              "name": "reverse.dep.*.env.JAVA_HOME",
+              "randomValue": true,
+              "selection": [
+                {"value": "%env.JDK_ORA_18%", "label": "JDK8"},
+                {"value": "%env.JDK_OPEN_11%", "label": "JDK11"}
+              ]
+            }
+          ]
         }
       ],
       "disableIssueTypes": []

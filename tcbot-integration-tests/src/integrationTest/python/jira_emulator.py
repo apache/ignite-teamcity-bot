@@ -238,11 +238,25 @@ def jira_issue_payload(handler, key, issue):
             "summary": issue["summary"],
             "description": issue.get("description", issue["summary"]),
             "customfield_11050": issue.get("customfield_11050"),
-            "status": {"name": issue["status"]},
+            "status": {"id": jira_status_id(issue["status"]), "name": issue["status"]},
             "assignee": {"name": issue["assignee"]},
             "labels": issue["labels"]
         }
     }
+
+
+def jira_status_id(status):
+    return {
+        "Open": 1,
+        "In Progress": 3,
+        "Reopened": 4,
+        "Resolved": 5,
+        "Closed": 6,
+        "Backlog": 10010,
+        "Patch Available": 10012,
+        "Pending": 10402,
+        "Patch Reviewed": 10800
+    }.get(status, 1)
 
 
 def jira_comment_payload(handler, key, idx, body):

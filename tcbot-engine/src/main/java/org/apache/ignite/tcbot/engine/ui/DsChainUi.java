@@ -263,7 +263,7 @@ public class DsChainUi {
         String suiteId = ctx.suiteId();
         this.suiteId  = suiteId;
         chainName = ctx.suiteName();
-        webToHist = DsSuiteUi.buildWebLinkToHist(tcIgnited, suiteId, ctx.branchName());
+        webToHist = Strings.isNullOrEmpty(suiteId) ? "" : DsSuiteUi.buildWebLinkToHist(tcIgnited, suiteId, ctx.branchName());
         webToBuild = buildWebLinkToBuild(tcIgnited, ctx);
 
         Stream<T2<MultBuildRunCtx, TestCompactedMult>> allLongRunning = ctx.suites()

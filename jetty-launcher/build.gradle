@@ -94,8 +94,8 @@ distributions {
     }
 }
 
-tasks.register('prepareLocalWarRun') {
-    dependsOn tasks.named('installDist')
+tasks.register('prepareTcBotWarRun') {
+    dependsOn tasks.named('installDist'), ':ignite-tc-helper-web:war'
 
     doLast {
         def workDir = layout.buildDirectory.dir('install/jetty-launcher/work').get().asFile

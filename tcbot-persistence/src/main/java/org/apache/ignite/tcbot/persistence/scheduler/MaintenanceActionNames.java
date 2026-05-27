@@ -15,19 +15,18 @@
  * limitations under the License.
  */
 
-apply plugin: 'java'
+package org.apache.ignite.tcbot.persistence.scheduler;
 
+/** Shared names for cross-service maintenance actions. */
+public final class MaintenanceActionNames {
+    /** Run the build observer immediately. */
+    public static final String RUNNING_VISAS_CHECK_RESULTS = "runningVisas.checkResults";
 
-dependencies {
-    api project(":tcbot-common")
+    /** List observed visa branches as srvId|normalizedBranch lines. */
+    public static final String RUNNING_VISAS_OBSERVED_BRANCHES = "runningVisas.observedBranches";
 
-    /// JAXB replacement for Java 17.
-    api 'javax.xml.bind:jaxb-api:2.3.1'
-    runtimeOnly "com.sun.xml.bind:jaxb-impl:$jaxbVer"
-    runtimeOnly 'com.sun.xml.bind:jaxb-core:2.3.0'
-
-    implementation 'javax.inject:javax.inject:1'
-
-    testImplementation "junit:junit:$junitVer"
+    /** */
+    private MaintenanceActionNames() {
+        // No-op.
+    }
 }
-

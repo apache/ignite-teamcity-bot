@@ -12,15 +12,21 @@ from `:jetty-launcher:installDist`.
 
 ## Local IDEA launcher
 
-Use the shared IDEA run configuration `Emulated TC Bot` from `.run/Emulated TC Bot.run.xml`, or run:
+Use the shared IDEA run configuration `TC Bot WAR - Stub Services`, or run:
 
 ```bash
-./gradlew :tcbot-integration-tests:runEmulatedBot
+./gradlew :tcbot-integration-tests:runEmulatedTcBotWar
 ```
 
 The launcher starts separate Python emulator processes for GitHub, JIRA, and TeamCity, recreates an isolated bot work
 directory under `tcbot-integration-tests/build/emulated-bot/work`, and starts the production launcher class against the
 built WAR. Open the UI at `http://127.0.0.1:5555/`.
+
+For daily debug work use the shared IDEA run configuration `TC Bot Local - Stub Services`. It starts the same Python emulators,
+then executes the bot server code directly in the same JVM instead of starting a WAR process. Static resources are served
+from `ignite-tc-helper-web/src/main/webapp` on every request. HTML, JS, CSS, and image edits are visible after browser
+refresh; restart the Java run only for Java changes. Python emulator changes do not require a bot restart: use the
+emulator control REST below.
 
 Press Enter in the launcher console to stop the bot and all Python emulators cleanly. If the launcher is started from a
 non-interactive Gradle process and standard input closes, it also shuts the emulated environment down and exits
@@ -35,7 +41,7 @@ Login immediately after opening the link:
 
 Default local ports:
 
-* Bot WAR: `5555`, via `-Dtcbot.http.port=5555`.
+* Bot: `5555`, via `-Dtcbot.http.port=5555`.
 * Bot Ignite discovery: `55433`, via `-Dtcbot.ignite.discovery.port=55433`.
 * GitHub emulator: `8011`.
 * JIRA emulator: `8012`.
@@ -72,6 +78,7 @@ emulator script when the bot itself does not need to restart:
 * `POST http://127.0.0.1:8010/__test__/emulators/restart?service=github`
 * `POST http://127.0.0.1:8010/__test__/emulators/restart?service=jira`
 * `POST http://127.0.0.1:8010/__test__/emulators/restart?service=teamcity`
+* `POST http://127.0.0.1:8010/__test__/emulators/restart?service=all`
 * `GET http://127.0.0.1:8010/__test__/emulators/status`
 
 ## External calls

@@ -164,6 +164,14 @@ public interface ITeamcityIgnited {
      */
     public FatBuildCompacted getFatBuild(int id, SyncMode mode);
 
+    /**
+     * @param id Id.
+     * @param mode Refresh mode.
+     */
+    public default FatBuildCompacted getFatBuildFresh(int id, SyncMode mode) {
+        return getFatBuild(id, mode);
+    }
+
     public Collection<ChangeCompacted> getAllChanges(int[] changeIds);
 
     /**
@@ -271,6 +279,15 @@ public interface ITeamcityIgnited {
      * should be re-synced.
      */
     public String actualizeRecentBuildRefs();
+
+    /**
+     * Rechecks TeamCity directly for a concrete build type and branch and keeps found refs in a temporary in-memory
+     * lookup layer until the regular incremental sync catches up.
+     *
+     * @param buildTypeId Build type ID.
+     * @param branchName TeamCity branch name.
+     */
+    public String recheckBuildRef(String buildTypeId, String branchName);
 
     public Long getBuildStartTime(int buildId);
 
