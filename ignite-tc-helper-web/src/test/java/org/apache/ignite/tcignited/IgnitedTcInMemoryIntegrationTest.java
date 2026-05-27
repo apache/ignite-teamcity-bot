@@ -35,6 +35,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -762,6 +763,29 @@ public class IgnitedTcInMemoryIntegrationTest {
         }
     }
 
+    private long sqlIndexCountOnColumns(IgniteCache<?, ?> cache, String tableName, String... columnNames) {
+        List<String> exp = Arrays.stream(columnNames)
+            .map(name -> name.toUpperCase(Locale.ROOT))
+            .collect(Collectors.toList());
+
+        Map<String, List<String>> colsByIdx = new HashMap<>();
+
+        try (QueryCursor<List<?>> cur = cache.query(new SqlFieldsQuery("SELECT INDEX_NAME, COLUMN_NAME "
+            + "FROM INFORMATION_SCHEMA.INDEXES WHERE UPPER(TABLE_NAME) = ? ORDER BY INDEX_NAME, ORDINAL_POSITION")
+            .setArgs(tableName.toUpperCase(Locale.ROOT)))) {
+            for (List<?> row : cur) {
+                String idxName = String.valueOf(row.get(0));
+                String colName = String.valueOf(row.get(1)).toUpperCase(Locale.ROOT);
+
+                colsByIdx.computeIfAbsent(idxName, k -> new ArrayList<>()).add(colName);
+            }
+        }
+
+        return colsByIdx.values().stream()
+            .filter(cols -> cols.size() >= exp.size() && cols.subList(0, exp.size()).equals(exp))
+            .count();
+    }
+
     @Test
     public void testTemporaryBuildRefsArePromotedOnlyWhenPersistentEntryIsMissing() {
         TeamcityIgnitedModule module = new TeamcityIgnitedModule();
@@ -848,12 +872,18 @@ public class IgnitedTcInMemoryIntegrationTest {
         if (existing != null)
             existing.destroy();
 
+        String migrationCode = "add-BuildRef-suite-branch-history-index";
         String migrationsCacheName = DbMigrations.ignCacheNme(DbMigrations.DONE_MIGRATIONS,
             DbMigrations.DONE_MIGRATION_PREFIX);
         IgniteCache<String, Object> migrations = ignite.cache(migrationsCacheName);
 
         if (migrations != null)
-            migrations.remove("add-BuildRef-suite-branch-history-index");
+            migrations.remove(migrationCode);
+
+        new DbMigrations(ignite).dataMigration();
+
+        migrations = ignite.cache(migrationsCacheName);
+        assertFalse(migrations.containsKey(migrationCode));
 
         QueryEntity oldEntity = new QueryEntity();
         LinkedHashMap<String, String> oldFields = new LinkedHashMap<>();
@@ -888,6 +918,53 @@ public class IgnitedTcInMemoryIntegrationTest {
             + "WHERE branchName = ? AND buildTypeId = ? AND id > ?").setArgs(3, 4, 40))) {
             assertEquals(1, cur.getAll().size());
         }
+    }
+
+    @Test
+    public void testBuildRefHistoryQuerySchemaMigrationDoesNotDuplicateEquivalentIndex() {
+        IgniteCache<Long, BuildRefCompacted> existing = ignite.cache(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
+
+        if (existing != null)
+            existing.destroy();
+
+        String migrationCode = "add-BuildRef-suite-branch-history-index";
+        String migrationsCacheName = DbMigrations.ignCacheNme(DbMigrations.DONE_MIGRATIONS,
+            DbMigrations.DONE_MIGRATION_PREFIX);
+        IgniteCache<String, Object> migrations = ignite.cache(migrationsCacheName);
+
+        if (migrations != null)
+            migrations.remove(migrationCode);
+
+        QueryEntity entity = new QueryEntity();
+        LinkedHashMap<String, String> fields = new LinkedHashMap<>();
+
+        entity.setKeyType(Long.class.getName());
+        entity.setValueType(BuildRefCompacted.class.getName());
+        entity.setTableName("BuildRefCompacted");
+        fields.put("branchName", Integer.class.getName());
+        fields.put("buildTypeId", Integer.class.getName());
+        fields.put("id", Integer.class.getName());
+        entity.setFields(fields);
+
+        CacheConfiguration<Long, BuildRefCompacted> cfg =
+            CacheConfigs.getCacheV2Config(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
+        cfg.setQueryEntities(Collections.singletonList(entity));
+
+        IgniteCache<Long, BuildRefCompacted> cache = ignite.getOrCreateCache(cfg);
+
+        try (QueryCursor<List<?>> ignored = cache.query(new SqlFieldsQuery("CREATE INDEX "
+            + "BUILDREFCOMPACTED_EQUIVALENT_HISTORY_IDX ON BuildRefCompacted (branchName, buildTypeId, id)"))) {
+            // No-op.
+        }
+
+        long idxCntBefore = sqlIndexCountOnColumns(cache, "BUILDREFCOMPACTED", "BRANCHNAME", "BUILDTYPEID", "ID");
+
+        assertEquals(1L, idxCntBefore);
+
+        new DbMigrations(ignite).dataMigration();
+
+        assertEquals(idxCntBefore, sqlIndexCountOnColumns(cache, "BUILDREFCOMPACTED", "BRANCHNAME", "BUILDTYPEID",
+            "ID"));
     }
 
     @Test

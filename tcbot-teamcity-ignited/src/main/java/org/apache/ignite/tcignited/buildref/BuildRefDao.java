@@ -56,11 +56,16 @@ import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.build.UpdateCountersStorage;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 public class BuildRefDao {
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(BuildRefDao.class);
+
     /** Cache name */
     public static final String TEAMCITY_BUILD_CACHE_NAME = "teamcityBuildRef";
 
@@ -454,12 +459,12 @@ public class BuildRefDao {
             }
         }
 
-        if (!list.isEmpty()) {
-            System.err.println(" Branch " + compactor.getStringFromId(branchNameId)
-                + " Suite " + compactor.getStringFromId(buildTypeIdId)
-                + " builds " + list.size()
-                + (minBuildId == null ? "" : " after build " + minBuildId)
-                + " ");
+        if (!list.isEmpty() && logger.isDebugEnabled()) {
+            logger.debug("Branch {} Suite {} builds {}{}",
+                compactor.getStringFromId(branchNameId),
+                compactor.getStringFromId(buildTypeIdId),
+                list.size(),
+                minBuildId == null ? "" : " after build " + minBuildId);
         }
 
         return list;

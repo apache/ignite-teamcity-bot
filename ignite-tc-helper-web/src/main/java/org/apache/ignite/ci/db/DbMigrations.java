@@ -37,8 +37,10 @@ import org.slf4j.LoggerFactory;
 import org.apache.ignite.migrate.GridIntListMigrator;
 
 import javax.cache.Cache;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -62,6 +64,9 @@ public class DbMigrations {
 
     /** Index for suite history lookups inside a branch. */
     private static final String BUILD_REF_BRANCH_BUILD_TYPE_ID_IDX = "BUILDREFCOMPACTED_BRANCH_BUILD_TYPE_ID_IDX";
+
+    /** Migration name for build refs history query SQL schema. */
+    private static final String BUILD_REF_HISTORY_QUERY_SCHEMA_MIGRATION = "add-BuildRef-suite-branch-history-index";
 
     public static final String DONE_MIGRATION_PREFIX = "apache";
 
@@ -358,30 +363,34 @@ public class DbMigrations {
      * Adds SQL fields and an index required by suite/branch build-ref history queries.
      */
     private void applyBuildRefHistoryQuerySchemaMigration() {
-        applyMigration("add-BuildRef-suite-branch-history-index", () -> {
-            IgniteCache<Object, Object> cache = ignite.cache(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
+        if (doneMigrations.containsKey(BUILD_REF_HISTORY_QUERY_SCHEMA_MIGRATION))
+            return;
 
-            if (cache == null) {
-                logger.info("BuildRef cache [{}] does not exist yet, skipping SQL schema migration",
-                    BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
+        IgniteCache<Object, Object> cache = ignite.cache(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
 
-                return;
-            }
+        if (cache == null) {
+            logger.info("BuildRef cache [{}] does not exist yet, delaying SQL schema migration",
+                BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
 
-            if (!sqlTableExists(cache, BUILD_REF_TABLE)) {
-                logger.info("BuildRef SQL table [{}] does not exist yet, skipping SQL schema migration",
-                    BUILD_REF_TABLE);
+            return;
+        }
 
-                return;
-            }
+        if (!sqlTableExists(cache, BUILD_REF_TABLE)) {
+            logger.info("BuildRef SQL table [{}] does not exist yet, delaying SQL schema migration",
+                BUILD_REF_TABLE);
 
+            return;
+        }
+
+        applyMigration(BUILD_REF_HISTORY_QUERY_SCHEMA_MIGRATION, () -> {
             if (!sqlColumnExists(cache, BUILD_REF_TABLE, "BUILDTYPEID"))
                 sqlDdl(cache, "ALTER TABLE " + BUILD_REF_TABLE + " ADD COLUMN buildTypeId INT");
 
             if (!sqlColumnExists(cache, BUILD_REF_TABLE, "ID"))
                 sqlDdl(cache, "ALTER TABLE " + BUILD_REF_TABLE + " ADD COLUMN id INT");
 
-            if (!sqlIndexExists(cache, BUILD_REF_BRANCH_BUILD_TYPE_ID_IDX)) {
+            if (!sqlIndexExists(cache, BUILD_REF_BRANCH_BUILD_TYPE_ID_IDX) &&
+                !sqlIndexExistsOnColumns(cache, BUILD_REF_TABLE, "BRANCHNAME", "BUILDTYPEID", "ID")) {
                 sqlDdl(cache, "CREATE INDEX " + BUILD_REF_BRANCH_BUILD_TYPE_ID_IDX + " ON " + BUILD_REF_TABLE
                     + " (branchName, buildTypeId, id)");
             }
@@ -393,7 +402,8 @@ public class DbMigrations {
      * @param tableName SQL table name.
      */
     private boolean sqlTableExists(IgniteCache<?, ?> cache, String tableName) {
-        return sqlCount(cache, "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = ?", tableName) > 0;
+        return sqlCount(cache, "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE UPPER(TABLE_NAME) = ?",
+            tableName.toUpperCase(Locale.ROOT)) > 0;
     }
 
     /**
@@ -402,8 +412,9 @@ public class DbMigrations {
      * @param columnName SQL column name.
      */
     private boolean sqlColumnExists(IgniteCache<?, ?> cache, String tableName, String columnName) {
-        return sqlCount(cache, "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ? AND COLUMN_NAME = ?",
-            tableName, columnName) > 0;
+        return sqlCount(cache, "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS "
+                + "WHERE UPPER(TABLE_NAME) = ? AND UPPER(COLUMN_NAME) = ?",
+            tableName.toUpperCase(Locale.ROOT), columnName.toUpperCase(Locale.ROOT)) > 0;
     }
 
     /**
@@ -412,6 +423,34 @@ public class DbMigrations {
      */
     private boolean sqlIndexExists(IgniteCache<?, ?> cache, String indexName) {
         return sqlCount(cache, "SELECT COUNT(*) FROM INFORMATION_SCHEMA.INDEXES WHERE INDEX_NAME = ?", indexName) > 0;
+    }
+
+    /**
+     * @param cache Cache.
+     * @param tableName SQL table name.
+     * @param columnNames Expected index column names in order.
+     */
+    private boolean sqlIndexExistsOnColumns(IgniteCache<?, ?> cache, String tableName, String... columnNames) {
+        List<String> exp = new ArrayList<>(columnNames.length);
+
+        for (String columnName : columnNames)
+            exp.add(columnName.toUpperCase(Locale.ROOT));
+
+        Map<String, List<String>> colsByIdx = new HashMap<>();
+
+        try (QueryCursor<List<?>> cur = cache.query(new SqlFieldsQuery("SELECT INDEX_NAME, COLUMN_NAME "
+            + "FROM INFORMATION_SCHEMA.INDEXES WHERE UPPER(TABLE_NAME) = ? ORDER BY INDEX_NAME, ORDINAL_POSITION")
+            .setArgs(tableName.toUpperCase(Locale.ROOT)))) {
+            for (List<?> row : cur) {
+                String idxName = String.valueOf(row.get(0));
+                String colName = String.valueOf(row.get(1)).toUpperCase(Locale.ROOT);
+
+                colsByIdx.computeIfAbsent(idxName, k -> new ArrayList<>()).add(colName);
+            }
+        }
+
+        return colsByIdx.values().stream().anyMatch(cols -> cols.size() >= exp.size()
+            && cols.subList(0, exp.size()).equals(exp));
     }
 
     /**
