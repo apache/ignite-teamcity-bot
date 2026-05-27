@@ -164,6 +164,9 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/favicon.ico":
             return self.respond(204, "image/x-icon", b"")
 
+        if parsed.path == "/__test__/teamcity/request-counts":
+            return self.request_counts()
+
         if parsed.path in ["/viewLog.html", "/downloadBuildLog.html"]:
             return self.build_text_page(parse_qs(parsed.query))
 
@@ -218,6 +221,9 @@ class Handler(BaseHTTPRequestHandler):
 
         if parsed.path == "/__test__/teamcity/complete-build":
             return self.complete_build()
+
+        if parsed.path == "/__test__/teamcity/forbid-build-details":
+            return self.forbid_build_details()
 
         if parsed.path == "/__test__/teamcity/reset":
             return self.reset()
@@ -355,6 +361,11 @@ class Handler(BaseHTTPRequestHandler):
 
         self.server.advance_build_lifecycle()
         build_id = str(build_id)
+        self.server.build_details_requests[build_id] = self.server.build_details_requests.get(build_id, 0) + 1
+
+        if build_id in self.server.forbidden_build_details:
+            return self.text(403, "Emulated TeamCity forbidden build details: {}".format(build_id))
+
         build = self.server.builds.get(build_id)
 
         if build is None:
@@ -365,6 +376,26 @@ class Handler(BaseHTTPRequestHandler):
 
         return self.xml(200, '<?xml version="1.0" encoding="UTF-8"?>' + build_xml(build_id, build, closed=False,
             port=self.server.server_port, all_builds=self.server.builds))
+
+    def forbid_build_details(self):
+        payload = self.read_json()
+        build_ids = payload.get("buildIds")
+
+        if build_ids is None:
+            build_ids = [payload["buildId"]]
+
+        for build_id in build_ids:
+            self.server.forbidden_build_details.add(str(build_id))
+
+        return self.json(200, {
+            "status": "configured",
+            "forbiddenBuildDetails": sorted(self.server.forbidden_build_details)
+        })
+
+    def request_counts(self):
+        return self.json(200, {
+            "buildDetails": self.server.build_details_requests
+        })
 
     def statistics(self, build_id):
         if not self.read_ok():
@@ -604,6 +635,8 @@ class Handler(BaseHTTPRequestHandler):
     def reset(self):
         self.server.next_build = 900000
         self.server.builds = initial_builds()
+        self.server.forbidden_build_details = set()
+        self.server.build_details_requests = {}
 
         return self.json(200, {"status": "reset", "service": "teamcity"})
 
@@ -684,6 +717,8 @@ class Server(ThreadingHTTPServer):
         super().__init__(address, Handler)
         self.next_build = 900000
         self.builds = initial_builds()
+        self.forbidden_build_details = set()
+        self.build_details_requests = {}
 
     def advance_build_lifecycle(self):
         now = time.time()

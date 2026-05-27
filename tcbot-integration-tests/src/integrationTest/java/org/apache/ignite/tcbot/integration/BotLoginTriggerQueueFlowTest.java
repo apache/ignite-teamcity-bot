@@ -301,6 +301,35 @@ public class BotLoginTriggerQueueFlowTest {
 
     /** */
     @Test
+    public void forbiddenTeamCityBuildDetailsResponseIsReportedBySingleBuildRest() throws Exception {
+        String token = env.login();
+        int buildId = 8582989;
+        int requestsBefore = teamcityBuildDetailsRequests(buildId);
+
+        IntegrationTestEnvironment.HttpResponse configured = request("POST", env.teamcityUrl
+            + "/__test__/teamcity/forbid-build-details", null, "application/json",
+            "{\"buildId\":" + buildId + "}");
+
+        assertEquals(configured.body, 200, configured.status);
+        assertTrue(configured.body, configured.body.contains(String.valueOf(buildId)));
+
+        IntegrationTestEnvironment.HttpResponse report = request("GET", env.botUrl
+            + "/rest/build/failures?serverId=apache&buildId=" + buildId,
+            "Token " + token, null, null);
+
+        assertEquals(report.body, 500, report.status);
+        assertTrue(report.body, report.body.contains("Internal Server Error [500]"));
+        assertTrue(report.body, report.body.contains("Invalid Response Code : 403"));
+        assertTrue(report.body, report.body.contains("/app/rest/latest/builds/id:" + buildId));
+
+        Thread.sleep(1000);
+
+        assertEquals("HTTP 403 should not be retried in a loop", requestsBefore + 1,
+            teamcityBuildDetailsRequests(buildId));
+    }
+
+    /** */
+    @Test
     public void suiteRetriggerAppearsInPrResults() throws Exception {
         String token = env.login();
 
@@ -660,6 +689,18 @@ public class BotLoginTriggerQueueFlowTest {
         assertTrue(status, status.contains("Checked "));
 
         return status;
+    }
+
+    /** */
+    private static int teamcityBuildDetailsRequests(int buildId) throws Exception {
+        IntegrationTestEnvironment.HttpResponse response = request("GET", env.teamcityUrl
+            + "/__test__/teamcity/request-counts", null, null, null);
+
+        assertEquals(response.body, 200, response.status);
+
+        Matcher matcher = Pattern.compile("\"" + buildId + "\"\\s*:\\s*([0-9]+)").matcher(response.body);
+
+        return matcher.find() ? Integer.parseInt(matcher.group(1)) : 0;
     }
 
     /** */
