@@ -72,7 +72,7 @@ public class GetPrTestFailures {
     }
 
     /**
-     * Starts explicit TeamCity build refs actualization for PR report pages.
+     * Starts explicit TeamCity build ref recheck for PR report pages.
      *
      * @param srvId Server id.
      * @param processId User-visible process id.
@@ -88,17 +88,25 @@ public class GetPrTestFailures {
         if (srvId == null || srvId.trim().isEmpty())
             throw new BadRequestException("serverId query parameter is required.");
 
+        if (suiteId == null || suiteId.trim().isEmpty())
+            throw new BadRequestException("suiteId query parameter is required.");
+
+        if (branchForTc == null || branchForTc.trim().isEmpty())
+            throw new BadRequestException("branchForTc query parameter is required.");
+
         final String serverId = srvId.trim();
+        final String buildTypeId = suiteId.trim();
+        final String branch = branchForTc.trim();
 
         TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
         ITeamcityIgnitedProvider tcProv = appCtx.getInstance(ITeamcityIgnitedProvider.class);
         BotProcessMonitor process = appCtx.getInstance(BotProcessMonitor.class);
-        String taskName = "Pr.actualizeBuildRefs." + serverId;
+        String taskName = "Pr.recheckBuildRef." + serverId + "." + buildTypeId + "." + branch;
         String pageCtx = pageContext(serverId, suiteId, branchForTc, action);
 
-        process.start(processId, "teamcityBuildRefsRefresh",
-            "Admin TeamCity build refs refresh request accepted. " + pageCtx);
+        process.start(processId, "teamcityBuildRefRecheck",
+            "Admin TeamCity build ref recheck request accepted. " + pageCtx);
 
         try {
             process.status(processId, "Checking TeamCity credentials for server " + serverId + ".");
@@ -112,15 +120,14 @@ public class GetPrTestFailures {
 
         boolean accepted = appCtx.getInstance(IScheduler.class).runNamedNow(taskName, () -> {
             try {
-                process.status(processId, "Refreshing recent TeamCity build references for server " + serverId +
+                process.status(processId, "Rechecking TeamCity build reference for server " + serverId +
                     ". Requested from: " + pageCtx);
-                process.status(processId, "Calling TeamCity recent build refs actualization. This updates the bot " +
-                    "server-wide recent refs cache used by PR reports; page branch context is " +
-                    valueOrAny(branchForTc) + ".");
-                String res = tcProv.server(serverId, creds).actualizeRecentBuildRefs();
-                process.status(processId, "TeamCity build refs actualization result for server " + serverId +
+                process.status(processId, "Calling direct TeamCity build ref lookup for suite " + buildTypeId +
+                    " and branch " + branch + ".");
+                String res = tcProv.server(serverId, creds).recheckBuildRef(buildTypeId, branch);
+                process.status(processId, "TeamCity build ref recheck result for server " + serverId +
                     ": " + res);
-                process.finish(processId, "TeamCity build references refreshed for server " + serverId +
+                process.finish(processId, "TeamCity build reference rechecked for server " + serverId +
                     ". " + res + ". Refresh context was: " + pageCtx);
             }
             catch (RuntimeException e) {
@@ -131,13 +138,13 @@ public class GetPrTestFailures {
         }, processId);
 
         if (!accepted) {
-            process.fail(processId, "TeamCity build refs refresh is already queued or running for server " + serverId + ".");
+            process.fail(processId, "TeamCity build ref recheck is already queued or running for " + pageCtx);
 
-            throw new ClientErrorException("TeamCity build refs refresh is already queued or running for server "
-                + serverId, Response.Status.CONFLICT);
+            throw new ClientErrorException("TeamCity build ref recheck is already queued or running for " + pageCtx,
+                Response.Status.CONFLICT);
         }
 
-        return new SimpleResult("TeamCity build refs refresh queued for server " + serverId + ".");
+        return new SimpleResult("TeamCity build ref recheck queued for server " + serverId + ".");
     }
 
     /**

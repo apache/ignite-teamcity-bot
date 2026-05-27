@@ -205,7 +205,6 @@
         res += "<th>Last finished</th>";
         res += "<th>Quiet period</th>";
         res += "<th>Runnable</th>";
-        res += "<th>Actions</th>";
         res += "</tr>";
 
         for (var i = 0; i < result.length; i++) {
@@ -218,14 +217,6 @@
             res += "<td>" + escapeHtml(formatTs(task.lastFinishedTs)) + "</td>";
             res += "<td>" + escapeHtml(formatDuration(task.quietPeriodMs)) + "</td>";
             res += "<td>" + escapeHtml(task.runnableAvailable) + "</td>";
-            res += "<td>";
-
-            if (task.canStartNow) {
-                res += "<button onclick='startMaintenanceAction(" + JSON.stringify(task.name) +
-                    ")'>Start now</button>";
-            }
-
-            res += "</td>";
             res += "</tr>";
         }
 
@@ -241,6 +232,7 @@
         res += "<th>Name</th>";
         res += "<th>Description</th>";
         res += "<th>Status</th>";
+        res += "<th>Process</th>";
         res += "<th>Actions</th>";
         res += "</tr>";
 
@@ -252,6 +244,7 @@
             res += "<td>" + escapeHtml(action.name) + "</td>";
             res += "<td>" + escapeHtml(action.description) + "</td>";
             res += "<td>" + escapeHtml(status) + "</td>";
+            res += "<td>" + maintenanceProcessHtml(action) + "</td>";
             res += "<td>";
 
             if (action.canStartNow !== false) {
@@ -266,6 +259,23 @@
         res += "</table>";
 
         $("#maintenanceActions").html(res);
+    }
+
+    function maintenanceProcessHtml(action) {
+        if (!action.processId)
+            return "";
+
+        var parts = [];
+
+        parts.push("#" + escapeHtml(action.processId));
+
+        if (action.processState)
+            parts.push(escapeHtml(action.processState));
+
+        if (action.processKind)
+            parts.push(escapeHtml(action.processKind));
+
+        return parts.join("<br>");
     }
 
     function showAppLogSummaryLink(result) {

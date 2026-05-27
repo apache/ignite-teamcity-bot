@@ -17,6 +17,7 @@
 
 package org.apache.ignite.tcbot.engine.ui;
 
+import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -329,11 +330,15 @@ public class DsSuiteUi extends ShortSuiteUi {
         return teamcity.host() + "viewLog.html?buildId=" + suite.getBuildId();
     }
 
-    @Nonnull private static String buildWebLinkToHist(ITeamcityIgnited teamcity, MultBuildRunCtx suite, String branchName) {
+    @Nullable private static String buildWebLinkToHist(ITeamcityIgnited teamcity, MultBuildRunCtx suite, String branchName) {
         return buildWebLinkToHist(teamcity, suite.suiteId(), branchName);
     }
 
+    @Nullable
     public static String buildWebLinkToHist(ITeamcityIgnited teamcity, String suiteId, String branchName) {
+        if (Strings.isNullOrEmpty(suiteId))
+            return null;
+
         final String branch = normalizeBranch(branchName);
         return teamcity.host() + "buildConfiguration/" + suiteId  + "?branch=" + UrlUtil.escape(branch);
     }

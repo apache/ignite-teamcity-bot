@@ -75,15 +75,18 @@ class BuildLogProcessor implements IBuildLogProcessor {
                     logger.error(msg, e);
 
                     //protecting from retrying for invalid build log.
-                    logCheckResultCompacted = new LogCheckResultCompacted();
+                    logCheckResultCompacted = emptyLogCheckResult();
                 }
+
+                if (logCheckResultCompacted == null)
+                    logCheckResultCompacted = emptyLogCheckResult();
 
                 try {
                     logCheckResultDao.put(teamcity.serverCode(), buildId, logCheckResultCompacted);
                 }
                 catch (Exception ex) {
                     logger.error("serverCode: " + teamcity.serverCode() + "; buildId: " + buildId +
-                        "; logCheck: " + logCheckResultCompacted.toString());
+                        "; logCheck: " + logCheckResultCompacted);
                     throw ex;
                 }
 
@@ -92,6 +95,11 @@ class BuildLogProcessor implements IBuildLogProcessor {
         } catch (ExecutionException e) {
             throw ExceptionUtil.propagateException(e);
         }
+    }
+
+    /** */
+    private static LogCheckResultCompacted emptyLogCheckResult() {
+        return new LogCheckResultCompacted();
     }
 
     @Nullable

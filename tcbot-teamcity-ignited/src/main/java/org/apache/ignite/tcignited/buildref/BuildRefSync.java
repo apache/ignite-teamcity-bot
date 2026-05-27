@@ -19,6 +19,7 @@ package org.apache.ignite.tcignited.buildref;
 import java.io.UncheckedIOException;
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -86,11 +87,14 @@ public class BuildRefSync {
         int totalUpdated = 0;
         int totalChecked = 0;
         int neededToFind = 0;
+        int oldestCheckedBuildId = 0;
         long lastTimeUpdateFound = System.currentTimeMillis();
         boolean timeoutForNewBuild = false;
+        Set<Long> temporaryRefsPromoted = Collections.emptySet();
 
         try {
             List<BuildRef> tcDataFirstPage = conn.getBuildRefsPage(null, outLinkNext);
+            oldestCheckedBuildId = oldestBuildId(oldestCheckedBuildId, tcDataFirstPage);
             Set<Long> buildsUpdated = buildRefDao.saveChunk(srvIdMaskHigh, tcDataFirstPage);
             totalUpdated = buildsUpdated.size();
             fatBuildSync.scheduleBuildsLoad(conn, cacheKeysToBuildIds(buildsUpdated));
@@ -102,16 +106,8 @@ public class BuildRefSync {
                 tcDataFirstPage.stream().map(BuildRef::getId).forEach(mandatoryToReload::remove);
             }
 
-            if (syncMode == SyncMode.ULTRAFAST && isEmpty(mandatoryToReload)) {
-                return "Entries saved " +
-                    totalUpdated +
-                    " Builds checked " +
-                    totalChecked +
-                    " Needed to find " +
-                    neededToFind +
-                    " remained to find " +
-                    mandatoryToReload.size();
-            }
+            if (syncMode == SyncMode.ULTRAFAST && isEmpty(mandatoryToReload))
+                outLinkNext.set(null);
 
             long maxMsWithoutChanges = Duration.ofHours(1).toMillis();
 
@@ -123,6 +119,7 @@ public class BuildRefSync {
                 page++;
                 outLinkNext.set(null);
                 List<BuildRef> tcDataNextPage = conn.getBuildRefsPage(nextPageUrl, outLinkNext);
+                oldestCheckedBuildId = oldestBuildId(oldestCheckedBuildId, tcDataNextPage);
                 Set<Long> curChunkBuildsSaved = buildRefDao.saveChunk(srvIdMaskHigh, tcDataNextPage);
                 totalUpdated += curChunkBuildsSaved.size();
                 fatBuildSync.scheduleBuildsLoad(conn, cacheKeysToBuildIds(curChunkBuildsSaved));
@@ -157,6 +154,11 @@ public class BuildRefSync {
                     }
                 }
             }
+
+            temporaryRefsPromoted = buildRefDao.promoteTemporaryBuildRefsOutsideHorizon(srvIdMaskHigh,
+                oldestCheckedBuildId);
+            totalUpdated += temporaryRefsPromoted.size();
+            fatBuildSync.scheduleBuildsLoad(conn, cacheKeysToBuildIds(temporaryRefsPromoted));
         }
         catch (UncheckedIOException e) {
             throw new UncheckedIOException("Failed to actualize TeamCity build refs [srv=" + srvId +
@@ -178,6 +180,10 @@ public class BuildRefSync {
             sb.append(" remained to find ");
             sb.append(leftToFind);
         }
+        if (!temporaryRefsPromoted.isEmpty()) {
+            sb.append(" Temporary refs promoted ");
+            sb.append(temporaryRefsPromoted.size());
+        }
 
         sb.append(" Last time update found ");
         sb.append(TimeUtil.millisToDurationPrintable(System.currentTimeMillis()- lastTimeUpdateFound));
@@ -198,5 +204,18 @@ public class BuildRefSync {
     @Nonnull
     private List<Integer> cacheKeysToBuildIds(Collection<Long> cacheKeysUpdated) {
         return cacheKeysUpdated.stream().map(BuildRefDao::cacheKeyToBuildId).collect(Collectors.toList());
+    }
+
+    private int oldestBuildId(int curOldestBuildId, Collection<BuildRef> refs) {
+        int res = curOldestBuildId;
+
+        for (BuildRef ref : refs) {
+            Integer id = ref.getId();
+
+            if (id != null && (res == 0 || id < res))
+                res = id;
+        }
+
+        return res;
     }
 }

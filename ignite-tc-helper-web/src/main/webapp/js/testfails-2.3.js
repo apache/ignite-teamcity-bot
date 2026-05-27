@@ -484,7 +484,7 @@ function buildRefsRefreshFallbackHtmlFor(serverId, suiteId, branchForTc, action,
 
     return "<div class='tc-build-refs-refresh' style='display:none; margin-top:12px;'>" +
         "<a id='" + escapeHtml(buttonId) + "' href='javascript:void(0);' " +
-        "title='Admin-only operation: refresh cached TeamCity build references in the background' " +
+        "title='Admin-only operation: recheck this TeamCity build reference in the background' " +
         "onclick='" + jsCallAttr("refreshBuildRefsFromTc", [
             serverId, suiteId, branchForTc, action, statusId, stagesId, buttonId, inlineStatusVisible
         ]) + "'>refresh build tc</a>" +
@@ -495,7 +495,7 @@ function buildRefsRefreshFallbackHtmlFor(serverId, suiteId, branchForTc, action,
         "margin-top:8px; max-height:180px; overflow-y:auto; padding:8px; white-space:pre-wrap; " +
         "word-break:break-word;'></div>" +
         "<div style='color:grey; font-size:12px; margin-top:4px;'>I'm sure this build exists. This starts a " +
-        "background refresh of recent TeamCity build references for the server cache, then reloads the page data.</div>" +
+        "direct recheck of this TeamCity suite and branch, then reloads the page data.</div>" +
         "</div>";
 }
 
@@ -577,7 +577,7 @@ function refreshBuildRefsFromTc(serverId, suiteId, branchForTc, action, statusId
     showInlineStatus) {
     var link = $("#" + buttonId);
     var status = $("#" + statusId);
-    var dialog = ensureActionDialog("actualizeBuildRefsDialog", "Refresh from TC");
+    var dialog = ensureActionDialog("actualizeBuildRefsDialog", "Recheck in TC");
 
     function valueOrAny(value) {
         return value == null || value === "" ? "<any>" : value;
@@ -593,14 +593,13 @@ function refreshBuildRefsFromTc(serverId, suiteId, branchForTc, action, statusId
     setBuildRefsRefreshLinkDisabled(link, true);
     setInlineStatus("Refresh confirmation opened.");
 
-    dialog.append(actionStatusHtml("Refresh from TC is an admin-only heavy operation. It can make many " +
-        "TeamCity REST requests and may take time."));
+    dialog.append(actionStatusHtml("Recheck in TC is an admin-only operation for this exact suite and branch."));
     dialog.append("<div style='color:#555; margin-bottom:12px'>" +
         "Context: server=" + escapeHtml(valueOrAny(serverId)) +
         ", suite=" + escapeHtml(valueOrAny(suiteId)) +
         ", branch=" + escapeHtml(valueOrAny(branchForTc)) +
         ", action=" + escapeHtml(valueOrAny(action)) + ".<br>" +
-        "The bot will refresh recent TeamCity build references for the whole server cache." +
+        "The bot will query TeamCity for this build reference and keep it temporarily if found." +
         "</div>");
     dialog.append(actionStagesHtml(true, "actualizeBuildRefsStages"));
     dialog.append(actionErrorHtml());
@@ -617,7 +616,7 @@ function refreshBuildRefsFromTc(serverId, suiteId, branchForTc, action, statusId
     });
 
     function startBuildRefsRefresh(dialog) {
-        var processId = createBotProcessId("actualizeBuildRefs");
+        var processId = createBotProcessId("recheckBuildRef");
         var requestUrl = "rest/pr/actualizeBuildRefs?processId=" + encodeURIComponent(processId);
         var stopProcessPolling;
         var completed = false;
@@ -647,15 +646,15 @@ function refreshBuildRefsFromTc(serverId, suiteId, branchForTc, action, statusId
         dialog.dialog("option", "buttons", {});
         dialog.find(".action-error").hide().empty();
         dialog.find(".action-stages").empty().show();
-        setActionStatus(dialog, "Refreshing TeamCity build references for " + valueOrAny(branchForTc) + "...");
-        setInlineStatus("Refreshing TeamCity build references for " + valueOrAny(branchForTc) + "...");
+        setActionStatus(dialog, "Rechecking TeamCity build reference for " + valueOrAny(branchForTc) + "...");
+        setInlineStatus("Rechecking TeamCity build reference for " + valueOrAny(branchForTc) + "...");
 
         appendStage("Created browser-side process id " + processId + ".");
         appendStage("Requested page context: server=" + valueOrAny(serverId) + ", suite=" + valueOrAny(suiteId) +
             ", branch=" + valueOrAny(branchForTc) + ", action=" + valueOrAny(action) + ".");
-        appendStage("The bot will refresh recent TeamCity build references for the whole server cache.");
-        appendStage("Sending TeamCity build refs refresh request to the bot REST API.");
-        appendStage("Waiting for the backend to register the refresh process.");
+        appendStage("The bot will query TeamCity for this suite and branch only.");
+        appendStage("Sending TeamCity build ref recheck request to the bot REST API.");
+        appendStage("Waiting for the backend to register the recheck process.");
 
         stopProcessPolling = startBotProcessPolling(processId, function (processStatus) {
             var statusText = botProcessStatusText(processStatus);
@@ -716,8 +715,8 @@ function refreshBuildRefsFromTc(serverId, suiteId, branchForTc, action, statusId
                         $(this).dialog("close");
                     }
                 });
-                setInlineStatus("TeamCity build refs refresh failed.");
-                setActionStatus(dialog, "TeamCity build refs refresh failed.");
+                setInlineStatus("TeamCity build ref recheck failed.");
+                setActionStatus(dialog, "TeamCity build ref recheck failed.");
                 appendStage("Error: " + (errorThrown || jqXHR.statusText || "unknown error"));
                 dialog.find(".action-error").text(jqXHR.responseText || errorThrown ||
                     "Unknown request error.").show();
@@ -1784,8 +1783,15 @@ function showSuiteData(suite, settings, prNum) {
     res +="</td><td>";
     res += "<span style='border-color: " + color + "; width:6px; height:6px; display: inline-block; border-width: 4px; color: black; border-style: solid;' title='" + failRateText + "'></span> ";
 
-    res += "<a href='" + suite.webToHist + "'>" + suite.name + "</a> " +
-        "[ " + "<a href='" + suite.webToBuild + "' title=''> " +
+    var suiteDisplayName = isDefinedAndFilled(suite.name) ? suite.name :
+        (isDefinedAndFilled(suite.suiteId) ? suite.suiteId : "Unknown suite");
+
+    if (isDefinedAndFilled(suite.webToHist))
+        res += "<a href='" + suite.webToHist + "'>" + suiteDisplayName + "</a> ";
+    else
+        res += suiteDisplayName + " ";
+
+    res += "[ " + "<a href='" + suite.webToBuild + "' title=''> " +
         "tests " + suite.failedTests + " " + suite.result;
 
     if (isDefinedAndFilled(suite.warnOnly) && suite.warnOnly.length > 0) {

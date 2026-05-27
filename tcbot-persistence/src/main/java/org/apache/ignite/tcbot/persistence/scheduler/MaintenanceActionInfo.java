@@ -33,6 +33,15 @@ public class MaintenanceActionInfo {
     /** Current user-visible bot process status, if this action is running through a monitored manual action. */
     public String processStatus;
 
+    /** Process kind, if this action is running through a monitored manual action. */
+    public String processKind;
+
+    /** Process state, if this action is running through a monitored manual action. */
+    public String processState;
+
+    /** Process running flag, if this action is running through a monitored manual action. */
+    public Boolean processRunning;
+
     /** Bot process monitor id associated with the current manual run. */
     public Long processId;
 

@@ -23,10 +23,27 @@ Should you have any questions, please contact Ignite Developers at dev@ignite.ap
 ### Project setup
 Local code can be set up using IntelliJ IDEA and Gradle project import.
 
-For local development, run `org.apache.ignite.ci.web.Launcher.main()` from the project root.
-The launcher starts Jetty on `http://localhost:8080/` and serves static web resources directly from
-`ignite-tc-helper-web/src/main/webapp`.
-When running this main class directly from an IDE on Java 17, use the same module options as the
+For local development, use one of the shared IDEA run configurations:
+
+* `TC Bot Local - Live Services` starts the server directly from Java classes and uses configured real services.
+* `TC Bot Local - Stub Services` starts GitHub, JIRA, and TeamCity stubs, then runs the bot server code in the same JVM.
+  Use it for normal debugging: breakpoints hit the server code, static resources are read from source on every request,
+  and Python stubs can be restarted through the control REST without restarting the bot.
+* `TC Bot WAR - Live Services` runs the production-like WAR launcher against configured real services. Its before-run
+  Gradle step builds `:ignite-tc-helper-web:war` and prepares `jetty-launcher/build/install/jetty-launcher`.
+* `TC Bot WAR - Stub Services` is the Gradle production-like stub-services run that starts the bot from the built WAR.
+
+For command-line production-like emulator checks, run:
+
+```
+./gradlew :tcbot-integration-tests:runEmulatedTcBotWar
+```
+
+`WAR` configurations use Gradle-built WAR artifacts. `Local` configurations are live Java runs intended for IDE
+debugging. `Live Services` uses configured external services; `Stub Services` starts local Python service stubs. Refresh
+the browser for HTML/JS/CSS changes; restart the Java run only for Java changes.
+
+When running Java main classes directly from an IDE on Java 17, use the same module options as the
 `igniteJava17JvmArgs` Gradle property:
 
 ```
@@ -69,8 +86,9 @@ Minimal local run checklist:
 * Import the Gradle project into IntelliJ IDEA.
 * Copy `conf/branches.json` to the bot working directory, or prepare another `branches.json` there.
 * Adjust TeamCity, JIRA, GitHub, and notification settings in the copied config.
-* Run `org.apache.ignite.ci.web.Launcher.main()`.
-* Open `http://localhost:8080/`, log in with actual TeamCity credentials, and add service credentials on the user page when a configured service requires them.
+* Run `TC Bot WAR - Live Services` for a production-like WAR run, or `TC Bot Local - Stub Services` for local stub-backed UI work.
+* Open `http://localhost:8080/` for `Live Services` runs, or `http://127.0.0.1:5555/` for `Stub Services` runs.
+* Log in with actual TeamCity credentials for real-service runs, and add service credentials on the user page when a configured service requires them.
 * Use the `Authorize Server` action in the top menu when you need background jobs, triggering, JIRA comments, notifications, or queue checks to run under your current TeamCity credentials.
 
 Server authorization is kept in memory. If the local process is restarted, log in and authorize the server again.
@@ -107,40 +125,4 @@ TC Bot integrations are placed in corresponding submodules
 | JIRA | [tcbot-jira](tcbot-jira) | [tcbot-jira-ignited](tcbot-jira-ignited)  |
 | GitHub | [tcbot-github](tcbot-github) | [tcbot-github-ignited](tcbot-github-ignited)  |
 
-## GridIntList migration
-
-The `migrate-GridIntList` database migration updates persisted TeamCity Bot data after replacing Ignite's internal
-`org.apache.ignite.internal.util.GridIntList` with the project-owned
-`org.apache.ignite.tcbot.common.util.GridIntList`.
-
-During startup, `DbMigrations` runs `GridIntListMigrator.migrateOnInstance` once and stores the migration marker only
-after the scan finishes successfully. By default the migrator scans only the caches whose persisted value graph is known
-to contain compacted TeamCity parameters or statistics backed by `GridIntList`:
-
-| Cache | Persisted GridIntList path |
-| ----- | -------------------------- |
-| `teamcityFatBuild` | `FatBuildCompacted.buildParameters`, `FatBuildCompacted.statistics` |
-| `teamcityFatBuildType` | `BuildTypeCompacted.settings`, `BuildTypeCompacted.parameters`, snapshot dependency properties |
-| `teamcitySuiteHistory` | `SuiteInvocation.suite/tests -> Invocation.parameters` |
-
-Within those caches the migrator iterates over entries in keep-binary mode, recursively checks cache values, nested
-binary objects, lists, sets, maps, and object arrays, and rebuilds only values that contain the legacy `GridIntList`
-type. The standalone migrator's `--cache` option is an explicit offline override for targeted diagnostics.
-
-For each legacy list, the migration preserves the logical list contents, not the backing array capacity. If normal
-deserialization is available, it reads the old object through `GridIntList.array()`. If binary fallback is needed, it
-reads both persisted fields, `arr` and `idx`, validates that `idx` is inside the backing array bounds, and copies only
-`arr[0..idx)`. The copied values are then written as the new TC Bot `GridIntList` type.
-
-The migration is intentionally fail-fast from the database marker point of view. Per-entry failures are logged with the
-cache name and key, counted, and reported after the scan. Failed entries are also written as an Ignite dump plus a small
-manifest under `<ignite-work>/diagnostic/grid-int-list-migration-recovery`. If any entry still cannot be repaired, the
-`migrate-GridIntList` marker is not written to `apache.doneMigrations`, so the issue can be fixed and the migration can
-be retried instead of silently leaving mixed old and new data.
-
-The same migrator can also be run as a standalone tool from the `migrator` module against an Ignite work directory. The
-standalone module uses the same Ignite version as the rest of the project through the shared `ignVer` Gradle property.
-
-Heavyweight persistent-storage integration tests are excluded from the regular `test` and `build` tasks. Run them
-explicitly with `gradle :migrator:integrationTest --no-daemon` when checking old Ignite 2.14 persistent storage
-compatibility or migration recovery for corrupted binary metadata.
+Internal storage and cache notes live in [TC Bot internals: caching strategy](docs/caching-strategy.md).
