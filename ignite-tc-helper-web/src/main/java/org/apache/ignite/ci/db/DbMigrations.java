@@ -23,10 +23,13 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteDataStreamer;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.CacheMode;
+import org.apache.ignite.cache.query.QueryCursor;
+import org.apache.ignite.cache.query.SqlFieldsQuery;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
 import org.apache.ignite.tcbot.engine.issue.IssuesStorage;
 import org.apache.ignite.configuration.CacheConfiguration;
+import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -35,6 +38,7 @@ import org.apache.ignite.migrate.GridIntListMigrator;
 
 import javax.cache.Cache;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -52,6 +56,12 @@ public class DbMigrations {
     private static final String BUILD_STATISTICS = "buildStatistics";
 
     private static final String BUILD_CONDITIONS_CACHE_NAME = "buildConditions";
+
+    /** Build refs SQL table name. */
+    private static final String BUILD_REF_TABLE = "BUILDREFCOMPACTED";
+
+    /** Index for suite history lookups inside a branch. */
+    private static final String BUILD_REF_BRANCH_BUILD_TYPE_ID_IDX = "BUILDREFCOMPACTED_BRANCH_BUILD_TYPE_ID_IDX";
 
     public static final String DONE_MIGRATION_PREFIX = "apache";
 
@@ -233,6 +243,7 @@ public class DbMigrations {
         applyDestroyCacheMigration(Old.TEST_HIST_CACHE_NAME_V2_0);
         applyDestroyCacheMigration(Old.SUITE_HIST_CACHE_NAME_V2_0);
 
+        applyBuildRefHistoryQuerySchemaMigration();
         applyGridIntListMigration();
 
         int sizeAfter = doneMigrations.size();
@@ -341,6 +352,87 @@ public class DbMigrations {
                 throw new RuntimeException("GridIntList migration failed", e);
             }
         });
+    }
+
+    /**
+     * Adds SQL fields and an index required by suite/branch build-ref history queries.
+     */
+    private void applyBuildRefHistoryQuerySchemaMigration() {
+        applyMigration("add-BuildRef-suite-branch-history-index", () -> {
+            IgniteCache<Object, Object> cache = ignite.cache(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
+
+            if (cache == null) {
+                logger.info("BuildRef cache [{}] does not exist yet, skipping SQL schema migration",
+                    BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
+
+                return;
+            }
+
+            if (!sqlTableExists(cache, BUILD_REF_TABLE)) {
+                logger.info("BuildRef SQL table [{}] does not exist yet, skipping SQL schema migration",
+                    BUILD_REF_TABLE);
+
+                return;
+            }
+
+            if (!sqlColumnExists(cache, BUILD_REF_TABLE, "BUILDTYPEID"))
+                sqlDdl(cache, "ALTER TABLE " + BUILD_REF_TABLE + " ADD COLUMN buildTypeId INT");
+
+            if (!sqlColumnExists(cache, BUILD_REF_TABLE, "ID"))
+                sqlDdl(cache, "ALTER TABLE " + BUILD_REF_TABLE + " ADD COLUMN id INT");
+
+            if (!sqlIndexExists(cache, BUILD_REF_BRANCH_BUILD_TYPE_ID_IDX)) {
+                sqlDdl(cache, "CREATE INDEX " + BUILD_REF_BRANCH_BUILD_TYPE_ID_IDX + " ON " + BUILD_REF_TABLE
+                    + " (branchName, buildTypeId, id)");
+            }
+        });
+    }
+
+    /**
+     * @param cache Cache.
+     * @param tableName SQL table name.
+     */
+    private boolean sqlTableExists(IgniteCache<?, ?> cache, String tableName) {
+        return sqlCount(cache, "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = ?", tableName) > 0;
+    }
+
+    /**
+     * @param cache Cache.
+     * @param tableName SQL table name.
+     * @param columnName SQL column name.
+     */
+    private boolean sqlColumnExists(IgniteCache<?, ?> cache, String tableName, String columnName) {
+        return sqlCount(cache, "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ? AND COLUMN_NAME = ?",
+            tableName, columnName) > 0;
+    }
+
+    /**
+     * @param cache Cache.
+     * @param indexName SQL index name.
+     */
+    private boolean sqlIndexExists(IgniteCache<?, ?> cache, String indexName) {
+        return sqlCount(cache, "SELECT COUNT(*) FROM INFORMATION_SCHEMA.INDEXES WHERE INDEX_NAME = ?", indexName) > 0;
+    }
+
+    /**
+     * @param cache Cache.
+     * @param sql SQL query.
+     * @param args Query arguments.
+     */
+    private long sqlCount(IgniteCache<?, ?> cache, String sql, Object... args) {
+        try (QueryCursor<List<?>> cur = cache.query(new SqlFieldsQuery(sql).setArgs(args))) {
+            return ((Number)cur.getAll().get(0).get(0)).longValue();
+        }
+    }
+
+    /**
+     * @param cache Cache.
+     * @param sql SQL DDL.
+     */
+    private void sqlDdl(IgniteCache<?, ?> cache, String sql) {
+        try (QueryCursor<List<?>> ignored = cache.query(new SqlFieldsQuery(sql))) {
+            // No-op.
+        }
     }
 
     private void applyMigration(String code, Runnable runnable) {

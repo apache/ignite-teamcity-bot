@@ -33,14 +33,19 @@ import static org.apache.ignite.tcservice.model.hist.BuildRef.STATUS_UNKNOWN;
 
 @Persisted
 public class BuildRefCompacted {
+    /** Index for suite history lookups inside a branch. */
+    private static final String BRANCH_BUILD_TYPE_ID_IDX = "branchBuildTypeId";
+
     /** Build Id without modifications, -1 if it is null. */
+    @QuerySqlField(orderedGroups = {@QuerySqlField.Group(name = BRANCH_BUILD_TYPE_ID_IDX, order = 2)})
     private int id = -1;
 
     /** Compacter identifier for string 'Build type id'. */
+    @QuerySqlField(orderedGroups = {@QuerySqlField.Group(name = BRANCH_BUILD_TYPE_ID_IDX, order = 1)})
     private int buildTypeId = -1;
 
     /** Compacter identifier for string 'Branch name'. */
-    @QuerySqlField(index = true)
+    @QuerySqlField(index = true, orderedGroups = {@QuerySqlField.Group(name = BRANCH_BUILD_TYPE_ID_IDX, order = 0)})
     private int branchName = -1;
 
     /** Compacter identifier for string 'Status'. */

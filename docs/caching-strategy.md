@@ -31,12 +31,14 @@ normal actualizer is not filtered by suite or branch; it moves through the globa
 | Cache | Key | Contents | Completeness |
 | ----- | --- | -------- | ------------ |
 | `buildRefsInMemCacheForAllBranch` | `serverId + branchId` | Persistent build refs for one branch. | Complete only relative to what is already in `teamcityBuildRef`. It is not a fresh TeamCity query. |
-| `buildRefsInMemCache` | `serverId + suiteId + branchId` | Persistent build refs for one suite on one branch, derived from the branch view. | Complete only relative to the persistent cache. |
+| `buildRefsInMemCache` | `serverId + suiteId + branchId` | Persistent build refs for one suite on one branch, loaded through a suite/branch query. | Complete only relative to the persistent cache. |
 | `temporaryBuildRefsInMemCache` | `serverId + suiteId + branchId` | Refs found by direct TeamCity suite/branch lookup from the PR report fallback. | Partial, process-local, and temporary. It contains only what that direct lookup found. |
 
-The normal read path `getAllBuildsCompacted(...)` first loads the persistent suite/branch slice and then overlays
-temporary refs for the same key, skipping ids already present in the persistent slice. This lets the UI see a build that
-TeamCity knows about even if the global incremental sync has not reached that build yet.
+The normal read path `getAllBuildsCompacted(...)` first loads the persistent suite/branch slice with a
+`branchName + buildTypeId` predicate and then overlays temporary refs for the same key, skipping ids already present in
+the persistent slice. Date-bounded callers may also pass a build-id lower border so the persistent query does not read
+older suite history that the caller will immediately discard. This lets the UI see a build that TeamCity knows about
+even if the global incremental sync has not reached that build yet.
 
 The direct PR-page recheck is deliberately narrow: it queries TeamCity by `buildTypeId + branchName`, pages through a
 bounded number of recent results, and stores what it finds in `temporaryBuildRefsInMemCache`. That cache is not meant to
