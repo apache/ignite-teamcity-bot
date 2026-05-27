@@ -23,6 +23,7 @@ import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
+import ch.qos.logback.core.util.FileSize;
 import java.io.File;
 import java.io.IOException;
 
@@ -44,6 +45,12 @@ public class Ignite2Configurer {
 
     /** Profile allowed to use in-memory Ignite storage. */
     public static final String INTEGRATION_TEST_PROFILE = "integration-test";
+
+    /** Logback total size cap system property. */
+    public static final String LOG_TOTAL_SIZE_CAP = "teamcity.bot.log.totalSizeCap";
+
+    /** Default total size cap for rolled logs. */
+    public static final String DEFAULT_LOG_TOTAL_SIZE_CAP = "10GB";
 
     public static void configLogger(File workDir, String subdir) {
         LoggerContext logCtx = (LoggerContext)LoggerFactory.getILoggerFactory();
@@ -67,6 +74,7 @@ public class Ignite2Configurer {
         logFilePolicy.setParent(rollingFa);
         logFilePolicy.setFileNamePattern(new File(logs, "logfile-%d{yyyy-MM-dd_HH}.log").getAbsolutePath());
         logFilePolicy.setMaxHistory(24*7*2);
+        logFilePolicy.setTotalSizeCap(logTotalSizeCap());
         logFilePolicy.start();
 
         final String activeFileName = logFilePolicy.getActiveFileName();
@@ -87,6 +95,21 @@ public class Ignite2Configurer {
         log.detachAndStopAllAppenders();
 
         log.addAppender(rollingFa);
+    }
+
+    /** */
+    private static FileSize logTotalSizeCap() {
+        String totalSizeCap = System.getProperty(LOG_TOTAL_SIZE_CAP, DEFAULT_LOG_TOTAL_SIZE_CAP);
+
+        try {
+            return FileSize.valueOf(totalSizeCap);
+        }
+        catch (IllegalArgumentException e) {
+            LoggerFactory.getLogger(Ignite2Configurer.class).warn(
+                "Invalid log total size cap '{}', using default '{}'.", totalSizeCap, DEFAULT_LOG_TOTAL_SIZE_CAP, e);
+
+            return FileSize.valueOf(DEFAULT_LOG_TOTAL_SIZE_CAP);
+        }
     }
 
     public static void setIgniteHome(IgniteConfiguration cfg, File workDir) {
