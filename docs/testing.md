@@ -21,6 +21,7 @@ set "PR_REF="
 rem set "PR_REF=pull/200/head"
 set "RUN_INTEGRATION_TESTS="
 rem set "RUN_INTEGRATION_TESTS=1"
+set "TCBOT_LOCAL_JAVA_OPTS=-Dteamcity.bot.regionsize=16 -Xms2g -Xmx8g"
 
 if not exist "%REPO%\.git" git clone https://github.com/apache/ignite-teamcity-bot.git "%REPO%" || exit /b 1
 cd /d "%REPO%" || exit /b 1
@@ -48,6 +49,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "New-Item -ItemType Direc
 copy /Y "conf\branches.json" "%DIST%\jetty-launcher\work\branches.json" || exit /b 1
 
 cd /d "%DIST%\jetty-launcher\bin" || exit /b 1
+set "JAVA_OPTS=%JAVA_OPTS% %TCBOT_LOCAL_JAVA_OPTS%"
+echo Local check JVM override: %TCBOT_LOCAL_JAVA_OPTS%
 call jetty-launcher.bat
 ```
 
@@ -67,6 +70,7 @@ PR_REF="${PR_REF:-}"
 # PR_REF="pull/200/head"
 RUN_INTEGRATION_TESTS="${RUN_INTEGRATION_TESTS:-}"
 # RUN_INTEGRATION_TESTS=1
+TCBOT_LOCAL_JAVA_OPTS="${TCBOT_LOCAL_JAVA_OPTS:--Dteamcity.bot.regionsize=16 -Xms2g -Xmx8g}"
 
 if [ ! -d "$REPO/.git" ]; then
     git clone https://github.com/apache/ignite-teamcity-bot.git "$REPO"
@@ -99,6 +103,8 @@ mkdir -p "$DIST/jetty-launcher/work"
 cp conf/branches.json "$DIST/jetty-launcher/work/branches.json"
 
 cd "$DIST/jetty-launcher/bin"
+export JAVA_OPTS="${JAVA_OPTS:-} $TCBOT_LOCAL_JAVA_OPTS"
+echo "Local check JVM override: $TCBOT_LOCAL_JAVA_OPTS"
 ./jetty-launcher
 ```
 
