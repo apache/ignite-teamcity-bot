@@ -12,6 +12,8 @@ Major use cases are the following:
 * MCTGA Bot for slack and for email notifications.
 
 User-facing bot rules and workflows are documented in [TeamCity bot user guide](docs/teamcity-bot-user-guide.md).
+Production build and deployment are documented in [Build and installation](docs/install.md).
+Local clean checks and emulated bot runs are documented in [Testing](docs/testing.md).
 
 This tool is available on [https://mtcga.gridgain.com/](https://mtcga.gridgain.com/) - requires apache CI credentials.
 
@@ -73,7 +75,12 @@ Main config file is [conf/branches.json](conf/branches.json). This file needs to
 The running bot reloads `branches.json` lazily: configuration reads are cached for up to 3 minutes, so most changes
 become visible without a restart after the cache expires. Restart the bot only when you need the change to take effect
 immediately.
-Extra setup is required using security-sensitive information using PasswordEncoder. No TeamCity credentials are required because TC bot asks users to enter creds.
+JIRA and GitHub tokens can be specified as plain text in `branches.json` or protected with `PasswordEncoder`.
+When `authTokEncoded` is not set, the bot auto-detects encoded hex values and otherwise treats tokens as plain.
+Set `authTokEncoded` only when you need to force a mode. For JIRA Personal Access Tokens, use
+`authScheme: "Bearer"`; legacy base64 username/password tokens can still use `authScheme: "Basic"`. If
+JIRA `authScheme` is omitted, encoded tokens default to Basic for compatibility and plain tokens default to Bearer.
+No TeamCity credentials are required because TC bot asks users to enter creds.
 
 Minimal local run checklist:
 * Import the Gradle project into IntelliJ IDEA.
@@ -92,10 +99,6 @@ Please install following components for development using IntelliJ IDEA
 * Install [Abbreviation Plugin](https://cwiki.apache.org/confluence/display/IGNITE/Abbreviation+Rules#AbbreviationRules-IntelliJIdeaPlugin)
 * Apply [Code Inspection Profile](https://cwiki.apache.org/confluence/display/IGNITE/Coding+Guidelines#CodingGuidelines-C.CodeInspection)
 * Configure [IDEA Codestyle](https://cwiki.apache.org/confluence/display/IGNITE/Coding+Guidelines#CodingGuidelines-A.ConfigureIntelliJIDEAcodestyle)
-
-### Build and installation
-Build, production installation, Linux service setup, and Windows production-check commands are documented in
-[Build and installation](docs/install.md).
 
 ### Internal Design
 Main bot logic is placed in [ignite-tc-helper-web](ignite-tc-helper-web) module. 

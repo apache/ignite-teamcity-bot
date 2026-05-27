@@ -396,13 +396,14 @@ public class HttpUtil {
     /**
      * Send POST request to the JIRA url.
      *
-     * @param jiraAuthTok Authorization Base64 token.
+     * @param jiraAuthHeader Authorization header value.
      * @param url URL.
      * @param body Request POST params.
      * @return Response body from given url.
      * @throws IOException If failed.
      */
-    public static String sendPostAsStringToJira(String jiraAuthTok, String url, String body) throws IOException {
+    public static String sendPostAsStringToJira(@Nullable String jiraAuthHeader, String url, String body)
+        throws IOException {
         URL obj = new URL(url);
         ensureIntegrationTestTarget(obj);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
@@ -411,7 +412,8 @@ public class HttpUtil {
         Charset charset = StandardCharsets.UTF_8;
 
         con.setRequestProperty("accept-charset", charset.toString());
-        con.setRequestProperty("Authorization", "Basic " + jiraAuthTok);
+        if (jiraAuthHeader != null)
+            con.setRequestProperty("Authorization", jiraAuthHeader);
         con.setRequestProperty("content-type", "application/json");
         con.setInstanceFollowRedirects(false);
         useKeepAlive(con);
@@ -434,10 +436,10 @@ public class HttpUtil {
     /**
      * Send GET request to the JIRA url.
      *
-     * @param jiraAuthTok Jira auth token.
+     * @param jiraAuthHeader Jira authorization header value.
      * @param url Url.
      */
-    public static String sendGetToJira(String jiraAuthTok, String url) throws IOException {
+    public static String sendGetToJira(@Nullable String jiraAuthHeader, String url) throws IOException {
         Stopwatch started = Stopwatch.createStarted();
         URL obj = new URL(url);
         ensureIntegrationTestTarget(obj);
@@ -447,7 +449,8 @@ public class HttpUtil {
         Charset charset = StandardCharsets.UTF_8;
 
         con.setRequestProperty("accept-charset", charset.toString());
-        con.setRequestProperty("Authorization", "Basic " + jiraAuthTok);
+        if (jiraAuthHeader != null)
+            con.setRequestProperty("Authorization", jiraAuthHeader);
         con.setRequestProperty("content-type", "application/json");
         con.setInstanceFollowRedirects(false);
         useKeepAlive(con);

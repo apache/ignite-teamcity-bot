@@ -52,8 +52,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * <p>
  * Usage:
  * export IGNITE_WORK_DIR=/abs/path/to/work_backup
- * ./gradlew -p migrator run --args="--verbose --report 200"      # dry run with verbose report
- * ./gradlew -p migrator run --args="--apply --report 50000"      # apply to all caches
+ * gradle -p migrator run --args="--verbose --report 200"      # dry run with verbose report
+ * gradle -p migrator run --args="--apply --report 50000"      # apply to all caches
  */
 
 public final class GridIntListMigrator {

@@ -47,6 +47,51 @@ public class PasswordEncoder {
         return new String(parseHexBinary(p), CryptUtil.CHARSET);
     }
 
+    public static String decodeIfEncoded(String tok) {
+        if (!mayBeEncoded(tok))
+            return tok;
+
+        try {
+            return decode(tok);
+        }
+        catch (RuntimeException ignored) {
+            return tok;
+        }
+    }
+
+    public static boolean isEncoded(String tok) {
+        if (!mayBeEncoded(tok))
+            return false;
+
+        try {
+            decode(tok);
+
+            return true;
+        }
+        catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private static boolean mayBeEncoded(String tok) {
+        if (Strings.isNullOrEmpty(tok))
+            return false;
+
+        String trimmed = tok.trim();
+
+        if (trimmed.length() % 2 != 0)
+            return false;
+
+        for (int i = 0; i < trimmed.length(); i++) {
+            char ch = trimmed.charAt(i);
+
+            if (!((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F')))
+                return false;
+        }
+
+        return true;
+    }
+
     public static String encode(String pass) {
         byte[] bytes = pass.getBytes(CryptUtil.CHARSET);
         SecureRandom random = new SecureRandom();

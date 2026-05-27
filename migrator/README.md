@@ -13,22 +13,22 @@ Safety:
 
 Requirements:
 - JDK 11+
-- Gradle wrapper from tcbot repo
+- Gradle 9.5 or 9.4.1
 - New GridIntList on classpath of migrator (org.apache.ignite.tcbot.common.util.GridIntList)
 
 Build:
 - From repo root:
-    - ```./gradlew -p migrator clean build```
+    - ```gradle -p migrator clean build```
 
 Quick start (macOS/Linux):
 1) Backup work:
     - ```cp -a </path/to/tcbot/work> </path/to/work_backup>```
 2) Dry-run with verbose report (no changes apply):
     - ```export IGNITE_WORK_DIR=</path/to/work_backup>```
-    - ```./gradlew -p migrator run --args="--verbose"```
+    - ```gradle -p migrator run --args="--verbose"```
 3) Apply (write changes):
     - ```export IGNITE_WORK_DIR=</path/to/work_backup>```
-    - ```./gradlew -p migrator run --args="--apply"```
+    - ```gradle -p migrator run --args="--apply"```
     - Optional: focus on a cache: `````--cache <cacheName>`````
 
 CLI arguments:

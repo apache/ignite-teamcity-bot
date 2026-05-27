@@ -106,7 +106,7 @@ class Jira implements IJiraIntegration {
 
         String url = jiraApiUrl + "issue/" + ticket + "/comment";
 
-        return HttpUtil.sendPostAsStringToJira(config().decodedHttpAuthToken(), url, "{\"body\": " + comment + "}");
+        return HttpUtil.sendPostAsStringToJira(config().httpAuthorizationHeader(), url, "{\"body\": " + comment + "}");
     }
 
     /** {@inheritDoc} */
@@ -120,6 +120,6 @@ class Jira implements IJiraIntegration {
      * @return Response as gson string.
      */
     public String sendGetToJira(String url) throws IOException {
-        return HttpUtil.sendGetToJira(config().decodedHttpAuthToken(), config().restApiUrl() + url);
+        return HttpUtil.sendGetToJira(config().httpAuthorizationHeader(), config().restApiUrl() + url);
     }
 }
