@@ -264,7 +264,8 @@ public class FatBuildDao {
 
         Iterables.partition(keys, MAX_FAT_BUILD_CHUNK).forEach(
             chunk -> {
-                Map<Long, EntryProcessorResult<Long>> map = cacheBin.invokeAll(keys, new GetStartTimeProc());
+                Map<Long, EntryProcessorResult<Long>> map = cacheBin.invokeAll(new HashSet<>(chunk),
+                    new GetStartTimeProc());
                 map.forEach((k, r) -> {
                     Long ts = r.get();
                     if (ts != null)
