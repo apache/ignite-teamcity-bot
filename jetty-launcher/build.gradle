@@ -24,6 +24,9 @@ application {
                                                         "-Dteamcity.bot.regionsize=32", // 32g durable memory region
                                                         "-Dhttp.maxConnections=100",
                                                         "-Djava.net.preferIPv4Stack=true",
+                                                        "-DIGNITE_QUIET=false",
+                                                        "-Dteamcity.bot.ignite.metricsLogFrequencyMs=60000",
+                                                        "-Dteamcity.bot.log.totalSizeCap=10GB",
                                                         "-server",
                                                         "-Xms5g",
                                                         "-Xmx24g",
