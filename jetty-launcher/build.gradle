@@ -21,14 +21,15 @@ apply plugin: 'application'
 application {
     mainClass = 'org.apache.ignite.ci.TcHelperJettyLauncher'
     applicationDefaultJvmArgs = igniteJava17JvmArgs + ["-Dfile.encoding=UTF-8",
-                                                        "-Dteamcity.bot.regionsize=32", // 32g Durable Memory region
+                                                        "-Dteamcity.bot.regionsize=32", // 32g durable memory region
                                                         "-Dhttp.maxConnections=100",
+                                                        "-Djava.net.preferIPv4Stack=true",
                                                         "-server",
-                                                        "-Xmx31g",
-                                                        "-XX:+AlwaysPreTouch",
-                                                        "-XX:+UseG1GC",
-                                                        "-XX:+ScavengeBeforeFullGC",
-                                                        "-XX:+UseStringDeduplication",
+                                                        "-Xms5g",
+                                                        "-Xmx24g",
+                                                        "-XX:+UseZGC",
+                                                        "-XX:+ZUncommit",
+                                                        "-XX:ZUncommitDelay=300",
                                                         "-Dcom.sun.management.jmxremote",
                                                         "-Dcom.sun.management.jmxremote.port=9010",
                                                         "-Dcom.sun.management.jmxremote.local.only=false",
