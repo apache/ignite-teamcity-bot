@@ -16,9 +16,11 @@
  */
 package org.apache.ignite.tcbot.engine.cleaner;
 
+import com.google.common.collect.Iterables;
 import java.io.File;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,6 +34,7 @@ import org.apache.ignite.lang.IgniteBiTuple;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
+import org.apache.ignite.tcbot.common.monitoring.MonitoredTasks;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.defect.DefectsStorage;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
@@ -70,10 +73,11 @@ public class Cleaner {
 
     @AutoProfiling
     @MonitoredTask(name = "Clean old cache data and log files")
-    public void clean() {
+    public String clean() {
         try {
             if (cfg.getCleanerConfig().enabled()) {
                 int numOfItemsToDel = cfg.getCleanerConfig().numOfItemsToDel();
+                int deleteBatch = cfg.getCleanerConfig().deleteBatch();
 
                 long safeDaysForCaches = cfg.getCleanerConfig().safeDaysForCaches();
 
@@ -83,32 +87,108 @@ public class Cleaner {
 
                 ZonedDateTime thresholdDateForLogs = ZonedDateTime.now().minusDays(safeDaysForLogs);
 
-                logger.info("Some data from caches (numOfItemsToDel=" + numOfItemsToDel + ") older than " + thresholdDateForCaches + " will be removed.");
+                logger.info("Some data from caches (numOfItemsToDel=" + numOfItemsToDel + ", deleteBatch="
+                    + deleteBatch + ") older than " + thresholdDateForCaches + " will be removed.");
 
                 logger.info("Some log files (numOfItemsToDel=" + numOfItemsToDel + ") older than " + thresholdDateForLogs + " will be removed.");
 
-                removeCacheEntries(thresholdDateForCaches, numOfItemsToDel);
+                CacheCleanResult cacheRes = removeCacheEntries(thresholdDateForCaches, numOfItemsToDel, deleteBatch);
 
-                removeLogFiles(thresholdDateForLogs, numOfItemsToDel);
+                LogCleanResult logRes = removeLogFiles(thresholdDateForLogs, numOfItemsToDel);
+
+                String res = cacheRes.summary() + "; " + logRes.summary();
+
+                report(res);
+
+                return res;
             }
-            else
+            else {
                 logger.info("Periodic cache clean disabled.");
+
+                return "Periodic cache clean disabled.";
+            }
         }
         catch (Throwable e) {
             logger.error("Periodic cache and log clean failed: " + e.getMessage(), e);
 
             e.printStackTrace();
+
+            return "Periodic cache and log clean failed: " + e.getMessage();
         }
     }
 
-    private int removeCacheEntries(ZonedDateTime thresholdDate, int numOfItemsToDel) {
+    private CacheCleanResult removeCacheEntries(ZonedDateTime thresholdDate, int numOfItemsToDel, int deleteBatch) {
         long thresholdEpochMilli = thresholdDate.toInstant().toEpochMilli();
 
-        Set<Long> oldBuildsKeys = fatBuildDao.getOldBuilds(thresholdEpochMilli, numOfItemsToDel);
+        report("Checking " + FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME + " for builds older than " + thresholdDate);
+
+        int deleteBatchSize = Math.max(1, deleteBatch);
+        int totalPartitions = fatBuildDao.affinity().partitions();
+        int matched = 0;
+        int removed = 0;
+        int scannedPartitions = 0;
+        boolean limitReached = false;
+
+        for (int part = 0; part < totalPartitions && matched < numOfItemsToDel; part++) {
+            scannedPartitions++;
+
+            int remainingLimit = numOfItemsToDel - matched;
+
+            report("Checking " + FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME + " partition " + (part + 1) + "/"
+                + totalPartitions + ", remaining limit " + remainingLimit + ", removed so far " + removed);
+
+            FatBuildDao.OldBuildsSearchResult oldBuilds = fatBuildDao.getOldBuildsFromPartition(
+                thresholdEpochMilli,
+                part,
+                remainingLimit,
+                deleteBatchSize,
+                this::report);
+
+            matched += oldBuilds.matched();
+
+            int totalBatches = (oldBuilds.keys().size() + deleteBatchSize - 1) / deleteBatchSize;
+            int batch = 0;
+
+            report("Checked " + FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME + " partition " + (part + 1) + "/"
+                + totalPartitions + ": cursor closed, matched " + oldBuilds.matched() + ", deleting "
+                + oldBuilds.keys().size() + " records in " + totalBatches + " batches");
+
+            for (List<Long> chunk : Iterables.partition(oldBuilds.keys(), deleteBatchSize)) {
+                batch++;
+                removed += removeCacheEntriesBatch(chunk, part, totalPartitions, batch, totalBatches);
+            }
+
+            report("Finished " + FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME + " partition " + (part + 1) + "/"
+                + totalPartitions + ": total matched " + matched + ", total removed " + removed);
+
+            if (oldBuilds.deleteLimitReached()) {
+                limitReached = true;
+
+                break;
+            }
+        }
+
+        if (matched >= numOfItemsToDel && scannedPartitions < totalPartitions)
+            limitReached = true;
+
+        removeInconsistentRecords(thresholdDate, numOfItemsToDel);
+
+        return new CacheCleanResult(matched, removed, scannedPartitions, totalPartitions, limitReached);
+    }
+
+    private int removeCacheEntriesBatch(List<Long> oldBuildsKeysList, int part, int totalPartitions, int batch,
+        int totalBatches) {
+        Set<Long> oldBuildsKeys = new HashSet<>(oldBuildsKeysList);
 
         Map<Integer, List<Integer>> oldBuildsTeamCityAndBuildIds = oldBuildsKeys.stream()
             .map(FatBuildDao::cacheKeyToSrvIdAndBuildId)
             .collect(groupingBy(IgniteBiTuple::get1, mapping(IgniteBiTuple::get2, toList())));
+
+        String partAndBatch = "partition " + (part + 1) + "/" + totalPartitions + ", batch " + batch + "/"
+            + totalBatches;
+
+        report("Checking defects before cache cleanup " + partAndBatch + ": " + oldBuildsKeys.size()
+            + " candidate builds");
 
         defectsStorage.checkIfPossibleToRemove(oldBuildsTeamCityAndBuildIds);
 
@@ -119,56 +199,161 @@ public class Cleaner {
 
         logger.info("Builds will be removed (" + oldBuildsKeys.size() + ")");
 
+        report("Removing " + partAndBatch + " from teamcitySuiteHistory: " + oldBuildsKeys.size()
+            + " build records");
         suiteInvocationHistoryDao.removeAll(oldBuildsKeys);
+
+        report("Removing " + partAndBatch + " from buildLogCheckResult: " + oldBuildsKeys.size()
+            + " build records");
         buildLogCheckResultDao.removeAll(oldBuildsKeys);
+
+        report("Removing " + partAndBatch + " from teamcityBuildRef: " + oldBuildsKeys.size()
+            + " build records");
         buildRefDao.removeAll(oldBuildsKeys);
+
+        report("Removing " + partAndBatch + " from teamcityBuildStartTime: " + oldBuildsKeys.size()
+            + " build records");
         buildStartTimeStorage.removeAll(oldBuildsKeys);
+
+        report("Removing " + partAndBatch + " from buildsConditions: " + oldBuildsKeys.size()
+            + " build records");
         buildConditionDao.removeAll(oldBuildsKeys);
+
+        report("Removing old defects " + partAndBatch + ": " + oldBuildsKeys.size() + " build records");
         defectsStorage.removeOldDefects(oldBuildsTeamCityAndBuildIds);
+
+        report("Removing old issues " + partAndBatch + ": " + oldBuildsKeys.size() + " build records");
         issuesStorage.removeOldIssues(oldBuildsTeamCityAndBuildIds);
+
+        report("Removing " + partAndBatch + " from " + FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME + ": "
+            + oldBuildsKeys.size() + " build records");
         fatBuildDao.removeAll(oldBuildsKeys);
-
-        //Need to eventually delete data with broken consistency
-        defectsStorage.removeOldDefects(thresholdDate.minusDays(60).toInstant().toEpochMilli(), numOfItemsToDel);
-        issuesStorage.removeOldIssues(thresholdDate.minusDays(60).toInstant().toEpochMilli(), numOfItemsToDel);
-
-        newTestsStorage.removeOldTests(ZonedDateTime.now().minusDays(5).toInstant().toEpochMilli());
 
         return oldBuildsKeys.size();
     }
 
-    private void removeLogFiles(ZonedDateTime thresholdDate, int numOfItemsToDel) {
+    private void removeInconsistentRecords(ZonedDateTime thresholdDate, int numOfItemsToDel) {
+        int deleteBatchSize = Math.max(1, numOfItemsToDel);
+
+        //Need to eventually delete data with broken consistency
+        report("Removing inconsistent old defects older than " + thresholdDate.minusDays(60));
+        defectsStorage.removeOldDefects(thresholdDate.minusDays(60).toInstant().toEpochMilli(), deleteBatchSize);
+
+        report("Removing inconsistent old issues older than " + thresholdDate.minusDays(60));
+        issuesStorage.removeOldIssues(thresholdDate.minusDays(60).toInstant().toEpochMilli(), deleteBatchSize);
+
+        report("Removing old new-tests records");
+        newTestsStorage.removeOldTests(ZonedDateTime.now().minusDays(5).toInstant().toEpochMilli());
+    }
+
+    private LogCleanResult removeLogFiles(ZonedDateTime thresholdDate, int numOfItemsToDel) {
         long thresholdEpochMilli = thresholdDate.toInstant().toEpochMilli();
 
         final File workDir = TcBotWorkDir.resolveWorkDir();
 
+        LogCleanResult res = new LogCleanResult();
+
         for (String srvId : cfg.getServerIds()) {
             File srvIdLogDir = new File(workDir, cfg.getTeamcityConfig(srvId).logsDirectory());
 
-            removeFiles(srvIdLogDir, thresholdEpochMilli, numOfItemsToDel);
+            res.add(removeFiles(srvIdLogDir, thresholdEpochMilli, numOfItemsToDel));
         }
 
         File tcBotLogDir = new File(workDir, "tcbot_logs");
 
-        removeFiles(tcBotLogDir, thresholdEpochMilli, numOfItemsToDel);
+        res.add(removeFiles(tcBotLogDir, thresholdEpochMilli, numOfItemsToDel));
+
+        return res;
     }
 
-    private void removeFiles(File dir, long thresholdDate, int numOfItemsToDel) {
+    private LogCleanResult removeFiles(File dir, long thresholdDate, int numOfItemsToDel) {
+        report("Checking log directory " + dir);
+
         File[] logFiles = dir.listFiles();
 
         List<File> filesToRmv = new ArrayList<>(numOfItemsToDel);
+        int checked = 0;
 
-        if (logFiles != null)
-            for (File file : logFiles)
+        if (logFiles != null) {
+            for (File file : logFiles) {
+                checked++;
+
                 if (file.lastModified() < thresholdDate && numOfItemsToDel-- > 0)
                     filesToRmv.add(file);
+            }
+        }
 
         logger.info("In the directory " + dir + " files will be removed (" + filesToRmv.size() + ")");
 
+        int removed = 0;
+
         for (File file : filesToRmv) {
-            file.delete();
+            if (file.delete())
+                removed++;
         }
 
+        report("Checked log directory " + dir + ": removed " + removed + "/" + filesToRmv.size()
+            + " old files, checked " + checked + " files");
+
+        return new LogCleanResult(checked, filesToRmv.size(), removed);
+    }
+
+    private void report(String status) {
+        MonitoredTasks.reportCurrentTaskStatus(status);
+    }
+
+    private static class CacheCleanResult {
+        private final int matched;
+
+        private final int removed;
+
+        private final int scannedPartitions;
+
+        private final int totalPartitions;
+
+        private final boolean limitReached;
+
+        CacheCleanResult(int matched, int removed, int scannedPartitions, int totalPartitions, boolean limitReached) {
+            this.matched = matched;
+            this.removed = removed;
+            this.scannedPartitions = scannedPartitions;
+            this.totalPartitions = totalPartitions;
+            this.limitReached = limitReached;
+        }
+
+        String summary() {
+            return "Caches: removed " + removed + "/" + matched + " matched old build records"
+                + ", scanned partitions " + scannedPartitions + "/" + totalPartitions
+                + (limitReached ? ", delete limit reached, more old builds may remain" : "");
+        }
+    }
+
+    private static class LogCleanResult {
+        private int checked;
+
+        private int oldFiles;
+
+        private int removed;
+
+        LogCleanResult() {
+            // No-op.
+        }
+
+        LogCleanResult(int checked, int oldFiles, int removed) {
+            this.checked = checked;
+            this.oldFiles = oldFiles;
+            this.removed = removed;
+        }
+
+        void add(LogCleanResult res) {
+            checked += res.checked;
+            oldFiles += res.oldFiles;
+            removed += res.removed;
+        }
+
+        String summary() {
+            return "Logs: removed " + removed + "/" + oldFiles + " old files, checked " + checked + " files";
+        }
     }
 
     public void startBackgroundClean() {

@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -45,6 +46,7 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.CacheEntryProcessor;
 import org.apache.ignite.cache.affinity.Affinity;
+import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.lang.IgniteBiPredicate;
@@ -419,6 +421,42 @@ public class FatBuildDao {
     }
 
     public Set<Long> getOldBuilds(long thresholdDate, int numOfItemsToDel) {
+        return new HashSet<>(getOldBuilds(thresholdDate, numOfItemsToDel, numOfItemsToDel, null).keys());
+    }
+
+    public OldBuildsSearchResult getOldBuilds(long thresholdDate, int numOfItemsToDel,
+        @Nullable Consumer<String> progressReporter) {
+        return getOldBuilds(thresholdDate, numOfItemsToDel, numOfItemsToDel, progressReporter);
+    }
+
+    public OldBuildsSearchResult getOldBuilds(long thresholdDate, int numOfItemsToDel, int progressStep,
+        @Nullable Consumer<String> progressReporter) {
+        int partitions = affinity().partitions();
+        List<Long> oldBuildsKeys = new ArrayList<>();
+        boolean deleteLimitReached = false;
+
+        for (int part = 0; part < partitions && oldBuildsKeys.size() < numOfItemsToDel; part++) {
+            OldBuildsSearchResult partRes = getOldBuildsFromPartition(
+                thresholdDate,
+                part,
+                numOfItemsToDel - oldBuildsKeys.size(),
+                progressStep,
+                progressReporter);
+
+            oldBuildsKeys.addAll(partRes.keys());
+
+            if (partRes.deleteLimitReached()) {
+                deleteLimitReached = true;
+
+                break;
+            }
+        }
+
+        return new OldBuildsSearchResult(oldBuildsKeys, oldBuildsKeys.size(), deleteLimitReached);
+    }
+
+    public OldBuildsSearchResult getOldBuildsFromPartition(long thresholdDate, int part, int numOfItemsToDel,
+        int progressStep, @Nullable Consumer<String> progressReporter) {
         IgniteCache<Long, BinaryObject> cacheWithBinary = buildsCache.withKeepBinary();
 
         ScanQuery<Long, BinaryObject> scan = new ScanQuery<>((key, fatBuild) -> {
@@ -431,18 +469,61 @@ public class FatBuildDao {
                     !fatBuild.hasField("startDate");
             }
         );
+        scan.setPartition(part);
 
-        Set<Long> oldBuildsKeys = new HashSet<>(numOfItemsToDel);
+        List<Long> oldBuildsKeys = new ArrayList<>();
+        int matched = 0;
+        int progressStep0 = Math.max(1, progressStep);
+        boolean deleteLimitReached = false;
 
-        for (Cache.Entry<Long, BinaryObject> entry : cacheWithBinary.query(scan)) {
-            if (numOfItemsToDel > 0) {
-                numOfItemsToDel--;
+        try (QueryCursor<Cache.Entry<Long, BinaryObject>> cursor = cacheWithBinary.query(scan)) {
+            for (Cache.Entry<Long, BinaryObject> entry : cursor) {
+                if (oldBuildsKeys.size() >= numOfItemsToDel) {
+                    deleteLimitReached = true;
+                    break;
+                }
+
+                matched++;
                 oldBuildsKeys.add(entry.getKey());
+
+                if (progressReporter != null && (matched == 1 || matched % progressStep0 == 0))
+                    progressReporter.accept("Checking " + TEAMCITY_FAT_BUILD_CACHE_NAME + " partition " + part
+                        + ": matched " + matched + " old build candidates");
             }
-            else
-                break;
         }
-        return oldBuildsKeys;
+
+        if (progressReporter != null)
+            progressReporter.accept("Checked " + TEAMCITY_FAT_BUILD_CACHE_NAME + " partition " + part
+                + ": matched " + matched + " old build candidates"
+                + (deleteLimitReached ? ", delete limit reached, more old builds may remain" : ""));
+
+        return new OldBuildsSearchResult(oldBuildsKeys, matched, deleteLimitReached);
+    }
+
+    public static class OldBuildsSearchResult {
+        private final List<Long> keys;
+
+        private final int matched;
+
+        private final boolean deleteLimitReached;
+
+        public OldBuildsSearchResult(List<Long> keys, int matched, boolean deleteLimitReached) {
+            this.keys = keys;
+            this.matched = matched;
+            this.deleteLimitReached = deleteLimitReached;
+        }
+
+        public List<Long> keys() {
+            return keys;
+        }
+
+        public int matched() {
+            return matched;
+        }
+
+        public boolean deleteLimitReached() {
+            return deleteLimitReached;
+        }
     }
 
     public void remove(long key) {

@@ -19,13 +19,19 @@ package org.apache.ignite.tcbot.engine.conf;
 /** */
 public class CleanerConfig implements ICleanerConfig{
     /** */
-    public static final int DEFAULT_SAVE_DAYS = 30 * 6;
+    public static final int DEFAULT_SAFE_DAYS_FOR_CACHES = 120;
+
+    /** */
+    public static final int DEFAULT_SAFE_DAYS_FOR_LOGS = 70;
 
     /** */
     public static final int DEFAULT_NUMBER_OF_ITEMS_TO_DELETE = 100_000;
 
     /** */
-    public static final int DEFAULT_PERIOD_MINUTES = 60 * 24;
+    public static final int DEFAULT_DELETE_BATCH = 1_000;
+
+    /** */
+    public static final int DEFAULT_PERIOD_MINUTES = 360;
 
     /** */
     private Integer safeDaysForCaches;
@@ -37,6 +43,9 @@ public class CleanerConfig implements ICleanerConfig{
     private Integer numOfItemsToDel;
 
     /** */
+    private Integer deleteBatch;
+
+    /** */
     private Integer period;
 
     /** */
@@ -45,9 +54,10 @@ public class CleanerConfig implements ICleanerConfig{
     /** */
     public static CleanerConfig getDefaultCleanerConfig() {
         CleanerConfig cfg = new CleanerConfig();
-        cfg.safeDaysForCaches = DEFAULT_SAVE_DAYS;
-        cfg.safeDaysForLogs = DEFAULT_SAVE_DAYS;
+        cfg.safeDaysForCaches = DEFAULT_SAFE_DAYS_FOR_CACHES;
+        cfg.safeDaysForLogs = DEFAULT_SAFE_DAYS_FOR_LOGS;
         cfg.numOfItemsToDel = DEFAULT_NUMBER_OF_ITEMS_TO_DELETE;
+        cfg.deleteBatch = DEFAULT_DELETE_BATCH;
         cfg.enabled = true;
         cfg.period = DEFAULT_PERIOD_MINUTES;
         return cfg;
@@ -55,17 +65,22 @@ public class CleanerConfig implements ICleanerConfig{
 
     /** */
     public int safeDaysForCaches() {
-        return safeDaysForCaches == null || safeDaysForCaches < 0 ? DEFAULT_SAVE_DAYS : safeDaysForCaches;
+        return safeDaysForCaches == null || safeDaysForCaches < 0 ? DEFAULT_SAFE_DAYS_FOR_CACHES : safeDaysForCaches;
     }
 
     /** */
     public int safeDaysForLogs() {
-        return safeDaysForLogs == null || safeDaysForLogs < 0 ? DEFAULT_SAVE_DAYS : safeDaysForLogs;
+        return safeDaysForLogs == null || safeDaysForLogs < 0 ? DEFAULT_SAFE_DAYS_FOR_LOGS : safeDaysForLogs;
     }
 
     /** */
     public int numOfItemsToDel() {
         return numOfItemsToDel == null || numOfItemsToDel < 0 ? DEFAULT_NUMBER_OF_ITEMS_TO_DELETE : numOfItemsToDel;
+    }
+
+    /** */
+    public int deleteBatch() {
+        return deleteBatch == null || deleteBatch < 0 ? DEFAULT_DELETE_BATCH : deleteBatch;
     }
 
     /** */
