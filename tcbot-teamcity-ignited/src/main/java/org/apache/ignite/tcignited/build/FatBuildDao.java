@@ -471,7 +471,7 @@ public class FatBuildDao {
 
         List<Long> oldBuildsKeys = new ArrayList<>();
         int scanned = 0;
-        int matched = 0;
+        int selected = 0;
         int progressStep0 = Math.max(1, progressStep);
         boolean deleteLimitReached = false;
 
@@ -490,21 +490,21 @@ public class FatBuildDao {
                     break;
                 }
 
-                matched++;
+                selected++;
                 oldBuildsKeys.add(entry.getKey());
 
-                if (progressReporter != null && (matched == 1 || matched % progressStep0 == 0))
+                if (progressReporter != null && (selected == 1 || selected % progressStep0 == 0))
                     progressReporter.accept("Checking " + TEAMCITY_FAT_BUILD_CACHE_NAME + " partition " + part
-                        + ": scanned " + scanned + " entries, matched " + matched + " old build candidates");
+                        + ": scanned " + scanned + " entries, selected " + selected + " old build candidates");
             }
         }
 
         if (progressReporter != null)
             progressReporter.accept("Checked " + TEAMCITY_FAT_BUILD_CACHE_NAME + " partition " + part
-                + ": scanned " + scanned + " entries, matched " + matched + " old build candidates"
+                + ": scanned " + scanned + " entries, selected " + selected + " old build candidates"
                 + (deleteLimitReached ? ", delete limit reached, more old builds may remain" : ""));
 
-        return new OldBuildsSearchResult(oldBuildsKeys, matched, scanned, deleteLimitReached);
+        return new OldBuildsSearchResult(oldBuildsKeys, selected, scanned, deleteLimitReached);
     }
 
     private boolean isOldBuild(BinaryObject fatBuild, long thresholdDate) {
@@ -519,15 +519,15 @@ public class FatBuildDao {
     public static class OldBuildsSearchResult {
         private final List<Long> keys;
 
-        private final int matched;
+        private final int selected;
 
         private final int scanned;
 
         private final boolean deleteLimitReached;
 
-        public OldBuildsSearchResult(List<Long> keys, int matched, int scanned, boolean deleteLimitReached) {
+        public OldBuildsSearchResult(List<Long> keys, int selected, int scanned, boolean deleteLimitReached) {
             this.keys = keys;
-            this.matched = matched;
+            this.selected = selected;
             this.scanned = scanned;
             this.deleteLimitReached = deleteLimitReached;
         }
@@ -536,8 +536,8 @@ public class FatBuildDao {
             return keys;
         }
 
-        public int matched() {
-            return matched;
+        public int selected() {
+            return selected;
         }
 
         public int scanned() {

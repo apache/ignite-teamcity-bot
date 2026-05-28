@@ -133,7 +133,7 @@ public class Cleaner {
         report("Checking " + FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME + " for builds older than " + thresholdDate);
 
         int totalPartitions = fatBuildDao.affinity().partitions();
-        int matched = 0;
+        int selected = 0;
         int removed = 0;
         int scannedEntries = 0;
         int scannedPartitions = 0;
@@ -157,7 +157,7 @@ public class Cleaner {
                     checkedInPartition,
                     this::report);
 
-                matched += oldBuilds.matched();
+                selected += oldBuilds.selected();
                 scannedEntries += oldBuilds.scanned();
                 checkedInPartition.addAll(oldBuilds.keys());
 
@@ -171,7 +171,7 @@ public class Cleaner {
 
                 report("Checked " + FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME + " partition " + (part + 1) + "/"
                     + totalPartitions + ": cursor closed, scanned " + oldBuilds.scanned()
-                    + " entries, matched " + oldBuilds.matched() + ", deleting "
+                    + " entries, selected " + oldBuilds.selected() + ", deleting "
                     + oldBuilds.keys().size() + " candidate records");
 
                 int partitionRemoved = removeCacheEntriesForPartition(oldBuilds.keys(), part, totalPartitions);
@@ -179,8 +179,8 @@ public class Cleaner {
                 removed += partitionRemoved;
 
                 report("Finished " + FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME + " partition " + (part + 1) + "/"
-                    + totalPartitions + ": matched " + oldBuilds.matched() + ", removed " + partitionRemoved
-                    + ", total matched " + matched + ", total removed " + removed);
+                    + totalPartitions + ": selected " + oldBuilds.selected() + ", removed " + partitionRemoved
+                    + ", total selected " + selected + ", total removed " + removed);
 
                 if (!oldBuilds.deleteLimitReached())
                     break;
@@ -192,7 +192,7 @@ public class Cleaner {
 
         removeInconsistentRecords(thresholdDate, numOfItemsToDel);
 
-        return new CacheCleanResult(matched, removed, scannedEntries, scannedPartitions, totalPartitions, limitReached);
+        return new CacheCleanResult(selected, removed, scannedEntries, scannedPartitions, totalPartitions, limitReached);
     }
 
     private int removeCacheEntriesForPartition(List<Long> oldBuildsKeysList, int part, int totalPartitions) {
@@ -320,7 +320,7 @@ public class Cleaner {
     }
 
     private static class CacheCleanResult {
-        private final int matched;
+        private final int selected;
 
         private final int removed;
 
@@ -332,9 +332,9 @@ public class Cleaner {
 
         private final boolean limitReached;
 
-        CacheCleanResult(int matched, int removed, int scannedEntries, int scannedPartitions, int totalPartitions,
+        CacheCleanResult(int selected, int removed, int scannedEntries, int scannedPartitions, int totalPartitions,
             boolean limitReached) {
-            this.matched = matched;
+            this.selected = selected;
             this.removed = removed;
             this.scannedEntries = scannedEntries;
             this.scannedPartitions = scannedPartitions;
@@ -343,7 +343,7 @@ public class Cleaner {
         }
 
         String summary() {
-            return "Caches: removed " + removed + "/" + matched + " matched old build records"
+            return "Caches: removed " + removed + "/" + selected + " selected old build records"
                 + ", scanned entries " + scannedEntries
                 + ", scanned partitions " + scannedPartitions + "/" + totalPartitions
                 + (limitReached ? ", delete limit reached, more old builds may remain" : "");
