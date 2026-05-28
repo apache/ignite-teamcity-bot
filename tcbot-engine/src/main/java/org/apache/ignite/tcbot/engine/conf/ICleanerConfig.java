@@ -27,9 +27,6 @@ public interface ICleanerConfig {
     /** */
     int numOfItemsToDel();
 
-    /** */
-    int deleteBatch();
-
     /** Minutes */
     int period();
 

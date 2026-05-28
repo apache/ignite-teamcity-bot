@@ -54,6 +54,9 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
 public class Cleaner {
+    /** Progress reporting step for scanning old fat builds. */
+    private static final int OLD_BUILD_SCAN_PROGRESS_STEP = 1_000;
+
     private final AtomicBoolean init = new AtomicBoolean();
     private final AtomicBoolean maintenanceActionRegistered = new AtomicBoolean();
 
@@ -85,7 +88,6 @@ public class Cleaner {
         try {
             if (cfg.getCleanerConfig().enabled()) {
                 int numOfItemsToDel = cfg.getCleanerConfig().numOfItemsToDel();
-                int deleteBatch = cfg.getCleanerConfig().deleteBatch();
 
                 long safeDaysForCaches = cfg.getCleanerConfig().safeDaysForCaches();
 
@@ -95,12 +97,12 @@ public class Cleaner {
 
                 ZonedDateTime thresholdDateForLogs = ZonedDateTime.now().minusDays(safeDaysForLogs);
 
-                logger.info("Some data from caches (numOfItemsToDel=" + numOfItemsToDel + ", deleteBatch="
-                    + deleteBatch + ") older than " + thresholdDateForCaches + " will be removed.");
+                logger.info("Some data from caches (numOfItemsToDel=" + numOfItemsToDel + ") older than "
+                    + thresholdDateForCaches + " will be removed.");
 
                 logger.info("Some log files (numOfItemsToDel=" + numOfItemsToDel + ") older than " + thresholdDateForLogs + " will be removed.");
 
-                CacheCleanResult cacheRes = removeCacheEntries(thresholdDateForCaches, numOfItemsToDel, deleteBatch);
+                CacheCleanResult cacheRes = removeCacheEntries(thresholdDateForCaches, numOfItemsToDel);
 
                 LogCleanResult logRes = removeLogFiles(thresholdDateForLogs, numOfItemsToDel);
 
@@ -125,12 +127,11 @@ public class Cleaner {
         }
     }
 
-    private CacheCleanResult removeCacheEntries(ZonedDateTime thresholdDate, int numOfItemsToDel, int deleteBatch) {
+    private CacheCleanResult removeCacheEntries(ZonedDateTime thresholdDate, int numOfItemsToDel) {
         long thresholdEpochMilli = thresholdDate.toInstant().toEpochMilli();
 
         report("Checking " + FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME + " for builds older than " + thresholdDate);
 
-        int deleteBatchSize = Math.max(1, deleteBatch);
         int totalPartitions = fatBuildDao.affinity().partitions();
         int matched = 0;
         int removed = 0;
@@ -151,8 +152,8 @@ public class Cleaner {
                 FatBuildDao.OldBuildsSearchResult oldBuilds = fatBuildDao.getOldBuildsFromPartition(
                     thresholdEpochMilli,
                     part,
-                    Math.min(remainingLimit, deleteBatchSize),
-                    deleteBatchSize,
+                    remainingLimit,
+                    OLD_BUILD_SCAN_PROGRESS_STEP,
                     checkedInPartition,
                     this::report);
 
@@ -170,15 +171,15 @@ public class Cleaner {
 
                 report("Checked " + FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME + " partition " + (part + 1) + "/"
                     + totalPartitions + ": cursor closed, scanned " + oldBuilds.scanned()
-                    + " entries, matched " + oldBuilds.matched() + ", deleting batch of "
+                    + " entries, matched " + oldBuilds.matched() + ", deleting "
                     + oldBuilds.keys().size() + " candidate records");
 
-                int batchRemoved = removeCacheEntriesBatch(oldBuilds.keys(), part, totalPartitions, 1, 1);
+                int partitionRemoved = removeCacheEntriesForPartition(oldBuilds.keys(), part, totalPartitions);
 
-                removed += batchRemoved;
+                removed += partitionRemoved;
 
                 report("Finished " + FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME + " partition " + (part + 1) + "/"
-                    + totalPartitions + " batch: matched " + oldBuilds.matched() + ", removed " + batchRemoved
+                    + totalPartitions + ": matched " + oldBuilds.matched() + ", removed " + partitionRemoved
                     + ", total matched " + matched + ", total removed " + removed);
 
                 if (!oldBuilds.deleteLimitReached())
@@ -194,18 +195,16 @@ public class Cleaner {
         return new CacheCleanResult(matched, removed, scannedEntries, scannedPartitions, totalPartitions, limitReached);
     }
 
-    private int removeCacheEntriesBatch(List<Long> oldBuildsKeysList, int part, int totalPartitions, int batch,
-        int totalBatches) {
+    private int removeCacheEntriesForPartition(List<Long> oldBuildsKeysList, int part, int totalPartitions) {
         Set<Long> oldBuildsKeys = new HashSet<>(oldBuildsKeysList);
 
         Map<Integer, List<Integer>> oldBuildsTeamCityAndBuildIds = oldBuildsKeys.stream()
             .map(FatBuildDao::cacheKeyToSrvIdAndBuildId)
             .collect(groupingBy(IgniteBiTuple::get1, mapping(IgniteBiTuple::get2, toList())));
 
-        String partAndBatch = "partition " + (part + 1) + "/" + totalPartitions + ", batch " + batch + "/"
-            + totalBatches;
+        String partition = "partition " + (part + 1) + "/" + totalPartitions;
 
-        report("Checking defects before cache cleanup " + partAndBatch + ": " + oldBuildsKeys.size()
+        report("Checking defects before cache cleanup " + partition + ": " + oldBuildsKeys.size()
             + " candidate builds");
 
         defectsStorage.checkIfPossibleToRemove(oldBuildsTeamCityAndBuildIds);
@@ -217,33 +216,33 @@ public class Cleaner {
 
         logger.info("Builds will be removed (" + oldBuildsKeys.size() + ")");
 
-        report("Removing " + partAndBatch + " from teamcitySuiteHistory: " + oldBuildsKeys.size()
+        report("Removing " + partition + " from teamcitySuiteHistory: " + oldBuildsKeys.size()
             + " build records");
         suiteInvocationHistoryDao.removeAll(oldBuildsKeys);
 
-        report("Removing " + partAndBatch + " from buildLogCheckResult: " + oldBuildsKeys.size()
+        report("Removing " + partition + " from buildLogCheckResult: " + oldBuildsKeys.size()
             + " build records");
         buildLogCheckResultDao.removeAll(oldBuildsKeys);
 
-        report("Removing " + partAndBatch + " from teamcityBuildRef: " + oldBuildsKeys.size()
+        report("Removing " + partition + " from teamcityBuildRef: " + oldBuildsKeys.size()
             + " build records");
         buildRefDao.removeAll(oldBuildsKeys);
 
-        report("Removing " + partAndBatch + " from teamcityBuildStartTime: " + oldBuildsKeys.size()
+        report("Removing " + partition + " from teamcityBuildStartTime: " + oldBuildsKeys.size()
             + " build records");
         buildStartTimeStorage.removeAll(oldBuildsKeys);
 
-        report("Removing " + partAndBatch + " from buildsConditions: " + oldBuildsKeys.size()
+        report("Removing " + partition + " from buildsConditions: " + oldBuildsKeys.size()
             + " build records");
         buildConditionDao.removeAll(oldBuildsKeys);
 
-        report("Removing old defects " + partAndBatch + ": " + oldBuildsKeys.size() + " build records");
+        report("Removing old defects " + partition + ": " + oldBuildsKeys.size() + " build records");
         defectsStorage.removeOldDefects(oldBuildsTeamCityAndBuildIds);
 
-        report("Removing old issues " + partAndBatch + ": " + oldBuildsKeys.size() + " build records");
+        report("Removing old issues " + partition + ": " + oldBuildsKeys.size() + " build records");
         issuesStorage.removeOldIssues(oldBuildsTeamCityAndBuildIds);
 
-        report("Removing " + partAndBatch + " from " + FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME + ": "
+        report("Removing " + partition + " from " + FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME + ": "
             + oldBuildsKeys.size() + " build records");
         fatBuildDao.removeAll(oldBuildsKeys);
 
@@ -251,14 +250,14 @@ public class Cleaner {
     }
 
     private void removeInconsistentRecords(ZonedDateTime thresholdDate, int numOfItemsToDel) {
-        int deleteBatchSize = Math.max(1, numOfItemsToDel);
+        int deleteLimit = Math.max(1, numOfItemsToDel);
 
         //Need to eventually delete data with broken consistency
         report("Removing inconsistent old defects older than " + thresholdDate.minusDays(60));
-        defectsStorage.removeOldDefects(thresholdDate.minusDays(60).toInstant().toEpochMilli(), deleteBatchSize);
+        defectsStorage.removeOldDefects(thresholdDate.minusDays(60).toInstant().toEpochMilli(), deleteLimit);
 
         report("Removing inconsistent old issues older than " + thresholdDate.minusDays(60));
-        issuesStorage.removeOldIssues(thresholdDate.minusDays(60).toInstant().toEpochMilli(), deleteBatchSize);
+        issuesStorage.removeOldIssues(thresholdDate.minusDays(60).toInstant().toEpochMilli(), deleteLimit);
 
         report("Removing old new-tests records");
         newTestsStorage.removeOldTests(ZonedDateTime.now().minusDays(5).toInstant().toEpochMilli());

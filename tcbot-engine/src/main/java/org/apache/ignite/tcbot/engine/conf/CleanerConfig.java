@@ -28,9 +28,6 @@ public class CleanerConfig implements ICleanerConfig{
     public static final int DEFAULT_NUMBER_OF_ITEMS_TO_DELETE = 100_000;
 
     /** */
-    public static final int DEFAULT_DELETE_BATCH = 1_000;
-
-    /** */
     public static final int DEFAULT_PERIOD_MINUTES = 360;
 
     /** */
@@ -41,9 +38,6 @@ public class CleanerConfig implements ICleanerConfig{
 
     /** */
     private Integer numOfItemsToDel;
-
-    /** */
-    private Integer deleteBatch;
 
     /** */
     private Integer period;
@@ -57,7 +51,6 @@ public class CleanerConfig implements ICleanerConfig{
         cfg.safeDaysForCaches = DEFAULT_SAFE_DAYS_FOR_CACHES;
         cfg.safeDaysForLogs = DEFAULT_SAFE_DAYS_FOR_LOGS;
         cfg.numOfItemsToDel = DEFAULT_NUMBER_OF_ITEMS_TO_DELETE;
-        cfg.deleteBatch = DEFAULT_DELETE_BATCH;
         cfg.enabled = true;
         cfg.period = DEFAULT_PERIOD_MINUTES;
         return cfg;
@@ -76,11 +69,6 @@ public class CleanerConfig implements ICleanerConfig{
     /** */
     public int numOfItemsToDel() {
         return numOfItemsToDel == null || numOfItemsToDel < 0 ? DEFAULT_NUMBER_OF_ITEMS_TO_DELETE : numOfItemsToDel;
-    }
-
-    /** */
-    public int deleteBatch() {
-        return deleteBatch == null || deleteBatch < 0 ? DEFAULT_DELETE_BATCH : deleteBatch;
     }
 
     /** */
