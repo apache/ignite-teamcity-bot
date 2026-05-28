@@ -421,43 +421,6 @@ public class FatBuildDao {
         }
     }
 
-    public Set<Long> getOldBuilds(long thresholdDate, int numOfItemsToDel) {
-        return new HashSet<>(getOldBuilds(thresholdDate, numOfItemsToDel, numOfItemsToDel, null).keys());
-    }
-
-    public OldBuildsSearchResult getOldBuilds(long thresholdDate, int numOfItemsToDel,
-        @Nullable Consumer<String> progressReporter) {
-        return getOldBuilds(thresholdDate, numOfItemsToDel, numOfItemsToDel, progressReporter);
-    }
-
-    public OldBuildsSearchResult getOldBuilds(long thresholdDate, int numOfItemsToDel, int progressStep,
-        @Nullable Consumer<String> progressReporter) {
-        int partitions = affinity().partitions();
-        List<Long> oldBuildsKeys = new ArrayList<>();
-        int scanned = 0;
-        boolean deleteLimitReached = false;
-
-        for (int part = 0; part < partitions && oldBuildsKeys.size() < numOfItemsToDel; part++) {
-            OldBuildsSearchResult partRes = getOldBuildsFromPartition(
-                thresholdDate,
-                part,
-                numOfItemsToDel - oldBuildsKeys.size(),
-                progressStep,
-                progressReporter);
-
-            oldBuildsKeys.addAll(partRes.keys());
-            scanned += partRes.scanned();
-
-            if (partRes.deleteLimitReached()) {
-                deleteLimitReached = true;
-
-                break;
-            }
-        }
-
-        return new OldBuildsSearchResult(oldBuildsKeys, oldBuildsKeys.size(), scanned, deleteLimitReached);
-    }
-
     public OldBuildsSearchResult getOldBuildsFromPartition(long thresholdDate, int part, int numOfItemsToDel,
         int progressStep, @Nullable Consumer<String> progressReporter) {
         return getOldBuildsFromPartition(thresholdDate, part, numOfItemsToDel, progressStep, null, progressReporter);
