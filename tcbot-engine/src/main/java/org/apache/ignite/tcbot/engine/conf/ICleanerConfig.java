@@ -30,7 +30,7 @@ public interface ICleanerConfig {
     /** */
     int deleteBatch();
 
-    /** */
+    /** Minutes */
     int period();
 
     /** */

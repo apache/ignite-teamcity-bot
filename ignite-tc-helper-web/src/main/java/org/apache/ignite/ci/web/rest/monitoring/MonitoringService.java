@@ -69,6 +69,7 @@ import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
 import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
 import org.apache.ignite.tcbot.engine.process.BotProcessStatus;
+import org.apache.ignite.tcbot.engine.process.ProgressReporter;
 import org.apache.ignite.tcbot.notify.IEmailSender;
 import org.apache.ignite.tcbot.notify.ISendEmailConfig;
 import org.apache.ignite.tcbot.notify.ISlackSender;
@@ -186,6 +187,7 @@ public class MonitoringService {
         MaintenanceActionRegistry actions = instance(MaintenanceActionRegistry.class);
         IScheduler scheduler = instance(IScheduler.class);
         BotProcessMonitor process = instance(BotProcessMonitor.class);
+        ProgressReporter progress = instance(ProgressReporter.class);
 
         if (!actions.hasAction(name)) {
             process.fail(processId, "Maintenance action is not registered: " + name);
@@ -197,14 +199,10 @@ public class MonitoringService {
 
         boolean accepted = scheduler.runNamedNow(name, () -> {
             try {
-                process.status(processId, "Running maintenance action: " + name);
-
-                String result = actions.run(name);
-
-                process.finish(processId, result);
+                progress.run(processId, "maintenanceAction", "Maintenance action request accepted: " + name,
+                    () -> actions.run(name));
             }
             catch (Exception e) {
-                process.fail(processId, e);
                 throw new RuntimeException(e);
             }
         }, processId);

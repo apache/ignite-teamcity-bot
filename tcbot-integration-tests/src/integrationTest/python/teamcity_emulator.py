@@ -22,7 +22,7 @@ import json
 import random
 import re
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 from xml.sax.saxutils import escape
@@ -35,6 +35,8 @@ TRIGGERED_SUITE_SECONDS = 30
 RUN_ALL = "IgniteTests24Java17_RunAll"
 PROJECT_ID = "ApacheIgnite"
 PROJECT_NAME = "Apache Ignite"
+CLEANER_OLD_MASTER_CHAINS = 8
+CLEANER_OLD_MASTER_BASE_ID = 700000
 SUITES = [
     "IgniteTests24Java17_Cache1",
     "IgniteTests24Java17_ComputeGrid",
@@ -681,6 +683,7 @@ def initial_builds():
     builds = {}
 
     create_master_history(builds)
+    create_old_master_cleaner_history(builds)
     create_run_all_chain(builds, "800101", "pull/12005/head", "SUCCESS", "finished",
                          queued="20260510T090000+0000", started="20260510T090010+0000",
                          finished="20260510T090130+0000")
@@ -694,6 +697,26 @@ def initial_builds():
                          finished="20260510T084650+0000")
 
     return builds
+
+
+def create_old_master_cleaner_history(builds):
+    base_date = datetime.now(timezone.utc) - timedelta(days=365 + CLEANER_OLD_MASTER_CHAINS)
+
+    for idx in range(CLEANER_OLD_MASTER_CHAINS):
+        build_id = str(CLEANER_OLD_MASTER_BASE_ID + idx * 10)
+        build_date = base_date + timedelta(days=idx)
+        started_date = build_date + timedelta(seconds=10)
+        finished_date = started_date + timedelta(minutes=2)
+        model = SUITE_MODELS[idx % len(SUITE_MODELS)]
+        failed = idx % 5 == 0
+        failed_tests = {first_randomized_test(model)} if failed else set()
+
+        create_run_all_chain(builds, build_id, "<default>", "FAILURE" if failed else "SUCCESS", "finished",
+                             queued=tc_date_from(build_date),
+                             started=tc_date_from(started_date),
+                             finished=tc_date_from(finished_date),
+                             suite_statuses={model["buildTypeId"]: "FAILURE" if failed else "SUCCESS"},
+                             failed_tests=failed_tests)
 
 
 def create_master_history(builds):
@@ -1113,7 +1136,11 @@ def build_statistics(build):
 
 
 def tc_date():
-    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S+0000")
+    return tc_date_from(datetime.now(timezone.utc))
+
+
+def tc_date_from(dt):
+    return dt.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%S+0000")
 
 
 def main():

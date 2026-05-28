@@ -16,7 +16,6 @@
  */
 package org.apache.ignite.tcbot.engine.cleaner;
 
-import com.google.common.collect.Iterables;
 import java.io.File;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -29,16 +28,18 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.inject.Inject;
+import javax.inject.Provider;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
 import org.apache.ignite.lang.IgniteBiTuple;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
-import org.apache.ignite.tcbot.common.monitoring.MonitoredTasks;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.defect.DefectsStorage;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
 import org.apache.ignite.tcbot.engine.newtests.NewTestsStorage;
+import org.apache.ignite.tcbot.engine.process.ProgressReporter;
+import org.apache.ignite.tcbot.persistence.scheduler.MaintenanceActionRegistry;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.buildlog.BuildLogCheckResultDao;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
@@ -54,6 +55,7 @@ import static java.util.stream.Collectors.toSet;
 
 public class Cleaner {
     private final AtomicBoolean init = new AtomicBoolean();
+    private final AtomicBoolean maintenanceActionRegistered = new AtomicBoolean();
 
     @Inject private IIssuesStorage issuesStorage;
     @Inject private FatBuildDao fatBuildDao;
@@ -65,11 +67,17 @@ public class Cleaner {
     @Inject private DefectsStorage defectsStorage;
     @Inject private NewTestsStorage newTestsStorage;
     @Inject private ITcBotConfig cfg;
+    @Inject private ProgressReporter progress;
+    @Inject private MaintenanceActionRegistry maintenanceActions;
+    @Inject private Provider<Cleaner> self;
 
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(Cleaner.class);
 
     private ScheduledExecutorService executorService;
+
+    /** Maintenance action name. */
+    public static final String MAINTENANCE_ACTION_NAME = "Cleaner.clean";
 
     @AutoProfiling
     @MonitoredTask(name = "Clean old cache data and log files")
@@ -126,54 +134,64 @@ public class Cleaner {
         int totalPartitions = fatBuildDao.affinity().partitions();
         int matched = 0;
         int removed = 0;
+        int scannedEntries = 0;
         int scannedPartitions = 0;
         boolean limitReached = false;
 
-        for (int part = 0; part < totalPartitions && matched < numOfItemsToDel; part++) {
+        for (int part = 0; part < totalPartitions && removed < numOfItemsToDel; part++) {
             scannedPartitions++;
+            Set<Long> checkedInPartition = new HashSet<>();
 
-            int remainingLimit = numOfItemsToDel - matched;
+            while (removed < numOfItemsToDel) {
+                int remainingLimit = numOfItemsToDel - removed;
 
-            report("Checking " + FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME + " partition " + (part + 1) + "/"
-                + totalPartitions + ", remaining limit " + remainingLimit + ", removed so far " + removed);
+                report("Checking " + FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME + " partition " + (part + 1) + "/"
+                    + totalPartitions + ", remaining delete limit " + remainingLimit + ", removed so far " + removed);
 
-            FatBuildDao.OldBuildsSearchResult oldBuilds = fatBuildDao.getOldBuildsFromPartition(
-                thresholdEpochMilli,
-                part,
-                remainingLimit,
-                deleteBatchSize,
-                this::report);
+                FatBuildDao.OldBuildsSearchResult oldBuilds = fatBuildDao.getOldBuildsFromPartition(
+                    thresholdEpochMilli,
+                    part,
+                    Math.min(remainingLimit, deleteBatchSize),
+                    deleteBatchSize,
+                    checkedInPartition,
+                    this::report);
 
-            matched += oldBuilds.matched();
+                matched += oldBuilds.matched();
+                scannedEntries += oldBuilds.scanned();
+                checkedInPartition.addAll(oldBuilds.keys());
 
-            int totalBatches = (oldBuilds.keys().size() + deleteBatchSize - 1) / deleteBatchSize;
-            int batch = 0;
+                if (oldBuilds.keys().isEmpty()) {
+                    report("Checked " + FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME + " partition " + (part + 1) + "/"
+                        + totalPartitions + ": scanned " + oldBuilds.scanned()
+                        + " entries, no more old build candidates");
 
-            report("Checked " + FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME + " partition " + (part + 1) + "/"
-                + totalPartitions + ": cursor closed, matched " + oldBuilds.matched() + ", deleting "
-                + oldBuilds.keys().size() + " records in " + totalBatches + " batches");
+                    break;
+                }
 
-            for (List<Long> chunk : Iterables.partition(oldBuilds.keys(), deleteBatchSize)) {
-                batch++;
-                removed += removeCacheEntriesBatch(chunk, part, totalPartitions, batch, totalBatches);
-            }
+                report("Checked " + FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME + " partition " + (part + 1) + "/"
+                    + totalPartitions + ": cursor closed, scanned " + oldBuilds.scanned()
+                    + " entries, matched " + oldBuilds.matched() + ", deleting batch of "
+                    + oldBuilds.keys().size() + " candidate records");
 
-            report("Finished " + FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME + " partition " + (part + 1) + "/"
-                + totalPartitions + ": total matched " + matched + ", total removed " + removed);
+                int batchRemoved = removeCacheEntriesBatch(oldBuilds.keys(), part, totalPartitions, 1, 1);
 
-            if (oldBuilds.deleteLimitReached()) {
-                limitReached = true;
+                removed += batchRemoved;
 
-                break;
+                report("Finished " + FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME + " partition " + (part + 1) + "/"
+                    + totalPartitions + " batch: matched " + oldBuilds.matched() + ", removed " + batchRemoved
+                    + ", total matched " + matched + ", total removed " + removed);
+
+                if (!oldBuilds.deleteLimitReached())
+                    break;
             }
         }
 
-        if (matched >= numOfItemsToDel && scannedPartitions < totalPartitions)
+        if (removed >= numOfItemsToDel && scannedPartitions < totalPartitions)
             limitReached = true;
 
         removeInconsistentRecords(thresholdDate, numOfItemsToDel);
 
-        return new CacheCleanResult(matched, removed, scannedPartitions, totalPartitions, limitReached);
+        return new CacheCleanResult(matched, removed, scannedEntries, scannedPartitions, totalPartitions, limitReached);
     }
 
     private int removeCacheEntriesBatch(List<Long> oldBuildsKeysList, int part, int totalPartitions, int batch,
@@ -299,7 +317,7 @@ public class Cleaner {
     }
 
     private void report(String status) {
-        MonitoredTasks.reportCurrentTaskStatus(status);
+        progress.report(status);
     }
 
     private static class CacheCleanResult {
@@ -307,15 +325,19 @@ public class Cleaner {
 
         private final int removed;
 
+        private final int scannedEntries;
+
         private final int scannedPartitions;
 
         private final int totalPartitions;
 
         private final boolean limitReached;
 
-        CacheCleanResult(int matched, int removed, int scannedPartitions, int totalPartitions, boolean limitReached) {
+        CacheCleanResult(int matched, int removed, int scannedEntries, int scannedPartitions, int totalPartitions,
+            boolean limitReached) {
             this.matched = matched;
             this.removed = removed;
+            this.scannedEntries = scannedEntries;
             this.scannedPartitions = scannedPartitions;
             this.totalPartitions = totalPartitions;
             this.limitReached = limitReached;
@@ -323,6 +345,7 @@ public class Cleaner {
 
         String summary() {
             return "Caches: removed " + removed + "/" + matched + " matched old build records"
+                + ", scanned entries " + scannedEntries
                 + ", scanned partitions " + scannedPartitions + "/" + totalPartitions
                 + (limitReached ? ", delete limit reached, more old builds may remain" : "");
         }
@@ -358,6 +381,8 @@ public class Cleaner {
 
     public void startBackgroundClean() {
         if (init.compareAndSet(false, true)) {
+            registerMaintenanceAction();
+
             suiteInvocationHistoryDao.init();
             buildLogCheckResultDao.init();
             buildRefDao.init();
@@ -367,7 +392,17 @@ public class Cleaner {
 
             executorService = Executors.newSingleThreadScheduledExecutor();
 
-            executorService.scheduleAtFixedRate(this::clean, 5, cfg.getCleanerConfig().period(), TimeUnit.MINUTES);
+            executorService.scheduleAtFixedRate(() -> self.get().clean(), 5, cfg.getCleanerConfig().period(),
+                TimeUnit.MINUTES);
+        }
+    }
+
+    /** Registers manual cleaner action for monitoring management UI. */
+    private void registerMaintenanceAction() {
+        if (maintenanceActionRegistered.compareAndSet(false, true)) {
+            maintenanceActions.register(MAINTENANCE_ACTION_NAME,
+                "Run cleaner for old cache data and log files",
+                () -> self.get().clean());
         }
     }
 

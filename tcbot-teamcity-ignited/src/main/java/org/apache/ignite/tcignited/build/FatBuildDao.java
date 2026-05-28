@@ -433,6 +433,7 @@ public class FatBuildDao {
         @Nullable Consumer<String> progressReporter) {
         int partitions = affinity().partitions();
         List<Long> oldBuildsKeys = new ArrayList<>();
+        int scanned = 0;
         boolean deleteLimitReached = false;
 
         for (int part = 0; part < partitions && oldBuildsKeys.size() < numOfItemsToDel; part++) {
@@ -444,6 +445,7 @@ public class FatBuildDao {
                 progressReporter);
 
             oldBuildsKeys.addAll(partRes.keys());
+            scanned += partRes.scanned();
 
             if (partRes.deleteLimitReached()) {
                 deleteLimitReached = true;
@@ -452,32 +454,37 @@ public class FatBuildDao {
             }
         }
 
-        return new OldBuildsSearchResult(oldBuildsKeys, oldBuildsKeys.size(), deleteLimitReached);
+        return new OldBuildsSearchResult(oldBuildsKeys, oldBuildsKeys.size(), scanned, deleteLimitReached);
     }
 
     public OldBuildsSearchResult getOldBuildsFromPartition(long thresholdDate, int part, int numOfItemsToDel,
         int progressStep, @Nullable Consumer<String> progressReporter) {
+        return getOldBuildsFromPartition(thresholdDate, part, numOfItemsToDel, progressStep, null, progressReporter);
+    }
+
+    public OldBuildsSearchResult getOldBuildsFromPartition(long thresholdDate, int part, int numOfItemsToDel,
+        int progressStep, @Nullable Set<Long> ignoredKeys, @Nullable Consumer<String> progressReporter) {
         IgniteCache<Long, BinaryObject> cacheWithBinary = buildsCache.withKeepBinary();
 
-        ScanQuery<Long, BinaryObject> scan = new ScanQuery<>((key, fatBuild) -> {
-                Long startDate = 0L;
-
-                if (fatBuild.hasField("startDate"))
-                    startDate = fatBuild.<Long>field("startDate");
-
-                return (startDate > 0 && startDate < thresholdDate) ||
-                    !fatBuild.hasField("startDate");
-            }
-        );
+        ScanQuery<Long, BinaryObject> scan = new ScanQuery<>();
         scan.setPartition(part);
 
         List<Long> oldBuildsKeys = new ArrayList<>();
+        int scanned = 0;
         int matched = 0;
         int progressStep0 = Math.max(1, progressStep);
         boolean deleteLimitReached = false;
 
         try (QueryCursor<Cache.Entry<Long, BinaryObject>> cursor = cacheWithBinary.query(scan)) {
             for (Cache.Entry<Long, BinaryObject> entry : cursor) {
+                scanned++;
+
+                if (ignoredKeys != null && ignoredKeys.contains(entry.getKey()))
+                    continue;
+
+                if (!isOldBuild(entry.getValue(), thresholdDate))
+                    continue;
+
                 if (oldBuildsKeys.size() >= numOfItemsToDel) {
                     deleteLimitReached = true;
                     break;
@@ -488,16 +495,25 @@ public class FatBuildDao {
 
                 if (progressReporter != null && (matched == 1 || matched % progressStep0 == 0))
                     progressReporter.accept("Checking " + TEAMCITY_FAT_BUILD_CACHE_NAME + " partition " + part
-                        + ": matched " + matched + " old build candidates");
+                        + ": scanned " + scanned + " entries, matched " + matched + " old build candidates");
             }
         }
 
         if (progressReporter != null)
             progressReporter.accept("Checked " + TEAMCITY_FAT_BUILD_CACHE_NAME + " partition " + part
-                + ": matched " + matched + " old build candidates"
+                + ": scanned " + scanned + " entries, matched " + matched + " old build candidates"
                 + (deleteLimitReached ? ", delete limit reached, more old builds may remain" : ""));
 
-        return new OldBuildsSearchResult(oldBuildsKeys, matched, deleteLimitReached);
+        return new OldBuildsSearchResult(oldBuildsKeys, matched, scanned, deleteLimitReached);
+    }
+
+    private boolean isOldBuild(BinaryObject fatBuild, long thresholdDate) {
+        if (!fatBuild.hasField("startDate"))
+            return true;
+
+        Long startDate = fatBuild.<Long>field("startDate");
+
+        return startDate != null && startDate > 0 && startDate < thresholdDate;
     }
 
     public static class OldBuildsSearchResult {
@@ -505,11 +521,14 @@ public class FatBuildDao {
 
         private final int matched;
 
+        private final int scanned;
+
         private final boolean deleteLimitReached;
 
-        public OldBuildsSearchResult(List<Long> keys, int matched, boolean deleteLimitReached) {
+        public OldBuildsSearchResult(List<Long> keys, int matched, int scanned, boolean deleteLimitReached) {
             this.keys = keys;
             this.matched = matched;
+            this.scanned = scanned;
             this.deleteLimitReached = deleteLimitReached;
         }
 
@@ -519,6 +538,10 @@ public class FatBuildDao {
 
         public int matched() {
             return matched;
+        }
+
+        public int scanned() {
+            return scanned;
         }
 
         public boolean deleteLimitReached() {

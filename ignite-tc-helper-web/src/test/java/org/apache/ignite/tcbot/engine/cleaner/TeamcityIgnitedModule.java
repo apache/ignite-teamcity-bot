@@ -28,6 +28,9 @@ import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.tcbot.engine.defect.DefectsStorage;
 import org.apache.ignite.tcbot.engine.issue.IIssuesStorage;
 import org.apache.ignite.tcbot.engine.issue.IssuesStorage;
+import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
+import org.apache.ignite.tcbot.engine.process.ProgressReporter;
+import org.apache.ignite.tcbot.persistence.scheduler.MaintenanceActionRegistry;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.build.ProactiveFatBuildSync;
 import org.apache.ignite.tcignited.build.UpdateCountersStorage;
@@ -68,6 +71,9 @@ public class TeamcityIgnitedModule extends AbstractModule {
         bind(Cleaner.class).in(Scopes.SINGLETON);
         bind(DefectsStorage.class).in(Scopes.SINGLETON);
         bind(IIssuesStorage.class).to(IssuesStorage.class).in(Scopes.SINGLETON);
+        bind(BotProcessMonitor.class).in(Scopes.SINGLETON);
+        bind(ProgressReporter.class).in(Scopes.SINGLETON);
+        bind(MaintenanceActionRegistry.class).in(Scopes.SINGLETON);
 
         TcRealConnectionModule module = new TcRealConnectionModule();
 
