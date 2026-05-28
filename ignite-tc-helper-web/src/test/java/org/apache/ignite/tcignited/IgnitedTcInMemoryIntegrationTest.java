@@ -735,6 +735,48 @@ public class IgnitedTcInMemoryIntegrationTest {
         assertTrue(checkNotNull(running4).isEmpty());
     }
 
+    @Test
+    public void testForbiddenBuildAccessCreatesPermanentFakeBuild() {
+        TeamcityIgnitedModule module = new TeamcityIgnitedModule();
+        module.overrideHttp((basicAuthTok, url) -> {
+            throw new IllegalStateException("Service " + url + " returned Invalid Response Code : 403:\n" +
+                "HTTP 403 | Host: ci2.ignite.apache.org | " + url + "\n" +
+                "Not enough permissions to access build");
+        });
+        Injector injector = Guice.createInjector(module, new IgniteAndSchedulerTestModule());
+
+        IStringCompactor c = injector.getInstance(IStringCompactor.class);
+        BuildRefDao buildRefDao = injector.getInstance(BuildRefDao.class).init();
+        FatBuildDao fatBuildDao = injector.getInstance(FatBuildDao.class).init();
+
+        int buildId = 1000044;
+        BuildRef ref = new BuildRef();
+        ref.buildTypeId = "Testbuild";
+        ref.branchName = ITeamcity.REFS_HEADS_MASTER;
+        ref.state = BuildRef.STATE_FINISHED;
+        ref.status = BuildRef.STATUS_SUCCESS;
+        ref.setId(buildId);
+
+        String srvCode = APACHE;
+        int srvIdInt = ITeamcityIgnited.serverIdToInt(srvCode);
+        final TeamcityServiceConnection srvConn = injector.getInstance(TeamcityServiceConnection.class);
+        srvConn.init(srvCode);
+
+        buildRefDao.saveChunk(srvIdInt, Lists.newArrayList(ref));
+
+        assertTrue(fatBuildDao.getMissingBuilds(srvIdInt, new int[] {buildId}).contains(buildId));
+
+        ProactiveFatBuildSync buildSync = injector.getInstance(ProactiveFatBuildSync.class);
+        buildSync.ensureActualizationRequested(srvCode, srvConn);
+
+        FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(srvIdInt, buildId);
+
+        assertNotNull(fatBuild);
+        assertTrue(fatBuild.isFakeStub());
+        assertTrue(fatBuild.isCancelled(c));
+        assertTrue(fatBuildDao.getMissingBuilds(srvIdInt, new int[] {buildId}).isEmpty());
+    }
+
     public void putOldFashionFakeBuild(IStringCompactor c, FatBuildDao fatBuildDao, int buildId, int srvIdInt) {
         FatBuildCompacted fb = fatBuildDao.getFatBuild(srvIdInt, buildId);
 
@@ -747,6 +789,49 @@ public class IgnitedTcInMemoryIntegrationTest {
 
     @NotNull public List<BuildRef> printRefs(IStringCompactor c, List<BuildRefCompacted> running2) {
         return running2.stream().map(bref -> bref.toBuildRef(c)).collect(Collectors.toList());
+    }
+
+    @Test
+    public void testTemporaryBuildRefsArePromotedOnlyWhenPersistentEntryIsMissing() {
+        TeamcityIgnitedModule module = new TeamcityIgnitedModule();
+
+        Injector injector = Guice.createInjector(module, new GuavaCachedModule(), new IgniteAndSchedulerTestModule());
+
+        IStringCompactor c = injector.getInstance(IStringCompactor.class);
+        BuildRefDao storage = injector.getInstance(BuildRefDao.class);
+        storage.init();
+
+        int srvId = ITeamcityIgnited.serverIdToInt("apache");
+        int branch = c.getStringId("pull/12006/head");
+        int buildTypeId = c.getStringId("IgniteTests24Java17_RunAll");
+
+        BuildRefCompacted persistent = new BuildRefCompacted().withId(100).state(1).status(2)
+            .branchName(branch).buildTypeId(buildTypeId);
+
+        storage.save(srvId, persistent);
+
+        BuildRefCompacted temporaryOldMissing = new BuildRefCompacted().withId(90).state(3).status(4)
+            .branchName(branch).buildTypeId(buildTypeId);
+        BuildRefCompacted temporaryOldExisting = new BuildRefCompacted().withId(100).state(5).status(6)
+            .branchName(branch).buildTypeId(buildTypeId);
+        BuildRefCompacted temporaryInsideHorizon = new BuildRefCompacted().withId(110).state(7).status(8)
+            .branchName(branch).buildTypeId(buildTypeId);
+
+        storage.saveTemporaryBuildRefs(srvId, Lists.newArrayList(
+            temporaryOldMissing,
+            temporaryOldExisting,
+            temporaryInsideHorizon));
+
+        Set<Integer> branchList = Collections.singleton(branch);
+        assertEquals(3, storage.getAllBuildsCompacted(srvId, buildTypeId, branchList).size());
+
+        Set<Long> promoted = storage.promoteTemporaryBuildRefsOutsideHorizon(srvId, 101);
+
+        assertEquals(Collections.singleton(BuildRefDao.buildIdToCacheKey(srvId, 90)), promoted);
+        assertEquals(3, storage.getAllBuildsCompacted(srvId, buildTypeId, branchList).size());
+        assertEquals(persistent, storage.get(srvId, 100));
+        assertEquals(temporaryOldMissing, storage.get(srvId, 90));
+        assertNull(storage.get(srvId, 110));
     }
 
     @Test

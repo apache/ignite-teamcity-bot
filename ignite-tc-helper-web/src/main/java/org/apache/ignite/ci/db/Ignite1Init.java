@@ -39,6 +39,9 @@ import org.apache.ignite.logger.slf4j.Slf4jLogger;
 import org.jetbrains.annotations.NotNull;
 
 public class Ignite1Init {
+    /** Ignite metrics log frequency system property. Zero disables periodic metrics output. */
+    public static final String IGNITE_METRICS_LOG_FREQUENCY_MS = "teamcity.bot.ignite.metricsLogFrequencyMs";
+
     private static boolean clientMode;
 
     /**
@@ -128,8 +131,18 @@ public class Ignite1Init {
         dsCfg.setPageSize(4 * 1024);
 
         cfg.setDataStorageConfiguration(dsCfg);
-        cfg.setMetricsLogFrequency(0);
+        cfg.setMetricsLogFrequency(igniteMetricsLogFrequencyMs());
         return cfg;
+    }
+
+    /** */
+    private long igniteMetricsLogFrequencyMs() {
+        Long metricsLogFrequency = Long.getLong(IGNITE_METRICS_LOG_FREQUENCY_MS);
+
+        if (metricsLogFrequency == null || metricsLogFrequency < 0)
+            return IgniteConfiguration.DFLT_METRICS_LOG_FREQ;
+
+        return metricsLogFrequency;
     }
 
     @AutoProfiling

@@ -115,7 +115,7 @@ public class UserService {
         res.admin = user.isAdmin();
         ITcBotConfig cfg = CtxListener.getApplicationContext(ctx).getInstance(ITcBotConfig.class);
         res.userAdmin = isUserAdmin(user, cfg);
-        res.canClaimUserAdmin = !anyUserAdminExists(users, cfg);
+        res.canClaimUserAdmin = user.isAdmin() && !anyUserAdminExists(users, cfg);
 
         return res;
     }
@@ -158,6 +158,9 @@ public class UserService {
 
         if (currUser == null)
             throw new NotFoundException("User not found: " + currUserLogin);
+
+        if (!currUser.isAdmin())
+            throw new ForbiddenException("Only bot admin can claim user admin");
 
         if (anyUserAdminExists(users, cfg))
             throw new ForbiddenException("User admin already exists");

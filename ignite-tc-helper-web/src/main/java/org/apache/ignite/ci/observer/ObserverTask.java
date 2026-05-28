@@ -64,10 +64,10 @@ public class ObserverTask extends TimerTask {
     @Inject private TcBotTriggerAndSignOffService visaIssuer;
 
     /** */
-    private ReentrantLock observationLock = new ReentrantLock();
+    private final ReentrantLock observationLock = new ReentrantLock();
 
     /** */
-    private Map<ContributionKey, BuildsInfo> infos = new ConcurrentHashMap<>();
+    private final Map<ContributionKey, BuildsInfo> infos = new ConcurrentHashMap<>();
 
     /** */
     @Inject private IStringCompactor strCompactor;
@@ -144,7 +144,8 @@ public class ObserverTask extends TimerTask {
     @AutoProfiling
     @MonitoredTask(name = "Build Observer")
     protected String runObserverTask() {
-        observationLock.lock();
+        if (!observationLock.tryLock())
+            return "Observer is already running.";
 
         try {
             if (!tcBotBgAuth.isServerAuthorized())

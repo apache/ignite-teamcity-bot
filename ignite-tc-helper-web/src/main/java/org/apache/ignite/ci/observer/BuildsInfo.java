@@ -183,9 +183,10 @@ public class BuildsInfo {
         boolean isFinished = true;
 
         for (Integer id : builds) {
-            FatBuildCompacted build = teamcity.getFatBuild(id, mode);
+            FatBuildCompacted build = teamcity.getFatBuildFresh(id, mode);
 
-            if (build.isFakeStub() || build.isCancelled(strCompactor))
+            if (build.isFakeStub() || (build.isCancelled(strCompactor) && !build.isQueued(strCompactor)
+                && !build.isRunning(strCompactor)))
                 return CANCELLED_STATUS;
 
             if (!build.isFinished(strCompactor))
@@ -225,7 +226,7 @@ public class BuildsInfo {
         int finishedCnt = 0;
 
         for (Integer id : builds) {
-            FatBuildCompacted build = teamcity.getFatBuild(id);
+            FatBuildCompacted build = teamcity.getFatBuildFresh(id, SyncMode.RELOAD_QUEUED);
 
             if (!build.isFakeStub() && build.isFinished(strCompactor))
                 ++finishedCnt;

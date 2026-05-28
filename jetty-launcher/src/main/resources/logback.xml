@@ -1,5 +1,6 @@
 <configuration>
     <property name="TCBOT_LOG_DIR" value="${teamcity.helper.home:-../work}/tcbot_logs"/>
+    <property name="TCBOT_LOG_TOTAL_SIZE_CAP" value="${teamcity.bot.log.totalSizeCap:-10GB}"/>
 
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${TCBOT_LOG_DIR}/logfile-.log</file>
@@ -10,6 +11,7 @@
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${TCBOT_LOG_DIR}/logfile-%d{yyyy-MM-dd_HH}.log</fileNamePattern>
             <maxHistory>336</maxHistory>
+            <totalSizeCap>${TCBOT_LOG_TOTAL_SIZE_CAP}</totalSizeCap>
         </rollingPolicy>
     </appender>
 

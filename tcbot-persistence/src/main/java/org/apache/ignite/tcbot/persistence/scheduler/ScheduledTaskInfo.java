@@ -44,4 +44,13 @@ public class ScheduledTaskInfo {
 
     /** Current user-visible bot process status, if this task was started through a monitored manual action. */
     public String processStatus;
+
+    /** Process kind, if there is an associated monitored process. */
+    public String processKind;
+
+    /** Process state, if there is an associated monitored process. */
+    public String processState;
+
+    /** Process running flag, if there is an associated monitored process. */
+    public Boolean processRunning;
 }

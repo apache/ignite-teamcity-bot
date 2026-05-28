@@ -31,6 +31,7 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
@@ -55,6 +56,7 @@ import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
+import org.apache.ignite.tcbot.persistence.scheduler.MaintenanceActionNames;
 import org.apache.ignite.tcbot.persistence.scheduler.MaintenanceActionRegistry;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.build.ProactiveFatBuildSync;
@@ -70,6 +72,7 @@ import org.apache.ignite.tcignited.history.SuiteInvocationHistoryDao;
 import org.apache.ignite.tcignited.mute.MuteDao;
 import org.apache.ignite.tcignited.mute.MuteSync;
 import org.apache.ignite.tcservice.ITeamcityConn;
+import org.apache.ignite.tcservice.TeamcityLocator;
 import org.apache.ignite.tcservice.model.agent.Agent;
 import org.apache.ignite.tcservice.model.conf.Project;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
@@ -92,6 +95,12 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     /** Max build id diff to enforce reload during incremental refresh. */
     public static final int MAX_ID_DIFF_TO_ENFORCE_CONTINUE_SCAN = 3000;
+
+    /** Direct build ref recheck page size. */
+    private static final int RECHECK_BUILD_REF_PAGE_SIZE = 100;
+
+    /** Direct build ref recheck page cap. */
+    private static final int RECHECK_BUILD_REF_MAX_PAGES = 5;
 
     /** Server (service) code. */
     private String srvCode;
@@ -177,6 +186,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         logCheckResDao.init();
         histDao.init();
 
+        maintenanceActions.register(taskName("actualizeRecentBuildRefs"),
+            "Incremental TeamCity build refs sync for " + srvCode, this::actualizeRecentBuildRefs);
         maintenanceActions.register(taskName("fullReindex"), "Full TeamCity build refs reindex for " + srvCode,
             this::fullReindex);
     }
@@ -611,6 +622,16 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** {@inheritDoc} */
     @GuavaCached(maximumSize = 500, expireAfterAccessSecs = 30, softValues = true)
     @Override public FatBuildCompacted getFatBuild(int buildId, SyncMode mode) {
+        return loadFatBuild(buildId, mode);
+    }
+
+    /** {@inheritDoc} */
+    @Override public FatBuildCompacted getFatBuildFresh(int buildId, SyncMode mode) {
+        return loadFatBuild(buildId, mode);
+    }
+
+    /** */
+    private FatBuildCompacted loadFatBuild(int buildId, SyncMode mode) {
         FatBuildCompacted existingBuild = getFatBuildFromIgnite(buildId);
 
         if (mode == SyncMode.NONE) {
@@ -656,6 +677,44 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return actualizeRecentBuildRefs(srvCode);
     }
 
+    /** {@inheritDoc} */
+    @Override public String recheckBuildRef(String buildTypeId, String branchName) {
+        AtomicReference<String> nextPage = new AtomicReference<>();
+        String locator = TeamcityLocator.buildsByTypeAndBranch(buildTypeId, branchName, RECHECK_BUILD_REF_PAGE_SIZE);
+        List<BuildRefCompacted> found = new ArrayList<>();
+        int scannedRefs = 0;
+        int scannedPages = 0;
+        String page = locator;
+
+        while (page != null && scannedPages < RECHECK_BUILD_REF_MAX_PAGES) {
+            List<BuildRef> refs = conn.getBuildRefsPage(page, nextPage);
+
+            scannedRefs += refs.size();
+            scannedPages++;
+
+            found.addAll(refs.stream()
+                .filter(ref -> Objects.equals(buildTypeId, ref.buildTypeId()))
+                .filter(ref -> Objects.equals(BranchEquivalence.normalizeBranch(branchName),
+                    BranchEquivalence.normalizeBranch(ref.branchName())))
+                .map(ref -> new BuildRefCompacted(compactor, ref))
+                .collect(Collectors.toList()));
+
+            page = nextPage.get();
+            nextPage.set(null);
+        }
+
+        buildRefDao.saveTemporaryBuildRefs(srvIdMaskHigh, found);
+
+        String observer = runObserverIfObservedBranchCompleted(found.stream()
+                .filter(ref -> !ref.isQueued(compactor) && !ref.isRunning(compactor))
+                .collect(Collectors.toList()),
+            "direct build ref recheck for " + buildTypeId + ", branch " + branchName);
+
+        return "Direct TeamCity build ref recheck for suite " + buildTypeId + ", branch " + branchName +
+            ": scanned " + scannedRefs + " ref(s) on " + scannedPages + " page(s), found " + found.size() +
+            " matching ref(s)." + observer;
+    }
+
     /**
      *
      * @param srvNme TC service name
@@ -693,12 +752,87 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             fatBuildSync.doLoadBuilds(-1, srvCode, conn, paginateUntil);
         }
 
+        String observer = runObserverIfObservedBranchCompletedAfterSync(running,
+            "incremental build ref sync for " + srvNme);
+
         // schedule full resync later
         scheduler.invokeLater(this::sheduleResyncBuildRefs, 15, TimeUnit.MINUTES);
 
         return "Build queue " + running.size() + ", relatively fresh: " + cntFreshBuilds +
              ", fresh but not found by scan: " + freshButNotFoundByBuildsRefsScan +
-            ", old builds sheduled " + directUpload.size() + ". " + buildRefsSyncResult;
+            ", old builds sheduled " + directUpload.size() + ". " + buildRefsSyncResult + observer;
+    }
+
+    /** */
+    private String runObserverIfObservedBranchCompleted(Collection<BuildRefCompacted> refs, String reason) {
+        if (refs.isEmpty() || !maintenanceActions.hasAction(MaintenanceActionNames.RUNNING_VISAS_CHECK_RESULTS)
+            || !maintenanceActions.hasAction(MaintenanceActionNames.RUNNING_VISAS_OBSERVED_BRANCHES))
+            return "";
+
+        Set<String> observedBranches = observedVisaBranches();
+
+        if (observedBranches.isEmpty())
+            return "";
+
+        boolean touchedObservedCompleted = refs.stream()
+            .map(ref -> observedBranchKey(ref.branchName(compactor)))
+            .anyMatch(observedBranches::contains);
+
+        if (!touchedObservedCompleted)
+            return "";
+
+        try {
+            String res = maintenanceActions.run(MaintenanceActionNames.RUNNING_VISAS_CHECK_RESULTS);
+
+            return " Observer rechecked after " + reason + ": " + res;
+        }
+        catch (Exception e) {
+            logger.warn("Unable to run build observer after {}.", reason, e);
+
+            return " Observer recheck failed after " + reason + ": " + e.getMessage();
+        }
+    }
+
+    /** */
+    private String runObserverIfObservedBranchCompletedAfterSync(Collection<BuildRefCompacted> previouslyRunning,
+        String reason) {
+        if (previouslyRunning.isEmpty())
+            return "";
+
+        Set<Integer> stillRunning = buildRefDao.getQueuedAndRunning(srvIdMaskHigh).stream()
+            .map(BuildRefCompacted::id)
+            .collect(Collectors.toSet());
+
+        List<BuildRefCompacted> completed = previouslyRunning.stream()
+            .filter(ref -> !stillRunning.contains(ref.id()))
+            .collect(Collectors.toList());
+
+        return runObserverIfObservedBranchCompleted(completed, reason);
+    }
+
+    /** */
+    private Set<String> observedVisaBranches() {
+        try {
+            String res = maintenanceActions.run(MaintenanceActionNames.RUNNING_VISAS_OBSERVED_BRANCHES);
+
+            if (res == null || res.trim().isEmpty())
+                return Collections.emptySet();
+
+            return Stream.of(res.split("\\R"))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toSet());
+        }
+        catch (Exception e) {
+            logger.warn("Unable to load observed visa branches.", e);
+
+            return Collections.emptySet();
+        }
+    }
+
+    /** */
+    private String observedBranchKey(String branchForTc) {
+        return srvCode + "|" + BranchEquivalence.normalizeBranch(branchForTc);
     }
 
     /**

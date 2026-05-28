@@ -40,9 +40,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import org.apache.ignite.ci.web.Launcher;
 
 /**
- * Local launcher for IDEA: starts the Python service emulators and a production-like WAR launcher.
+ * Local launcher for IDEA: starts the Python service emulators and either an in-process bot or a WAR bot.
  */
 public class EmulatedBotLocalLauncher {
     /** */
@@ -65,6 +66,12 @@ public class EmulatedBotLocalLauncher {
         Integer.getInteger("tcbot.integration.ignite.discovery.port", 55433);
 
     /** */
+    private static final boolean LIVE_STATIC = Boolean.getBoolean("tcbot.integration.liveStatic");
+
+    /** */
+    private static final boolean IN_PROCESS_BOT = Boolean.getBoolean("tcbot.integration.inProcessBot");
+
+    /** */
     public static void main(String[] args) throws Exception {
         Path root = findProjectRoot();
         Path launcherHome = root.resolve("jetty-launcher/build/install/jetty-launcher");
@@ -72,15 +79,26 @@ public class EmulatedBotLocalLauncher {
         Path branches = root.resolve("tcbot-integration-tests/src/integrationTest/resources/branches.json");
         Path pythonDir = root.resolve("tcbot-integration-tests/src/integrationTest/python");
 
-        ensureInstallDistExists(launcherHome);
+        if (!IN_PROCESS_BOT)
+            ensureInstallDistExists(launcherHome);
+
         prepareWorkDir(botWorkDir, branches);
 
         Map<String, ManagedEmulator> emulators = startEmulators(pythonDir);
         HttpServer control = startControlServer(emulators);
-        Process bot = startBot(launcherHome, botWorkDir);
+        Process bot = null;
+        Launcher.StartedServer botSrv = null;
 
+        if (IN_PROCESS_BOT)
+            botSrv = startBotInProcess(root, botWorkDir);
+        else
+            bot = startBot(root, launcherHome, botWorkDir);
+
+        Process botProc = bot;
+        Launcher.StartedServer botServer = botSrv;
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            stop(bot);
+            stop(botProc);
+            stop(botServer);
             control.stop(0);
             emulators.values().forEach(ManagedEmulator::stop);
         }, "emulated-bot-shutdown"));
@@ -90,19 +108,26 @@ public class EmulatedBotLocalLauncher {
         System.out.println("UI: http://127.0.0.1:" + BOT_PORT + "/");
         System.out.println("Login: ignite.tester");
         System.out.println("Password: ignite-password");
+        System.out.println("Non-admin login: nonadmin");
+        System.out.println("Non-admin password: nonadmin");
         System.out.println("Bot REST: http://127.0.0.1:" + BOT_PORT + "/rest/");
         System.out.println("Test-only hooks: http://127.0.0.1:" + BOT_PORT + "/rest/__test__/");
+        System.out.println("Bot mode: " + (IN_PROCESS_BOT ? "dev Java classes" : "Gradle-built WAR"));
         System.out.println("GitHub emulator: http://127.0.0.1:" + GITHUB_PORT + "/");
         System.out.println("JIRA emulator: http://127.0.0.1:" + JIRA_PORT + "/");
         System.out.println("TeamCity emulator: http://127.0.0.1:" + TEAMCITY_PORT + "/");
         System.out.println("Emulator control REST: http://127.0.0.1:" + CONTROL_PORT + "/__test__/emulators/");
         System.out.println("Restart Python: POST http://127.0.0.1:" + CONTROL_PORT
-            + "/__test__/emulators/restart?service=github|jira|teamcity");
+            + "/__test__/emulators/restart?service=github|jira|teamcity|all");
+        if (LIVE_STATIC) {
+            System.out.println("Live static: "
+                + root.resolve("ignite-tc-helper-web/src/main/webapp").toAbsolutePath());
+        }
         System.out.println("Work dir: " + botWorkDir);
         System.out.println("Press Enter in this console to stop the bot and all emulators.");
         System.out.println();
 
-        waitForStopSignalOrProcessExit(bot, control, emulators.values());
+        waitForStopSignalOrProcessExit(bot, botSrv, control, emulators.values());
     }
 
     /** */
@@ -174,6 +199,22 @@ public class EmulatedBotLocalLauncher {
             }
 
             String service = queryParam(exchange.getRequestURI().getRawQuery(), "service");
+
+            if ("all".equals(service)) {
+                try {
+                    for (ManagedEmulator emulator : emulators.values())
+                        emulator.restart();
+
+                    respond(exchange, 200, "{\"status\":\"restarted\",\"service\":\"all\"}");
+                }
+                catch (RuntimeException | IOException e) {
+                    respond(exchange, 500, "{\"status\":\"failed\",\"service\":\"all\",\"error\":\""
+                        + escapeJson(e.getMessage()) + "\"}");
+                }
+
+                return;
+            }
+
             ManagedEmulator emulator = emulators.get(service);
 
             if (emulator == null) {
@@ -218,14 +259,14 @@ public class EmulatedBotLocalLauncher {
     }
 
     /** */
-    private static Process startBot(Path launcherHome, Path botWorkDir) throws IOException {
+    private static Process startBot(Path root, Path launcherHome, Path botWorkDir) throws IOException {
         Path java = Path.of(System.getProperty("java.home"), "bin", isWindows() ? "java.exe" : "java");
         Path binDir = launcherHome.resolve("bin");
 
         List<String> cmd = new ArrayList<>();
 
         cmd.add(java.toString());
-        cmd.addAll(localJvmArgs(botWorkDir));
+        cmd.addAll(localJvmArgs(root, botWorkDir));
         cmd.add("-cp");
         cmd.add(launcherHome.resolve("lib").toString() + File.separator + "*");
         cmd.add("org.apache.ignite.ci.TcHelperJettyLauncher");
@@ -243,12 +284,22 @@ public class EmulatedBotLocalLauncher {
     }
 
     /** */
-    private static List<String> localJvmArgs(Path botWorkDir) {
+    private static Launcher.StartedServer startBotInProcess(Path root, Path botWorkDir) throws Exception {
+        applyBotProperties(root, botWorkDir);
+
+        return Launcher.startServer(true, false);
+    }
+
+    /** */
+    private static List<String> localJvmArgs(Path root, Path botWorkDir) {
         List<String> args = new ArrayList<>(Arrays.asList(
             "-XX:+IgnoreUnrecognizedVMOptions",
             "-Xmx768m",
             "-Dfile.encoding=UTF-8",
             "-Djava.net.preferIPv4Stack=true",
+            "-DIGNITE_QUIET=false",
+            "-Dteamcity.bot.ignite.metricsLogFrequencyMs=60000",
+            "-Dteamcity.bot.log.totalSizeCap=10GB",
             "-Dteamcity.bot.regionsize=1",
             "-Dhttp.maxConnections=30",
             "-Dteamcity.helper.home=" + botWorkDir,
@@ -270,11 +321,34 @@ public class EmulatedBotLocalLauncher {
             "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED"
         ));
 
+        if (LIVE_STATIC) {
+            args.add("-Dtcbot.static.root=" + root.resolve("ignite-tc-helper-web/src/main/webapp")
+                .toAbsolutePath().normalize());
+        }
+
         return args;
     }
 
     /** */
-    private static void waitForStopSignalOrProcessExit(Process bot, HttpServer control,
+    private static void applyBotProperties(Path root, Path botWorkDir) {
+        System.setProperty("file.encoding", "UTF-8");
+        System.setProperty("java.net.preferIPv4Stack", "true");
+        System.setProperty("teamcity.bot.regionsize", "1");
+        System.setProperty("http.maxConnections", "30");
+        System.setProperty("teamcity.helper.home", botWorkDir.toString());
+        System.setProperty(Launcher.HTTP_PORT_PROPERTY, Integer.toString(BOT_PORT));
+        System.setProperty("tcbot.profile", "integration-test");
+        System.setProperty("tcbot.ignite.discovery.port", Integer.toString(IGNITE_DISCOVERY_PORT));
+        System.setProperty("tcbot.ignite.inMemory", "true");
+
+        if (LIVE_STATIC) {
+            System.setProperty("tcbot.static.root", root.resolve("ignite-tc-helper-web/src/main/webapp")
+                .toAbsolutePath().normalize().toString());
+        }
+    }
+
+    /** */
+    private static void waitForStopSignalOrProcessExit(Process bot, Launcher.StartedServer botSrv, HttpServer control,
         Collection<ManagedEmulator> emulators) throws InterruptedException {
         CountDownLatch stopRequested = new CountDownLatch(1);
 
@@ -294,13 +368,15 @@ public class EmulatedBotLocalLauncher {
         stdin.setDaemon(true);
         stdin.start();
 
-        while (bot.isAlive() && emulators.stream().allMatch(ManagedEmulator::isAlive)) {
+        while (isBotAlive(bot, botSrv) && emulators.stream().allMatch(ManagedEmulator::isAlive)) {
             if (stopRequested.await(1, TimeUnit.SECONDS))
                 break;
         }
 
-        if (!bot.isAlive())
+        if (bot != null && !bot.isAlive())
             System.out.println("Bot process exited with code " + bot.exitValue());
+        else if (botSrv != null && !botSrv.isRunning())
+            System.out.println("Bot server stopped.");
 
         for (ManagedEmulator emulator : emulators) {
             if (!emulator.isAlive())
@@ -308,8 +384,17 @@ public class EmulatedBotLocalLauncher {
         }
 
         stop(bot);
+        stop(botSrv);
         control.stop(0);
         emulators.forEach(ManagedEmulator::stop);
+    }
+
+    /** */
+    private static boolean isBotAlive(Process bot, Launcher.StartedServer botSrv) {
+        if (bot != null)
+            return bot.isAlive();
+
+        return botSrv == null || botSrv.isRunning();
     }
 
     /** */
@@ -334,7 +419,8 @@ public class EmulatedBotLocalLauncher {
     private static void ensureInstallDistExists(Path launcherHome) {
         if (!Files.isDirectory(launcherHome.resolve("lib")) || !Files.isDirectory(launcherHome.resolve("war"))) {
             throw new IllegalStateException("Launcher distribution is not prepared: " + launcherHome
-                + ". Run :jetty-launcher:installDist or use the :tcbot-integration-tests:runEmulatedBot Gradle task.");
+                + ". Run :jetty-launcher:installDist or use the :tcbot-integration-tests:runEmulatedTcBotWar "
+                + "Gradle task.");
         }
     }
 
@@ -369,6 +455,12 @@ public class EmulatedBotLocalLauncher {
             Thread.currentThread().interrupt();
             proc.destroyForcibly();
         }
+    }
+
+    /** */
+    private static void stop(Launcher.StartedServer srv) {
+        if (srv != null && srv.isRunning())
+            srv.close();
     }
 
     /** */
