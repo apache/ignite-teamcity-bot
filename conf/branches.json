@@ -10,10 +10,9 @@
   "cleanerConfig": {
     "enabled": true,
     "numOfItemsToDel": 100000,
-    "deleteBatch": 1000,
-    "safeDaysForCaches": 120,
-    "safeDaysForLogs": 70,
-    "period": 360
+    "safeDaysForCaches": 150,
+    "safeDaysForLogs": 90,
+    "period": 1440
   },
   /* Teamcity Integration Parameters */
   "tcServers": [
