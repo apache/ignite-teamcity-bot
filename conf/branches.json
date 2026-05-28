@@ -9,7 +9,7 @@
   "confidence": 0.995,
   "cleanerConfig": {
     "numOfItemsToDel": 100000,
-    "safeDaysForCaches": 180,
+    "safeDaysForCaches": 150,
     "safeDaysForLogs": 90,
     "period": 1440
   },

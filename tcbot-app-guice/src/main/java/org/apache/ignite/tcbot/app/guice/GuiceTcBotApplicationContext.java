@@ -90,6 +90,7 @@ class GuiceTcBotApplicationContext implements TcBotApplicationContext {
                     return;
 
                 getInstance(BuildObserver.class);
+                getInstance(Cleaner.class).startBackgroundClean();
                 getInstance(UserAdminRefreshService.class).start();
                 ready.set(true);
             }
