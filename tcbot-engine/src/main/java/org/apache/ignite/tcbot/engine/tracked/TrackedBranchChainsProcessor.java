@@ -165,6 +165,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
 
                 tracked.chainsStream()
                     .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverCode(), creds))
+                    .filter(chainTracked -> Strings.isNullOrEmpty(suiteId) || suiteId.equals(chainTracked.tcSuiteId()))
                     .forEach(chainTracked -> {
                         String srvCodeOrAlias = chainTracked.serverCode();
                         String branchForTc = chainTracked.tcBranch();
@@ -402,16 +403,17 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         if (started == 0)
             return;
 
-        promptStatus(reqId, "Analyzing build logs for the prompt.");
+        promptStatus(reqId, "Analyzing build logs for the prompt: " + stageSuffix + ".");
 
         ctx.awaitLogChecks(AI_PROMPT_LOG_WAIT_MS);
 
         long pending = ctx.pendingLogChecksCount();
 
         if (pending > 0)
-            promptStatus(reqId, "Build log analysis timed out; using available log context.");
+            promptStatus(reqId, "Build log analysis timed out for " + stageSuffix +
+                "; using available log context.");
         else
-            promptStatus(reqId, "Build log analysis finished.");
+            promptStatus(reqId, "Build log analysis finished for " + stageSuffix + ".");
     }
 
     /**
