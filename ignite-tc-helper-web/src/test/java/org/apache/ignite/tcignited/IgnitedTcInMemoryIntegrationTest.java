@@ -735,6 +735,48 @@ public class IgnitedTcInMemoryIntegrationTest {
         assertTrue(checkNotNull(running4).isEmpty());
     }
 
+    @Test
+    public void testForbiddenBuildAccessCreatesPermanentFakeBuild() {
+        TeamcityIgnitedModule module = new TeamcityIgnitedModule();
+        module.overrideHttp((basicAuthTok, url) -> {
+            throw new IllegalStateException("Service " + url + " returned Invalid Response Code : 403:\n" +
+                "HTTP 403 | Host: ci2.ignite.apache.org | " + url + "\n" +
+                "Not enough permissions to access build");
+        });
+        Injector injector = Guice.createInjector(module, new IgniteAndSchedulerTestModule());
+
+        IStringCompactor c = injector.getInstance(IStringCompactor.class);
+        BuildRefDao buildRefDao = injector.getInstance(BuildRefDao.class).init();
+        FatBuildDao fatBuildDao = injector.getInstance(FatBuildDao.class).init();
+
+        int buildId = 1000044;
+        BuildRef ref = new BuildRef();
+        ref.buildTypeId = "Testbuild";
+        ref.branchName = ITeamcity.REFS_HEADS_MASTER;
+        ref.state = BuildRef.STATE_FINISHED;
+        ref.status = BuildRef.STATUS_SUCCESS;
+        ref.setId(buildId);
+
+        String srvCode = APACHE;
+        int srvIdInt = ITeamcityIgnited.serverIdToInt(srvCode);
+        final TeamcityServiceConnection srvConn = injector.getInstance(TeamcityServiceConnection.class);
+        srvConn.init(srvCode);
+
+        buildRefDao.saveChunk(srvIdInt, Lists.newArrayList(ref));
+
+        assertTrue(fatBuildDao.getMissingBuilds(srvIdInt, new int[] {buildId}).contains(buildId));
+
+        ProactiveFatBuildSync buildSync = injector.getInstance(ProactiveFatBuildSync.class);
+        buildSync.ensureActualizationRequested(srvCode, srvConn);
+
+        FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(srvIdInt, buildId);
+
+        assertNotNull(fatBuild);
+        assertTrue(fatBuild.isFakeStub());
+        assertTrue(fatBuild.isCancelled(c));
+        assertTrue(fatBuildDao.getMissingBuilds(srvIdInt, new int[] {buildId}).isEmpty());
+    }
+
     public void putOldFashionFakeBuild(IStringCompactor c, FatBuildDao fatBuildDao, int buildId, int srvIdInt) {
         FatBuildCompacted fb = fatBuildDao.getFatBuild(srvIdInt, buildId);
 

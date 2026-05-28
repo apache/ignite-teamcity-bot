@@ -419,7 +419,8 @@ public class ProactiveFatBuildSync {
         catch (Exception e) {
             Throwable cause = Throwables.getRootCause(e);
 
-            if (cause instanceof FileNotFoundException || cause instanceof ServiceConflictException) {
+            if (cause instanceof FileNotFoundException || cause instanceof ServiceConflictException ||
+                isPermanentBuildAccessDenied(e)) {
                 logger.info("Loading build [" + buildId + "] for server [" + srvName + "] failed:" + e.getMessage(), e);
 
                 if (existingBuild != null) {
@@ -454,6 +455,23 @@ public class ProactiveFatBuildSync {
         //if we are here because of some sort of outdated version of build,
         // new save will be performed with new entity version for compacted build
         return fatBuildDao.saveBuild(srvIdMask, buildId, build, tests, problems, statistics, changesList, existingBuild);
+    }
+
+    private boolean isPermanentBuildAccessDenied(Throwable e) {
+        for (Throwable cur = e; cur != null; cur = cur.getCause()) {
+            String msg = cur.getMessage();
+
+            if (msg == null)
+                continue;
+
+            String msgLower = msg.toLowerCase();
+
+            if (msgLower.contains("403") && msgLower.contains("not enough permissions") &&
+                msgLower.contains("access build"))
+                return true;
+        }
+
+        return false;
     }
 
     @Nullable

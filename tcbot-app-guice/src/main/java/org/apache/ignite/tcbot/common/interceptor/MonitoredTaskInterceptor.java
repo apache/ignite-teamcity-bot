@@ -77,6 +77,7 @@ public class MonitoredTaskInterceptor implements MethodInterceptor, MonitoredTas
         private final AtomicLong lastStartTs = new AtomicLong();
         private final AtomicLong lastEndTs = new AtomicLong();
         private final AtomicReference<Object> lastResult = new AtomicReference<>();
+        private final AtomicReference<String> currentStatus = new AtomicReference<>();
 
         private final AtomicInteger callsCnt = new AtomicInteger();
         /** Name and full key for monitored task. */
@@ -92,11 +93,18 @@ public class MonitoredTaskInterceptor implements MethodInterceptor, MonitoredTas
             lastStartTs.set(startTs);
 
             lastEndTs.set(0);
+            currentStatus.set(null);
         }
 
         void saveEnd(long ts, Object res) {
-            lastEndTs.set(ts);
             lastResult.set(res);
+            currentStatus.set(null);
+            lastEndTs.set(ts);
+        }
+
+        /** {@inheritDoc} */
+        @Override public void reportCurrentStatus(String status) {
+            currentStatus.set(status);
         }
 
         public String name() {
@@ -142,8 +150,10 @@ public class MonitoredTaskInterceptor implements MethodInterceptor, MonitoredTas
         public String result() {
             if (lastEndTs.get() == 0) {
                 long time = System.currentTimeMillis() - lastStartTs.get();
+                String duration = "(running for " + TimeUtil.millisToDurationPrintable(time) + ")";
+                String status = currentStatus.get();
 
-                return "(running for " + TimeUtil.millisToDurationPrintable(time) + ")";
+                return status == null ? duration : status + " " + duration;
             }
 
             return Objects.toString(lastResult.get());
@@ -177,7 +187,10 @@ public class MonitoredTaskInterceptor implements MethodInterceptor, MonitoredTas
             log(monitoredInvoke.toString(), -1);
 
         Object res = null;
+        MonitoredTasks.Invocation prevInvocation = MonitoredTasks.CURRENT_INVOCATION.get();
         try {
+            MonitoredTasks.CURRENT_INVOCATION.set(monitoredInvoke);
+
             res = invocation.proceed();
 
             return res;
@@ -188,6 +201,11 @@ public class MonitoredTaskInterceptor implements MethodInterceptor, MonitoredTas
             throw t;
         }
         finally {
+            if (prevInvocation == null)
+                MonitoredTasks.CURRENT_INVOCATION.remove();
+            else
+                MonitoredTasks.CURRENT_INVOCATION.set(prevInvocation);
+
             long end = System.currentTimeMillis();
             monitoredInvoke.saveEnd(end, res);
 

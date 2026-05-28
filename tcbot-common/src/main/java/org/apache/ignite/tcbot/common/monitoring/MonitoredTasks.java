@@ -20,9 +20,18 @@ package org.apache.ignite.tcbot.common.monitoring;
 import java.util.Collection;
 
 public interface MonitoredTasks extends AutoCloseable {
+    ThreadLocal<Invocation> CURRENT_INVOCATION = new ThreadLocal<>();
+
     Collection<? extends Invocation> getList();
 
     long startedTs();
+
+    static void reportCurrentTaskStatus(String status) {
+        Invocation invocation = CURRENT_INVOCATION.get();
+
+        if (invocation != null)
+            invocation.reportCurrentStatus(status);
+    }
 
     @Override void close() throws Exception;
 
@@ -40,5 +49,9 @@ public interface MonitoredTasks extends AutoCloseable {
         String end();
 
         String result();
+
+        default void reportCurrentStatus(String status) {
+            // No-op for implementations that do not expose in-flight progress.
+        }
     }
 }
