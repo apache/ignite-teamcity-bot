@@ -100,6 +100,26 @@ public class GetSingleBuildTestFailuresRest {
     }
 
     @GET
+    @Path("failures/analyzeLogs")
+    @Produces(MediaType.TEXT_PLAIN)
+    public String analyzeBuildLogs(
+        @QueryParam("serverId") String srvCodeOrAlias,
+        @QueryParam("buildId") Integer buildId,
+        @Nullable @QueryParam("background") Boolean background,
+        @Nullable @QueryParam("processId") Long processId) throws ServiceUnauthorizedException {
+        SingleBuildResultsService processor = CtxListener.getApplicationContext(ctx)
+            .getInstance(SingleBuildResultsService.class);
+
+        if (Boolean.TRUE.equals(background)) {
+            return processor.startSingleBuildLogAnalysis(srvCodeOrAlias, buildId, SyncMode.RELOAD_QUEUED,
+                ITcBotUserCreds.get(req), processId);
+        }
+
+        return processor.analyzeSingleBuildLogs(srvCodeOrAlias, buildId, SyncMode.RELOAD_QUEUED,
+            ITcBotUserCreds.get(req), processId);
+    }
+
+    @GET
     @Path("failuresNoSync")
     public DsSummaryUi getBuildTestFailsNoSync(
         @QueryParam("serverId") String srvId,

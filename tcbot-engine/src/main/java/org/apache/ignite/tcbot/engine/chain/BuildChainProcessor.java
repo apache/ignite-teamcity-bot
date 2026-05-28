@@ -59,6 +59,7 @@ import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.Build;
+import org.apache.ignite.tcbot.engine.process.ProgressReporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,6 +78,9 @@ public class BuildChainProcessor {
 
     /** Build logs processor. */
     @Inject private IBuildLogProcessor buildLogProcessor;
+
+    /** Shared progress reporter. */
+    @Inject private ProgressReporter progress;
 
     @Inject private UpdateCountersStorage counters;
 
@@ -165,6 +169,8 @@ public class BuildChainProcessor {
 
         if (entryPoints.isEmpty())
             return new FullChainRunCtx(Build.createFakeStub());
+
+        progress.report("Loading TeamCity build context for " + entryPoints.size() + " entry build(s).");
 
         Integer failRateBranchId = compactor.getStringIdIfPresent(BranchEquivalence.normalizeBranch(failRateBranch));
 
@@ -518,7 +524,9 @@ public class BuildChainProcessor {
                     || procLog == ProcessLogsMode.ALL)
                 ctx.setLogCheckResFut(
                         CompletableFuture.supplyAsync(
-                            () -> {
+                            progress.preserveSupplier(() -> {
+                                progress.report("Loading build log " + teamcity.serverCode() + "/" + ctx.buildId() + ".");
+
                                 ILogCheckResult res = buildLogProcessor.analyzeBuildLog(teamcity,
                                     ctx.buildId(),
                                     incompleteFailure);
@@ -527,8 +535,11 @@ public class BuildChainProcessor {
                                 //build log result is ready for branch.
                                 counters.increment(branchName);
 
+                                progress.report("Finished build log analysis " + teamcity.serverCode() + "/" +
+                                    ctx.buildId() + ".");
+
                                 return res;
-                            },
+                            }),
                             tcUpdatePool.getService()));
         }
     }
@@ -559,10 +570,21 @@ public class BuildChainProcessor {
     }
 
     public Future<FatBuildCompacted> loadBuildAsync(Integer id, SyncMode mode, ITeamcityIgnited teamcityIgnited) {
-        if (mode == SyncMode.NONE)
-            return Futures.immediateFuture(teamcityIgnited.getFatBuild(id, SyncMode.NONE));
+        if (mode == SyncMode.NONE) {
+            progress.report("Using cached TeamCity build " + teamcityIgnited.serverCode() + "/" + id + ".");
 
-        return tcUpdatePool.getService().submit(() -> teamcityIgnited.getFatBuild(id, mode));
+            return Futures.immediateFuture(teamcityIgnited.getFatBuild(id, SyncMode.NONE));
+        }
+
+        return tcUpdatePool.getService().submit(progress.preserveCallable(() -> {
+            progress.report("Loading TeamCity build " + teamcityIgnited.serverCode() + "/" + id + ".");
+
+            FatBuildCompacted build = teamcityIgnited.getFatBuild(id, mode);
+
+            progress.report("Loaded TeamCity build " + teamcityIgnited.serverCode() + "/" + id + ".");
+
+            return build;
+        }));
     }
 
     private List<Future<FatBuildCompacted>> completed(List<FatBuildCompacted> builds) {

@@ -17,6 +17,7 @@
 package org.apache.ignite.tcbot.engine.process;
 
 import java.util.concurrent.Callable;
+import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -52,24 +53,136 @@ public class ProgressReporter {
      * @param action Action.
      * @return Action result.
      */
-    public String run(@Nullable Long processId, String kind, String acceptedStatus, Callable<String> action)
+    public <T> T run(@Nullable Long processId, String kind, String acceptedStatus, Callable<T> action)
         throws Exception {
+        return run(processId, kind, acceptedStatus, null, action);
+    }
+
+    /**
+     * Runs an action with a current user-visible process id.
+     *
+     * @param processId Process id supplied by UI.
+     * @param kind Process kind.
+     * @param acceptedStatus Initial status.
+     * @param finishStatus Final status. Null means use action result.
+     * @param action Action.
+     * @return Action result.
+     */
+    public <T> T run(@Nullable Long processId, String kind, String acceptedStatus, @Nullable String finishStatus,
+        Callable<T> action) throws Exception {
         processMonitor.start(processId, kind, acceptedStatus);
 
+        return withProcess(processId, () -> {
+            report(acceptedStatus);
+
+            T result = action.call();
+
+            processMonitor.finish(processId, finishStatus == null ? String.valueOf(result) : finishStatus);
+
+            return result;
+        }, e -> {
+            processMonitor.fail(processId, e);
+        });
+    }
+
+    /**
+     * Runs an action with a current user-visible process id and wraps checked exceptions.
+     *
+     * @param processId Process id supplied by UI.
+     * @param kind Process kind.
+     * @param acceptedStatus Initial status.
+     * @param action Action.
+     * @return Action result.
+     */
+    public <T> T runUnchecked(@Nullable Long processId, String kind, String acceptedStatus, Callable<T> action) {
+        try {
+            return run(processId, kind, acceptedStatus, action);
+        }
+        catch (RuntimeException e) {
+            throw e;
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Runs an action with a current user-visible process id and wraps checked exceptions.
+     *
+     * @param processId Process id supplied by UI.
+     * @param kind Process kind.
+     * @param acceptedStatus Initial status.
+     * @param finishStatus Final status. Null means use action result.
+     * @param action Action.
+     * @return Action result.
+     */
+    public <T> T runUnchecked(@Nullable Long processId, String kind, String acceptedStatus,
+        @Nullable String finishStatus, Callable<T> action) {
+        try {
+            return run(processId, kind, acceptedStatus, finishStatus, action);
+        }
+        catch (RuntimeException e) {
+            throw e;
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Captures current process id and restores it around a callable executed later, usually in a pool thread.
+     *
+     * @param action Action.
+     * @return Callable with process reporting context.
+     */
+    public <T> Callable<T> preserveCallable(Callable<T> action) {
+        Long processId = currentProcessId.get();
+
+        return () -> withProcess(processId, action, null);
+    }
+
+    /**
+     * Captures current process id and restores it around a supplier executed later, usually in a pool thread.
+     *
+     * @param action Action.
+     * @return Supplier with process reporting context.
+     */
+    public <T> Supplier<T> preserveSupplier(Supplier<T> action) {
+        Long processId = currentProcessId.get();
+
+        return () -> {
+            try {
+                return withProcess(processId, action::get, null);
+            }
+            catch (RuntimeException e) {
+                throw e;
+            }
+            catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
+    }
+
+    /**
+     * Runs an action with a current user-visible process id without starting or finishing the process.
+     *
+     * @param processId Process id.
+     * @param action Action.
+     * @param onFail Failure callback.
+     * @return Action result.
+     */
+    private <T> T withProcess(@Nullable Long processId, Callable<T> action, @Nullable FailureCallback onFail)
+        throws Exception {
         Long prevProcessId = currentProcessId.get();
 
         try {
             currentProcessId.set(processId);
-            report(acceptedStatus);
 
-            String result = action.call();
-
-            processMonitor.finish(processId, result);
-
-            return result;
+            return action.call();
         }
         catch (Exception e) {
-            processMonitor.fail(processId, e);
+            if (onFail != null)
+                onFail.onFail(e);
 
             throw e;
         }
@@ -79,5 +192,11 @@ public class ProgressReporter {
             else
                 currentProcessId.set(prevProcessId);
         }
+    }
+
+    /** Failure callback. */
+    private interface FailureCallback {
+        /** */
+        void onFail(Exception e);
     }
 }

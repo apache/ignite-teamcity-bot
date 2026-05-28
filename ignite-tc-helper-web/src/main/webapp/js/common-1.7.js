@@ -283,6 +283,33 @@ function openAiPrompt(url) {
     });
 }
 
+function openBuildLogAnalysis(url) {
+    openTextCommandDialog({
+        dialogId: "buildLogAnalysisDialog",
+        statusId: "buildLogAnalysisStatus",
+        logId: "buildLogAnalysisProgressLog",
+        errorId: "buildLogAnalysisError",
+        title: "Analyzing build logs",
+        initialMode: true,
+        processKind: "buildLogAnalysis",
+        requestUrl: function (mode, processId, background) {
+            return commandUrlWithProcess(url, processId, background);
+        },
+        backgroundInitial: true,
+        backgroundFollowupStep: "Reading cached log analysis result.",
+        timeoutMs: 70000,
+        statusText: function () {
+            return "Analyzing build logs...";
+        },
+        showOpenButton: false,
+        showDownloadButton: false,
+        readyStatusText: "Build log analysis is ready.",
+        readyStepText: "Build log analysis completed.",
+        failureStatusText: "Build log analysis failed.",
+        failureMessagePrefix: "Build log analysis failed: "
+    });
+}
+
 function openTextCommandDialog(options) {
     let state = createTextCommandDialog(options);
 
@@ -522,6 +549,21 @@ function aiPromptUrlWithWaitForTc(url, waitForTc, processId, background) {
         (background === true ? "&background=true" : "");
 }
 
+function commandUrlWithProcess(url, processId, background) {
+    let params = [];
+
+    if (isDefinedAndFilled(processId))
+        params.push("processId=" + encodeURIComponent(processId));
+
+    if (background === true)
+        params.push("background=true");
+
+    if (params.length === 0)
+        return url;
+
+    return url + (url.indexOf("?") >= 0 ? "&" : "?") + params.join("&");
+}
+
 function startTextCommandProgress(options, state, mode, firstStep) {
     let idx = 0;
     let startedTs = Date.now();
@@ -546,7 +588,8 @@ function startTextCommandProgress(options, state, mode, firstStep) {
                     return;
                 }
 
-                requestTextCommand(options, state, false, "Building prompt from refreshed context.");
+                requestTextCommand(options, state, false,
+                    options.backgroundFollowupStep || "Building prompt from refreshed context.");
             }
         });
 
