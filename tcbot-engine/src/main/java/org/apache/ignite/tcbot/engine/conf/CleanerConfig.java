@@ -19,16 +19,13 @@ package org.apache.ignite.tcbot.engine.conf;
 /** */
 public class CleanerConfig implements ICleanerConfig{
     /** */
-    public static final int DEFAULT_SAFE_DAYS_FOR_CACHES = 120;
-
-    /** */
-    public static final int DEFAULT_SAFE_DAYS_FOR_LOGS = 70;
+    public static final int DEFAULT_SAVE_DAYS = 30 * 6;
 
     /** */
     public static final int DEFAULT_NUMBER_OF_ITEMS_TO_DELETE = 100_000;
 
     /** */
-    public static final int DEFAULT_PERIOD_MINUTES = 360;
+    public static final int DEFAULT_PERIOD_MINUTES = 60 * 24;
 
     /** */
     private Integer safeDaysForCaches;
@@ -48,8 +45,8 @@ public class CleanerConfig implements ICleanerConfig{
     /** */
     public static CleanerConfig getDefaultCleanerConfig() {
         CleanerConfig cfg = new CleanerConfig();
-        cfg.safeDaysForCaches = DEFAULT_SAFE_DAYS_FOR_CACHES;
-        cfg.safeDaysForLogs = DEFAULT_SAFE_DAYS_FOR_LOGS;
+        cfg.safeDaysForCaches = DEFAULT_SAVE_DAYS;
+        cfg.safeDaysForLogs = DEFAULT_SAVE_DAYS;
         cfg.numOfItemsToDel = DEFAULT_NUMBER_OF_ITEMS_TO_DELETE;
         cfg.enabled = true;
         cfg.period = DEFAULT_PERIOD_MINUTES;
@@ -58,12 +55,12 @@ public class CleanerConfig implements ICleanerConfig{
 
     /** */
     public int safeDaysForCaches() {
-        return safeDaysForCaches == null || safeDaysForCaches < 0 ? DEFAULT_SAFE_DAYS_FOR_CACHES : safeDaysForCaches;
+        return safeDaysForCaches == null || safeDaysForCaches < 0 ? DEFAULT_SAVE_DAYS : safeDaysForCaches;
     }
 
     /** */
     public int safeDaysForLogs() {
-        return safeDaysForLogs == null || safeDaysForLogs < 0 ? DEFAULT_SAFE_DAYS_FOR_LOGS : safeDaysForLogs;
+        return safeDaysForLogs == null || safeDaysForLogs < 0 ? DEFAULT_SAVE_DAYS : safeDaysForLogs;
     }
 
     /** */
