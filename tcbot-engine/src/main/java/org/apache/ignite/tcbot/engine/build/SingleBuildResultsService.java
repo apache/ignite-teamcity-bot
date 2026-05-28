@@ -51,6 +51,9 @@ public class SingleBuildResultsService {
     /** Max time to wait for fresh AI prompt build context. */
     private static final long AI_PROMPT_CONTEXT_WAIT_MS = TimeUnit.MINUTES.toMillis(1);
 
+    /** Max time to wait for AI prompt build log processing. */
+    private static final long AI_PROMPT_LOG_WAIT_MS = TimeUnit.MINUTES.toMillis(1);
+
     @Inject BuildChainProcessor buildChainProcessor;
     @Inject ITeamcityIgnitedProvider tcIgnitedProv;
     @Inject BranchEquivalence branchEquivalence;
@@ -90,6 +93,41 @@ public class SingleBuildResultsService {
     @Nonnull public String getSingleBuildFailuresAiPrompt(String srvCodeOrAlias, Integer buildId,
         @Nullable Integer maxDetailsChars, SyncMode syncMode, ICredentialsProv prov) {
         return getSingleBuildFailuresAiPrompt(srvCodeOrAlias, buildId, maxDetailsChars, syncMode, prov, null);
+    }
+
+    /**
+     * Starts background refresh of TeamCity context required by AI prompt generation.
+     *
+     * @param processId User-visible process id.
+     * @return User-visible acceptance message.
+     */
+    @Nonnull public String startSingleBuildFailuresAiPromptRefresh(String srvCodeOrAlias, Integer buildId,
+        SyncMode syncMode, ICredentialsProv prov, @Nullable Long processId) {
+        long reqId = aiPromptMonitor.start("singleBuild", null, srvCodeOrAlias, String.valueOf(buildId), null);
+
+        processMonitor.start(processId, "aiPrompt", "Queued AI prompt TeamCity refresh.");
+
+        tcUpdatePool.getService().submit(() -> {
+            try {
+                promptStatus(processId, reqId, "Refreshing TeamCity data and build logs for the prompt.");
+
+                FullChainRunCtx ctx = loadSingleBuildContext(srvCodeOrAlias, buildId, null, syncMode, prov,
+                    ProcessLogsMode.ALL);
+
+                waitForAiPromptLogs(reqId, ctx, processId);
+
+                aiPromptMonitor.finish(reqId, "background refresh finished");
+                processMonitor.finish(processId, "Fresh TeamCity context is ready.");
+            }
+            catch (RuntimeException e) {
+                aiPromptMonitor.fail(reqId, e);
+                processMonitor.fail(processId, e);
+
+                throw e;
+            }
+        });
+
+        return "Fresh TeamCity context refresh started in background.";
     }
 
     /**
@@ -168,6 +206,13 @@ public class SingleBuildResultsService {
      */
     private FullChainRunCtx loadSingleBuildContextBestEffort(long reqId, String srvCodeOrAlias, Integer buildId,
         SyncMode liveSyncMode, ICredentialsProv prov, @Nullable Long processId) {
+        if (liveSyncMode == SyncMode.NONE) {
+            promptStatus(processId, reqId, "Using cached build and test details for the prompt.");
+
+            return loadSingleBuildContext(srvCodeOrAlias, buildId, null, SyncMode.NONE, prov,
+                ProcessLogsMode.CACHED_ONLY);
+        }
+
         Future<FullChainRunCtx> live = null;
 
         try {
@@ -210,6 +255,29 @@ public class SingleBuildResultsService {
     private void promptStatus(@Nullable Long processId, long reqId, String text) {
         aiPromptMonitor.stage(reqId, text);
         processMonitor.status(processId, text);
+    }
+
+    /**
+     * @param reqId AI prompt request id.
+     * @param ctx Chain context.
+     * @param processId User-visible process id.
+     */
+    private void waitForAiPromptLogs(long reqId, FullChainRunCtx ctx, @Nullable Long processId) {
+        long started = ctx.logChecksStartedCount();
+
+        if (started == 0)
+            return;
+
+        promptStatus(processId, reqId, "Analyzing build logs for the prompt.");
+
+        ctx.awaitLogChecks(AI_PROMPT_LOG_WAIT_MS);
+
+        long pending = ctx.pendingLogChecksCount();
+
+        if (pending > 0)
+            promptStatus(processId, reqId, "Build log analysis timed out; using available log context.");
+        else
+            promptStatus(processId, reqId, "Build log analysis finished.");
     }
 
     /**

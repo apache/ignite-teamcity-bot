@@ -140,6 +140,84 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
     }
 
     /**
+     * Starts background refresh of TeamCity context required by AI prompt generation.
+     *
+     * @param processId User-visible process id.
+     * @return User-visible acceptance message.
+     */
+    @Nonnull public String startTrackedBranchFailuresAiPromptRefresh(
+        @Nullable String branch,
+        int buildResMergeCnt,
+        ICredentialsProv creds,
+        SyncMode syncMode,
+        @Nullable String tagForHistSelected,
+        @Nullable SortOption sortOption,
+        @Nullable String testName,
+        @Nullable String suiteId,
+        @Nullable Long processId) {
+        long reqId = aiPromptMonitor.start("trackedBranch", branch, null, suiteId, testName);
+
+        processMonitor.start(processId, "aiPrompt", "Queued AI prompt TeamCity refresh.");
+
+        tcUpdatePool.getService().submit(() -> {
+            try {
+                final String branchNn = isNullOrEmpty(branch) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
+                final ITrackedBranch tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);
+
+                tracked.chainsStream()
+                    .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverCode(), creds))
+                    .forEach(chainTracked -> {
+                        String srvCodeOrAlias = chainTracked.serverCode();
+                        String branchForTc = chainTracked.tcBranch();
+                        String baseBranchTc = chainTracked.tcBaseBranch().orElse(branchForTc);
+                        String suiteIdMandatory = chainTracked.tcSuiteId();
+
+                        promptStatus(processId, reqId, "Loading build history for the prompt.");
+
+                        ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, creds);
+
+                        Map<Integer, Integer> requireParamVal = new HashMap<>();
+
+                        if (!Strings.isNullOrEmpty(tagForHistSelected))
+                            requireParamVal.putAll(reverseTagToParametersRequired(tagForHistSelected, srvCodeOrAlias));
+
+                        List<Integer> chains = tcIgnited.getLastNBuildsFromHistory(suiteIdMandatory, branchForTc,
+                            Math.max(buildResMergeCnt, 1));
+
+                        LatestRebuildMode rebuild = buildResMergeCnt > 1 ? LatestRebuildMode.ALL :
+                            LatestRebuildMode.LATEST;
+
+                        promptStatus(processId, reqId, "Refreshing TeamCity data and build logs for the prompt.");
+
+                        FullChainRunCtx ctx = chainProc.loadFullChainContext(
+                            tcIgnited,
+                            chains,
+                            rebuild,
+                            ProcessLogsMode.ALL,
+                            buildResMergeCnt == 1,
+                            baseBranchTc,
+                            syncMode,
+                            sortOption,
+                            requireParamVal);
+
+                        waitForAiPromptLogs(reqId, ctx, srvCodeOrAlias + "/" + suiteIdMandatory, processId);
+                    });
+
+                aiPromptMonitor.finish(reqId, "background refresh finished");
+                processMonitor.finish(processId, "Fresh TeamCity context is ready.");
+            }
+            catch (RuntimeException e) {
+                aiPromptMonitor.fail(reqId, e);
+                processMonitor.fail(processId, e);
+
+                throw e;
+            }
+        });
+
+        return "Fresh TeamCity context refresh started in background.";
+    }
+
+    /**
      * @param processId User-visible process id.
      */
     @Nonnull public String getTrackedBranchFailuresAiPrompt(
@@ -183,7 +261,9 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
                     List<Integer> chains = tcIgnited.getLastNBuildsFromHistory(suiteIdMandatory, branchForTc,
                         Math.max(buildResMergeCnt, 1));
 
-                    LatestRebuildMode rebuild = buildResMergeCnt > 1 ? LatestRebuildMode.ALL : LatestRebuildMode.LATEST;
+                        LatestRebuildMode rebuild = buildResMergeCnt > 1
+                            ? LatestRebuildMode.ALL
+                            : LatestRebuildMode.LATEST;
 
                     promptStatus(processId, reqId, "Collecting build and test details for the prompt.");
 

@@ -781,6 +781,78 @@ public class PrChainsProcessor {
     }
 
     /**
+     * Starts background refresh of TeamCity context required by AI prompt generation.
+     *
+     * @param processId User-visible process id.
+     * @return User-visible acceptance message.
+     */
+    public String startPrFailuresAiPromptRefresh(
+        ICredentialsProv creds,
+        String srvCodeOrAlias,
+        String suiteId,
+        String branchForTc,
+        String act,
+        Integer cnt,
+        @Nullable String tcBaseBranchParm,
+        @Nullable String testName,
+        @Nullable String promptSuiteId,
+        @Nullable Long processId) {
+        long reqId = aiPromptMonitor.start("pr", branchForTc, srvCodeOrAlias, suiteId, testName);
+
+        processMonitor.start(processId, "aiPrompt", "Queued AI prompt TeamCity refresh.");
+
+        tcUpdatePool.getService().submit(() -> {
+            try {
+                ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvCodeOrAlias, creds);
+
+                LatestRebuildMode rebuild;
+                if (Action.HISTORY.equals(act))
+                    rebuild = LatestRebuildMode.ALL;
+                else if (Action.CHAIN.equals(act))
+                    rebuild = LatestRebuildMode.NONE;
+                else
+                    rebuild = LatestRebuildMode.LATEST;
+
+                int buildResMergeCnt = rebuild == LatestRebuildMode.ALL ? cnt == null ? 10 : cnt : 1;
+
+                promptStatus(processId, reqId, "Loading build history for the prompt.");
+
+                List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(suiteId, branchForTc, buildResMergeCnt);
+
+                String baseBranchForTc = Strings.isNullOrEmpty(tcBaseBranchParm)
+                    ? dfltBaseTcBranch(srvCodeOrAlias)
+                    : tcBaseBranchParm;
+
+                promptStatus(processId, reqId, "Refreshing TeamCity data and build logs for the prompt.");
+
+                FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
+                    tcIgnited,
+                    hist,
+                    rebuild,
+                    ProcessLogsMode.ALL,
+                    buildResMergeCnt == 1,
+                    baseBranchForTc,
+                    SyncMode.RELOAD_QUEUED,
+                    null,
+                    null);
+
+                waitForAiPromptLogs(reqId, ctx, srvCodeOrAlias + "/" + suiteId, processId);
+
+                aiPromptMonitor.finish(reqId, "background refresh finished");
+                processMonitor.finish(processId, "Fresh TeamCity context is ready.");
+            }
+            catch (RuntimeException e) {
+                aiPromptMonitor.fail(reqId, e);
+                processMonitor.fail(processId, e);
+
+                throw e;
+            }
+        });
+
+        return "Fresh TeamCity context refresh started in background.";
+    }
+
+    /**
      * @param processId User-visible process id.
      */
     @AutoProfiling

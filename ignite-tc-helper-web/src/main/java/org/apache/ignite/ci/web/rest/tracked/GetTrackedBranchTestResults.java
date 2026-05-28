@@ -98,12 +98,25 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("testName") String testName,
         @Nullable @QueryParam("promptSuiteId") String promptSuiteId,
         @Nullable @QueryParam("waitForTc") Boolean waitForTc,
+        @Nullable @QueryParam("background") Boolean background,
         @Nullable @QueryParam("processId") Long processId) {
         int actualMergeBuilds = (mergeCnt == null || mergeCnt < 1) ? 1 : mergeCnt;
+        TrackedBranchChainsProcessor processor = CtxListener.getApplicationContext(ctx)
+            .getInstance(TrackedBranchChainsProcessor.class);
 
-        return CtxListener.getApplicationContext(ctx)
-            .getInstance(TrackedBranchChainsProcessor.class)
-            .getTrackedBranchFailuresAiPrompt(branchOrNull,
+        if (Boolean.TRUE.equals(background)) {
+            return processor.startTrackedBranchFailuresAiPromptRefresh(branchOrNull,
+                actualMergeBuilds,
+                ITcBotUserCreds.get(req),
+                SyncMode.RELOAD_QUEUED,
+                tagForHistSelected,
+                SortOption.parseStringValue(sortOption),
+                testName,
+                promptSuiteId,
+                processId);
+        }
+
+        return processor.getTrackedBranchFailuresAiPrompt(branchOrNull,
                 actualMergeBuilds,
                 ITcBotUserCreds.get(req),
                 SyncMode.RELOAD_QUEUED,

@@ -115,6 +115,11 @@ function botProcessStatusText(status) {
         : "Waiting for the bot to publish status.";
 }
 
+function botProcessFailed(status) {
+    return status && (status.failed === true ||
+        (isDefinedAndFilled(status.status) && status.status.indexOf("Failed:") === 0));
+}
+
 function startBotProcessPolling(processId, onStatus, options) {
     if (!isDefinedAndFilled(processId))
         return function () {};
@@ -251,8 +256,9 @@ function openAiPrompt(url) {
         initialMode: true,
         processKind: "aiPrompt",
         requestUrl: function (waitForTc, processId) {
-            return aiPromptUrlWithWaitForTc(url, waitForTc, processId);
+            return aiPromptUrlWithWaitForTc(url, waitForTc, processId, waitForTc);
         },
+        backgroundInitial: true,
         timeoutMs: 70000,
         skip: {
             isVisible: function (waitForTc) {
@@ -317,10 +323,21 @@ function requestTextCommand(options, state, mode, firstStep) {
 
     startTextCommandProgress(options, state, mode, firstStep);
 
+    let backgroundInitial = options.backgroundInitial === true && mode === true;
+
     state.xhr = $.ajax({
-        url: options.requestUrl(mode, state.processId),
+        url: options.requestUrl(mode, state.processId, backgroundInitial),
         timeout: options.timeoutMs == null ? 70000 : options.timeoutMs,
         success: function (result) {
+            if (backgroundInitial) {
+                state.xhr = null;
+
+                if (isDefinedAndFilled(result))
+                    appendTextCommandStep(state, result);
+
+                return;
+            }
+
             finishTextCommandDialog(options, state, result);
         },
         error: function (jqXHR, status, error) {
@@ -499,9 +516,10 @@ function restoreWindowScroll(scrollLeft, scrollTop) {
         window.scrollTo(scrollLeft, scrollTop);
 }
 
-function aiPromptUrlWithWaitForTc(url, waitForTc, processId) {
+function aiPromptUrlWithWaitForTc(url, waitForTc, processId, background) {
     return url + (url.indexOf("?") >= 0 ? "&" : "?") + "waitForTc=" + waitForTc +
-        (isDefinedAndFilled(processId) ? "&processId=" + encodeURIComponent(processId) : "");
+        (isDefinedAndFilled(processId) ? "&processId=" + encodeURIComponent(processId) : "") +
+        (background === true ? "&background=true" : "");
 }
 
 function startTextCommandProgress(options, state, mode, firstStep) {
@@ -520,6 +538,16 @@ function startTextCommandProgress(options, state, mode, firstStep) {
 
         state.processPollStop = startBotProcessPolling(state.processId, function (status) {
             appendTextCommandStep(state, botProcessStatusText(status));
+
+            if (options.backgroundInitial === true && mode === true && status.running === false) {
+                if (botProcessFailed(status)) {
+                    failTextCommandDialogMessage(options, state, botProcessStatusText(status));
+
+                    return;
+                }
+
+                requestTextCommand(options, state, false, "Building prompt from refreshed context.");
+            }
         });
 
         return;
@@ -610,6 +638,19 @@ function failTextCommandDialog(options, state, jqXHR, status, error) {
         + status + "\n\n" + jqXHR.responseText).show();
     appendTextCommandStep(state, "Request failed: " + (error || status));
     showErrInLoadStatus(jqXHR, status);
+}
+
+function failTextCommandDialogMessage(options, state, message) {
+    if (state.timer)
+        clearInterval(state.timer);
+
+    if (state.processPollStop)
+        state.processPollStop();
+
+    state.status.text(options.failureStatusText || "Command request failed.");
+    state.skipBtn.hide();
+    state.errorBlock.text((options.failureMessagePrefix || "Command request failed: ") + message).show();
+    appendTextCommandStep(state, message);
 }
 
 function openTextCommandResult(state) {
