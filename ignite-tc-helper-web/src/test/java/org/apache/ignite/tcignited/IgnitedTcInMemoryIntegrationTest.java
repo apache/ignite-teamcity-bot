@@ -33,7 +33,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -51,7 +53,11 @@ import javax.xml.bind.JAXBException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.cache.QueryEntity;
+import org.apache.ignite.cache.query.QueryCursor;
+import org.apache.ignite.cache.query.SqlFieldsQuery;
 import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.db.DbMigrations;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest;
 import org.apache.ignite.ci.tcbot.issue.IssueDetectorTest;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
@@ -59,6 +65,7 @@ import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.pure.BuildHistoryEmulator;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
+import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.jiraservice.IJiraIntegrationProvider;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
@@ -72,6 +79,7 @@ import org.apache.ignite.tcbot.engine.conf.TcBotJsonConfig;
 import org.apache.ignite.tcbot.engine.issue.EventTemplates;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.IgniteStringCompactor;
+import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.TcBotPersistenceModule;
 import org.apache.ignite.tcbot.persistence.scheduler.DirectExecNoWaitScheduler;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
@@ -791,6 +799,35 @@ public class IgnitedTcInMemoryIntegrationTest {
         return running2.stream().map(bref -> bref.toBuildRef(c)).collect(Collectors.toList());
     }
 
+    private long sqlCount(IgniteCache<?, ?> cache, String sql, Object... args) {
+        try (QueryCursor<List<?>> cur = cache.query(new SqlFieldsQuery(sql).setArgs(args))) {
+            return ((Number)cur.getAll().get(0).get(0)).longValue();
+        }
+    }
+
+    private long sqlIndexCountOnColumns(IgniteCache<?, ?> cache, String tableName, String... columnNames) {
+        List<String> exp = Arrays.stream(columnNames)
+            .map(name -> name.toUpperCase(Locale.ROOT))
+            .collect(Collectors.toList());
+
+        Map<String, List<String>> colsByIdx = new HashMap<>();
+
+        try (QueryCursor<List<?>> cur = cache.query(new SqlFieldsQuery("SELECT INDEX_NAME, COLUMN_NAME "
+            + "FROM INFORMATION_SCHEMA.INDEXES WHERE UPPER(TABLE_NAME) = ? ORDER BY INDEX_NAME, ORDINAL_POSITION")
+            .setArgs(tableName.toUpperCase(Locale.ROOT)))) {
+            for (List<?> row : cur) {
+                String idxName = String.valueOf(row.get(0));
+                String colName = String.valueOf(row.get(1)).toUpperCase(Locale.ROOT);
+
+                colsByIdx.computeIfAbsent(idxName, k -> new ArrayList<>()).add(colName);
+            }
+        }
+
+        return colsByIdx.values().stream()
+            .filter(cols -> cols.size() >= exp.size() && cols.subList(0, exp.size()).equals(exp))
+            .count();
+    }
+
     @Test
     public void testTemporaryBuildRefsArePromotedOnlyWhenPersistentEntryIsMissing() {
         TeamcityIgnitedModule module = new TeamcityIgnitedModule();
@@ -832,6 +869,144 @@ public class IgnitedTcInMemoryIntegrationTest {
         assertEquals(persistent, storage.get(srvId, 100));
         assertEquals(temporaryOldMissing, storage.get(srvId, 90));
         assertNull(storage.get(srvId, 110));
+    }
+
+    @Test
+    public void testBuildRefHistoryQueryCanBeLimitedToSuiteAndBuildIdBorder() {
+        TeamcityIgnitedModule module = new TeamcityIgnitedModule();
+
+        Injector injector = Guice.createInjector(module, new GuavaCachedModule(), new IgniteAndSchedulerTestModule());
+
+        IStringCompactor c = injector.getInstance(IStringCompactor.class);
+        BuildRefDao storage = injector.getInstance(BuildRefDao.class);
+        storage.init();
+
+        int srvId = ITeamcityIgnited.serverIdToInt("apache");
+        int branch = c.getStringId("refs/heads/master");
+        int otherBranch = c.getStringId("pull/1/head");
+        int buildTypeId = c.getStringId("IgniteTests24Java17_RunAll");
+        int otherBuildTypeId = c.getStringId("IgniteTests24Java17_Sql");
+
+        storage.save(srvId, new BuildRefCompacted().withId(10).state(1).status(2)
+            .branchName(branch).buildTypeId(buildTypeId));
+        storage.save(srvId, new BuildRefCompacted().withId(20).state(1).status(2)
+            .branchName(branch).buildTypeId(buildTypeId));
+        storage.save(srvId, new BuildRefCompacted().withId(30).state(1).status(2)
+            .branchName(branch).buildTypeId(buildTypeId));
+        storage.save(srvId, new BuildRefCompacted().withId(40).state(1).status(2)
+            .branchName(branch).buildTypeId(otherBuildTypeId));
+        storage.save(srvId, new BuildRefCompacted().withId(50).state(1).status(2)
+            .branchName(otherBranch).buildTypeId(buildTypeId));
+
+        List<Integer> ids = storage.getAllBuildsCompacted(srvId, buildTypeId, Collections.singleton(branch), 15)
+            .stream()
+            .map(BuildRefCompacted::id)
+            .sorted()
+            .collect(Collectors.toList());
+
+        assertEquals(Lists.newArrayList(20, 30), ids);
+    }
+
+    @Test
+    public void testBuildRefHistoryQuerySchemaMigrationAddsMissingSqlFields() {
+        IgniteCache<Long, BuildRefCompacted> existing = ignite.cache(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
+
+        if (existing != null)
+            existing.destroy();
+
+        String migrationCode = "add-BuildRef-suite-branch-history-index";
+        String migrationsCacheName = DbMigrations.ignCacheNme(DbMigrations.DONE_MIGRATIONS,
+            DbMigrations.DONE_MIGRATION_PREFIX);
+        IgniteCache<String, Object> migrations = ignite.cache(migrationsCacheName);
+
+        if (migrations != null)
+            migrations.remove(migrationCode);
+
+        new DbMigrations(ignite).dataMigration();
+
+        migrations = ignite.cache(migrationsCacheName);
+        assertFalse(migrations.containsKey(migrationCode));
+
+        QueryEntity oldEntity = new QueryEntity();
+        LinkedHashMap<String, String> oldFields = new LinkedHashMap<>();
+
+        oldEntity.setKeyType(Long.class.getName());
+        oldEntity.setValueType(BuildRefCompacted.class.getName());
+        oldEntity.setTableName("BuildRefCompacted");
+        oldFields.put("branchName", Integer.class.getName());
+        oldEntity.setFields(oldFields);
+
+        CacheConfiguration<Long, BuildRefCompacted> cfg =
+            CacheConfigs.getCacheV2Config(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
+        cfg.setQueryEntities(Collections.singletonList(oldEntity));
+
+        IgniteCache<Long, BuildRefCompacted> cache = ignite.getOrCreateCache(cfg);
+
+        BuildRefCompacted ref = new BuildRefCompacted().withId(42).state(1).status(2)
+            .branchName(3).buildTypeId(4);
+        cache.put(BuildRefDao.buildIdToCacheKey(ITeamcityIgnited.serverIdToInt("apache"), ref.id()), ref);
+
+        assertEquals(0L, sqlCount(cache,
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ? AND COLUMN_NAME = ?",
+            "BUILDREFCOMPACTED", "BUILDTYPEID"));
+
+        new DbMigrations(ignite).dataMigration();
+
+        assertEquals(1L, sqlCount(cache,
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ? AND COLUMN_NAME = ?",
+            "BUILDREFCOMPACTED", "BUILDTYPEID"));
+
+        try (QueryCursor<List<?>> cur = cache.query(new SqlFieldsQuery("SELECT _KEY FROM BuildRefCompacted "
+            + "WHERE branchName = ? AND buildTypeId = ? AND id > ?").setArgs(3, 4, 40))) {
+            assertEquals(1, cur.getAll().size());
+        }
+    }
+
+    @Test
+    public void testBuildRefHistoryQuerySchemaMigrationDoesNotDuplicateEquivalentIndex() {
+        IgniteCache<Long, BuildRefCompacted> existing = ignite.cache(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
+
+        if (existing != null)
+            existing.destroy();
+
+        String migrationCode = "add-BuildRef-suite-branch-history-index";
+        String migrationsCacheName = DbMigrations.ignCacheNme(DbMigrations.DONE_MIGRATIONS,
+            DbMigrations.DONE_MIGRATION_PREFIX);
+        IgniteCache<String, Object> migrations = ignite.cache(migrationsCacheName);
+
+        if (migrations != null)
+            migrations.remove(migrationCode);
+
+        QueryEntity entity = new QueryEntity();
+        LinkedHashMap<String, String> fields = new LinkedHashMap<>();
+
+        entity.setKeyType(Long.class.getName());
+        entity.setValueType(BuildRefCompacted.class.getName());
+        entity.setTableName("BuildRefCompacted");
+        fields.put("branchName", Integer.class.getName());
+        fields.put("buildTypeId", Integer.class.getName());
+        fields.put("id", Integer.class.getName());
+        entity.setFields(fields);
+
+        CacheConfiguration<Long, BuildRefCompacted> cfg =
+            CacheConfigs.getCacheV2Config(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
+        cfg.setQueryEntities(Collections.singletonList(entity));
+
+        IgniteCache<Long, BuildRefCompacted> cache = ignite.getOrCreateCache(cfg);
+
+        try (QueryCursor<List<?>> ignored = cache.query(new SqlFieldsQuery("CREATE INDEX "
+            + "BUILDREFCOMPACTED_EQUIVALENT_HISTORY_IDX ON BuildRefCompacted (branchName, buildTypeId, id)"))) {
+            // No-op.
+        }
+
+        long idxCntBefore = sqlIndexCountOnColumns(cache, "BUILDREFCOMPACTED", "BRANCHNAME", "BUILDTYPEID", "ID");
+
+        assertEquals(1L, idxCntBefore);
+
+        new DbMigrations(ignite).dataMigration();
+
+        assertEquals(idxCntBefore, sqlIndexCountOnColumns(cache, "BUILDREFCOMPACTED", "BRANCHNAME", "BUILDTYPEID",
+            "ID"));
     }
 
     @Test

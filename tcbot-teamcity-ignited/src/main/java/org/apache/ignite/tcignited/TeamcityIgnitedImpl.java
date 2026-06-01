@@ -230,7 +230,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         else
             minBuildId = null;
 
-        List<BuildRefCompacted> buildRefs = getAllBuildsCompacted(buildTypeId, branchName)
+        List<BuildRefCompacted> buildRefs = getAllBuildsCompacted(buildTypeId, branchName, minBuildId)
             .stream()
             .filter(b -> b.isFinished(compactor))
             .filter(b -> b.status() != unknownStatus) //check build is not cancelled
@@ -377,6 +377,19 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     @Override public List<BuildRefCompacted> getAllBuildsCompacted(
             @Nullable String buildTypeId,
             @Nullable String branchName) {
+        return getAllBuildsCompacted(buildTypeId, branchName, null);
+    }
+
+    /**
+     * @param buildTypeId Build type id.
+     * @param branchName Branch name.
+     * @param minBuildId Optional lower build id border, exclusive.
+     */
+    @AutoProfiling
+    private List<BuildRefCompacted> getAllBuildsCompacted(
+        @Nullable String buildTypeId,
+        @Nullable String branchName,
+        @Nullable Integer minBuildId) {
         ensureActualizeRequested();
 
         Integer buildTypeIdId = compactor.getStringIdIfPresent(buildTypeId);
@@ -388,7 +401,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         if (branchNameIds.isEmpty())
             return Collections.emptyList();
 
-        return buildRefDao.getAllBuildsCompacted(srvIdMaskHigh, buildTypeIdId, branchNameIds);
+        return buildRefDao.getAllBuildsCompacted(srvIdMaskHigh, buildTypeIdId, branchNameIds, minBuildId);
     }
 
     /** {@inheritDoc} */

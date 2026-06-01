@@ -143,20 +143,14 @@ public class HistoryCollector {
         String btId = compactor.getStringFromId(buildTypeId);
         String branchId = compactor.getStringFromId(normalizedBaseBranch);
         Set<Integer> strings = branchEquivalence.branchIdsForQuery(branchId, compactor);
+        Integer minBuildId = buildStartTimeStorage.getBorderForAgeForBuildId(
+            srvId, TcBotConst.HISTORY_BUILD_ID_BORDER_DAYS);
         List<BuildRefCompacted> bRefsList =
-            buildRefDao.getAllBuildsCompacted(srvId, buildTypeId, strings);
+            buildRefDao.getAllBuildsCompacted(srvId, buildTypeId, strings, minBuildId);
 
         long curTs = System.currentTimeMillis();
         Set<Integer> buildIds = bRefsList.stream()
-            .filter(b -> {
-                Integer maxBuildIdForDay = buildStartTimeStorage.getBorderForAgeForBuildId(srvId, TcBotConst.HISTORY_BUILD_ID_BORDER_DAYS);
-
-                if (maxBuildIdForDay == null)
-                    return true;
-
-                return b.id() > maxBuildIdForDay;
-
-            })
+            .filter(b -> minBuildId == null || b.id() > minBuildId)
             .filter(this::applicableForHistory)
             .map(BuildRefCompacted::id)
             .filter(bId -> !knownBuilds.contains(bId)).collect(Collectors.toSet());

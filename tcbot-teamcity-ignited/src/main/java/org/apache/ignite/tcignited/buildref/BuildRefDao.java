@@ -56,11 +56,16 @@ import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.build.UpdateCountersStorage;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 public class BuildRefDao {
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(BuildRefDao.class);
+
     /** Cache name */
     public static final String TEAMCITY_BUILD_CACHE_NAME = "teamcityBuildRef";
 
@@ -243,38 +248,44 @@ public class BuildRefDao {
     @Nonnull public List<BuildRefCompacted> getAllBuildsCompacted(int srvId,
         int buildTypeIdId,
         Collection<Integer> branchNameIds) {
+        return getAllBuildsCompacted(srvId, buildTypeIdId, branchNameIds, null);
+    }
+
+    /**
+     * @param srvId Server id mask high.
+     * @param buildTypeIdId Build type (suite) id from compactor.
+     * @param branchNameIds Branch names for query.
+     * @param minBuildId Optional lower build id border, exclusive.
+     */
+    @AutoProfiling
+    @Nonnull public List<BuildRefCompacted> getAllBuildsCompacted(int srvId,
+        int buildTypeIdId,
+        Collection<Integer> branchNameIds,
+        @Nullable Integer minBuildId) {
         List<BuildRefCompacted> res = new ArrayList<>();
 
         branchNameIds.forEach(branchNameId -> {
             RunHistKey runHistKey = new RunHistKey(srvId, buildTypeIdId, branchNameId);
             try {
-                List<BuildRefCompacted> compactedBuildsForBranch;
+                List<BuildRefCompacted> compactedBuildsForBranchAndSuite;
 
-                buildRefsInMemCacheLock.readLock().lock();
+                if (minBuildId == null) {
+                    buildRefsInMemCacheLock.readLock().lock();
 
-                try {
-                    compactedBuildsForBranch = buildRefsInMemCache.get(runHistKey, () -> {
-                            List<BuildRefCompacted> branch = getBuildsForBranch(srvId, branchNameId);
-
-                            List<BuildRefCompacted> resForBranch = branch.stream()
-                                .filter(e -> e.buildTypeId() == buildTypeIdId)
-                                .collect(Collectors.toList());
-
-                            if (!resForBranch.isEmpty()) {
-                                System.err.println("Branch " + compactor.getStringFromId(branchNameId)
-                                    + " Suite " + compactor.getStringFromId(buildTypeIdId)
-                                    + " builds " + resForBranch.size() + " ");
-                            }
-
-                            return resForBranch;
-                        });
+                    try {
+                        compactedBuildsForBranchAndSuite = buildRefsInMemCache.get(runHistKey,
+                            () -> getBuildsForBranchAndSuiteNonCached(srvId, buildTypeIdId, branchNameId, null));
+                    }
+                    finally {
+                        buildRefsInMemCacheLock.readLock().unlock();
+                    }
                 }
-                finally {
-                    buildRefsInMemCacheLock.readLock().unlock();
-                }
+                else
+                    compactedBuildsForBranchAndSuite =
+                        getBuildsForBranchAndSuiteNonCached(srvId, buildTypeIdId, branchNameId, minBuildId);
 
-                res.addAll(compactedBuildsForBranch);
-                res.addAll(temporaryBuildRefs(runHistKey, res));
+                res.addAll(compactedBuildsForBranchAndSuite);
+                res.addAll(temporaryBuildRefs(runHistKey, res, minBuildId));
             }
             catch (ExecutionException e) {
                 throw ExceptionUtil.propagateException(e);
@@ -356,8 +367,10 @@ public class BuildRefDao {
     /**
      * @param key History key.
      * @param persistentRefs Persistent refs already selected for the same key.
+     * @param minBuildId Optional lower build id border, exclusive.
      */
-    private List<BuildRefCompacted> temporaryBuildRefs(RunHistKey key, List<BuildRefCompacted> persistentRefs) {
+    private List<BuildRefCompacted> temporaryBuildRefs(RunHistKey key, List<BuildRefCompacted> persistentRefs,
+        @Nullable Integer minBuildId) {
         List<BuildRefCompacted> tmp = temporaryBuildRefsInMemCache.getIfPresent(key);
 
         if (tmp == null || tmp.isEmpty())
@@ -368,6 +381,7 @@ public class BuildRefDao {
             .collect(Collectors.toCollection(HashSet::new));
 
         return tmp.stream()
+            .filter(ref -> minBuildId == null || ref.id() > minBuildId)
             .filter(ref -> !persistentIds.contains(ref.id()))
             .collect(Collectors.toList());
     }
@@ -419,6 +433,41 @@ public class BuildRefDao {
         catch (ExecutionException e) {
             throw ExceptionUtil.propagateException(e);
         }
+    }
+
+    @SuppressWarnings("deprecation")
+    private List<BuildRefCompacted> getBuildsForBranchAndSuiteNonCached(int srvId, int buildTypeIdId,
+        int branchNameId, @Nullable Integer minBuildId) {
+        List<BuildRefCompacted> list = new ArrayList<>();
+        String sql = minBuildId == null
+            ? "branchName = ? AND buildTypeId = ?"
+            : "branchName = ? AND buildTypeId = ? AND id > ?";
+        Object[] args = minBuildId == null
+            ? new Object[] {(Integer)branchNameId, (Integer)buildTypeIdId}
+            : new Object[] {(Integer)branchNameId, (Integer)buildTypeIdId, minBuildId};
+
+        try (QueryCursor<Cache.Entry<Long, BuildRefCompacted>> qryCursor = buildRefsCache.query(
+            new SqlQuery<Long, BuildRefCompacted>(BuildRefCompacted.class, sql).setArgs(args))) {
+
+            for (Cache.Entry<Long, BuildRefCompacted> next : qryCursor) {
+                Long key = next.getKey();
+
+                if (!isKeyForServer(key, srvId))
+                    continue;
+
+                list.add(next.getValue());
+            }
+        }
+
+        if (!list.isEmpty() && logger.isDebugEnabled()) {
+            logger.debug("Branch {} Suite {} builds {}{}",
+                compactor.getStringFromId(branchNameId),
+                compactor.getStringFromId(buildTypeIdId),
+                list.size(),
+                minBuildId == null ? "" : " after build " + minBuildId);
+        }
+
+        return list;
     }
 
     @SuppressWarnings("deprecation")
