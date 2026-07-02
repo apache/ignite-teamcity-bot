@@ -27,6 +27,7 @@ import org.apache.ignite.tcbot.common.conf.TcBotSystemProperties;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.handler.gzip.GzipHandler;
 import org.eclipse.jetty.ee8.webapp.WebAppContext;
 
 /**
@@ -54,7 +55,7 @@ public class Launcher {
      * @param dev Dev mode.
      * @param waitForStopSignal If {@code true}, starts the stdin watcher that stops the server.
      */
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings({"deprecation", "removal"})
     public static StartedServer startServer(boolean dev, boolean waitForStopSignal) throws Exception {
         if(dev)
             System.setProperty(TcBotSystemProperties.DEV_MODE, "true");
@@ -91,7 +92,12 @@ public class Launcher {
 
             ctx.setWar(warFile.toURI().toString());
         }
-        srv.setHandler(ctx);
+        GzipHandler gzipHandler = new GzipHandler();
+        gzipHandler.setMinGzipSize(1024);
+        gzipHandler.addIncludedMimeTypes("application/json", "text/plain", "text/html",
+            "text/css", "application/javascript", "text/javascript");
+        gzipHandler.setHandler(ctx);
+        srv.setHandler(gzipHandler);
 
         System.out.println("Starting server at [" + port + "]");
 

@@ -620,7 +620,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
-    @GuavaCached(maximumSize = 500, expireAfterAccessSecs = 30, softValues = true)
+    @GuavaCached(maximumSize = 8000, expireAfterAccessSecs = 60, softValues = true)
     @Override public FatBuildCompacted getFatBuild(int buildId, SyncMode mode) {
         return loadFatBuild(buildId, mode);
     }

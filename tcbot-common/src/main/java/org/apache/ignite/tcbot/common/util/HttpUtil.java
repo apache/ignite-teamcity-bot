@@ -64,8 +64,11 @@ public class HttpUtil {
     /** */
     private static final int ERR_RESPONSE_BODY_LIMIT = 4_096;
 
-    /** */
-    private static final int TIMEOUT_MS = 60_000;
+    /** Connect timeout: a dead TeamCity host must fail fast, not hold a worker thread. */
+    private static final int CONNECT_TIMEOUT_MS = 10_000;
+
+    /** Read (inactivity) timeout: kept generous so large test/log pages can stream in. */
+    private static final int READ_TIMEOUT_MS = 60_000;
 
     /**
      * @param inputStream Input stream.
@@ -95,8 +98,8 @@ public class HttpUtil {
         URL obj = new URL(url);
         ensureIntegrationTestTarget(obj);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
-        con.setConnectTimeout(TIMEOUT_MS);
-        con.setReadTimeout(TIMEOUT_MS);
+        con.setConnectTimeout(CONNECT_TIMEOUT_MS);
+        con.setReadTimeout(READ_TIMEOUT_MS);
 
         con.setRequestProperty("Authorization", "Basic " + basicAuthTok);
         useKeepAlive(con);
@@ -131,8 +134,8 @@ public class HttpUtil {
         URL obj = new URL(url);
         ensureIntegrationTestTarget(obj);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
-        con.setConnectTimeout(TIMEOUT_MS);
-        con.setReadTimeout(TIMEOUT_MS);
+        con.setConnectTimeout(CONNECT_TIMEOUT_MS);
+        con.setReadTimeout(READ_TIMEOUT_MS);
 
         if (githubAuthTok != null)
             con.setRequestProperty("Authorization", "token " + githubAuthTok);
@@ -182,8 +185,8 @@ public class HttpUtil {
         URL obj = new URL(url);
         ensureIntegrationTestTarget(obj);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
-        con.setConnectTimeout(TIMEOUT_MS);
-        con.setReadTimeout(TIMEOUT_MS);
+        con.setConnectTimeout(CONNECT_TIMEOUT_MS);
+        con.setReadTimeout(READ_TIMEOUT_MS);
 
         con.setRequestMethod("POST");
         con.setRequestProperty("Authorization", "Basic " + tok);
@@ -365,8 +368,8 @@ public class HttpUtil {
         URL obj = new URL(url);
         ensureIntegrationTestTarget(obj);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
-        con.setConnectTimeout(TIMEOUT_MS);
-        con.setReadTimeout(TIMEOUT_MS);
+        con.setConnectTimeout(CONNECT_TIMEOUT_MS);
+        con.setReadTimeout(READ_TIMEOUT_MS);
         Charset charset = StandardCharsets.UTF_8;
 
         con.setRequestProperty("accept-charset", charset.toString());
@@ -407,8 +410,8 @@ public class HttpUtil {
         URL obj = new URL(url);
         ensureIntegrationTestTarget(obj);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
-        con.setConnectTimeout(TIMEOUT_MS);
-        con.setReadTimeout(TIMEOUT_MS);
+        con.setConnectTimeout(CONNECT_TIMEOUT_MS);
+        con.setReadTimeout(READ_TIMEOUT_MS);
         Charset charset = StandardCharsets.UTF_8;
 
         con.setRequestProperty("accept-charset", charset.toString());
@@ -444,8 +447,8 @@ public class HttpUtil {
         URL obj = new URL(url);
         ensureIntegrationTestTarget(obj);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
-        con.setConnectTimeout(TIMEOUT_MS);
-        con.setReadTimeout(TIMEOUT_MS);
+        con.setConnectTimeout(CONNECT_TIMEOUT_MS);
+        con.setReadTimeout(READ_TIMEOUT_MS);
         Charset charset = StandardCharsets.UTF_8;
 
         con.setRequestProperty("accept-charset", charset.toString());

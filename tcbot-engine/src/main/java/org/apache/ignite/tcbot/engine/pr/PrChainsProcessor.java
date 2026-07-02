@@ -29,9 +29,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -87,6 +91,26 @@ public class PrChainsProcessor {
 
     /** Max time to wait for AI prompt build log processing. */
     private static final long AI_PROMPT_LOG_WAIT_MS = TimeUnit.MINUTES.toMillis(1);
+
+    /** Deadline for synchronous PR results load before falling back to cached data (system-property overridable). */
+    private static final long PR_RESULTS_SYNC_WAIT_MS = TimeUnit.SECONDS.toMillis(
+        Long.getLong("tcbot.pr.results.syncWaitSecs", 45));
+
+    /**
+     * Dedicated pool that bounds the synchronous PR results load. Must be separate from {@link #tcUpdatePool}: the
+     * bounded task waits on many sub-tasks submitted to {@code tcUpdatePool}, so sharing the pool could starve it.
+     */
+    private final ExecutorService resultsLoadPool = Executors.newCachedThreadPool(new java.util.concurrent.ThreadFactory() {
+        private final AtomicInteger cnt = new AtomicInteger();
+
+        @Override public Thread newThread(Runnable r) {
+            Thread t = new Thread(r, "pr-results-load-" + cnt.incrementAndGet());
+
+            t.setDaemon(true);
+
+            return t;
+        }
+    });
 
     /** */
     private static final ThreadLocal<DateFormat> THREAD_TIME_FORMATTER = new ThreadLocal<DateFormat>() {
@@ -194,15 +218,14 @@ public class PrChainsProcessor {
 
         String baseBranchForTc = Strings.isNullOrEmpty(tcBaseBranchParm) ? dfltBaseTcBranch(srvCodeOrAlias) : tcBaseBranchParm;
 
-        FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
+        FullChainRunCtx ctx = loadFullChainContextBounded(
             tcIgnited,
             hist,
             rebuild,
             logs,
             buildResMergeCnt == 1,
             baseBranchForTc,
-            mode,
-            null, null);
+            mode);
 
         DsChainUi chainStatus = new DsChainUi(srvCodeOrAlias, tcIgnited.serverCode(), branchForTc);
 
@@ -226,6 +249,84 @@ public class PrChainsProcessor {
         res.initCounters(getPrUpdateCounters(srvCodeOrAlias, branchForTc, baseBranchForTc, creds));
 
         return res;
+    }
+
+    /**
+     * Loads the chain context, bounding the synchronous (TeamCity-syncing) load with a deadline. On timeout returns
+     * whatever is already cached instead of holding the request thread until every slow TeamCity call completes; the
+     * page keeps polling and picks up fresh data on a later refresh. The cached fallback path ({@link SyncMode#NONE})
+     * is executed directly and is not bounded.
+     *
+     * @param tcIgnited TeamCity facade.
+     * @param hist Entry build ids.
+     * @param rebuild Rebuild mode.
+     * @param logs Log processing mode.
+     * @param singleBuild Whether a single build is expected.
+     * @param baseBranchForTc Base branch.
+     * @param mode Requested sync mode.
+     */
+    private FullChainRunCtx loadFullChainContextBounded(
+        ITeamcityIgnited tcIgnited,
+        List<Integer> hist,
+        LatestRebuildMode rebuild,
+        ProcessLogsMode logs,
+        boolean singleBuild,
+        String baseBranchForTc,
+        SyncMode mode) {
+        if (mode == SyncMode.NONE)
+            return loadFullChainContext(tcIgnited, hist, rebuild, logs, singleBuild, baseBranchForTc, SyncMode.NONE);
+
+        Future<FullChainRunCtx> fut = resultsLoadPool.submit(
+            () -> loadFullChainContext(tcIgnited, hist, rebuild, logs, singleBuild, baseBranchForTc, mode));
+
+        try {
+            return fut.get(PR_RESULTS_SYNC_WAIT_MS, TimeUnit.MILLISECONDS);
+        }
+        catch (TimeoutException e) {
+            fut.cancel(true);
+
+            // deadline exceeded: serve cached data now, background polling refreshes the page later
+            return loadFullChainContext(tcIgnited, hist, rebuild, logs, singleBuild, baseBranchForTc, SyncMode.NONE);
+        }
+        catch (InterruptedException e) {
+            fut.cancel(true);
+
+            Thread.currentThread().interrupt();
+
+            throw new IllegalStateException("Interrupted while loading PR chain context", e);
+        }
+        catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+
+            if (cause instanceof RuntimeException)
+                throw (RuntimeException)cause;
+
+            if (cause instanceof Error)
+                throw (Error)cause;
+
+            throw new RuntimeException(cause);
+        }
+    }
+
+    /**
+     * @param tcIgnited TeamCity facade.
+     * @param hist Entry build ids.
+     * @param rebuild Rebuild mode.
+     * @param logs Log processing mode.
+     * @param singleBuild Whether a single build is expected.
+     * @param baseBranchForTc Base branch.
+     * @param mode Sync mode.
+     */
+    private FullChainRunCtx loadFullChainContext(
+        ITeamcityIgnited tcIgnited,
+        List<Integer> hist,
+        LatestRebuildMode rebuild,
+        ProcessLogsMode logs,
+        boolean singleBuild,
+        String baseBranchForTc,
+        SyncMode mode) {
+        return buildChainProcessor.loadFullChainContext(
+            tcIgnited, hist, rebuild, logs, singleBuild, baseBranchForTc, mode, null, null);
     }
 
     /**
