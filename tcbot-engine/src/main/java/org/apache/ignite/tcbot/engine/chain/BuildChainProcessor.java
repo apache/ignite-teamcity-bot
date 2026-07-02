@@ -188,6 +188,7 @@ public class BuildChainProcessor {
         );
 
         List<MultBuildRunCtx> contexts = new ArrayList<>(freshRebuilds.size());
+        List<Future<?>> histFuts = new ArrayList<>(freshRebuilds.size());
 
         freshRebuilds.forEach((bt, listBuilds) -> {
             List<FatBuildCompacted> buildsForSuite = FutureUtil.getResults(listBuilds)
@@ -204,10 +205,10 @@ public class BuildChainProcessor {
             buildsForSuite.forEach(buildCompacted -> ctx.addBuild(loadChanges(buildCompacted, tcIgn,
                 mode == SyncMode.NONE)));
 
-            //ask for history for the suite in parallel
-            tcUpdatePool.getService().submit(() -> {
+            //ask for history for the suite in parallel; joined below so the sort does not recompute it serially
+            histFuts.add(tcUpdatePool.getService().submit(() -> {
                 ctx.history(tcIgn, failRateBranchId, null);
-            });
+            }));
 
             analyzeTests(ctx, tcIgn, procLog);
 
@@ -215,6 +216,9 @@ public class BuildChainProcessor {
 
             contexts.add(ctx);
         });
+
+        // await parallel history warm-up so the fail-rate sort below reads memoized values instead of loading serially
+        histFuts.forEach(FutureUtil::getResult);
 
 
         Integer someEntryPnt = entryPoints.iterator().next();

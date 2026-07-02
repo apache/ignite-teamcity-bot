@@ -173,7 +173,7 @@ function loadData() {
         var curFailuresUrl = "rest/pr/results" + parmsForRest();
 
         $("#loadStatus").html("&#8987; Please wait. First load of PR run-all data may require significant time.");
-        setTimeout(loadPartialData, 3000); // in case full loading stalls
+        setTimeout(loadPartialData, 0); // render cached data immediately while full (sync) load runs in background
         $.ajax({
             url: curFailuresUrl,
             success: function (result) {

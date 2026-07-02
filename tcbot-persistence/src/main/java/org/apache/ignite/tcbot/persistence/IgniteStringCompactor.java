@@ -122,22 +122,19 @@ public class IgniteStringCompactor implements IStringCompactor {
 
         initIfNeeded();
 
-        QueryCursor<Cache.Entry<String, org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor.CompactorEntity>> qryCursor
-            = stringsCache.query(new SqlQuery<String, org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor.CompactorEntity>(org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor.CompactorEntity.class, "id = ?").setArgs(id));
+        try (QueryCursor<Cache.Entry<String, org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor.CompactorEntity>> qryCursor
+            = stringsCache.query(new SqlQuery<String, org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor.CompactorEntity>(org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor.CompactorEntity.class, "id = ?").setArgs(id))) {
 
-        Iterator<Cache.Entry<String, org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor.CompactorEntity>> iter = qryCursor.iterator();
+            Iterator<Cache.Entry<String, org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor.CompactorEntity>> iter = qryCursor.iterator();
 
-        if (!iter.hasNext()) {
-            System.err.println("Error: String Not found string by id " + id);
+            if (!iter.hasNext()) {
+                logger.error("String not found by id {}", id);
 
-            return null;
+                return null;
+            }
+
+            return ObjectInterner.internString(iter.next().getValue().val());
         }
-
-        Cache.Entry<String, org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor.CompactorEntity> next = iter.next();
-
-        qryCursor.close();
-
-        return ObjectInterner.internString(next.getValue().val());
     }
 
     /** {@inheritDoc} */
