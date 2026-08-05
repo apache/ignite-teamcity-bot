@@ -231,6 +231,7 @@ public class GetPrTestFailures {
      * @param testName Optional full test name filter.
      * @param promptSuiteId Optional suite id filter.
      * @param waitForTc Wait for fresh TeamCity context and build log processing.
+     * @param background Start fresh context refresh in background and return immediately.
      */
     @GET
     @Path("results/aiPrompt")
@@ -246,10 +247,26 @@ public class GetPrTestFailures {
         @Nullable @QueryParam("testName") String testName,
         @Nullable @QueryParam("promptSuiteId") String promptSuiteId,
         @Nullable @QueryParam("waitForTc") Boolean waitForTc,
+        @Nullable @QueryParam("background") Boolean background,
         @Nullable @QueryParam("processId") Long processId) {
         final TcBotApplicationContext appCtx = CtxListener.getApplicationContext(ctx);
+        final PrChainsProcessor processor = appCtx.getInstance(PrChainsProcessor.class);
 
-        return appCtx.getInstance(PrChainsProcessor.class).getPrFailuresAiPrompt(
+        if (Boolean.TRUE.equals(background)) {
+            return processor.startPrFailuresAiPromptRefresh(
+                ITcBotUserCreds.get(req),
+                srvId,
+                suiteId,
+                branchForTc,
+                act,
+                cnt,
+                baseBranchForTc,
+                testName,
+                promptSuiteId,
+                processId);
+        }
+
+        return processor.getPrFailuresAiPrompt(
             ITcBotUserCreds.get(req),
             srvId,
             suiteId,

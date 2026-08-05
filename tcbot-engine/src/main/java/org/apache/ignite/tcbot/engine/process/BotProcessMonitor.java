@@ -77,6 +77,7 @@ public class BotProcessMonitor {
         synchronized (status) {
             status.status(Strings.nullToEmpty(result));
             status.finished = System.currentTimeMillis();
+            status.failed = false;
         }
     }
 
@@ -101,6 +102,7 @@ public class BotProcessMonitor {
         synchronized (status) {
             status.status("Failed: " + Strings.nullToEmpty(error));
             status.finished = System.currentTimeMillis();
+            status.failed = true;
         }
     }
 

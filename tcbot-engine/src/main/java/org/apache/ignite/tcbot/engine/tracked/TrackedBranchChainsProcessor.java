@@ -52,7 +52,7 @@ import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
 import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
-import org.apache.ignite.tcbot.engine.process.BotProcessMonitor;
+import org.apache.ignite.tcbot.engine.process.ProgressReporter;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.GuardBranchStatusUi;
@@ -109,8 +109,8 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
     /** TC update pool for best-effort AI prompt refreshes. */
     @Inject private TcUpdatePool tcUpdatePool;
 
-    /** User-visible process monitor. */
-    @Inject private BotProcessMonitor processMonitor;
+    /** Shared progress reporter. */
+    @Inject private ProgressReporter progress;
 
     /**
      * @param branch Branch.
@@ -140,6 +140,87 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
     }
 
     /**
+     * Starts background refresh of TeamCity context required by AI prompt generation.
+     *
+     * @param processId User-visible process id.
+     * @return User-visible acceptance message.
+     */
+    @Nonnull public String startTrackedBranchFailuresAiPromptRefresh(
+        @Nullable String branch,
+        int buildResMergeCnt,
+        ICredentialsProv creds,
+        SyncMode syncMode,
+        @Nullable String tagForHistSelected,
+        @Nullable SortOption sortOption,
+        @Nullable String testName,
+        @Nullable String suiteId,
+        @Nullable Long processId) {
+        long reqId = aiPromptMonitor.start("trackedBranch", branch, null, suiteId, testName);
+
+        tcUpdatePool.getService().submit(progress.preserveCallable(() -> {
+            progress.runUnchecked(processId, "aiPrompt", "Queued AI prompt TeamCity refresh.", () -> {
+            try {
+                final String branchNn = isNullOrEmpty(branch) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
+                final ITrackedBranch tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);
+
+                tracked.chainsStream()
+                    .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverCode(), creds))
+                    .filter(chainTracked -> Strings.isNullOrEmpty(suiteId) || suiteId.equals(chainTracked.tcSuiteId()))
+                    .forEach(chainTracked -> {
+                        String srvCodeOrAlias = chainTracked.serverCode();
+                        String branchForTc = chainTracked.tcBranch();
+                        String baseBranchTc = chainTracked.tcBaseBranch().orElse(branchForTc);
+                        String suiteIdMandatory = chainTracked.tcSuiteId();
+
+                        promptStatus(reqId, "Loading build history for the prompt.");
+
+                        ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, creds);
+
+                        Map<Integer, Integer> requireParamVal = new HashMap<>();
+
+                        if (!Strings.isNullOrEmpty(tagForHistSelected))
+                            requireParamVal.putAll(reverseTagToParametersRequired(tagForHistSelected, srvCodeOrAlias));
+
+                        List<Integer> chains = tcIgnited.getLastNBuildsFromHistory(suiteIdMandatory, branchForTc,
+                            Math.max(buildResMergeCnt, 1));
+
+                        LatestRebuildMode rebuild = buildResMergeCnt > 1 ? LatestRebuildMode.ALL :
+                            LatestRebuildMode.LATEST;
+
+                        promptStatus(reqId, "Refreshing TeamCity data and build logs for the prompt.");
+
+                        FullChainRunCtx ctx = chainProc.loadFullChainContext(
+                            tcIgnited,
+                            chains,
+                            rebuild,
+                            ProcessLogsMode.ALL,
+                            buildResMergeCnt == 1,
+                            baseBranchTc,
+                            syncMode,
+                            sortOption,
+                            requireParamVal);
+
+                        waitForAiPromptLogs(reqId, ctx, srvCodeOrAlias + "/" + suiteIdMandatory);
+                    });
+
+                aiPromptMonitor.finish(reqId, "background refresh finished");
+
+                return "Fresh TeamCity context is ready.";
+            }
+            catch (RuntimeException e) {
+                aiPromptMonitor.fail(reqId, e);
+
+                throw e;
+            }
+            });
+
+            return null;
+        }));
+
+        return "Fresh TeamCity context refresh started in background.";
+    }
+
+    /**
      * @param processId User-visible process id.
      */
     @Nonnull public String getTrackedBranchFailuresAiPrompt(
@@ -155,9 +236,10 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         boolean waitForTc,
         @Nullable Long processId) {
         long reqId = aiPromptMonitor.start("trackedBranch", branch, null, null, testName);
-        processMonitor.start(processId, "aiPrompt", "Preparing AI prompt generation.");
         StringBuilder res = new StringBuilder();
 
+        return progress.runUnchecked(processId, "aiPrompt", "Preparing AI prompt generation.",
+            "Prompt text is ready.", () -> {
         try {
             final String branchNn = isNullOrEmpty(branch) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
             final ITrackedBranch tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);
@@ -171,7 +253,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
                     String baseBranchTc = chainTracked.tcBaseBranch().orElse(branchForTc);
                     String suiteIdMandatory = chainTracked.tcSuiteId();
 
-                    promptStatus(processId, reqId, "Loading build history for the prompt.");
+                    promptStatus(reqId, "Loading build history for the prompt.");
 
                     ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, creds);
 
@@ -183,37 +265,38 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
                     List<Integer> chains = tcIgnited.getLastNBuildsFromHistory(suiteIdMandatory, branchForTc,
                         Math.max(buildResMergeCnt, 1));
 
-                    LatestRebuildMode rebuild = buildResMergeCnt > 1 ? LatestRebuildMode.ALL : LatestRebuildMode.LATEST;
+                        LatestRebuildMode rebuild = buildResMergeCnt > 1
+                            ? LatestRebuildMode.ALL
+                            : LatestRebuildMode.LATEST;
 
-                    promptStatus(processId, reqId, "Collecting build and test details for the prompt.");
+                    promptStatus(reqId, "Collecting build and test details for the prompt.");
 
                     FullChainRunCtx ctx = loadAiPromptContextBestEffort(reqId, tcIgnited, chains, rebuild,
                         buildResMergeCnt == 1, baseBranchTc, syncMode, sortOption, requireParamVal,
-                        srvCodeOrAlias + "/" + suiteIdMandatory, waitForTc, processId);
+                        srvCodeOrAlias + "/" + suiteIdMandatory, waitForTc);
 
                     if (waitForTc)
-                        waitForAiPromptLogs(reqId, ctx, srvCodeOrAlias + "/" + suiteIdMandatory, processId);
+                        waitForAiPromptLogs(reqId, ctx, srvCodeOrAlias + "/" + suiteIdMandatory);
 
                     if (res.length() > 0)
                         res.append("\n\n");
 
-                    promptStatus(processId, reqId, "Assembling the final prompt text.");
+                    promptStatus(reqId, "Assembling the final prompt text.");
 
                     res.append(new TestFailuresAiPromptBuilder(compactor)
                         .buildPrompt(tcIgnited, ctx, baseBranchTc, maxDetails, testName, suiteId));
                 });
 
             aiPromptMonitor.finish(reqId, "chars=" + res.length());
-            processMonitor.finish(processId, "Prompt text is ready.");
 
             return res.toString();
         }
         catch (RuntimeException e) {
             aiPromptMonitor.fail(reqId, e);
-            processMonitor.fail(processId, e);
 
             throw e;
         }
+        });
     }
 
     /**
@@ -240,10 +323,9 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         @Nullable SortOption sortOption,
         @Nullable Map<Integer, Integer> requireParamVal,
         String stageSuffix,
-        boolean waitForTc,
-        @Nullable Long processId) {
+        boolean waitForTc) {
         if (!waitForTc) {
-            promptStatus(processId, reqId, "Using cached build and test details for the prompt.");
+            promptStatus(reqId, "Using cached build and test details for the prompt.");
 
             return chainProc.loadFullChainContext(
                 tcIgnited,
@@ -261,9 +343,9 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         Future<FullChainRunCtx> live = null;
 
         try {
-            promptStatus(processId, reqId, "Requesting fresh TeamCity data for the prompt.");
+            promptStatus(reqId, "Requesting fresh TeamCity data for the prompt.");
 
-            live = tcUpdatePool.getService().submit(() -> chainProc.loadFullChainContext(
+            live = tcUpdatePool.getService().submit(progress.preserveCallable(() -> chainProc.loadFullChainContext(
                 tcIgnited,
                 chains,
                 rebuild,
@@ -273,7 +355,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
                 liveSyncMode,
                 sortOption,
                 requireParamVal
-            ));
+            )));
 
             return live.get(AI_PROMPT_CONTEXT_WAIT_MS, TimeUnit.MILLISECONDS);
         }
@@ -281,7 +363,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
             if (live != null)
                 live.cancel(true);
 
-            promptStatus(processId, reqId, "TeamCity refresh timed out; using cached build context.");
+            promptStatus(reqId, "TeamCity refresh timed out; using cached build context.");
         }
         catch (InterruptedException e) {
             if (live != null)
@@ -289,12 +371,12 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
 
             Thread.currentThread().interrupt();
 
-            promptStatus(processId, reqId, "TeamCity refresh was interrupted.");
+            promptStatus(reqId, "TeamCity refresh was interrupted.");
 
             throw new IllegalStateException("Interrupted while loading fresh TeamCity context: " + stageSuffix, e);
         }
         catch (Exception e) {
-            promptStatus(processId, reqId, "TeamCity refresh failed; using cached build context.");
+            promptStatus(reqId, "TeamCity refresh failed; using cached build context.");
         }
 
         return chainProc.loadFullChainContext(
@@ -315,33 +397,32 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
      * @param ctx Chain context.
      * @param stageSuffix Stage suffix.
      */
-    private void waitForAiPromptLogs(long reqId, FullChainRunCtx ctx, String stageSuffix, @Nullable Long processId) {
+    private void waitForAiPromptLogs(long reqId, FullChainRunCtx ctx, String stageSuffix) {
         long started = ctx.logChecksStartedCount();
 
         if (started == 0)
             return;
 
-        promptStatus(processId, reqId, "Analyzing build logs for the prompt.");
+        promptStatus(reqId, "Analyzing build logs for the prompt: " + stageSuffix + ".");
 
         ctx.awaitLogChecks(AI_PROMPT_LOG_WAIT_MS);
 
         long pending = ctx.pendingLogChecksCount();
 
         if (pending > 0)
-            promptStatus(processId, reqId, "Build log analysis timed out; using available log context.");
+            promptStatus(reqId, "Build log analysis timed out for " + stageSuffix +
+                "; using available log context.");
         else
-            promptStatus(processId, reqId, "Build log analysis finished.");
+            promptStatus(reqId, "Build log analysis finished for " + stageSuffix + ".");
     }
 
     /**
-     * @param processId User-visible process id.
      * @param reqId AI prompt monitor request id.
-     * @param stage Shared process stage.
      * @param text Detailed AI prompt stage text.
      */
-    private void promptStatus(@Nullable Long processId, long reqId, String text) {
+    private void promptStatus(long reqId, String text) {
         aiPromptMonitor.stage(reqId, text);
-        processMonitor.status(processId, text);
+        progress.report(text);
     }
 
     /** {@inheritDoc} */

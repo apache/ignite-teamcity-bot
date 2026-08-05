@@ -40,6 +40,9 @@ public class BotProcessStatus {
     /** Finished timestamp. */
     public long finished;
 
+    /** Failure flag. */
+    public boolean failed;
+
     /**
      * @param id Process id.
      */
@@ -75,6 +78,7 @@ public class BotProcessStatus {
         started = src.started;
         updated = src.updated;
         finished = src.finished;
+        failed = src.failed;
     }
 
     /**

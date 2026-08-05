@@ -82,11 +82,41 @@ public class GetSingleBuildTestFailuresRest {
         @QueryParam("serverId") String srvCodeOrAlias,
         @QueryParam("buildId") Integer buildId,
         @Nullable @QueryParam("maxDetailsChars") Integer maxDetailsChars,
+        @Nullable @QueryParam("waitForTc") Boolean waitForTc,
+        @Nullable @QueryParam("background") Boolean background,
         @Nullable @QueryParam("processId") Long processId) throws ServiceUnauthorizedException {
-        return CtxListener.getApplicationContext(ctx)
-            .getInstance(SingleBuildResultsService.class)
-            .getSingleBuildFailuresAiPrompt(srvCodeOrAlias, buildId, maxDetailsChars, SyncMode.RELOAD_QUEUED,
+        SingleBuildResultsService processor = CtxListener.getApplicationContext(ctx)
+            .getInstance(SingleBuildResultsService.class);
+
+        if (Boolean.TRUE.equals(background)) {
+            return processor.startSingleBuildFailuresAiPromptRefresh(srvCodeOrAlias, buildId, SyncMode.RELOAD_QUEUED,
                 ITcBotUserCreds.get(req), processId);
+        }
+
+        SyncMode mode = waitForTc == null || waitForTc ? SyncMode.RELOAD_QUEUED : SyncMode.NONE;
+
+        return processor.getSingleBuildFailuresAiPrompt(srvCodeOrAlias, buildId, maxDetailsChars, mode,
+            ITcBotUserCreds.get(req), processId);
+    }
+
+    @GET
+    @Path("failures/analyzeLogs")
+    @Produces(MediaType.TEXT_PLAIN)
+    public String analyzeBuildLogs(
+        @QueryParam("serverId") String srvCodeOrAlias,
+        @QueryParam("buildId") Integer buildId,
+        @Nullable @QueryParam("background") Boolean background,
+        @Nullable @QueryParam("processId") Long processId) throws ServiceUnauthorizedException {
+        SingleBuildResultsService processor = CtxListener.getApplicationContext(ctx)
+            .getInstance(SingleBuildResultsService.class);
+
+        if (Boolean.TRUE.equals(background)) {
+            return processor.startSingleBuildLogAnalysis(srvCodeOrAlias, buildId, SyncMode.RELOAD_QUEUED,
+                ITcBotUserCreds.get(req), processId);
+        }
+
+        return processor.analyzeSingleBuildLogs(srvCodeOrAlias, buildId, SyncMode.RELOAD_QUEUED,
+            ITcBotUserCreds.get(req), processId);
     }
 
     @GET

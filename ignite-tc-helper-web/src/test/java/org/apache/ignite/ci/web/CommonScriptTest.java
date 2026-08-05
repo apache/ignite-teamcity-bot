@@ -34,8 +34,11 @@ public class CommonScriptTest {
         assertTrue(js.contains("buttonText: \"Use current context now\""));
         assertTrue(js.contains("nextMode: false"));
         assertTrue(js.contains("requestTextCommand(options, state, nextMode, skip.stepText)"));
-        assertTrue(js.contains("return aiPromptUrlWithWaitForTc(url, waitForTc, processId)"));
+        assertTrue(js.contains("return aiPromptUrlWithWaitForTc(url, waitForTc, processId, waitForTc)"));
         assertTrue(js.contains("\"waitForTc=\" + waitForTc"));
+        assertTrue(js.contains("backgroundInitial: true"));
+        assertTrue(js.contains("\"&background=true\""));
+        assertTrue(js.contains("Building prompt from refreshed context."));
     }
 
     private static Path commonJs() {
