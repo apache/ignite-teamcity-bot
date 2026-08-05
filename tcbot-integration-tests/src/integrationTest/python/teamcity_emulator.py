@@ -227,6 +227,9 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/__test__/teamcity/forbid-build-details":
             return self.forbid_build_details()
 
+        if parsed.path == "/__test__/teamcity/reject-build-comments":
+            return self.reject_build_comments()
+
         if parsed.path == "/__test__/teamcity/reset":
             return self.reset()
 
@@ -555,6 +558,12 @@ class Handler(BaseHTTPRequestHandler):
             return self.json(401, {"message": "Authentication required"})
 
         payload = self.read_trigger_request()
+
+        if self.server.reject_build_comments and payload.get("hasComment"):
+            return self.xml(403, '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                            '<errors><error><message>You do not have "Comment build" permission in project with '
+                            'internal id: project17</message></error></errors>')
+
         self.server.next_build += 1
         build_id = str(self.server.next_build)
         branch = payload.get("branchName", "pull/12001/head")
@@ -634,11 +643,21 @@ class Handler(BaseHTTPRequestHandler):
 
         return self.json(200, build_json(build_id, build, self.server.server_port))
 
+    def reject_build_comments(self):
+        payload = self.read_json()
+        self.server.reject_build_comments = payload.get("enabled", True)
+
+        return self.json(200, {
+            "status": "configured",
+            "rejectBuildComments": self.server.reject_build_comments
+        })
+
     def reset(self):
         self.server.next_build = 900000
         self.server.builds = initial_builds()
         self.server.forbidden_build_details = set()
         self.server.build_details_requests = {}
+        self.server.reject_build_comments = False
 
         return self.json(200, {"status": "reset", "service": "teamcity"})
 
@@ -678,7 +697,8 @@ class Handler(BaseHTTPRequestHandler):
 
         return {
             "buildTypeId": build_type.group(1) if build_type else RUN_ALL,
-            "branchName": branch.group(1) if branch else "pull/12001/head"
+            "branchName": branch.group(1) if branch else "pull/12001/head",
+            "hasComment": "<comment" in body
         }
 
     def json(self, status, payload):
@@ -721,6 +741,7 @@ class Server(ThreadingHTTPServer):
         self.builds = initial_builds()
         self.forbidden_build_details = set()
         self.build_details_requests = {}
+        self.reject_build_comments = False
 
     def advance_build_lifecycle(self):
         now = time.time()

@@ -201,9 +201,7 @@ public class TeamcityServiceConnection implements ITeamcity {
                 "/>\n";
 
         String comments = " <comment><text>" +
-            Strings.nullToEmpty(freeTextComments) + ", " +
-            "Build triggered from Ignite TC Bot" +
-            " [cleanSources=" + cleanRebuild + ", cleanRebuild=" + cleanRebuild + ", top=" + queueAtTop + "]" +
+            XmlUtil.xmlEscapeText(buildComment(freeTextComments, cleanRebuild, queueAtTop)) +
             "</text></comment>\n";
 
         Map<String, Object> props = new HashMap<>();
@@ -213,10 +211,65 @@ public class TeamcityServiceConnection implements ITeamcity {
 
         props.put(ITeamcity.TCBOT_TRIGGER_TIME, System.currentTimeMillis()); //
 
+        StringBuilder buildWithComment = triggerBuildRequest(branchName, buildTypeId, triggeringOptions, comments,
+            props);
+
+        String url = host() + "app/rest/buildQueue";
+
+        try {
+            return sendTriggerBuildRequest(url, buildWithComment.toString(), buildTypeId, branchName, cleanRebuild,
+                queueAtTop, props);
+        }
+        catch (IllegalStateException e) {
+            if (!isMissingBuildCommentPermission(e))
+                throw e;
+
+            logger.warn("TeamCity rejected build comment while triggering buildTypeId={}, branchName={}; " +
+                "retrying build queue request without comment.", buildTypeId, branchName);
+
+            StringBuilder buildWithoutComment = triggerBuildRequest(branchName, buildTypeId, triggeringOptions, null,
+                props);
+
+            try {
+                return sendTriggerBuildRequest(url, buildWithoutComment.toString(), buildTypeId, branchName,
+                    cleanRebuild, queueAtTop, props);
+            }
+            catch (IOException retryErr) {
+                throw new UncheckedIOException(retryErr);
+            }
+        }
+        catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /**
+     * @param freeTextComments Additional comment text.
+     * @param cleanRebuild Clean rebuild flag.
+     * @param queueAtTop Queue-at-top flag.
+     */
+    private String buildComment(String freeTextComments, boolean cleanRebuild, boolean queueAtTop) {
+        return Strings.nullToEmpty(freeTextComments) + ", " +
+            "Build triggered from Ignite TC Bot" +
+            " [cleanSources=" + cleanRebuild + ", cleanRebuild=" + cleanRebuild + ", top=" + queueAtTop + "]";
+    }
+
+    /**
+     * @param branchName Branch name.
+     * @param buildTypeId Build type id.
+     * @param triggeringOptions Triggering options XML.
+     * @param comments Optional comment XML.
+     * @param props Build properties.
+     */
+    private StringBuilder triggerBuildRequest(String branchName, String buildTypeId, String triggeringOptions,
+        @Nullable String comments, Map<String, Object> props) {
         StringBuilder sb = new StringBuilder();
         sb.append("<build branchName=\"").append(XmlUtil.xmlEscapeText(branchName)).append("\">\n");
         sb.append(" <buildType id=\"").append(buildTypeId).append("\"/>\n");
-        sb.append(comments);
+
+        if (comments != null)
+            sb.append(comments);
+
         sb.append(triggeringOptions);
         sb.append(" <properties>\n");
 
@@ -228,27 +281,43 @@ public class TeamcityServiceConnection implements ITeamcity {
         sb.append(" </properties>\n");
         sb.append("</build>");
 
-        String url = host() + "app/rest/buildQueue";
+        return sb;
+    }
 
-        try {
-            logger.info("Triggering build: buildTypeId={}, branchName={}, cleanRebuild={}, queueAtTop={}, buildParms={}",
-                buildTypeId, branchName, cleanRebuild, queueAtTop, props);
+    /**
+     * @param url Build queue URL.
+     * @param body Request body.
+     * @param buildTypeId Build type id.
+     * @param branchName Branch name.
+     * @param cleanRebuild Clean rebuild flag.
+     * @param queueAtTop Queue-at-top flag.
+     * @param props Build properties.
+     */
+    private Build sendTriggerBuildRequest(String url, String body, String buildTypeId, String branchName,
+        boolean cleanRebuild, boolean queueAtTop, Map<String, Object> props) throws IOException {
+        logger.info("Triggering build: buildTypeId={}, branchName={}, cleanRebuild={}, queueAtTop={}, buildParms={}",
+            buildTypeId, branchName, cleanRebuild, queueAtTop, props);
 
-            String body = sb.toString();
+        if (logger.isDebugEnabled())
+            logger.debug("(TRIGGER REQUEST):\n" + body);
 
-            if (logger.isDebugEnabled())
-                logger.debug("(TRIGGER REQUEST):\n" + body);
-
-            try (StringReader reader = new StringReader(HttpUtil.sendPostAsString(basicAuthTok, url, body))) {
-                return XmlUtil.load(Build.class, reader);
-            }
-            catch (JAXBException e) {
-                throw ExceptionUtil.propagateException(e);
-            }
+        try (StringReader reader = new StringReader(HttpUtil.sendPostAsString(basicAuthTok, url, body))) {
+            return XmlUtil.load(Build.class, reader);
         }
-        catch (IOException e) {
-            throw new UncheckedIOException(e);
+        catch (JAXBException e) {
+            throw ExceptionUtil.propagateException(e);
         }
+    }
+
+    /**
+     * @param e TeamCity error.
+     */
+    private boolean isMissingBuildCommentPermission(IllegalStateException e) {
+        String msg = e.getMessage();
+
+        return msg != null
+            && msg.contains("Invalid Response Code : 403")
+            && msg.contains("\"Comment build\" permission");
     }
 
     /** {@inheritDoc} */

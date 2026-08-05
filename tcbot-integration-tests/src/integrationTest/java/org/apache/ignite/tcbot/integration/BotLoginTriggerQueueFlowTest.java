@@ -376,6 +376,48 @@ public class BotLoginTriggerQueueFlowTest {
 
     /** */
     @Test
+    public void suiteRetriggerFallsBackWhenTeamCityRejectsBuildComments() throws Exception {
+        String token = env.login();
+        String branch = "pull/12999/head";
+        String suiteId = "IgniteTests24Java17_ComputeGrid";
+
+        IntegrationTestEnvironment.HttpResponse configured = request("POST", env.teamcityUrl
+            + "/__test__/teamcity/reject-build-comments", null, "application/json",
+            "{\"enabled\":true}");
+
+        assertEquals(configured.body, 200, configured.status);
+        assertTrue(configured.body, configured.body.contains("\"rejectBuildComments\": true"));
+
+        try {
+            IntegrationTestEnvironment.HttpResponse trigger = request("GET", env.botUrl
+                + "/rest/build/triggerBuildsAsync"
+                + "?srvCode=apache"
+                + "&branchName=" + enc(branch)
+                + "&parentSuiteId=" + enc("IgniteTests24Java17_RunAll")
+                + "&suiteIdList=" + enc(suiteId)
+                + "&top=false"
+                + "&observe=false"
+                + "&cleanRebuild=false"
+                + "&processId=700000046",
+                "Token " + token, null, null);
+
+            assertEquals(trigger.body, 200, trigger.status);
+            assertTrue(trigger.body, trigger.body.contains("Trigger process started"));
+
+            String status = waitForProcess(700000046L, token);
+
+            assertTrue(status, status.contains("Tests started."));
+            assertTrue("Suite retrigger should create a build after retrying without TeamCity comment",
+                waitForTriggeredBuild(branch, suiteId) > 0);
+        }
+        finally {
+            request("POST", env.teamcityUrl + "/__test__/teamcity/reject-build-comments", null, "application/json",
+                "{\"enabled\":false}");
+        }
+    }
+
+    /** */
+    @Test
     public void currentPageRestModelForMasterIsNotEmpty() throws Exception {
         String token = env.login();
         IntegrationTestEnvironment.HttpResponse response = request("GET",
