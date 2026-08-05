@@ -23,10 +23,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
@@ -59,6 +61,8 @@ public class Cleaner {
 
     private final AtomicBoolean init = new AtomicBoolean();
     private final AtomicBoolean maintenanceActionRegistered = new AtomicBoolean();
+    private final ReentrantLock cacheCleanLock = new ReentrantLock();
+    private final ReentrantLock logCleanLock = new ReentrantLock();
 
     @Inject private IIssuesStorage issuesStorage;
     @Inject private FatBuildDao fatBuildDao;
@@ -439,25 +443,42 @@ public class Cleaner {
             executorService = Executors.newScheduledThreadPool(2);
 
             executorService.scheduleAtFixedRate(
-                () -> runScheduledClean("log files", () -> self.get().cleanLogs()),
+                () -> runScheduledClean("log files", logCleanLock, () -> self.get().cleanLogs()),
                 5,
                 cfg.getCleanerConfig().period(),
                 TimeUnit.MINUTES);
             executorService.scheduleAtFixedRate(
-                () -> runScheduledClean("cache data", () -> self.get().cleanCaches()),
+                () -> runScheduledClean("cache data", cacheCleanLock, () -> self.get().cleanCaches()),
                 10,
                 cfg.getCleanerConfig().period(),
                 TimeUnit.MINUTES);
         }
     }
 
-    /** Runs a periodic cleaner without allowing one failure to suppress all subsequent executions. */
-    private void runScheduledClean(String target, Runnable clean) {
+    /** Runs a periodic cleaner exclusively without allowing one failure to suppress subsequent executions. */
+    private void runScheduledClean(String target, ReentrantLock lock, Callable<String> clean) {
         try {
-            clean.run();
+            runExclusive(lock, clean);
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+
+            logger.info("Scheduled cleanup of " + target + " interrupted");
         }
         catch (Throwable e) {
             logger.error("Scheduled cleanup of " + target + " failed: " + e.getMessage(), e);
+        }
+    }
+
+    /** Serializes runs of the same cleaner before entering its monitored invocation. */
+    private String runExclusive(ReentrantLock lock, Callable<String> clean) throws Exception {
+        lock.lockInterruptibly();
+
+        try {
+            return clean.call();
+        }
+        finally {
+            lock.unlock();
         }
     }
 
@@ -466,10 +487,10 @@ public class Cleaner {
         if (maintenanceActionRegistered.compareAndSet(false, true)) {
             maintenanceActions.register(CACHE_CLEAN_ACTION_NAME,
                 "Remove old build data from Ignite caches",
-                () -> self.get().cleanCaches());
+                () -> runExclusive(cacheCleanLock, () -> self.get().cleanCaches()));
             maintenanceActions.register(LOG_CLEAN_ACTION_NAME,
                 "Remove old downloaded build logs and technical log files",
-                () -> self.get().cleanLogs());
+                () -> runExclusive(logCleanLock, () -> self.get().cleanLogs()));
         }
     }
 
