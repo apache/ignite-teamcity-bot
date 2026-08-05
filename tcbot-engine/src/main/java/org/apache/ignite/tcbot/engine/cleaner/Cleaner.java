@@ -438,10 +438,26 @@ public class Cleaner {
 
             executorService = Executors.newScheduledThreadPool(2);
 
-            executorService.scheduleAtFixedRate(() -> self.get().cleanLogs(), 5, cfg.getCleanerConfig().period(),
+            executorService.scheduleAtFixedRate(
+                () -> runScheduledClean("log files", () -> self.get().cleanLogs()),
+                5,
+                cfg.getCleanerConfig().period(),
                 TimeUnit.MINUTES);
-            executorService.scheduleAtFixedRate(() -> self.get().cleanCaches(), 10, cfg.getCleanerConfig().period(),
+            executorService.scheduleAtFixedRate(
+                () -> runScheduledClean("cache data", () -> self.get().cleanCaches()),
+                10,
+                cfg.getCleanerConfig().period(),
                 TimeUnit.MINUTES);
+        }
+    }
+
+    /** Runs a periodic cleaner without allowing one failure to suppress all subsequent executions. */
+    private void runScheduledClean(String target, Runnable clean) {
+        try {
+            clean.run();
+        }
+        catch (Throwable e) {
+            logger.error("Scheduled cleanup of " + target + " failed: " + e.getMessage(), e);
         }
     }
 
