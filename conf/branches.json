@@ -9,8 +9,8 @@
   "confidence": 0.995,
   "cleanerConfig": {
     "numOfItemsToDel": 100000,
-    "safeDaysForCaches": 150,
-    "safeDaysForLogs": 90,
+    "safeDaysForCaches": 110,
+    "safeDaysForLogs": 30,
     "period": 1440
   },
   /* Teamcity Integration Parameters */

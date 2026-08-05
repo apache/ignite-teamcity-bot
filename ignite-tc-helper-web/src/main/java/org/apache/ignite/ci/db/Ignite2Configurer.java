@@ -50,7 +50,7 @@ public class Ignite2Configurer {
     public static final String LOG_TOTAL_SIZE_CAP = "teamcity.bot.log.totalSizeCap";
 
     /** Default total size cap for rolled logs. */
-    public static final String DEFAULT_LOG_TOTAL_SIZE_CAP = "10GB";
+    public static final String DEFAULT_LOG_TOTAL_SIZE_CAP = "5GB";
 
     public static void configLogger(File workDir, String subdir) {
         LoggerContext logCtx = (LoggerContext)LoggerFactory.getILoggerFactory();

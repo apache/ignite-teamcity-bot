@@ -79,8 +79,11 @@ public class Cleaner {
 
     private ScheduledExecutorService executorService;
 
-    /** Maintenance action name. */
-    public static final String MAINTENANCE_ACTION_NAME = "Cleaner.clean";
+    /** Cache cleanup maintenance action name. */
+    public static final String CACHE_CLEAN_ACTION_NAME = "Cleaner.cleanCaches";
+
+    /** Log cleanup maintenance action name. */
+    public static final String LOG_CLEAN_ACTION_NAME = "Cleaner.cleanLogs";
 
     @AutoProfiling
     @MonitoredTask(name = "Clean old cache data and log files")
@@ -103,9 +106,7 @@ public class Cleaner {
                 logger.info("Some log files (numOfItemsToDel=" + numOfItemsToDel + ") older than " + thresholdDateForLogs + " will be removed.");
 
                 CacheCleanResult cacheRes = removeCacheEntries(thresholdDateForCaches, numOfItemsToDel);
-
                 LogCleanResult logRes = removeLogFiles(thresholdDateForLogs, numOfItemsToDel);
-
                 String res = cacheRes.summary() + "; " + logRes.summary();
 
                 report(res);
@@ -125,6 +126,52 @@ public class Cleaner {
 
             return "Periodic cache and log clean failed: " + e.getMessage();
         }
+    }
+
+    @AutoProfiling
+    @MonitoredTask(name = "Clean old cache data")
+    public String cleanCaches() {
+        if (!cfg.getCleanerConfig().enabled()) {
+            logger.info("Periodic cache clean disabled.");
+
+            return "Periodic cache clean disabled.";
+        }
+
+        int numOfItemsToDel = cfg.getCleanerConfig().numOfItemsToDel();
+        long safeDaysForCaches = cfg.getCleanerConfig().safeDaysForCaches();
+        ZonedDateTime thresholdDate = ZonedDateTime.now().minusDays(safeDaysForCaches);
+
+        logger.info("Some data from caches (numOfItemsToDel=" + numOfItemsToDel + ") older than "
+            + thresholdDate + " will be removed.");
+
+        String res = removeCacheEntries(thresholdDate, numOfItemsToDel).summary();
+
+        report(res);
+
+        return res;
+    }
+
+    @AutoProfiling
+    @MonitoredTask(name = "Clean old log files")
+    public String cleanLogs() {
+        if (!cfg.getCleanerConfig().enabled()) {
+            logger.info("Periodic log clean disabled.");
+
+            return "Periodic log clean disabled.";
+        }
+
+        int numOfItemsToDel = cfg.getCleanerConfig().numOfItemsToDel();
+        long safeDaysForLogs = cfg.getCleanerConfig().safeDaysForLogs();
+        ZonedDateTime thresholdDate = ZonedDateTime.now().minusDays(safeDaysForLogs);
+
+        logger.info("Some log files (numOfItemsToDel=" + numOfItemsToDel + ") older than " + thresholdDate
+            + " will be removed.");
+
+        String res = removeLogFiles(thresholdDate, numOfItemsToDel).summary();
+
+        report(res);
+
+        return res;
     }
 
     private CacheCleanResult removeCacheEntries(ZonedDateTime thresholdDate, int numOfItemsToDel) {
@@ -389,9 +436,11 @@ public class Cleaner {
             buildConditionDao.init();
             fatBuildDao.init();
 
-            executorService = Executors.newSingleThreadScheduledExecutor();
+            executorService = Executors.newScheduledThreadPool(2);
 
-            executorService.scheduleAtFixedRate(() -> self.get().clean(), 5, cfg.getCleanerConfig().period(),
+            executorService.scheduleAtFixedRate(() -> self.get().cleanLogs(), 5, cfg.getCleanerConfig().period(),
+                TimeUnit.MINUTES);
+            executorService.scheduleAtFixedRate(() -> self.get().cleanCaches(), 10, cfg.getCleanerConfig().period(),
                 TimeUnit.MINUTES);
         }
     }
@@ -399,9 +448,12 @@ public class Cleaner {
     /** Registers manual cleaner action for monitoring management UI. */
     private void registerMaintenanceAction() {
         if (maintenanceActionRegistered.compareAndSet(false, true)) {
-            maintenanceActions.register(MAINTENANCE_ACTION_NAME,
-                "Run cleaner for old cache data and log files",
-                () -> self.get().clean());
+            maintenanceActions.register(CACHE_CLEAN_ACTION_NAME,
+                "Remove old build data from Ignite caches",
+                () -> self.get().cleanCaches());
+            maintenanceActions.register(LOG_CLEAN_ACTION_NAME,
+                "Remove old downloaded build logs and technical log files",
+                () -> self.get().cleanLogs());
         }
     }
 

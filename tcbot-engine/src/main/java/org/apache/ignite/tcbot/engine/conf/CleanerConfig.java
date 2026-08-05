@@ -19,7 +19,10 @@ package org.apache.ignite.tcbot.engine.conf;
 /** */
 public class CleanerConfig implements ICleanerConfig{
     /** */
-    public static final int DEFAULT_SAVE_DAYS = 30 * 6;
+    public static final int DEFAULT_CACHE_SAVE_DAYS = 110;
+
+    /** Default retention period for downloaded TeamCity build logs. */
+    public static final int DEFAULT_LOG_SAVE_DAYS = 30;
 
     /** */
     public static final int DEFAULT_NUMBER_OF_ITEMS_TO_DELETE = 100_000;
@@ -45,8 +48,8 @@ public class CleanerConfig implements ICleanerConfig{
     /** */
     public static CleanerConfig getDefaultCleanerConfig() {
         CleanerConfig cfg = new CleanerConfig();
-        cfg.safeDaysForCaches = DEFAULT_SAVE_DAYS;
-        cfg.safeDaysForLogs = DEFAULT_SAVE_DAYS;
+        cfg.safeDaysForCaches = DEFAULT_CACHE_SAVE_DAYS;
+        cfg.safeDaysForLogs = DEFAULT_LOG_SAVE_DAYS;
         cfg.numOfItemsToDel = DEFAULT_NUMBER_OF_ITEMS_TO_DELETE;
         cfg.enabled = true;
         cfg.period = DEFAULT_PERIOD_MINUTES;
@@ -55,12 +58,12 @@ public class CleanerConfig implements ICleanerConfig{
 
     /** */
     public int safeDaysForCaches() {
-        return safeDaysForCaches == null || safeDaysForCaches < 0 ? DEFAULT_SAVE_DAYS : safeDaysForCaches;
+        return safeDaysForCaches == null || safeDaysForCaches < 0 ? DEFAULT_CACHE_SAVE_DAYS : safeDaysForCaches;
     }
 
     /** */
     public int safeDaysForLogs() {
-        return safeDaysForLogs == null || safeDaysForLogs < 0 ? DEFAULT_SAVE_DAYS : safeDaysForLogs;
+        return safeDaysForLogs == null || safeDaysForLogs < 0 ? DEFAULT_LOG_SAVE_DAYS : safeDaysForLogs;
     }
 
     /** */
