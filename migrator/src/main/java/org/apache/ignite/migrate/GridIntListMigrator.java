@@ -78,7 +78,8 @@ public final class GridIntListMigrator {
     private static final List<String> GRID_INT_LIST_CACHE_NAMES = Collections.unmodifiableList(Arrays.asList(
         "teamcityFatBuild",
         "teamcityFatBuildType",
-        "teamcitySuiteHistory"
+        "teamcitySuiteHistory",
+        "botDetectedDefects"
     ));
 
     /**

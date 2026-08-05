@@ -233,7 +233,8 @@ public class DbMigrations {
         applyDestroyCacheMigration(Old.TEST_HIST_CACHE_NAME_V2_0);
         applyDestroyCacheMigration(Old.SUITE_HIST_CACHE_NAME_V2_0);
 
-        applyGridIntListMigration();
+        applyGridIntListMigration("migrate-GridIntList", null);
+        applyGridIntListMigration("migrate-GridIntList-botDetectedDefects", "botDetectedDefects");
 
         int sizeAfter = doneMigrations.size();
         return (sizeAfter - sizeBefore) + " Migrations done from " + sizeAfter;
@@ -314,12 +315,11 @@ public class DbMigrations {
     /**
      * Applies the GridIntList migration from ignite.internal to tcbot-common realization
      */
-    private void applyGridIntListMigration() {
-        applyMigration("migrate-GridIntList", () -> {
+    private void applyGridIntListMigration(String migrationCode, String cacheFilter) {
+        applyMigration(migrationCode, () -> {
             try {
-                logger.info("Starting GridIntList type migration");
+                logger.info("Starting GridIntList type migration [cacheFilter={}]", cacheFilter);
 
-                String cacheFilter = null;
                 boolean apply = true;
                 boolean verbose = false;
                 int reportEvery = 50000;

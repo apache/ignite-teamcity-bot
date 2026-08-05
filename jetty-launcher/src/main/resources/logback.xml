@@ -1,6 +1,6 @@
 <configuration>
     <property name="TCBOT_LOG_DIR" value="${teamcity.helper.home:-../work}/tcbot_logs"/>
-    <property name="TCBOT_LOG_TOTAL_SIZE_CAP" value="${teamcity.bot.log.totalSizeCap:-10GB}"/>
+    <property name="TCBOT_LOG_TOTAL_SIZE_CAP" value="${teamcity.bot.log.totalSizeCap:-5GB}"/>
 
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${TCBOT_LOG_DIR}/logfile-.log</file>

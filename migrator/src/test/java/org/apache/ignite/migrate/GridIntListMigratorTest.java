@@ -55,6 +55,9 @@ public class GridIntListMigratorTest {
     /** Production cache that may contain GridIntList. */
     private static final String FAT_BUILD = "teamcityFatBuild";
 
+    /** Defect cache containing nested fat builds. */
+    private static final String BOT_DETECTED_DEFECTS = "botDetectedDefects";
+
     /** Cache from the production failure. */
     private static final String BUILD_LOG_CHECK_RESULT = "buildLogCheckResult";
 
@@ -254,6 +257,27 @@ public class GridIntListMigratorTest {
 
         assertTrue("No entries should be updated in skipped caches", updated == 0);
         verify(ignite, never()).cache(BUILD_LOG_CHECK_RESULT);
+    }
+
+    /**
+     * Checks that defect values with nested fat builds are included in the default migration.
+     */
+    @Test public void migrationScansBotDetectedDefectsByDefault() {
+        Ignite ignite = mock(Ignite.class);
+        IgniteCache<Object, Object> rawCache = mock(IgniteCache.class);
+        IgniteCache<Object, Object> binCache = mock(IgniteCache.class);
+        QueryCursor<Cache.Entry<Object, Object>> cursor = mock(QueryCursor.class);
+
+        when(ignite.cacheNames()).thenReturn(Collections.singleton(BOT_DETECTED_DEFECTS));
+        when(ignite.cache(BOT_DETECTED_DEFECTS)).thenReturn(rawCache);
+        when(rawCache.withKeepBinary()).thenReturn(binCache);
+        when(binCache.query(any(ScanQuery.class))).thenReturn(cursor);
+        when(cursor.iterator()).thenReturn(Collections.<Cache.Entry<Object, Object>>emptyList().iterator());
+
+        long updated = GridIntListMigrator.migrateOnInstance(ignite, null, true, false, 1);
+
+        assertTrue("No entries should be updated in an empty cache", updated == 0);
+        verify(ignite).cache(BOT_DETECTED_DEFECTS);
     }
 
     /**
